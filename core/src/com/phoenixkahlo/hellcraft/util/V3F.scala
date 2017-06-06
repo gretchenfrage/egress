@@ -22,6 +22,9 @@ class V3F(val x: Float, val y: Float, val z: Float) {
   def <(o: V3F): Boolean =
     x < o.x && y < o.y && z < o.z
 
+  def *(s: Float): V3F =
+    V3F(x * s, y * s, z * s)
+
   lazy val toGdx = new Vector3(x, y, z)
 
   protected def toIntsStrategy =

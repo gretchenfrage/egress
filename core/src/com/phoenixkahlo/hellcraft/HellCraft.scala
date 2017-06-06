@@ -25,13 +25,13 @@ class HellCraft extends ApplicationAdapter {
     world = new World(5, 5, 5)
     val rand = new Random()
 
-    /*for (v <- Origin until world.size)
+    for (v <- Origin until world.size)
       if (rand.nextBoolean())
-        world.set(v, Stone)*/
-
-    for (v <- (Origin + Ones) until (world.size - Ones))
+        world.set(v, Stone)
+    /*
+    for (v <- Origin until world.size)
       world.set(v, Stone)
-
+    */
     //world.set(V3I(0, 0, 0), Stone)
 
     cam = new PerspectiveCamera(67, Gdx.graphics.getWidth, Gdx.graphics.getHeight)

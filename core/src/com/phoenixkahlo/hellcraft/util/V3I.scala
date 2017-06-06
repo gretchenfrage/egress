@@ -23,6 +23,9 @@ class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
   override protected def toIntsStrategy: V3I =
     this
 
+  def *(s: Int): V3I =
+    V3I(xi * s, yi * s, zi * s)
+
   def until(o: V3I) =
     for {
       x <- xi until o.xi

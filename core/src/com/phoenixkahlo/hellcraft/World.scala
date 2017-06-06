@@ -32,7 +32,7 @@ class World(val size: V3I) extends RenderableProvider {
   private def computeSurface(v: V3I, surface: Direction): Unit = //TODO: return whether the surface was changed
     (this(v), this(v + surface)) match {
       case (Some(block1), Some(block2)) =>
-        if (block1.isOpaque && !block2.isOpaque) {
+        if (block1.isOpaque && block2.isTranslucent) {
           if (exposed(surface).add(v)) {
             model.invalidate
           }
@@ -79,10 +79,10 @@ class World(val size: V3I) extends RenderableProvider {
     )
     for (v <- exposed(Up))
       makePBuilder.rect(
-        (v + V3F(-0.5f, 0.5f, -0.5f)).toGdx,
-        (v + V3F(0.5f, 0.5f, -0.5f)).toGdx,
+        (v + V3F(-0.5f, 0.5f, 0.5f)).toGdx,
         (v + V3F(0.5f, 0.5f, 0.5f)).toGdx,
         (v + V3F(0.5f, 0.5f, -0.5f)).toGdx,
+        (v + V3F(-0.5f, 0.5f, -0.5f)).toGdx,
         Up.toGdx
       )
     for (v <- exposed(Down))
@@ -90,7 +90,7 @@ class World(val size: V3I) extends RenderableProvider {
         (v + V3F(-0.5f, -0.5f, -0.5f)).toGdx,
         (v + V3F(0.5f, -0.5f, -0.5f)).toGdx,
         (v + V3F(0.5f, -0.5f, 0.5f)).toGdx,
-        (v + V3F(0.5f, -0.5f, -0.5f)).toGdx,
+        (v + V3F(-0.5f, -0.5f, 0.5f)).toGdx,
         Down.toGdx
       )
     for (v <- exposed(North))
@@ -98,15 +98,15 @@ class World(val size: V3I) extends RenderableProvider {
         (v + V3F(-0.5f, -0.5f, 0.5f)).toGdx,
         (v + V3F(0.5f, -0.5f, 0.5f)).toGdx,
         (v + V3F(0.5f, 0.5f, 0.5f)).toGdx,
-        (v + V3F(0.5f, -0.5f, 0.5f)).toGdx,
+        (v + V3F(-0.5f, 0.5f, 0.5f)).toGdx,
         North.toGdx
       )
     for (v <- exposed(South))
       makePBuilder.rect(
-        (v + V3F(-0.5f, -0.5f, -0.5f)).toGdx,
-        (v + V3F(0.5f, -0.5f, -0.5f)).toGdx,
+        (v + V3F(-0.5f, 0.5f, -0.5f)).toGdx,
         (v + V3F(0.5f, 0.5f, -0.5f)).toGdx,
         (v + V3F(0.5f, -0.5f, -0.5f)).toGdx,
+        (v + V3F(-0.5f, -0.5f, -0.5f)).toGdx,
         South.toGdx
       )
     for (v <- exposed(East))
@@ -119,10 +119,10 @@ class World(val size: V3I) extends RenderableProvider {
       )
     for (v <- exposed(West))
       makePBuilder.rect(
-        (v + V3F(-0.5f, -0.5f, -0.5f)).toGdx,
-        (v + V3F(-0.5f, 0.5f, -0.5f)).toGdx,
-        (v + V3F(-0.5f, 0.5f, 0.5f)).toGdx,
         (v + V3F(-0.5f, -0.5f, 0.5f)).toGdx,
+        (v + V3F(-0.5f, 0.5f, 0.5f)).toGdx,
+        (v + V3F(-0.5f, 0.5f, -0.5f)).toGdx,
+        (v + V3F(-0.5f, -0.5f, -0.5f)).toGdx,
         West.toGdx
       )
     new ModelInstance(builder.end())
