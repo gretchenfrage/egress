@@ -11,24 +11,48 @@ import com.phoenixkahlo.hellcraft.util._
 import scala.collection.mutable
 import scala.concurrent.forkjoin.ThreadLocalRandom
 
-class World(val xs: Int, val ys: Int, val zs: Int) extends RenderableProvider {
+class World(val size: V3I) extends RenderableProvider {
 
-  val blocks = new Array[Byte](xs * ys * zs)
+  def this(x: Int, y: Int, z: Int) =
+    this(V3I(x, y, z))
+
+  val blocks = new Array[Byte](size.xi * size.yi * size.zi)
   val exposed: Map[Direction, mutable.Set[V3I]] = Directions() map ((_, new mutable.HashSet[V3I]())) toMap
   val model = new Cache(computeModel())
 
   private def compress(v: V3I): Int =
-    v.x + v.z * xs + v.y * xs * zs
+    v.xi + v.zi * size.xi + v.yi * size.xi * size.zi
 
-  def apply(v: V3I): Block =
-    BlockDirectory.lookup(blocks(compress(v)))
-
-  private def computeSurface(v: V3I, surface: Direction): Unit = {
-    if (this(v).isOpaque || this(v + surface).isOpaque)
-      exposed(surface).add(v)
+  def apply(v: V3I): Option[Block] =
+    if (v > Origin && v < size)
+      Some(BlockDirectory.lookup(blocks(compress(v))))
     else
-      exposed(surface).remove(v)
-  }
+      None
+
+  private def computeSurface(v: V3I, surface: Direction): Unit = //TODO: return whether the surface was changed
+    (this(v), this(v + surface)) match {
+      case (Some(block1), Some(block2)) =>
+        if (block1.isOpaque && !block2.isOpaque) {
+          if (exposed(surface).add(v)) {
+            model.invalidate
+          }
+        } else {
+          if (exposed(surface).remove(v)) {
+            model.invalidate
+          }
+        }
+      case (Some(block), None) =>
+        if (block isOpaque) {
+          if (exposed(surface).add(v)) {
+            model.invalidate
+          }
+        } else {
+          if (exposed(surface).remove(v)) {
+            model.invalidate
+          }
+        }
+      case _ =>
+    }
 
   def set(v: V3I, block: Block): Unit = {
     blocks.update(compress(v), block.id)
@@ -39,6 +63,7 @@ class World(val xs: Int, val ys: Int, val zs: Int) extends RenderableProvider {
   }
 
   private def computeModel(): ModelInstance = {
+    println("computing model")
     val builder = new ModelBuilder()
     builder.begin()
     def makePBuilder = builder.part(
@@ -54,51 +79,51 @@ class World(val xs: Int, val ys: Int, val zs: Int) extends RenderableProvider {
     )
     for (v <- exposed(Up))
       makePBuilder.rect(
-        (v.toFloats + V3F(-0.5f, 0.5f, -0.5f)).toGdx,
-        (v.toFloats + V3F(0.5f, 0.5f, -0.5f)).toGdx,
-        (v.toFloats + V3F(0.5f, 0.5f, 0.5f)).toGdx,
-        (v.toFloats + V3F(0.5f, 0.5f, -0.5f)).toGdx,
-        new Vector3(0, 1, 0)
+        (v + V3F(-0.5f, 0.5f, -0.5f)).toGdx,
+        (v + V3F(0.5f, 0.5f, -0.5f)).toGdx,
+        (v + V3F(0.5f, 0.5f, 0.5f)).toGdx,
+        (v + V3F(0.5f, 0.5f, -0.5f)).toGdx,
+        Up.toGdx
       )
     for (v <- exposed(Down))
       makePBuilder.rect(
-        (v.toFloats + V3F(-0.5f, -0.5f, -0.5f)).toGdx,
-        (v.toFloats + V3F(0.5f, -0.5f, -0.5f)).toGdx,
-        (v.toFloats + V3F(0.5f, -0.5f, 0.5f)).toGdx,
-        (v.toFloats + V3F(0.5f, -0.5f, -0.5f)).toGdx,
-        new Vector3(0, -1, 0)
+        (v + V3F(-0.5f, -0.5f, -0.5f)).toGdx,
+        (v + V3F(0.5f, -0.5f, -0.5f)).toGdx,
+        (v + V3F(0.5f, -0.5f, 0.5f)).toGdx,
+        (v + V3F(0.5f, -0.5f, -0.5f)).toGdx,
+        Down.toGdx
       )
     for (v <- exposed(North))
       makePBuilder.rect(
-        (v.toFloats + V3F(-0.5f, -0.5f, 0.5f)).toGdx,
-        (v.toFloats + V3F(0.5f, -0.5f, 0.5f)).toGdx,
-        (v.toFloats + V3F(0.5f, 0.5f, 0.5f)).toGdx,
-        (v.toFloats + V3F(0.5f, -0.5f, 0.5f)).toGdx,
-        new Vector3(0, 0, 1)
+        (v + V3F(-0.5f, -0.5f, 0.5f)).toGdx,
+        (v + V3F(0.5f, -0.5f, 0.5f)).toGdx,
+        (v + V3F(0.5f, 0.5f, 0.5f)).toGdx,
+        (v + V3F(0.5f, -0.5f, 0.5f)).toGdx,
+        North.toGdx
       )
     for (v <- exposed(South))
       makePBuilder.rect(
-        (v.toFloats + V3F(-0.5f, -0.5f, -0.5f)).toGdx,
-        (v.toFloats + V3F(0.5f, -0.5f, -0.5f)).toGdx,
-        (v.toFloats + V3F(0.5f, 0.5f, -0.5f)).toGdx,
-        (v.toFloats + V3F(0.5f, -0.5f, -0.5f)).toGdx,
-        new Vector3(0, 0, -1)
+        (v + V3F(-0.5f, -0.5f, -0.5f)).toGdx,
+        (v + V3F(0.5f, -0.5f, -0.5f)).toGdx,
+        (v + V3F(0.5f, 0.5f, -0.5f)).toGdx,
+        (v + V3F(0.5f, -0.5f, -0.5f)).toGdx,
+        South.toGdx
       )
     for (v <- exposed(East))
       makePBuilder.rect(
-        (v.toFloats + V3F(0.5f, -0.5f, -0.5f)).toGdx,
-        (v.toFloats + V3F(0.5f, 0.5f, -0.5f)).toGdx,
-        (v.toFloats + V3F(0.5f, 0.5f, 0.5f)).toGdx,
-        (v.toFloats + V3F(0.5f, -0.5f, 0.5f)).toGdx,
-        new Vector3(1, 0, 0)
+        (v + V3F(0.5f, -0.5f, -0.5f)).toGdx,
+        (v + V3F(0.5f, 0.5f, -0.5f)).toGdx,
+        (v + V3F(0.5f, 0.5f, 0.5f)).toGdx,
+        (v + V3F(0.5f, -0.5f, 0.5f)).toGdx,
+        East.toGdx
       )
     for (v <- exposed(West))
       makePBuilder.rect(
-        (v.toFloats + V3F(-0.5f, -0.5f, -0.5f)).toGdx,
-        (v.toFloats + V3F(-0.5f, 0.5f, -0.5f)).toGdx,
-        (v.toFloats + V3F(-0.5f, 0.5f, 0.5f)).toGdx,
-        (v.toFloats + V3F(-0.5f, -0.5f, 0.5f)).toGdx,
-        new Vector3(-1, 0, 0)
+        (v + V3F(-0.5f, -0.5f, -0.5f)).toGdx,
+        (v + V3F(-0.5f, 0.5f, -0.5f)).toGdx,
+        (v + V3F(-0.5f, 0.5f, 0.5f)).toGdx,
+        (v + V3F(-0.5f, -0.5f, 0.5f)).toGdx,
+        West.toGdx
       )
     new ModelInstance(builder.end())
   }
