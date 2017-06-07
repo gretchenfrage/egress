@@ -35,6 +35,8 @@ class World(val size: V3I) extends RenderableProvider {
 
   def computeSurface(v: V3I, surface: Direction): Boolean = {
     (this(v), this(v + surface)) match {
+        // if the target is non-existent, the face is non-existent (invisible)
+      case (None, _) => false
         // if the target is translucent, the face is invisible
       case (Some(target), _) if target isTranslucent => exposed(surface).remove(v)
         // if the cover is opaque, the face is invisible
