@@ -30,6 +30,16 @@ class World(val size: V3I) extends RenderableProvider {
     // fold the exposure sets into vertex data and indices
     type VertDatum = (V3F, Color)
     var data: (List[VertDatum], List[Short]) = (Nil, Nil)
+
+    def addSquareIndices(verts: List[VertDatum], indices: List[Short]): List[Short] =
+      indices
+        .::((verts.length * vertSize + 0).toShort)
+        .::((verts.length * vertSize + 1).toShort)
+        .::((verts.length * vertSize + 2).toShort)
+        .::((verts.length * vertSize + 0).toShort)
+        .::((verts.length * vertSize + 2).toShort)
+        .::((verts.length * vertSize + 3).toShort)
+
     data = exposed(Up).foldLeft(data)(
       (data, v) => data match {
         case (verts, indices) => (
@@ -38,14 +48,51 @@ class World(val size: V3I) extends RenderableProvider {
             .::((v + V3F(0.5f, 0.5f, 0.5f), Color.RED))
             .::((v + V3F(0.5f, 0.5f, -0.5f), Color.RED))
             .::((v + V3F(-0.5f, 0.5f, -0.5f), Color.RED)),
+          addSquareIndices(verts, indices)
+        )
+      }
+    )
+    data = exposed(Down).foldLeft(data)(
+      (data, v) => data match {
+        case (verts, indices) => (
+          verts
+            .::((v + V3F(-0.5f, -0.5f, 0.5f), Color.GREEN))
+            .::((v + V3F(-0.5f, -0.5f, -0.5f), Color.GREEN))
+            .::((v + V3F(0.5f, -0.5f, -0.5f), Color.GREEN))
+            .::((v + V3F(0.5f, -0.5f, 0.5f), Color.GREEN)),
+          addSquareIndices(verts, indices)
+        )
+      }
+    )
+    data = exposed(North).foldLeft(data)(
+      (data, v) => data match {
+        case (verts, indices) => (
+          verts,
           indices
-            .::((verts.length * vertSize + 0).toShort)
-            .::((verts.length * vertSize + 1).toShort)
-            .::((verts.length * vertSize + 2).toShort)
-            .::((verts.length * vertSize + 0).toShort)
-            .::((verts.length * vertSize + 2).toShort)
-            .::((verts.length * vertSize + 3).toShort)
-
+        )
+      }
+    )
+    data = exposed(South).foldLeft(data)(
+      (data, v) => data match {
+        case (verts, indices) => (
+          verts,
+          indices
+        )
+      }
+    )
+    data = exposed(East).foldLeft(data)(
+      (data, v) => data match {
+        case (verts, indices) => (
+          verts,
+          indices
+        )
+      }
+    )
+    data = exposed(West).foldLeft(data)(
+      (data, v) => data match {
+        case (verts, indices) => (
+          verts,
+          indices
         )
       }
     )

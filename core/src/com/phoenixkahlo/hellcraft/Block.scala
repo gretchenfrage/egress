@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft
 
 import scala.collection.immutable.Map
 
-abstract class Block(
+sealed abstract class Block(
                       val id: Byte,
                       val isOpaque: Boolean = true
                     ) {
