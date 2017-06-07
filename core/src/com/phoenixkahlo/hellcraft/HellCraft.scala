@@ -9,7 +9,7 @@ import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch}
 import com.badlogic.gdx.graphics.{GL20, PerspectiveCamera}
 import com.badlogic.gdx.{ApplicationAdapter, Gdx}
-import com.phoenixkahlo.hellcraft.util.{Origin, V3I, Ones}
+import com.phoenixkahlo.hellcraft.util.{Directions, Ones, Origin, V3I}
 
 import scala.util.Random
 
@@ -22,22 +22,24 @@ class HellCraft extends ApplicationAdapter {
   private var lights: Environment = _
 
   override def create(): Unit = {
-    world = new World(5, 5, 5)
+    world = new World(25, 25, 25)
     val rand = new Random()
 
+    println("generating")
     for (v <- Origin until world.size)
       if (rand.nextBoolean())
         world.set(v, Stone)
     /*
     for (v <- Origin until world.size)
       world.set(v, Stone)
-    */
+      */
     //world.set(V3I(0, 0, 0), Stone)
+    println("generated")
 
     cam = new PerspectiveCamera(67, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     cam.near = 0.5f
     cam.far = 1000
-    cam.position.set(10, 10, 10)
+    cam.position.set((world.size + V3I(10, 10, 10)).toGdx)
     cam.lookAt(0, 0, 0)
     controller = new FirstPersonCameraController(cam)
     Gdx.input.setInputProcessor(controller)

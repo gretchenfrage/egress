@@ -12,6 +12,15 @@ sealed abstract class Direction(override val xi: Int, override val yi: Int, over
     case East => West
     case West => East
   }
+
+  override def toString: String = this match {
+    case Up => "up"
+    case Down => "down"
+    case North => "north"
+    case South => "south"
+    case East => "east"
+    case West => "west"
+  }
 }
 
 object Up extends Direction(0, 1, 0)

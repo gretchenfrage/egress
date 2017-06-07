@@ -20,6 +20,12 @@ class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
   def <(o: V3I): Boolean =
     xi < o.xi && yi < o.yi && zi < o.zi
 
+  def >=(o: V3I): Boolean =
+    xi >= o.xi && yi >= o.yi && zi >= o.zi
+
+  def <=(o: V3I): Boolean =
+    xi <= o.xi && yi <= o.yi && zi <= o.zi
+
   override protected def toIntsStrategy: V3I =
     this
 
@@ -40,6 +46,9 @@ class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
       z <- zi to o.zi
     } yield V3I(x, y, z)
 
+  override def toString: String =
+    "<" + xi + ", " + yi + ", " + zi + ">"
+
 }
 
 object Origin extends V3I(0, 0, 0)
@@ -49,5 +58,8 @@ object V3I {
 
   def apply(x: Int, y: Int, z: Int) =
     new V3I(x, y, z)
+
+  def unapply(v: V3I): Option[(Int, Int, Int)] =
+    Some((v.xi, v.yi, v.zi))
 
 }
