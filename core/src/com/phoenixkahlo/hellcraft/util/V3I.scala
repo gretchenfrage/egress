@@ -46,6 +46,9 @@ class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
       z <- zi to o.zi
     } yield V3I(x, y, z)
 
+  def monoidFold(f: (Int, Int) => Int) =
+    f(xi, f(yi, zi))
+
   override def toString: String =
     "<" + xi + ", " + yi + ", " + zi + ">"
 

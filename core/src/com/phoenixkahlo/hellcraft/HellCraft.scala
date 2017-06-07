@@ -22,17 +22,18 @@ class HellCraft extends ApplicationAdapter {
   private var lights: Environment = _
 
   override def create(): Unit = {
-    world = new World(25, 25, 25)
+    world = new World(1, 1, 1)
     val rand = new Random()
 
     println("generating")
+    /*
     for (v <- Origin until world.size)
       if (rand.nextBoolean())
         world.set(v, Stone)
-    /*
+        */
     for (v <- Origin until world.size)
       world.set(v, Stone)
-      */
+
     //world.set(V3I(0, 0, 0), Stone)
     println("generated")
 
