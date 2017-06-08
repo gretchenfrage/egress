@@ -1,5 +1,7 @@
 package com.phoenixkahlo.hellcraft
 
+import com.phoenixkahlo.hellcraft.util.V2F
+
 import scala.collection.immutable.Map
 
 sealed abstract class Block(

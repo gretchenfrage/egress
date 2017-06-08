@@ -1,9 +1,10 @@
 package com.phoenixkahlo.hellcraft
 
-import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
+import com.badlogic.gdx.graphics._
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
-import com.badlogic.gdx.graphics.g3d.{Renderable, RenderableProvider}
-import com.badlogic.gdx.utils
+import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
+import com.badlogic.gdx.graphics.g3d.{Material, Renderable, RenderableProvider}
+import com.badlogic.gdx.{Gdx, utils}
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.util._
 
@@ -11,6 +12,10 @@ import scala.collection.mutable
 
 class WorldRenderer(val world: World) extends RenderableProvider {
 
+  /**
+    * The texture sheet
+    */
+  val stone = new Texture(Gdx.files.internal("stone.png"))
   /**
     * The world's versionID that this renderer is currently updated to
     */
@@ -26,10 +31,12 @@ class WorldRenderer(val world: World) extends RenderableProvider {
     // create a mesh
     val mesh = new Mesh(true, 4 * 6 * world.blocks.length, 6 * 6 * world.blocks.length,
       new VertexAttribute(Usage.Position, 3, "a_position"),
-      new VertexAttribute(Usage.ColorPacked, 4, "a_color"))
+      new VertexAttribute(Usage.ColorPacked, 4, "a_color"),
+      new VertexAttribute(Usage.TextureCoordinates, 2, "a_texCoord0")
+    )
 
     // fold the exposure sets into vertex data and indices
-    type VertDatum = (V3F, Color)
+    type VertDatum = (V3F, Color, V2F)
     val vertSize = mesh.getVertexSize / 4 // convert from size in bytes to size in floats
     val p = +0.5f // positive half float
     val n = -0.5f // negative half float
@@ -49,10 +56,10 @@ class WorldRenderer(val world: World) extends RenderableProvider {
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(n, p, p), Color.RED))
-            .::((v + V3F(p, p, p), Color.RED))
-            .::((v + V3F(p, p, n), Color.RED))
-            .::((v + V3F(n, p, n), Color.RED)),
+            .::((v + V3F(n, p, p), Color.WHITE, V2F(0, 0)))
+            .::((v + V3F(p, p, p), Color.WHITE, V2F(1, 0)))
+            .::((v + V3F(p, p, n), Color.WHITE, V2F(1, 1)))
+            .::((v + V3F(n, p, n), Color.WHITE, V2F(0, 1))),
           addSquareIndices(verts, indices)
         )
       }
@@ -61,10 +68,10 @@ class WorldRenderer(val world: World) extends RenderableProvider {
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(n, p, p), Color.PURPLE))
-            .::((v + V3F(n, p, n), Color.PURPLE))
-            .::((v + V3F(n, n, n), Color.PURPLE))
-            .::((v + V3F(n, n, p), Color.PURPLE)),
+            .::((v + V3F(n, p, p), Color.WHITE, V2F(0, 0)))
+            .::((v + V3F(n, p, n), Color.WHITE, V2F(1, 0)))
+            .::((v + V3F(n, n, n), Color.WHITE, V2F(1, 1)))
+            .::((v + V3F(n, n, p), Color.WHITE, V2F(0, 1))),
           addSquareIndices(verts, indices)
         )
       }
@@ -73,10 +80,10 @@ class WorldRenderer(val world: World) extends RenderableProvider {
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(p, p, n), Color.YELLOW))
-            .::((v + V3F(p, p, p), Color.YELLOW))
-            .::((v + V3F(p, n, p), Color.YELLOW))
-            .::((v + V3F(p, n, n), Color.YELLOW)),
+            .::((v + V3F(p, p, n), Color.WHITE, V2F(0, 0)))
+            .::((v + V3F(p, p, p), Color.WHITE, V2F(1, 0)))
+            .::((v + V3F(p, n, p), Color.WHITE, V2F(1, 1)))
+            .::((v + V3F(p, n, n), Color.WHITE, V2F(0, 1))),
           addSquareIndices(verts, indices)
         )
       }
@@ -85,10 +92,10 @@ class WorldRenderer(val world: World) extends RenderableProvider {
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(n, n, n), Color.ORANGE))
-            .::((v + V3F(n, p, n), Color.ORANGE))
-            .::((v + V3F(p, p, n), Color.ORANGE))
-            .::((v + V3F(p, n, n), Color.ORANGE)),
+            .::((v + V3F(n, n, n), Color.WHITE, V2F(0, 0)))
+            .::((v + V3F(n, p, n), Color.WHITE, V2F(1, 0)))
+            .::((v + V3F(p, p, n), Color.WHITE, V2F(1, 1)))
+            .::((v + V3F(p, n, n), Color.WHITE, V2F(0, 1))),
           addSquareIndices(verts, indices)
         )
       }
@@ -97,10 +104,10 @@ class WorldRenderer(val world: World) extends RenderableProvider {
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(n, n, p), Color.BLUE))
-            .::((v + V3F(p, n, p), Color.BLUE))
-            .::((v + V3F(p, p, p), Color.BLUE))
-            .::((v + V3F(n, p, p), Color.BLUE)),
+            .::((v + V3F(n, n, p), Color.WHITE, V2F(0, 0)))
+            .::((v + V3F(p, n, p), Color.WHITE, V2F(1, 0)))
+            .::((v + V3F(p, p, p), Color.WHITE, V2F(1, 1)))
+            .::((v + V3F(n, p, p), Color.WHITE, V2F(0, 1))),
           addSquareIndices(verts, indices)
         )
       }
@@ -109,10 +116,10 @@ class WorldRenderer(val world: World) extends RenderableProvider {
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(n, n, p), Color.GREEN))
-            .::((v + V3F(n, n, n), Color.GREEN))
-            .::((v + V3F(p, n, n), Color.GREEN))
-            .::((v + V3F(p, n, p), Color.GREEN)),
+            .::((v + V3F(n, n, p), Color.WHITE, V2F(0, 0)))
+            .::((v + V3F(n, n, n), Color.WHITE, V2F(1, 0)))
+            .::((v + V3F(p, n, n), Color.WHITE, V2F(1, 1)))
+            .::((v + V3F(p, n, p), Color.WHITE, V2F(0, 1))),
           addSquareIndices(verts, indices)
         )
       }
@@ -122,12 +129,13 @@ class WorldRenderer(val world: World) extends RenderableProvider {
 
     // reverse and serialize the vertex data into floats
     val vertexSerial = vertices.reverse.flatMap({
-      case (v, color) => List(
+      case (v, color, t) => List(
         v.x, v.y, v.z,
-        color toFloatBits
+        color toFloatBits,
+        t.x, t.y
       )
     })
-    // compile the vertices into an array (they are already reversed)
+    // compile the vertices into an array (they were already reversed during serialization)
     val vertArr = new Array[Float](vertexSerial.size)
     var i = 0
     for (f <- vertexSerial) {
@@ -146,9 +154,14 @@ class WorldRenderer(val world: World) extends RenderableProvider {
     mesh.setVertices(vertArr)
     mesh.setIndices(indexArr)
 
+    // create the material
+    val material = new Material()
+    material.set(TextureAttribute.createDiffuse(stone))
+
     // create the renderable
     val renderable = new Renderable()
     renderable.meshPart.mesh = mesh
+    renderable.material = material
     renderable.meshPart.offset = 0
     renderable.meshPart.size = indexArr.length
     renderable.meshPart.primitiveType = GL20.GL_TRIANGLES
