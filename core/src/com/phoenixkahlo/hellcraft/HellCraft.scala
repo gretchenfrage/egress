@@ -18,7 +18,7 @@ class HellCraft extends ApplicationAdapter {
   private var world: World = _
   private var worldRenderer: WorldRenderer = _
   private var cam: PerspectiveCamera = _
-  private var controller: FirstPersonCameraController = _
+  private var controller: MovementController = _
   private var modelBatch: ModelBatch = _
   private var lights: Environment = _
 
@@ -42,11 +42,11 @@ class HellCraft extends ApplicationAdapter {
     worldRenderer = new WorldRenderer(world)
 
     cam = new PerspectiveCamera(67, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
-    cam.near = 0.5f
+    cam.near = 0.01f
     cam.far = 1000
     cam.position.set((world.size + V3I(10, 10, 10)).toGdx)
     cam.lookAt(0, 0, 0)
-    controller = new FirstPersonCameraController(cam)
+    controller = new MovementController(cam)
     Gdx.input.setInputProcessor(controller)
 
     modelBatch = new ModelBatch()

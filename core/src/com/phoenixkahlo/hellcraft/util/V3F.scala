@@ -37,7 +37,7 @@ class V3F(val x: Float, val y: Float, val z: Float) {
   def monoidFold(f: (Float, Float) => Float) =
     f(x, f(y, z))
 
-  lazy val toGdx = new Vector3(x, y, z)
+  def toGdx = new Vector3(x, y, z)
 
   protected def toIntsStrategy =
     V3I(x.toInt, y.toInt, z.toInt)
