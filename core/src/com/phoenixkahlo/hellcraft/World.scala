@@ -35,6 +35,10 @@ class World(
     else
       chunk((v / chunkSize).toInts).flatMap(_(v % chunkSize))
 
+  def set(v: V3I, block: Block): Unit =
+    if (v >= Origin)
+      chunk((v / chunkSize).toInts).get.set(v % chunkSize, block)
+
   def blockSize = size * chunkSize
 
   val chunkSizeVec = V3I(chunkSize, chunkSize, chunkSize)

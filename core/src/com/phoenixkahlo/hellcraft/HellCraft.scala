@@ -8,8 +8,10 @@ import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch}
 import com.badlogic.gdx.graphics.{GL20, PerspectiveCamera}
+import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.{ApplicationAdapter, Gdx}
 import com.phoenixkahlo.hellcraft.util.{Directions, Ones, Origin, V3I}
+import other.PerlinNoiseGenerator
 
 import scala.util.Random
 
@@ -23,7 +25,7 @@ class HellCraft extends ApplicationAdapter {
   private var lights: Environment = _
 
   override def create(): Unit = {
-    world = new World(9, 5, 9)
+    world = new World(8, 5, 8)
     val rand = new Random()
 
     println("generating")
@@ -36,12 +38,28 @@ class HellCraft extends ApplicationAdapter {
       }
     }
     */
+    /*
     for (cv <- Origin until world.size) {
       val chunk = world.chunk(cv).get
       for (v <- Origin until world.chunkSizeVec) {
         chunk.set(v, if (rand.nextBoolean()) Stone else Dirt)
       }
     }
+    */
+
+    // perlin noise based generation
+    MathUtils.random.setSeed("phoenix".hashCode)
+    val heightMap = PerlinNoiseGenerator.generateHeightMap(world.blockSize.xi, world.blockSize.zi, 0, 63, 10)
+    var idx = 0
+    for (z <- 0 until world.blockSize.zi) {
+      for (x <- 0 until world.blockSize.xi) {
+        for (y <- 0 until heightMap(idx)) {
+          world.set(V3I(x, y, z), if (y < heightMap(idx) - 10) Stone else Dirt)
+        }
+        idx += 1
+      }
+    }
+
     println("generated")
 
     worldRenderer = new WorldRenderer(world)
