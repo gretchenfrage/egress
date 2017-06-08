@@ -13,7 +13,7 @@ class WorldRenderer(val world: World) extends RenderableProvider {
     for {
       v <- Origin until world.size
     } yield {
-      new ChunkRenderer(world(v).get, v * world.chunkSize, textures)
+      new ChunkRenderer(world.chunk(v).get, v * world.chunkSize, textures)
     }
 
   override def getRenderables(renderables: utils.Array[Renderable], pool: Pool[Renderable]): Unit = {

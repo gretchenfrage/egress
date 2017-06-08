@@ -31,6 +31,9 @@ class V3F(val x: Float, val y: Float, val z: Float) {
   def *(s: Float): V3F =
     V3F(x * s, y * s, z * s)
 
+  def /(s: Float): V3F =
+    V3F(x / s, y / s, z / s)
+
   def floatSeq: Seq[Float] =
     List(x, y, z)
 

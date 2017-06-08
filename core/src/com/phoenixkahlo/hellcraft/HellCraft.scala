@@ -37,7 +37,7 @@ class HellCraft extends ApplicationAdapter {
     }
     */
     for (cv <- Origin until world.size) {
-      val chunk = world(cv).get
+      val chunk = world.chunk(cv).get
       for (v <- Origin until chunk.size) {
         chunk.set(v, if (rand.nextBoolean()) Stone else Dirt)
       }
