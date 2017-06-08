@@ -22,7 +22,7 @@ class World(val size: V3I) extends RenderableProvider {
 
   val renderable = new Cache[Renderable]({
     // create a mesh
-    val mesh = new Mesh(true, 24, 36,
+    val mesh = new Mesh(true, 4 * 6 * blocks.length, 6 * 6 * blocks.length,
       new VertexAttribute(Usage.Position, 3, "a_position"),
       new VertexAttribute(Usage.ColorPacked, 4, "a_color"))
     val vertSize = mesh.getVertexSize / 4 // convert from size in bytes to size in floats
@@ -33,12 +33,12 @@ class World(val size: V3I) extends RenderableProvider {
 
     def addSquareIndices(verts: List[VertDatum], indices: List[Short]): List[Short] =
       indices
-        .::((verts.length * vertSize + 0).toShort)
-        .::((verts.length * vertSize + 1).toShort)
-        .::((verts.length * vertSize + 2).toShort)
-        .::((verts.length * vertSize + 0).toShort)
-        .::((verts.length * vertSize + 2).toShort)
-        .::((verts.length * vertSize + 3).toShort)
+        .::((verts.length + 0).toShort)
+        .::((verts.length + 1).toShort)
+        .::((verts.length + 2).toShort)
+        .::((verts.length + 0).toShort)
+        .::((verts.length + 2).toShort)
+        .::((verts.length + 3).toShort)
 
     data = exposed(Up).foldLeft(data)(
       (data, v) => data match {
@@ -48,6 +48,54 @@ class World(val size: V3I) extends RenderableProvider {
             .::((v + V3F(0.5f, 0.5f, 0.5f), Color.RED))
             .::((v + V3F(0.5f, 0.5f, -0.5f), Color.RED))
             .::((v + V3F(-0.5f, 0.5f, -0.5f), Color.RED)),
+          addSquareIndices(verts, indices)
+        )
+      }
+    )
+    data = exposed(West).foldLeft(data)(
+      (data, v) => data match {
+        case (verts, indices) => (
+          verts
+            .::((v + V3F(-0.5f, 0.5f, 0.5f), Color.PURPLE))
+            .::((v + V3F(-0.5f, 0.5f, -0.5f), Color.PURPLE))
+            .::((v + V3F(-0.5f, -0.5f, -0.5f), Color.PURPLE))
+            .::((v + V3F(-0.5f, -0.5f, 0.5f), Color.PURPLE)),
+          addSquareIndices(verts, indices)
+        )
+      }
+    )
+    data = exposed(East).foldLeft(data)(
+      (data, v) => data match {
+        case (verts, indices) => (
+          verts
+            .::((v + V3F(0.5f, 0.5f, -0.5f), Color.YELLOW))
+            .::((v + V3F(0.5f, 0.5f, 0.5f), Color.YELLOW))
+            .::((v + V3F(0.5f, -0.5f, 0.5f), Color.YELLOW))
+            .::((v + V3F(0.5f, -0.5f, -0.5f), Color.YELLOW)),
+          addSquareIndices(verts, indices)
+        )
+      }
+    )
+    data = exposed(South).foldLeft(data)(
+      (data, v) => data match {
+        case (verts, indices) => (
+          verts
+            .::((v + V3F(-0.5f, -0.5f, -0.5f), Color.ORANGE))
+            .::((v + V3F(-0.5f, 0.5f, -0.5f), Color.ORANGE))
+            .::((v + V3F(0.5f, 0.5f, -0.5f), Color.ORANGE))
+            .::((v + V3F(0.5f, -0.5f, -0.5f), Color.ORANGE)),
+          addSquareIndices(verts, indices)
+        )
+      }
+    )
+    data = exposed(North).foldLeft(data)(
+      (data, v) => data match {
+        case (verts, indices) => (
+          verts
+            .::((v + V3F(-0.5f, -0.5f, 0.5f), Color.BLUE))
+            .::((v + V3F(0.5f, -0.5f, 0.5f), Color.BLUE))
+            .::((v + V3F(0.5f, 0.5f, 0.5f), Color.BLUE))
+            .::((v + V3F(-0.5f, 0.5f, 0.5f), Color.BLUE)),
           addSquareIndices(verts, indices)
         )
       }
@@ -64,54 +112,27 @@ class World(val size: V3I) extends RenderableProvider {
         )
       }
     )
-    data = exposed(North).foldLeft(data)(
-      (data, v) => data match {
-        case (verts, indices) => (
-          verts,
-          indices
-        )
-      }
-    )
-    data = exposed(South).foldLeft(data)(
-      (data, v) => data match {
-        case (verts, indices) => (
-          verts,
-          indices
-        )
-      }
-    )
-    data = exposed(East).foldLeft(data)(
-      (data, v) => data match {
-        case (verts, indices) => (
-          verts,
-          indices
-        )
-      }
-    )
-    data = exposed(West).foldLeft(data)(
-      (data, v) => data match {
-        case (verts, indices) => (
-          verts,
-          indices
-        )
-      }
-    )
 
     // compile the vertex data into an array
-    val vertArr = new Array[Float](data._1.size * vertSize)
+    val (vertices: List[VertDatum], indices: List[Short]) = data
+
+    val vertArr = new Array[Float](vertices.size * vertSize)
     var i = 0
-    for (vertDatum <- data._1.reverseIterator) {
-      vertArr.update(i + 0, vertDatum._1.x)
-      vertArr.update(i + 1, vertDatum._1.y)
-      vertArr.update(i + 2, vertDatum._1.z)
-      vertArr.update(i + 3, vertDatum._2.toFloatBits)
-      i += vertSize
+    for (vertDatum <- vertices.reverseIterator) {
+      vertDatum match {
+        case (v, color) =>
+          vertArr.update(i + 0, v.x)
+          vertArr.update(i + 1, v.y)
+          vertArr.update(i + 2, v.z)
+          vertArr.update(i + 3, color toFloatBits)
+          i += vertSize
+      }
     }
     // compile the indices into an array
-    val indexArr = new Array[Short](data._2.size)
+    val indexArr = new Array[Short](indices.size)
     i = 0
-    for (index <- data._2.reverseIterator) {
-      indexArr.update(i, index)
+    for (f <- indices.reverseIterator) {
+      indexArr.update(i, f)
       i += 1
     }
 
