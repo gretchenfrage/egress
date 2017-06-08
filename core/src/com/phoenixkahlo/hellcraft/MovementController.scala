@@ -21,7 +21,7 @@ class MovementController(
     if (keycode == Keys.ESCAPE) {
       Gdx.input.setCursorCatched(false)
       true
-    } else if (List(Keys.W, Keys.A, Keys.S, Keys.D, Keys.SHIFT_LEFT, Keys.SPACE) contains keycode) {
+    } else if (List(Keys.W, Keys.A, Keys.S, Keys.D, Keys.SHIFT_LEFT, Keys.SPACE, Keys.CONTROL_LEFT) contains keycode) {
       pressed.add(keycode)
       true
     } else false
@@ -61,21 +61,23 @@ class MovementController(
     }
 
   def update(): Unit = {
+    val vel = if (pressed(Keys.CONTROL_LEFT)) sprintVel else moveVel
+
     cam.up.set(Up.toGdx)
     def horizontalNormal(v: Vector3) =
       new Vector3(v.x, 0, v.z).nor()
     if (pressed(Keys.W))
-      cam.position.add(horizontalNormal(cam.direction).scl(moveVel * Gdx.graphics.getDeltaTime))
+      cam.position.add(horizontalNormal(cam.direction).scl(vel * Gdx.graphics.getDeltaTime))
     if (pressed(Keys.S))
-      cam.position.add(horizontalNormal(cam.direction).scl(-moveVel * Gdx.graphics.getDeltaTime))
+      cam.position.add(horizontalNormal(cam.direction).scl(-vel * Gdx.graphics.getDeltaTime))
     if (pressed(Keys.A))
-      cam.position.add(cam.direction.cpy().crs(Up.toGdx).nor().scl(-moveVel * Gdx.graphics.getDeltaTime))
+      cam.position.add(cam.direction.cpy().crs(Up.toGdx).nor().scl(-vel * Gdx.graphics.getDeltaTime))
     if (pressed(Keys.D))
-      cam.position.add(cam.direction.cpy().crs(Up.toGdx).nor().scl(moveVel * Gdx.graphics.getDeltaTime))
+      cam.position.add(cam.direction.cpy().crs(Up.toGdx).nor().scl(vel * Gdx.graphics.getDeltaTime))
     if (pressed(Keys.SPACE))
-      cam.position.add(Up.toGdx.nor().scl(moveVel * Gdx.graphics.getDeltaTime))
+      cam.position.add(Up.toGdx.nor().scl(vel * Gdx.graphics.getDeltaTime))
     if (pressed(Keys.SHIFT_LEFT))
-      cam.position.add(Up.toGdx.nor().scl(-moveVel * Gdx.graphics.getDeltaTime))
+      cam.position.add(Up.toGdx.nor().scl(-vel * Gdx.graphics.getDeltaTime))
     cam.update(true)
   }
 

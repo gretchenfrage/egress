@@ -12,7 +12,7 @@ class World(
 
   val chunks = new Array[Chunk](size.monoidFold(_ * _))
   for (v <- Origin until size)
-    chunks.update(compress(v), new Chunk(V3I(chunkSize, chunkSize, chunkSize), v, this))
+    chunks.update(compress(v), new Chunk(v, this))
 
   private def compress(v: V3I): Int =
     v.xi + v.zi * size.xi + v.yi * size.xi * size.zi
@@ -34,5 +34,9 @@ class World(
       None
     else
       chunk((v / chunkSize).toInts).flatMap(_(v % chunkSize))
+
+  def blockSize = size * chunkSize
+
+  val chunkSizeVec = V3I(chunkSize, chunkSize, chunkSize)
 
 }

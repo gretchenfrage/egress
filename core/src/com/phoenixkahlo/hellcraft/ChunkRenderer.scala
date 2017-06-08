@@ -28,7 +28,6 @@ class ChunkRenderer(
     * Builds a renderable of all visible surfaces based on the exposed structure
     */
   def buildRenderable: Renderable = {
-    println("building mesh")
     // create a mesh
     val mesh = new Mesh(true, 4 * 6 * chunk.blocks.length, 6 * 6 * chunk.blocks.length,
       new VertexAttribute(Usage.Position, 3, "a_position"),
@@ -166,7 +165,6 @@ class ChunkRenderer(
     renderable.meshPart.offset = 0
     renderable.meshPart.size = indexArr.length
     renderable.meshPart.primitiveType = GL20.GL_TRIANGLES
-    println("mesh built")
     renderable
   }
   /**
@@ -176,7 +174,7 @@ class ChunkRenderer(
   /**
     * Computes whether the surface is visible, and updates exposed, returning whether anything was changed.
     */
-  def updateSurface(v: V3I, surface: Direction): Boolean = {
+  def updateSurface(v: V3I, surface: Direction): Boolean =
     (chunk(v), chunk(v + surface)) match {
       // if the target is non-existent, the face is non-existent (invisible)
       case (None, _) => false
@@ -191,13 +189,10 @@ class ChunkRenderer(
       // in all other cases, the face is invisible
       case _ => exposed(surface).remove(v)
     }
-  }
   /**
     * Updates the renderer to the world's current version
     */
-  def update: Unit = {
-    if (currentVersion == chunk.versionID) return
-    println("updating renderer")
+  def update(): Unit =
     while (currentVersion < chunk.versionID) {
       currentVersion += 1
       val v = chunk.history(currentVersion)
@@ -208,8 +203,6 @@ class ChunkRenderer(
           renderableCache.invalidate
       }
     }
-    println("renderer updated")
-  }
 
 
   override def getRenderables(renderables: utils.Array[Renderable], pool: Pool[Renderable]): Unit = {
@@ -218,7 +211,7 @@ class ChunkRenderer(
     surfaces are visible, updating exposed as it does so, and if exposed is modified, it will invalidate the renderable
     cache, ensuring that the renderable will be freshly generated when it is next requested
      */
-    update
+    update()
     renderables.add(renderableCache())
   }
 

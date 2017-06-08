@@ -23,7 +23,7 @@ class HellCraft extends ApplicationAdapter {
   private var lights: Environment = _
 
   override def create(): Unit = {
-    world = new World(3, 3, 3)
+    world = new World(9, 5, 9)
     val rand = new Random()
 
     println("generating")
@@ -38,7 +38,7 @@ class HellCraft extends ApplicationAdapter {
     */
     for (cv <- Origin until world.size) {
       val chunk = world.chunk(cv).get
-      for (v <- Origin until chunk.size) {
+      for (v <- Origin until world.chunkSizeVec) {
         chunk.set(v, if (rand.nextBoolean()) Stone else Dirt)
       }
     }
