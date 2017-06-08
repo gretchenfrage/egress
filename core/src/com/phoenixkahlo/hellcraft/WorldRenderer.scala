@@ -15,7 +15,7 @@ class WorldRenderer(val world: World) extends RenderableProvider {
   /**
     * The texture sheet
     */
-  val stone = new Texture(Gdx.files.internal("stone.png"))
+  val textures = new Texture(Gdx.files.internal("blocks.png"))
   /**
     * The world's versionID that this renderer is currently updated to
     */
@@ -56,10 +56,10 @@ class WorldRenderer(val world: World) extends RenderableProvider {
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(n, p, p), Color.WHITE, V2F(0, 0)))
-            .::((v + V3F(p, p, p), Color.WHITE, V2F(1, 0)))
-            .::((v + V3F(p, p, n), Color.WHITE, V2F(1, 1)))
-            .::((v + V3F(n, p, n), Color.WHITE, V2F(0, 1))),
+            .::((v + V3F(n, p, p), Color.WHITE, world(v).get.texCoord1))
+            .::((v + V3F(p, p, p), Color.WHITE, world(v).get.texCoord2))
+            .::((v + V3F(p, p, n), Color.WHITE, world(v).get.texCoord3))
+            .::((v + V3F(n, p, n), Color.WHITE, world(v).get.texCoord4)),
           addSquareIndices(verts, indices)
         )
       }
@@ -68,10 +68,10 @@ class WorldRenderer(val world: World) extends RenderableProvider {
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(n, p, p), Color.WHITE, V2F(0, 0)))
-            .::((v + V3F(n, p, n), Color.WHITE, V2F(1, 0)))
-            .::((v + V3F(n, n, n), Color.WHITE, V2F(1, 1)))
-            .::((v + V3F(n, n, p), Color.WHITE, V2F(0, 1))),
+            .::((v + V3F(n, p, p), Color.WHITE, world(v).get.texCoord1))
+            .::((v + V3F(n, p, n), Color.WHITE, world(v).get.texCoord2))
+            .::((v + V3F(n, n, n), Color.WHITE, world(v).get.texCoord3))
+            .::((v + V3F(n, n, p), Color.WHITE, world(v).get.texCoord4)),
           addSquareIndices(verts, indices)
         )
       }
@@ -80,10 +80,10 @@ class WorldRenderer(val world: World) extends RenderableProvider {
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(p, p, n), Color.WHITE, V2F(0, 0)))
-            .::((v + V3F(p, p, p), Color.WHITE, V2F(1, 0)))
-            .::((v + V3F(p, n, p), Color.WHITE, V2F(1, 1)))
-            .::((v + V3F(p, n, n), Color.WHITE, V2F(0, 1))),
+            .::((v + V3F(p, p, n), Color.WHITE, world(v).get.texCoord1))
+            .::((v + V3F(p, p, p), Color.WHITE, world(v).get.texCoord2))
+            .::((v + V3F(p, n, p), Color.WHITE, world(v).get.texCoord3))
+            .::((v + V3F(p, n, n), Color.WHITE, world(v).get.texCoord4)),
           addSquareIndices(verts, indices)
         )
       }
@@ -92,10 +92,10 @@ class WorldRenderer(val world: World) extends RenderableProvider {
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(n, n, n), Color.WHITE, V2F(0, 0)))
-            .::((v + V3F(n, p, n), Color.WHITE, V2F(1, 0)))
-            .::((v + V3F(p, p, n), Color.WHITE, V2F(1, 1)))
-            .::((v + V3F(p, n, n), Color.WHITE, V2F(0, 1))),
+            .::((v + V3F(n, n, n), Color.WHITE, world(v).get.texCoord1))
+            .::((v + V3F(n, p, n), Color.WHITE, world(v).get.texCoord2))
+            .::((v + V3F(p, p, n), Color.WHITE, world(v).get.texCoord3))
+            .::((v + V3F(p, n, n), Color.WHITE, world(v).get.texCoord4)),
           addSquareIndices(verts, indices)
         )
       }
@@ -104,10 +104,10 @@ class WorldRenderer(val world: World) extends RenderableProvider {
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(n, n, p), Color.WHITE, V2F(0, 0)))
-            .::((v + V3F(p, n, p), Color.WHITE, V2F(1, 0)))
-            .::((v + V3F(p, p, p), Color.WHITE, V2F(1, 1)))
-            .::((v + V3F(n, p, p), Color.WHITE, V2F(0, 1))),
+            .::((v + V3F(n, n, p), Color.WHITE, world(v).get.texCoord1))
+            .::((v + V3F(p, n, p), Color.WHITE, world(v).get.texCoord2))
+            .::((v + V3F(p, p, p), Color.WHITE, world(v).get.texCoord3))
+            .::((v + V3F(n, p, p), Color.WHITE, world(v).get.texCoord4)),
           addSquareIndices(verts, indices)
         )
       }
@@ -116,10 +116,10 @@ class WorldRenderer(val world: World) extends RenderableProvider {
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(n, n, p), Color.WHITE, V2F(0, 0)))
-            .::((v + V3F(n, n, n), Color.WHITE, V2F(1, 0)))
-            .::((v + V3F(p, n, n), Color.WHITE, V2F(1, 1)))
-            .::((v + V3F(p, n, p), Color.WHITE, V2F(0, 1))),
+            .::((v + V3F(n, n, p), Color.WHITE, world(v).get.texCoord1))
+            .::((v + V3F(n, n, n), Color.WHITE, world(v).get.texCoord2))
+            .::((v + V3F(p, n, n), Color.WHITE, world(v).get.texCoord3))
+            .::((v + V3F(p, n, p), Color.WHITE, world(v).get.texCoord4)),
           addSquareIndices(verts, indices)
         )
       }
@@ -156,7 +156,7 @@ class WorldRenderer(val world: World) extends RenderableProvider {
 
     // create the material
     val material = new Material()
-    material.set(TextureAttribute.createDiffuse(stone))
+    material.set(TextureAttribute.createDiffuse(textures))
 
     // create the renderable
     val renderable = new Renderable()

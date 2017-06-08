@@ -28,10 +28,13 @@ class HellCraft extends ApplicationAdapter {
 
     println("generating")
 
+    /*
     for (v <- Origin until world.size)
       if (rand.nextBoolean())
         world.set(v, Stone)
-
+*/
+    for (v <- Origin until world.size)
+      world.set(v, BlockDirectory(rand.nextInt(BlockDirectory.blocks.length).toByte))
     /*
     for (v <- Origin until world.size)
       world.set(v, Stone)
