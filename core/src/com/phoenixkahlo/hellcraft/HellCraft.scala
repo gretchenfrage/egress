@@ -23,23 +23,25 @@ class HellCraft extends ApplicationAdapter {
   private var lights: Environment = _
 
   override def create(): Unit = {
-    world = new World(10, 10, 10)
+    world = new World(3, 3, 3)
     val rand = new Random()
 
     println("generating")
 
     /*
-    for (v <- Origin until world.size)
-      if (rand.nextBoolean())
-        world.set(v, Stone)
-*/
-    for (v <- Origin until world.size)
-      world.set(v, BlockDirectory(rand.nextInt(BlockDirectory.blocks.length).toByte))
-    /*
-    for (v <- Origin until world.size)
-      world.set(v, Stone)
+    for (cv <- Origin until world.size) {
+      val chunk = world(cv).get
+      for (v <- Origin until chunk.size) {
+        chunk.set(v, BlockDirectory(rand.nextInt(BlockDirectory.blocks.length).toByte))
+      }
+    }
     */
-    //world.set(V3I(0, 0, 0), Stone)
+    for (cv <- Origin until world.size) {
+      val chunk = world(cv).get
+      for (v <- Origin until chunk.size) {
+        chunk.set(v, if (rand.nextBoolean()) Stone else Dirt)
+      }
+    }
     println("generated")
 
     worldRenderer = new WorldRenderer(world)
@@ -47,7 +49,7 @@ class HellCraft extends ApplicationAdapter {
     cam = new PerspectiveCamera(67, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     cam.near = 0.01f
     cam.far = 1000
-    cam.position.set((world.size + V3I(10, 10, 10)).toGdx)
+    cam.position.set((world.size + V3I(-10, -10, -10)).toGdx)
     cam.lookAt(0, 0, 0)
     controller = new MovementController(cam)
     Gdx.input.setInputProcessor(controller)
