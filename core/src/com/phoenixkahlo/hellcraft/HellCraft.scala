@@ -16,6 +16,7 @@ import scala.util.Random
 class HellCraft extends ApplicationAdapter {
 
   private var world: World = _
+  private var worldRenderer: WorldRenderer = _
   private var cam: PerspectiveCamera = _
   private var controller: FirstPersonCameraController = _
   private var modelBatch: ModelBatch = _
@@ -38,6 +39,8 @@ class HellCraft extends ApplicationAdapter {
     //world.set(V3I(0, 0, 0), Stone)
     println("generated")
 
+    worldRenderer = new WorldRenderer(world)
+
     cam = new PerspectiveCamera(67, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     cam.near = 0.5f
     cam.far = 1000
@@ -58,7 +61,7 @@ class HellCraft extends ApplicationAdapter {
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
 
     modelBatch.begin(cam)
-    modelBatch.render(world, lights)
+    modelBatch.render(worldRenderer, lights)
     modelBatch.end()
 
     controller.update()
