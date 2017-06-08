@@ -6,7 +6,7 @@ import com.badlogic.gdx.graphics.g3d.{Material, ModelInstance}
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.{Color, Texture}
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
-import com.badlogic.gdx.math.Matrix4
+import com.badlogic.gdx.math.{Matrix4, Vector3}
 import com.badlogic.gdx.physics.bullet.collision.btSphereShape
 import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody
 import com.badlogic.gdx.physics.bullet.linearmath.btMotionState
@@ -21,7 +21,6 @@ class BallMotionState(transform: Matrix4) extends btMotionState {
 }
 
 class Ball(
-          var pos: V3F,
           val radius: Float
           ) {
 
@@ -39,12 +38,17 @@ class Ball(
     )
     new ModelInstance(m)
   }
-  val motionState = new BallMotionState(model.transform)
-  val body: btRigidBody = {
+  val constructionInfo: btRigidBody.btRigidBodyConstructionInfo = {
     val shape = new btSphereShape(radius)
-    new btRigidBody(radius * radius, motionState, shape)
+    val mass = (4f / 3f * Math.PI * Math.pow(radius, 3) * 1.259f).toFloat
+    val localInertia = new Vector3()
+    if (mass > 0)
+      shape.calculateLocalInertia(mass, localInertia)
+    new btRigidBody.btRigidBodyConstructionInfo(mass, null, shape, localInertia)
   }
-  body.translate(pos toGdx)
+  val body: btRigidBody = new btRigidBody(constructionInfo)
+  val motionState = new BallMotionState(model.transform)
+  body.setMotionState(motionState)
 
 
 }
