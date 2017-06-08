@@ -68,10 +68,10 @@ class ChunkRenderer(
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(n, p, p) + offset, Color.WHITE, chunk(v).get.texCoord1))
-            .::((v + V3F(n, p, n) + offset, Color.WHITE, chunk(v).get.texCoord2))
-            .::((v + V3F(n, n, n) + offset, Color.WHITE, chunk(v).get.texCoord3))
-            .::((v + V3F(n, n, p) + offset, Color.WHITE, chunk(v).get.texCoord4)),
+            .::((v + V3F(n, p, p) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), chunk(v).get.texCoord1))
+            .::((v + V3F(n, p, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), chunk(v).get.texCoord2))
+            .::((v + V3F(n, n, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), chunk(v).get.texCoord3))
+            .::((v + V3F(n, n, p) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), chunk(v).get.texCoord4)),
           addSquareIndices(verts, indices)
         )
       }
@@ -80,10 +80,10 @@ class ChunkRenderer(
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(p, p, n) + offset, Color.WHITE, chunk(v).get.texCoord1))
-            .::((v + V3F(p, p, p) + offset, Color.WHITE, chunk(v).get.texCoord2))
-            .::((v + V3F(p, n, p) + offset, Color.WHITE, chunk(v).get.texCoord3))
-            .::((v + V3F(p, n, n) + offset, Color.WHITE, chunk(v).get.texCoord4)),
+            .::((v + V3F(p, p, n) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), chunk(v).get.texCoord1))
+            .::((v + V3F(p, p, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), chunk(v).get.texCoord2))
+            .::((v + V3F(p, n, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), chunk(v).get.texCoord3))
+            .::((v + V3F(p, n, n) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), chunk(v).get.texCoord4)),
           addSquareIndices(verts, indices)
         )
       }
@@ -92,10 +92,10 @@ class ChunkRenderer(
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(n, n, n) + offset, Color.WHITE, chunk(v).get.texCoord1))
-            .::((v + V3F(n, p, n) + offset, Color.WHITE, chunk(v).get.texCoord2))
-            .::((v + V3F(p, p, n) + offset, Color.WHITE, chunk(v).get.texCoord3))
-            .::((v + V3F(p, n, n) + offset, Color.WHITE, chunk(v).get.texCoord4)),
+            .::((v + V3F(n, n, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), chunk(v).get.texCoord1))
+            .::((v + V3F(n, p, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), chunk(v).get.texCoord2))
+            .::((v + V3F(p, p, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), chunk(v).get.texCoord3))
+            .::((v + V3F(p, n, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), chunk(v).get.texCoord4)),
           addSquareIndices(verts, indices)
         )
       }
@@ -104,10 +104,10 @@ class ChunkRenderer(
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(n, n, p) + offset, Color.WHITE, chunk(v).get.texCoord1))
-            .::((v + V3F(p, n, p) + offset, Color.WHITE, chunk(v).get.texCoord2))
-            .::((v + V3F(p, p, p) + offset, Color.WHITE, chunk(v).get.texCoord3))
-            .::((v + V3F(n, p, p) + offset, Color.WHITE, chunk(v).get.texCoord4)),
+            .::((v + V3F(n, n, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), chunk(v).get.texCoord1))
+            .::((v + V3F(p, n, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), chunk(v).get.texCoord2))
+            .::((v + V3F(p, p, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), chunk(v).get.texCoord3))
+            .::((v + V3F(n, p, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), chunk(v).get.texCoord4)),
           addSquareIndices(verts, indices)
         )
       }
@@ -116,10 +116,10 @@ class ChunkRenderer(
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(n, n, p) + offset, Color.WHITE, chunk(v).get.texCoord1))
-            .::((v + V3F(n, n, n) + offset, Color.WHITE, chunk(v).get.texCoord2))
-            .::((v + V3F(p, n, n) + offset, Color.WHITE, chunk(v).get.texCoord3))
-            .::((v + V3F(p, n, p) + offset, Color.WHITE, chunk(v).get.texCoord4)),
+            .::((v + V3F(n, n, p) + offset, new Color(0.75f, 0.75f, 0.75f, 1f), chunk(v).get.texCoord1))
+            .::((v + V3F(n, n, n) + offset, new Color(0.75f, 0.75f, 0.75f, 1f), chunk(v).get.texCoord2))
+            .::((v + V3F(p, n, n) + offset, new Color(0.75f, 0.75f, 0.75f, 1f), chunk(v).get.texCoord3))
+            .::((v + V3F(p, n, p) + offset, new Color(0.75f, 0.75f, 0.75f, 1f), chunk(v).get.texCoord4)),
           addSquareIndices(verts, indices)
         )
       }

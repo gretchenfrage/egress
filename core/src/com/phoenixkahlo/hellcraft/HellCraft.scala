@@ -9,8 +9,9 @@ import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch}
 import com.badlogic.gdx.graphics.{GL20, PerspectiveCamera}
 import com.badlogic.gdx.math.MathUtils
+import com.badlogic.gdx.physics.bullet.Bullet
 import com.badlogic.gdx.{ApplicationAdapter, Gdx}
-import com.phoenixkahlo.hellcraft.util.{Directions, Ones, Origin, V3I}
+import com.phoenixkahlo.hellcraft.util._
 import other.PerlinNoiseGenerator
 
 import scala.util.Random
@@ -25,6 +26,8 @@ class HellCraft extends ApplicationAdapter {
   private var lights: Environment = _
 
   override def create(): Unit = {
+    Bullet.init()
+
     world = new World(8, 5, 8)
     val rand = new Random()
 
@@ -49,7 +52,7 @@ class HellCraft extends ApplicationAdapter {
 
     // perlin noise based generation
     MathUtils.random.setSeed("phoenix".hashCode)
-    val heightMap = PerlinNoiseGenerator.generateHeightMap(world.blockSize.xi, world.blockSize.zi, 0, 63, 10)
+    val heightMap = PerlinNoiseGenerator.generateHeightMap(world.blockSize.xi, world.blockSize.zi, 0, 63, 11)
     var idx = 0
     for (z <- 0 until world.blockSize.zi) {
       for (x <- 0 until world.blockSize.xi) {
@@ -60,6 +63,10 @@ class HellCraft extends ApplicationAdapter {
       }
     }
 
+    // balls to the wall
+    val b = new Ball(V3F(10, 65, 10), 4)
+    world.balls.add(b)
+
     println("generated")
 
     worldRenderer = new WorldRenderer(world)
@@ -67,12 +74,13 @@ class HellCraft extends ApplicationAdapter {
     cam = new PerspectiveCamera(67, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     cam.near = 0.01f
     cam.far = 1000
-    cam.position.set((world.size + V3I(-10, -10, -10)).toGdx)
+    cam.position.set((world.size + V3I(-10, 63, -10)).toGdx)
     cam.lookAt(0, 0, 0)
     controller = new MovementController(cam)
     Gdx.input.setInputProcessor(controller)
 
     modelBatch = new ModelBatch()
+
 
     lights = new Environment()
     lights.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f))
@@ -81,7 +89,13 @@ class HellCraft extends ApplicationAdapter {
 
   override def render(): Unit = {
     Gdx.gl.glClearColor(0.4f, 0.4f, 0.4f, 1f)
-    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
+    //Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
+    import com.badlogic.gdx.Gdx
+    import com.badlogic.gdx.graphics.GL20
+    Gdx.gl.glClear(
+      GL20.GL_COLOR_BUFFER_BIT
+        | GL20.GL_DEPTH_BUFFER_BIT
+        | (if (Gdx.graphics.getBufferFormat.coverageSampling) GL20.GL_COVERAGE_BUFFER_BIT_NV else 0))
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
 
     modelBatch.begin(cam)

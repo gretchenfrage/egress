@@ -6,13 +6,14 @@ import scala.collection.immutable.Map
 
 sealed abstract class Block(
                       val id: Byte,
+                      val texID: Int,
                       val isOpaque: Boolean = true
                     ) {
 
   def isTranslucent = !isOpaque
 
   def texCoord1: V2F =
-    V2F((id - 1) % 16, (id - 1 - (id - 1) % 16) / 16) / 16
+    V2F(texID % 16, (texID - texID % 16) / 16) / 16
 
   def texCoord2: V2F =
     texCoord1 + V2F(1f / 16f, 0)
@@ -25,9 +26,9 @@ sealed abstract class Block(
 
 }
 
-case object Air extends Block(0, isOpaque = false)
-case object Stone extends Block(1)
-case object Dirt extends Block(2)
+case object Air extends Block(0, -1, isOpaque = false)
+case object Stone extends Block(1, 17)
+case object Dirt extends Block(2, 20)
 
 object BlockDirectory {
   val blocks: List[Block] = List[Block](

@@ -2,6 +2,8 @@ package com.phoenixkahlo.hellcraft
 
 import com.phoenixkahlo.hellcraft.util.{Origin, V3I}
 
+import scala.collection.mutable
+
 class World(
            val size: V3I, // size in chunks, not in blocks
            val chunkSize: Int = 16
@@ -13,6 +15,7 @@ class World(
   val chunks = new Array[Chunk](size.monoidFold(_ * _))
   for (v <- Origin until size)
     chunks.update(compress(v), new Chunk(v, this))
+  val balls = new mutable.HashSet[Ball]()
 
   private def compress(v: V3I): Int =
     v.xi + v.zi * size.xi + v.yi * size.xi * size.zi
