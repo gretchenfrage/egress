@@ -27,10 +27,13 @@ class WorldRenderer(val world: World) extends RenderableProvider {
     val mesh = new Mesh(true, 4 * 6 * world.blocks.length, 6 * 6 * world.blocks.length,
       new VertexAttribute(Usage.Position, 3, "a_position"),
       new VertexAttribute(Usage.ColorPacked, 4, "a_color"))
-    val vertSize = mesh.getVertexSize / 4 // convert from size in bytes to size in floats
 
     // fold the exposure sets into vertex data and indices
     type VertDatum = (V3F, Color)
+    val vertSize = mesh.getVertexSize / 4 // convert from size in bytes to size in floats
+    val p = +0.5f // positive half float
+    val n = -0.5f // negative half float
+
     var data: (List[VertDatum], List[Short]) = (Nil, Nil)
 
     def addSquareIndices(verts: List[VertDatum], indices: List[Short]): List[Short] =
@@ -46,10 +49,10 @@ class WorldRenderer(val world: World) extends RenderableProvider {
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(-0.5f, 0.5f, 0.5f), Color.RED))
-            .::((v + V3F(0.5f, 0.5f, 0.5f), Color.RED))
-            .::((v + V3F(0.5f, 0.5f, -0.5f), Color.RED))
-            .::((v + V3F(-0.5f, 0.5f, -0.5f), Color.RED)),
+            .::((v + V3F(n, p, p), Color.RED))
+            .::((v + V3F(p, p, p), Color.RED))
+            .::((v + V3F(p, p, n), Color.RED))
+            .::((v + V3F(n, p, n), Color.RED)),
           addSquareIndices(verts, indices)
         )
       }
@@ -58,10 +61,10 @@ class WorldRenderer(val world: World) extends RenderableProvider {
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(-0.5f, 0.5f, 0.5f), Color.PURPLE))
-            .::((v + V3F(-0.5f, 0.5f, -0.5f), Color.PURPLE))
-            .::((v + V3F(-0.5f, -0.5f, -0.5f), Color.PURPLE))
-            .::((v + V3F(-0.5f, -0.5f, 0.5f), Color.PURPLE)),
+            .::((v + V3F(n, p, p), Color.PURPLE))
+            .::((v + V3F(n, p, n), Color.PURPLE))
+            .::((v + V3F(n, n, n), Color.PURPLE))
+            .::((v + V3F(n, n, p), Color.PURPLE)),
           addSquareIndices(verts, indices)
         )
       }
@@ -70,10 +73,10 @@ class WorldRenderer(val world: World) extends RenderableProvider {
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(0.5f, 0.5f, -0.5f), Color.YELLOW))
-            .::((v + V3F(0.5f, 0.5f, 0.5f), Color.YELLOW))
-            .::((v + V3F(0.5f, -0.5f, 0.5f), Color.YELLOW))
-            .::((v + V3F(0.5f, -0.5f, -0.5f), Color.YELLOW)),
+            .::((v + V3F(p, p, n), Color.YELLOW))
+            .::((v + V3F(p, p, p), Color.YELLOW))
+            .::((v + V3F(p, n, p), Color.YELLOW))
+            .::((v + V3F(p, n, n), Color.YELLOW)),
           addSquareIndices(verts, indices)
         )
       }
@@ -82,10 +85,10 @@ class WorldRenderer(val world: World) extends RenderableProvider {
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(-0.5f, -0.5f, -0.5f), Color.ORANGE))
-            .::((v + V3F(-0.5f, 0.5f, -0.5f), Color.ORANGE))
-            .::((v + V3F(0.5f, 0.5f, -0.5f), Color.ORANGE))
-            .::((v + V3F(0.5f, -0.5f, -0.5f), Color.ORANGE)),
+            .::((v + V3F(n, n, n), Color.ORANGE))
+            .::((v + V3F(n, p, n), Color.ORANGE))
+            .::((v + V3F(p, p, n), Color.ORANGE))
+            .::((v + V3F(p, n, n), Color.ORANGE)),
           addSquareIndices(verts, indices)
         )
       }
@@ -94,10 +97,10 @@ class WorldRenderer(val world: World) extends RenderableProvider {
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(-0.5f, -0.5f, 0.5f), Color.BLUE))
-            .::((v + V3F(0.5f, -0.5f, 0.5f), Color.BLUE))
-            .::((v + V3F(0.5f, 0.5f, 0.5f), Color.BLUE))
-            .::((v + V3F(-0.5f, 0.5f, 0.5f), Color.BLUE)),
+            .::((v + V3F(n, n, p), Color.BLUE))
+            .::((v + V3F(p, n, p), Color.BLUE))
+            .::((v + V3F(p, p, p), Color.BLUE))
+            .::((v + V3F(n, p, p), Color.BLUE)),
           addSquareIndices(verts, indices)
         )
       }
@@ -106,35 +109,36 @@ class WorldRenderer(val world: World) extends RenderableProvider {
       (data, v) => data match {
         case (verts, indices) => (
           verts
-            .::((v + V3F(-0.5f, -0.5f, 0.5f), Color.GREEN))
-            .::((v + V3F(-0.5f, -0.5f, -0.5f), Color.GREEN))
-            .::((v + V3F(0.5f, -0.5f, -0.5f), Color.GREEN))
-            .::((v + V3F(0.5f, -0.5f, 0.5f), Color.GREEN)),
+            .::((v + V3F(n, n, p), Color.GREEN))
+            .::((v + V3F(n, n, n), Color.GREEN))
+            .::((v + V3F(p, n, n), Color.GREEN))
+            .::((v + V3F(p, n, p), Color.GREEN)),
           addSquareIndices(verts, indices)
         )
       }
     )
 
-    // compile the vertex data into an array
     val (vertices: List[VertDatum], indices: List[Short]) = data
 
-    val vertArr = new Array[Float](vertices.size * vertSize)
+    // reverse and serialize the vertex data into floats
+    val vertexSerial = vertices.reverse.flatMap({
+      case (v, color) => List(
+        v.x, v.y, v.z,
+        color toFloatBits
+      )
+    })
+    // compile the vertices into an array (they are already reversed)
+    val vertArr = new Array[Float](vertexSerial.size)
     var i = 0
-    for (vertDatum <- vertices.reverseIterator) {
-      vertDatum match {
-        case (v, color) =>
-          vertArr.update(i + 0, v.x)
-          vertArr.update(i + 1, v.y)
-          vertArr.update(i + 2, v.z)
-          vertArr.update(i + 3, color toFloatBits)
-          i += vertSize
-      }
+    for (f <- vertexSerial) {
+      vertArr.update(i, f)
+      i += 1
     }
-    // compile the indices into an array
+    // reverse and compile the indices into an array
     val indexArr = new Array[Short](indices.size)
     i = 0
-    for (f <- indices.reverseIterator) {
-      indexArr.update(i, f)
+    for (s <- indices.reverseIterator) {
+      indexArr.update(i, s)
       i += 1
     }
 
