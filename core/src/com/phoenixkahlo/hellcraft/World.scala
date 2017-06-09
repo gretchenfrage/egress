@@ -3,10 +3,11 @@ package com.phoenixkahlo.hellcraft
 import com.phoenixkahlo.hellcraft.util.{Origin, V3I}
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 class World(
            val size: V3I, // size in chunks, not in blocks
-           val chunkSize: Int = 16
+           val chunkSize: Int = 16 // size of a chunk
            ) {
 
   def this(x: Int, y: Int, z: Int) =
@@ -15,7 +16,7 @@ class World(
   val chunks = new Array[Chunk](size.monoidFold(_ * _))
   for (v <- Origin until size)
     chunks.update(compress(v), new Chunk(v, this))
-  val balls = new mutable.HashSet[Ball]()
+  val entities = new ArrayBuffer[Entity]()
 
   private def compress(v: V3I): Int =
     v.xi + v.zi * size.xi + v.yi * size.xi * size.zi
@@ -38,12 +39,24 @@ class World(
     else
       chunk((v / chunkSize).toInts).flatMap(_(v % chunkSize))
 
+  /**
+    * Set the block at the given chunk coordinates
+    */
   def set(v: V3I, block: Block): Unit =
     if (v >= Origin)
       chunk((v / chunkSize).toInts).get.set(v % chunkSize, block)
 
+  def update(): Unit =
+    entities.foreach(_.update(this))
+
+  /**
+    * Size of the world in blocks
+    */
   def blockSize = size * chunkSize
 
+  /**
+    * Size of a chunk as a vector
+    */
   val chunkSizeVec = V3I(chunkSize, chunkSize, chunkSize)
 
 }

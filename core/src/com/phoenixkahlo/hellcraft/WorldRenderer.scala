@@ -18,6 +18,6 @@ class WorldRenderer(val world: World) extends RenderableProvider {
 
   override def getRenderables(renderables: utils.Array[Renderable], pool: Pool[Renderable]): Unit = {
     renderers.foreach(_.getRenderables(renderables, pool))
-    world.balls.foreach(_.model.getRenderables(renderables, pool))
+    world.entities.foreach(_.getRenderables(renderables, pool))
   }
 }

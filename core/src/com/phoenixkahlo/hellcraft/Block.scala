@@ -7,7 +7,8 @@ import scala.collection.immutable.Map
 sealed abstract class Block(
                       val id: Byte,
                       val texID: Int,
-                      val isOpaque: Boolean = true
+                      val isOpaque: Boolean = true,
+                      val isCorporeal: Boolean = true
                     ) {
 
   def isTranslucent = !isOpaque
@@ -26,7 +27,7 @@ sealed abstract class Block(
 
 }
 
-case object Air extends Block(0, -1, isOpaque = false)
+case object Air extends Block(0, -1, isOpaque = false, isCorporeal = false)
 case object Stone extends Block(1, 17)
 case object Dirt extends Block(2, 20)
 
