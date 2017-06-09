@@ -38,8 +38,10 @@ class ChunkRenderer(
     // fold the exposure sets into vertex data and indices
     type VertDatum = (V3F, Color, V2F)
     val vertSize = mesh.getVertexSize / 4 // convert from size in bytes to size in floats
-    val p = +0.5f // positive half float
-    val n = -0.5f // negative half float
+    //val p = +0.5f // positive half float
+    //val n = -0.5f // negative half float
+    val p = 1
+    val n = 0
 
     var data: (List[VertDatum], List[Short]) = (Nil, Nil)
 

@@ -55,11 +55,11 @@ class HellCraft extends ApplicationAdapter {
     )
     */
     val cylinder = new Cylinder(
-      new V3F(0, heightMap(0) + 20, 0),
+      new V3F(-10, heightMap(0) + -1, 0),
       0.5f,
       2f
     )
-    cylinder.vel = V3F(1, -1, 1)
+    cylinder.vel = V3F(1, 0, 1)
     world.entities += cylinder
     worldRenderer = new WorldRenderer(world)
 
