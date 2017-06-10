@@ -4,17 +4,18 @@ package com.phoenixkahlo.hellcraft
 
 import java.util.concurrent.ThreadLocalRandom
 
+import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch}
-import com.badlogic.gdx.graphics.{GL20, PerspectiveCamera}
+import com.badlogic.gdx.graphics.{Color, GL20, PerspectiveCamera}
 import com.badlogic.gdx.math.{MathUtils, Vector3}
 import com.badlogic.gdx.physics.bullet.Bullet
 import com.badlogic.gdx.physics.bullet.collision.{btCollisionDispatcher, btDbvtBroadphase, btDefaultCollisionConfiguration}
 import com.badlogic.gdx.physics.bullet.dynamics.{btConstraintSolver, btDiscreteDynamicsWorld, btDynamicsWorld, btSequentialImpulseConstraintSolver}
-import com.badlogic.gdx.{ApplicationAdapter, Gdx}
+import com.badlogic.gdx.{ApplicationAdapter, Gdx, InputAdapter, InputMultiplexer}
 import com.phoenixkahlo.hellcraft.util._
 import other.PerlinNoiseGenerator
 
@@ -25,7 +26,7 @@ class HellCraft extends ApplicationAdapter {
   private var world: World = _
   private var worldRenderer: WorldRenderer = _
   private var cam: PerspectiveCamera = _
-  private var controller: MovementController = _
+  private var camController: MovementController = _
   private var modelBatch: ModelBatch = _
   private var lights: Environment = _
 
@@ -54,13 +55,26 @@ class HellCraft extends ApplicationAdapter {
       2f
     )
     */
+
     val cylinder = new Cylinder(
-      new V3F(-10, heightMap(0) + -1, 0),
+      new V3F(-8, heightMap(0) -1, -7),
       0.5f,
       2f
     )
-    cylinder.vel = V3F(1, 0, 1)
+    cylinder.vel = V3F(0.5f, 0, 0.5f)
     world.entities += cylinder
+
+    /*
+    for (_ <- 0 until 100) {
+      val cylinder = new Cylinder(
+        V3F(-rand.nextInt(20), heightMap(0) + rand.nextInt(20), -rand.nextInt(20)),
+        0.5f, 2f
+      )
+      cylinder.vel = V3F(rand.nextFloat, -rand.nextFloat, rand.nextFloat)
+      world.entities += cylinder
+    }
+    */
+
     worldRenderer = new WorldRenderer(world)
 
     cam = new PerspectiveCamera(67, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
@@ -68,8 +82,11 @@ class HellCraft extends ApplicationAdapter {
     cam.far = 1000
     cam.position.set(V3F(-10, heightMap(0) + 10, -10) toGdx)
     cam.lookAt(0, heightMap(0), 0)
-    controller = new MovementController(cam)
-    Gdx.input.setInputProcessor(controller)
+
+    val multiplexer = new InputMultiplexer
+    camController = new MovementController(cam)
+    multiplexer.addProcessor(camController)
+    Gdx.input.setInputProcessor(multiplexer)
 
     modelBatch = new ModelBatch()
 
@@ -89,8 +106,10 @@ class HellCraft extends ApplicationAdapter {
     modelBatch.render(worldRenderer, lights)
     modelBatch.end()
 
-    controller.update()
+    camController.update()
   }
+
+
 
   override def resize(width: Int, height: Int): Unit = {
     cam.viewportWidth = width

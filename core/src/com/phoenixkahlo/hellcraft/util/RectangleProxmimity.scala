@@ -24,34 +24,6 @@ case class RectangleProxmimity(
       || (quad4Circle contains p))
 
   def closestPerimiterPoint(p: V2F): V2F = {
-    /*
-    lazy val angle = (p - rect.center).direction
-    lazy val pointingRight = angle < 45 || angle >= 315
-    lazy val pointingUp = angle >= 45 && angle < 135
-    lazy val pointingLeft = angle >= 135 && angle < 225
-    lazy val pointingDown = angle >= 225 && angle < 315
-
-    if (p > quad1Circle.center)
-      (p - quad1Circle.center).normalize * r + quad1Circle.center
-    else if (p < quad3Circle.center)
-      (p - quad3Circle.center).normalize * r + quad3Circle.center
-    else if (p <> quad2Circle.center)
-      (p - quad2Circle.center).normalize * r + quad2Circle.center
-    else if (p >< quad4Circle.center)
-      (p - quad4Circle.center).normalize * r + quad4Circle.center
-    else if (pointingUp)
-      V2F(p.x, rect.max.y + r)
-    else if (pointingDown)
-      V2F(p.x, rect.min.y - r)
-    else if (pointingLeft)
-      V2F(rect.min.x - r, p.y)
-    else if (pointingRight)
-      V2F(rect.max.x + r, p.y)
-    else {
-      println("using fallback")
-      V2F(rect.max.x + r, p.y)
-    }
-    */
     if (p > quad1Circle.center)
       (p - quad1Circle.center).normalize * r + quad1Circle.center
     else if (p < quad3Circle.center)

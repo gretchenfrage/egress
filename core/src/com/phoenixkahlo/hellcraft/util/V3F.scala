@@ -61,7 +61,7 @@ class V3F(val x: Float, val y: Float, val z: Float) {
   def dist(v: V3F) =
     (this - v).magnitude
 
-  def closest(vs: V3F*): V3F = {
+  def closest(vs: V3F*): Option[V3F] = {
     var bestVec: Option[V3F] = None
     var bestDist = Float.MaxValue
     for (v <- vs) {
@@ -71,7 +71,7 @@ class V3F(val x: Float, val y: Float, val z: Float) {
         bestDist = dist
       }
     }
-    bestVec.get
+    bestVec
   }
 
   override def equals(obj: scala.Any): Boolean =

@@ -35,6 +35,9 @@ case class V2F(x: Float, y: Float) {
   def <>(v: V2F): Boolean =
     x < v.x && y > v.y
 
+  def dot(v: V2F): Float =
+    x * v.x + y * v.y
+
   lazy val direction: Float =
     Math.toDegrees(Math.atan2(y, x)).toFloat
 
@@ -62,6 +65,25 @@ case class V2F(x: Float, y: Float) {
     }
     bestVec.get
   }
+
+  def rotate(theta: Float) =
+    V2F(
+      Math.cos(direction + Math.toRadians(theta)).toFloat * magnitude,
+      Math.sin(direction + Math.toRadians(theta)).toFloat * magnitude
+    )
+
+  def perpendicular: (V2F, V2F) =
+    (rotate(90), rotate(-90))
+
+  def perpendicularInGeneralDirection(direction: V2F) =
+    perpendicular match {
+      case(v1, v2) =>
+        if ((v1 dot direction) >= 0) v1
+        else v2
+    }
+
+  def angleWith(v: V2F): Float =
+    Math.acos(this.normalize dot v.normalize).toFloat
 
   override def toString: String =
     "<" + x + ", " + y + ">"
