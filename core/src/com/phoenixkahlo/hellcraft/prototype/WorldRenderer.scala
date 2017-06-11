@@ -1,9 +1,9 @@
-package com.phoenixkahlo.hellcraft
+package com.phoenixkahlo.hellcraft.prototype
 
-import com.badlogic.gdx.{Gdx, utils}
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g3d.{Renderable, RenderableProvider}
 import com.badlogic.gdx.utils.Pool
+import com.badlogic.gdx.{Gdx, utils}
 import com.phoenixkahlo.hellcraft.util.Origin
 
 class WorldRenderer(val world: World) extends RenderableProvider {

@@ -1,46 +1,33 @@
-package com.phoenixkahlo.hellcraft
+package com.phoenixkahlo.hellcraft.prototype
+
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
+import com.badlogic.gdx.graphics._
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
-import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
-import com.badlogic.gdx.graphics.g3d.{Material, Renderable}
+import com.badlogic.gdx.graphics.g3d.{Material, Renderable, RenderableProvider}
+import com.badlogic.gdx.utils
+import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.util._
 
-import scala.collection.immutable.{HashMap, HashSet}
+import scala.collection.mutable
 
-case class ChunkRenderer(chunk: Chunk) extends RenderableFactory {
+class ChunkRenderer(
+                     val chunk: Chunk,
+                     val offset: V3F,
+                     val textures: Texture
+                   ) extends RenderableProvider {
 
-  lazy val cache: Renderable = {
-
-    // first, compute the exposed surfaces
-    type SurfaceMap = Map[Direction,Set[V3I]]
-    // compute the given surface of the given block
-    def surface(m: SurfaceMap, v: V3I, s: Direction): SurfaceMap = {
-      (chunk(v), chunk(v + s)) match {
-        // if the target is non-existent, the face is invisible
-        case (None, _) => m
-        // if the target is translucent, the face is invisible
-        case (Some(t), _) if t isTranslucent => m.updated(s, m(s) - v)
-        // if the cover is opaque, the face is invisible
-        case (_, Some(c)) if c isOpaque => m.updated(s, m(s) - v)
-        // if the cover is translucent (and the target is opaque), the face is visible
-        case (_, Some(c)) if c isTranslucent => m.updated(s, m(s) + v)
-        // if the cover is non-existent (and the target is opaque), the face is visible
-        case (_, None) => m.updated(s, m(s) + v)
-        // in all other cases, the face is invisible
-        case _ => m.updated(s, m(s) - v)
-      }
-    }
-    // compute all surfaces belonging to or touching block
-    def block(m: SurfaceMap, v: V3I): SurfaceMap = {
-      val a: Seq[(V3I, Direction)] = Stream.iterate(v)(identity).zip(Directions())
-      val b: Seq[(V3I, Direction)] = Directions().map(d => (v + d, d.neg))
-      (a ++ b).foldLeft(m)({ case (m, (v, s)) => surface(m, v, s) })
-    }
-    // do the computation
-    val empty: SurfaceMap = Directions().zip(Stream.iterate(new HashSet[V3I]())(identity)).toMap
-    val blocks: Seq[V3I] = chunk.pos * chunk.size until chunk.pos + Ones * chunk.size
-    val exposed: SurfaceMap = blocks.foldLeft(empty)(block)
-
+  /**
+    * The world's versionID that this renderer is currently updated to
+    */
+  var currentVersion: Long = 0
+  /**
+    * Collection of all visible surfaces
+    */
+  val exposed: Map[Direction, mutable.Set[V3I]] = Directions() map ((_, new mutable.HashSet[V3I]())) toMap
+  /**
+    * Builds a renderable of all visible surfaces based on the exposed structure
+    */
+  def buildRenderable: Renderable = {
     // create a mesh
     val mesh = new Mesh(true, 4 * 6 * chunk.blocks.length, 6 * 6 * chunk.blocks.length,
       new VertexAttribute(Usage.Position, 3, "a_position"),
@@ -55,7 +42,6 @@ case class ChunkRenderer(chunk: Chunk) extends RenderableFactory {
     //val n = -0.5f // negative half float
     val p = 1
     val n = 0
-    val offset = chunk.pos * chunk.size
 
     var data: (List[VertDatum], List[Short]) = (Nil, Nil)
 
@@ -171,9 +157,7 @@ case class ChunkRenderer(chunk: Chunk) extends RenderableFactory {
     mesh.setIndices(indexArr)
 
     // create the material
-    //val material = new Material()
-    //material.set(TextureAttribute.createDiffuse(textures))
-    val material = new Material
+    val material = new Material()
     material.set(TextureAttribute.createDiffuse(textures))
 
     // create the renderable
@@ -185,7 +169,52 @@ case class ChunkRenderer(chunk: Chunk) extends RenderableFactory {
     renderable.meshPart.primitiveType = GL20.GL_TRIANGLES
     renderable
   }
+  /**
+    * Cache of the renderable
+    */
+  val renderableCache = new Cache(buildRenderable)
+  /**
+    * Computes whether the surface is visible, and updates exposed, returning whether anything was changed.
+    */
+  def updateSurface(v: V3I, surface: Direction): Boolean =
+    (chunk(v), chunk(v + surface)) match {
+      // if the target is non-existent, the face is non-existent (invisible)
+      case (None, _) => false
+      // if the target is translucent, the face is invisible
+      case (Some(target), _) if target isTranslucent => exposed(surface).remove(v)
+      // if the cover is opaque, the face is invisible
+      case (_, Some(cover)) if cover isOpaque => exposed(surface).remove(v)
+      // if the cover is translucent (and the target is opaque), the face is visible
+      case (_, Some(cover)) if cover isTranslucent => exposed(surface).add(v)
+      // if the cover is non-existent (and the target is opaque), the face is visible
+      case (_, None) => exposed(surface).add(v)
+      // in all other cases, the face is invisible
+      case _ => exposed(surface).remove(v)
+    }
+  /**
+    * Updates the renderer to the world's current version
+    */
+  def update(): Unit =
+    while (currentVersion < chunk.versionID) {
+      currentVersion += 1
+      val v = chunk.history(currentVersion)
+      for (direction <- Directions()) {
+        if (updateSurface(v, direction))
+          renderableCache.invalidate
+        if (updateSurface(v + direction, direction.neg))
+          renderableCache.invalidate
+      }
+    }
 
-  override def apply(): Renderable = cache
+
+  override def getRenderables(renderables: utils.Array[Renderable], pool: Pool[Renderable]): Unit = {
+    /*
+    Update will read the block changes that have not been previously processed, and recompute whether the surrounding
+    surfaces are visible, updating exposed as it does so, and if exposed is modified, it will invalidate the renderable
+    cache, ensuring that the renderable will be freshly generated when it is next requested
+     */
+    update()
+    renderables.add(renderableCache())
+  }
 
 }

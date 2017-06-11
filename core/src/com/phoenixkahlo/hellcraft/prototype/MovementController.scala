@@ -1,9 +1,9 @@
-package com.phoenixkahlo.hellcraft
+package com.phoenixkahlo.hellcraft.prototype
 
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.Camera
-import com.badlogic.gdx.math.{MathUtils, Vector3}
-import com.badlogic.gdx.{Gdx, Input, InputAdapter, InputProcessor}
+import com.badlogic.gdx.math.Vector3
+import com.badlogic.gdx.{Gdx, InputAdapter}
 import com.phoenixkahlo.hellcraft.util.{Down, Up}
 
 import scala.collection.mutable

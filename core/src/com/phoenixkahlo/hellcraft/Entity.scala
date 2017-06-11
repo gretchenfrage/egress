@@ -1,11 +1,14 @@
 package com.phoenixkahlo.hellcraft
 
-import java.util.UUID
+import com.badlogic.gdx.graphics.g3d.{Renderable, RenderableProvider}
 
-import com.badlogic.gdx.graphics.g3d.RenderableProvider
+/**
+  * A unit of graphics, logic, or both.
+  */
+trait Entity {
 
-trait Entity extends RenderableProvider {
+  def update: Seq[ChunkEvent] = Nil
 
-  def update(world: World): Unit
+  def renderables: Seq[RenderableFactory] = Nil
 
 }

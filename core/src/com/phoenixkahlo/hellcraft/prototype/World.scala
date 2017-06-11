@@ -1,8 +1,7 @@
-package com.phoenixkahlo.hellcraft
+package com.phoenixkahlo.hellcraft.prototype
 
 import com.phoenixkahlo.hellcraft.util.{Origin, V3I}
 
-import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 class World(
@@ -13,7 +12,7 @@ class World(
   def this(x: Int, y: Int, z: Int) =
     this(V3I(x, y, z))
 
-  val chunks = new Array[Chunk](size.monoidFold(_ * _))
+  val chunks = new Array[Chunk](size.fold(_ * _))
   for (v <- Origin until size)
     chunks.update(compress(v), new Chunk(v, this))
   val entities = new ArrayBuffer[Entity]()

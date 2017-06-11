@@ -1,35 +1,51 @@
 package com.phoenixkahlo.hellcraft
 
-import com.phoenixkahlo.hellcraft.util._
+import com.badlogic.gdx.graphics.g3d.{Renderable, RenderableProvider}
+import com.badlogic.gdx.utils.Pool
+import com.badlogic.gdx.utils
+import com.phoenixkahlo.hellcraft.util.{Origin, Repeated, V3I}
 
-import scala.collection.mutable
+/**
+  * A unit of world.
+  */
+case class Chunk(
+                  pos: V3I, // coordinates in chunks, not blocks
+                  size: Int,
+                  blocks: Vector[Byte],
+                  entities: Vector[Entity],
+                  blocksRenderableCache: Option[RenderableFactory]
+                ) {
 
-class Chunk(
-             val chunkCoords: V3I,
-             val world: World
-           ) {
+  def compress(v: V3I): Int = v.xi + v.zi * size + v.yi * size * size
 
-  var versionID: Long = 0 // every time this is mutated, the versionID is incremented
-  val blocks = new Array[Byte](world.chunkSize * world.chunkSize * world.chunkSize)
-  val history: mutable.SortedMap[Long, V3I] = new mutable.TreeMap()
-
-  private def compress(v: V3I): Int =
-    v.xi + v.zi * world.chunkSize + v.yi * world.chunkSize * world.chunkSize
-
-  /**
-    * Gets the block at the given local coordinates. This will work even if the block is outside of this chunk.
-    */
   def apply(v: V3I): Option[Block] =
-    if (v >= Origin && v < world.chunkSizeVec)
-      Some(BlockDirectory.lookup(blocks(compress(v))))
-    else
-      world.block(chunkCoords * world.chunkSize + v)
+    if (v >= Origin && v < Repeated(size)) Some(BlockDirectory.lookup(blocks(compress(v))))
+    else None
 
-  def set(v: V3I, block: Block): Unit = {
-    blocks.update(compress(v), block.id)
-    versionID += 1
-    history.put(versionID, v)
+  def put(v: V3I, b: Block): Chunk = copy(
+    blocks = blocks.updated(compress(v), b.id),
+    blocksRenderableCache = None
+  )
+
+  def renderables: Seq[() => Renderable] = {
+    val blocksRenderable: RenderableFactory = blocksRenderableCache match {
+      case Some(r) => r
+      case None => ChunkRenderer(this)
+    }
+    entities.flatMap(_.renderables) :+ blocksRenderable
   }
 
+}
+
+object Chunk {
+
+  def apply(pos: V3I, size: Int = 16) =
+    Chunk(
+      pos,
+      size,
+      (1 to size * size * size).foldLeft(Vector[Byte]())((v, _) => v :+ 0),
+      Vector(),
+      None
+    )
 
 }

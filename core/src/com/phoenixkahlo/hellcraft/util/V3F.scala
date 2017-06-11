@@ -7,6 +7,9 @@ import com.badlogic.gdx.math.Vector3
   */
 class V3F(val x: Float, val y: Float, val z: Float) {
 
+  if (x != x || y != y || z != z)
+    throw new AssertionError("vector component is NaN")
+
   def +(o: V3F): V3F =
     V3F(x + o.x, y + o.y, z + o.z)
 
@@ -85,7 +88,12 @@ class V3F(val x: Float, val y: Float, val z: Float) {
   override def toString: String =
     "<" + x + ", " + y + ", " + z + ">"
 
+  def copy(x: Float = this.x, y: Float = this.y, z: Float = this.z) =
+    V3F(x, y, z)
+
 }
+
+class Repeated(val s: Float) extends V3F(s, s, s)
 
 object V3F {
 
@@ -94,5 +102,15 @@ object V3F {
 
   def unapply(v: V3F): Option[(Float, Float, Float)] =
     Some((v.x, v.y, v.z))
+
+}
+
+object Repeated {
+
+  def apply(s: Float) =
+    new Repeated(s)
+
+  def unapply(r: Repeated): Option[Float] =
+    Some(r.s)
 
 }

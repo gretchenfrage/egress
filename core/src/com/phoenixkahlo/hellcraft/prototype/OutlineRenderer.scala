@@ -1,8 +1,9 @@
-package com.phoenixkahlo.hellcraft
+package com.phoenixkahlo.hellcraft.prototype
+
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
-import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.graphics.g3d.{Material, Renderable}
+import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.util.{Cache, V3F, V3I}
 

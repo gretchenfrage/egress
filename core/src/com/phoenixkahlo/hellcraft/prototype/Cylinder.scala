@@ -1,11 +1,9 @@
-package com.phoenixkahlo.hellcraft
+package com.phoenixkahlo.hellcraft.prototype
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.Input.Keys
-import com.badlogic.gdx.assets.loaders.resolvers.ResolutionFileResolver.Resolution
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
-import com.badlogic.gdx.graphics.g3d.attributes.{ColorAttribute, FloatAttribute, TextureAttribute}
+import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.g3d.{Material, ModelInstance, Renderable}
 import com.badlogic.gdx.utils.{Array, Pool}
@@ -69,23 +67,49 @@ class Cylinder(
 
   def computeVfHorizontalCollision(vi: V2F, xi: V2F, xf: V2F): V2F = {
     val dx = xf - xi
-    val vfUnit = dx.perpendicularInGeneralDirection(vi)
-    val vfSize = -Math.sin(Math.toRadians(dx angleWith vi)).toFloat * vi.magnitude
+
+    if (dx.magnitude == 0 || vi.magnitude == 0)
+      return vi
+
+    val vfUnit = dx.perpendicularInGeneralDirection(vi).normalize
+    val vfSize = +Math.sin(Math.toRadians(dx angleWith vi)).toFloat * vi.magnitude
     vfUnit * vfSize
   }
 
-  def computeVf(vi: V3F, xi: V3F, xf: V3F): V3F = {
+  def applyFriction(vi: V2F, g: Float, u: Float): V2F = {
+    if (vi.magnitude == 0)
+      return vi
+    val vf = vi - (vi.normalize * g * u * Gdx.graphics.getDeltaTime)
+    if ((vi dot vf) > 0) vf
+    else V2F(0, 0)
+  }
+
+  var didFriction = false
+
+  def computeVf(vi: V3F, xi: V3F, xf: V3F, g: Float): V3F = {
+
     val dx = xf - xi
     if (dx.y == 0)
-      computeVfHorizontalCollision(vi.projectHorizontal, xi.projectHorizontal, xf.projectHorizontal).horizontallyInflate(vi.y)
-    else
-      V3F(vi.x, 0, vi.z)
+      computeVfHorizontalCollision(vi.projectHorizontal, xi.projectHorizontal, xf.projectHorizontal)
+        .horizontallyInflate(vi.y)
+    else if (!didFriction && dx.y > 0){
+      didFriction = true
+      applyFriction(vi.projectHorizontal, g, 0.6f).horizontallyInflate(0)
+    } else V3F(vi.x, 0, vi.z)
   }
 
 
   override def update(world: World): Unit = {
+    // constants
+    val g = 9.8f
+
+    // reset
+    didFriction = false
+
     // update position
-    pos = pos + vel * Gdx.graphics.getDeltaTime
+    vel = vel.copy(y = vel.y - g * Gdx.graphics.getDeltaTime)
+    pos = pos + (vel * Gdx.graphics.getDeltaTime)
+
 
     // resolve collisions
     val processed = new mutable.HashSet[V3I]()
@@ -93,7 +117,8 @@ class Cylinder(
     while (continue)
       computeResolution(world, processed) match {
         case Some((v, p)) =>
-          vel = computeVf(vel, pos, p)
+          vel = computeVf(vel, pos, p, g)
+          //println("dx=" + (p - pos))
           pos = p
           processed.add(v)
         case None =>

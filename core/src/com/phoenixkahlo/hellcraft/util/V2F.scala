@@ -2,6 +2,9 @@ package com.phoenixkahlo.hellcraft.util
 
 case class V2F(x: Float, y: Float) {
 
+  if (x != x || y != y)
+    throw new AssertionError("vector component is NaN")
+
   def +(v: V2F) =
     V2F(x + v.x, y + v.y)
 
@@ -39,7 +42,7 @@ case class V2F(x: Float, y: Float) {
     x * v.x + y * v.y
 
   lazy val direction: Float =
-    Math.toDegrees(Math.atan2(y, x)).toFloat
+    Trig.atan2(y, x)
 
   lazy val magnitude: Float =
     Math.sqrt(x * x + y * y).toFloat
@@ -66,16 +69,19 @@ case class V2F(x: Float, y: Float) {
     bestVec.get
   }
 
+  def abs: V2F =
+    V2F(Math.abs(x), Math.abs(y))
+
   def rotate(theta: Float) =
     V2F(
-      Math.cos(direction + Math.toRadians(theta)).toFloat * magnitude,
-      Math.sin(direction + Math.toRadians(theta)).toFloat * magnitude
+      Trig.cos(direction + theta) * magnitude,
+      Trig.sin(direction + theta) * magnitude
     )
 
   def perpendicular: (V2F, V2F) =
     (rotate(90), rotate(-90))
 
-  def perpendicularInGeneralDirection(direction: V2F) =
+  def perpendicularInGeneralDirection(direction: V2F): V2F =
     perpendicular match {
       case(v1, v2) =>
         if ((v1 dot direction) >= 0) v1
@@ -83,7 +89,7 @@ case class V2F(x: Float, y: Float) {
     }
 
   def angleWith(v: V2F): Float =
-    Math.acos(this.normalize dot v.normalize).toFloat
+    Trig.acos(this.normalize dot v.normalize)
 
   override def toString: String =
     "<" + x + ", " + y + ">"

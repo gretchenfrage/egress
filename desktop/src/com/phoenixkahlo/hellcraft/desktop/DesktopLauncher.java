@@ -2,8 +2,7 @@ package com.phoenixkahlo.hellcraft.desktop;
 
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
-import com.phoenixkahlo.hellcraft.HellCraft;
-import other.BulletTest;
+import com.phoenixkahlo.hellcraft.prototype.HellCraft;
 
 public class DesktopLauncher {
 	public static void main (String[] arg) {

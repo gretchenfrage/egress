@@ -1,21 +1,11 @@
-package com.phoenixkahlo.hellcraft
+package com.phoenixkahlo.hellcraft.prototype
 
-
-
-import java.util.concurrent.ThreadLocalRandom
-
-import com.badlogic.gdx.Input.Keys
-import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
-import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch}
-import com.badlogic.gdx.graphics.{Color, GL20, PerspectiveCamera}
-import com.badlogic.gdx.math.{MathUtils, Vector3}
-import com.badlogic.gdx.physics.bullet.Bullet
-import com.badlogic.gdx.physics.bullet.collision.{btCollisionDispatcher, btDbvtBroadphase, btDefaultCollisionConfiguration}
-import com.badlogic.gdx.physics.bullet.dynamics.{btConstraintSolver, btDiscreteDynamicsWorld, btDynamicsWorld, btSequentialImpulseConstraintSolver}
-import com.badlogic.gdx.{ApplicationAdapter, Gdx, InputAdapter, InputMultiplexer}
+import com.badlogic.gdx.graphics.{GL20, PerspectiveCamera}
+import com.badlogic.gdx.math.MathUtils
+import com.badlogic.gdx.{ApplicationAdapter, Gdx, InputMultiplexer}
 import com.phoenixkahlo.hellcraft.util._
 import other.PerlinNoiseGenerator
 
@@ -29,6 +19,8 @@ class HellCraft extends ApplicationAdapter {
   private var camController: MovementController = _
   private var modelBatch: ModelBatch = _
   private var lights: Environment = _
+
+  private var time = 0
 
   override def create(): Unit = {
     world = new World(4, 5, 4)
@@ -55,16 +47,16 @@ class HellCraft extends ApplicationAdapter {
       2f
     )
     */
-
+    /*
     val cylinder = new Cylinder(
-      new V3F(-8, heightMap(0) -1, -7),
+      new V3F(-5, heightMap(0) - 1, -4),
       0.5f,
       2f
     )
     cylinder.vel = V3F(0.5f, 0, 0.5f)
     world.entities += cylinder
-
-    /*
+*/
+  /*
     for (_ <- 0 until 100) {
       val cylinder = new Cylinder(
         V3F(-rand.nextInt(20), heightMap(0) + rand.nextInt(20), -rand.nextInt(20)),
@@ -74,6 +66,15 @@ class HellCraft extends ApplicationAdapter {
       world.entities += cylinder
     }
     */
+    for (_ <- 0 until 100) {
+      val cylinder = new Cylinder(
+        V3F(rand.nextInt(20), heightMap(0) + 20, rand.nextInt(20)),
+        0.5f, 2f
+      )
+      cylinder.vel = V3F(rand.nextFloat * 5, 0, rand.nextFloat * 5)
+      world.entities += cylinder
+    }
+
 
     worldRenderer = new WorldRenderer(world)
 
@@ -96,7 +97,9 @@ class HellCraft extends ApplicationAdapter {
   }
 
   override def render(): Unit = {
-    world.update()
+    if (time > 60 * 3)
+      world.update()
+    time += 1
 
     Gdx.gl.glClearColor(0.5089f, 0.6941f, 1f, 1f)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
