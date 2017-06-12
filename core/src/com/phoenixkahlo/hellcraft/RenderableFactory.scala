@@ -8,6 +8,6 @@ import com.badlogic.gdx.graphics.g3d.Renderable
   */
 trait RenderableFactory {
 
-  def apply(): Renderable
+  def apply(): Seq[Renderable]
 
 }

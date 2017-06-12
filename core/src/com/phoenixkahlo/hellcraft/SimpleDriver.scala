@@ -61,7 +61,7 @@ class SimpleDriver extends ApplicationAdapter {
   override def render(): Unit = {
     val provider = new RenderableProvider {
       override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit =
-        world.renderables(texturePack).map(_()).foreach(renderables.add)
+        world.renderables(texturePack).flatMap(_()).foreach(renderables.add)
     }
 
     Gdx.gl.glClearColor(0.5089f, 0.6941f, 1f, 1f)
