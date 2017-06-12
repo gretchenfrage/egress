@@ -4,7 +4,7 @@ import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.{Gdx, InputAdapter}
-import com.phoenixkahlo.hellcraft.util.{Down, Up}
+import com.phoenixkahlo.hellcraft.util.{Directions, Down, Up, V3F}
 
 import scala.collection.mutable
 
@@ -20,6 +20,10 @@ class MMovementController(
   override def keyDown(keycode: Int): Boolean =
     if (keycode == Keys.ESCAPE) {
       Gdx.input.setCursorCatched(false)
+      true
+    } else if (keycode == Keys.C) {
+      val dir = V3F(cam.direction)
+      println(Directions().map(d => (dir angleWith d, d)).sortBy(_._1).head._2)
       true
     } else if (List(Keys.W, Keys.A, Keys.S, Keys.D, Keys.SHIFT_LEFT, Keys.SPACE, Keys.CONTROL_LEFT) contains keycode) {
       pressed.add(keycode)

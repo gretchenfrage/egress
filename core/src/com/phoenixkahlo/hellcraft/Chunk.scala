@@ -3,38 +3,39 @@ package com.phoenixkahlo.hellcraft
 import com.badlogic.gdx.graphics.g3d.{Renderable, RenderableProvider}
 import com.badlogic.gdx.utils.Pool
 import com.badlogic.gdx.utils
-import com.phoenixkahlo.hellcraft.util.{Origin, Repeated, V3I}
+import com.phoenixkahlo.hellcraft.util.{Origin, ParamCache, Repeated, V3I}
 
 /**
   * A unit of world.
   */
-class Chunk private (
-             val pos: V3I, // coordinates in chunks, not blocks
-             val size: Int,
-             val blocks: Vector[Byte],
-             val entities: Vector[Entity],
-             var blocksRenderableCache: Option[RenderableFactory]
-           ) {
+class Chunk private(
+                     val pos: V3I, // coordinates in chunks, not blocks
+                     val size: Int,
+                     val blocks: Vector[Byte],
+                     val entities: Vector[Entity],
+                     @transient val lastRenderer: ParamCache[(TexturePack, World), ChunkRenderer]
+                   ) {
+
 
   def this(pos: V3I, size: Int) = this(
     pos, size,
     (1 to size * size * size).foldLeft(Vector[Byte]())((v, _) => v :+ 0.toByte),
     Vector(),
-    None
+    null
   )
 
   def copy(
-                    pos: V3I = this.pos,
-                    size: Int = this.size,
-                    blocks: Vector[Byte] = this.blocks,
-                    entities: Vector[Entity] = this.entities,
-                    blocksRenderableCache: Option[RenderableFactory] = this.blocksRenderableCache
-                  ): Chunk = new Chunk(
+            pos: V3I = this.pos,
+            size: Int = this.size,
+            blocks: Vector[Byte] = this.blocks,
+            entities: Vector[Entity] = this.entities,
+            lastRenderer: ParamCache[(TexturePack, World), ChunkRenderer] = this.lastRenderer
+          ): Chunk = new Chunk(
     pos,
     size,
     blocks,
     entities,
-    blocksRenderableCache
+    lastRenderer
   )
 
   private def compress(v: V3I): Int = v.xi + v.zi * size + v.yi * size * size
@@ -43,20 +44,21 @@ class Chunk private (
     if (v >= Origin && v < Repeated(size)) Some(BlockDirectory.lookup(blocks(compress(v))))
     else None
 
-  def put(v: V3I, b: Block): Chunk = copy(
+  def updateBlock(v: V3I, b: Block): Chunk = copy(
     blocks = blocks.updated(compress(v), b.id),
-    blocksRenderableCache = None
+    lastRenderer = null
   )
 
-  def renderables(texturePack: TexturePack): Seq[RenderableFactory] = {
-    blocksRenderableCache match {
-      case Some(_) =>
-      case None => blocksRenderableCache = Some(ChunkRenderer(this, texturePack))
-    }
-    entities.flatMap(_.renderables(texturePack)) :+ blocksRenderableCache.get
+  @transient private lazy val renderer: ParamCache[(TexturePack, World), ChunkRenderer] = lastRenderer match {
+    case null => new ParamCache({ case (t, w) => new ChunkRenderer(this, t, w) })
+    case r => r
+  }
+
+  def renderables(texturePack: TexturePack, world: World): Seq[RenderableFactory] = {
+    entities.flatMap(_.renderables(texturePack)) :+ renderer((texturePack, world))
   }
 
   def mapBlocks(f: V3I => Block): Chunk =
-    (Origin until V3I(size, size, size)).foldLeft(this)({ case (c, v) => c.put(v, f(v)) })
+    (Origin until V3I(size, size, size)).foldLeft(this)({ case (c, v) => c.updateBlock(v, f(v)) })
 
 }

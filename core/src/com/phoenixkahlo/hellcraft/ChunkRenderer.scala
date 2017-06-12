@@ -8,7 +8,7 @@ import com.phoenixkahlo.hellcraft.util._
 
 import scala.collection.immutable.{HashMap, HashSet}
 
-case class ChunkRenderer(chunk: Chunk, texturePack: TexturePack) extends RenderableFactory {
+case class ChunkRenderer(chunk: Chunk, texturePack: TexturePack, world: World) extends RenderableFactory {
 
   lazy val cache: Renderable = {
     println("meshing " + chunk.pos)
@@ -17,7 +17,7 @@ case class ChunkRenderer(chunk: Chunk, texturePack: TexturePack) extends Rendera
 
     // compute the given surface of the given block
     def surface(m: SurfaceMap, v: V3I, s: Direction): SurfaceMap =
-      (chunk(v), chunk(v + s)) match {
+      (world.blockAt(v), world.blockAt(v + s)) match {
         // if the target is non-existent, the face is invisible
         case (None, _) => m
         // if the target is translucent, the face is invisible
@@ -38,8 +38,8 @@ case class ChunkRenderer(chunk: Chunk, texturePack: TexturePack) extends Rendera
 
     // do the computation
     val empty: SurfaceMap = Directions() zip Stream.iterate(new HashSet[V3I]())(identity) toMap
-    val blocks: Seq[V3I] = Origin until V3I(chunk.size, chunk.size, chunk.size)
-    val exposed: SurfaceMap = blocks.foldLeft(empty)(block)
+    val blocks: Seq[V3I] = (Origin until V3I(chunk.size, chunk.size, chunk.size)) map (_ + (chunk.pos * chunk.size))
+    val exposed: SurfaceMap = blocks.foldLeft(empty)(block)//.mapValues(_.map(_ - (chunk.pos * chunk.size)))
 
     // create a mesh
     val mesh = new Mesh(true, 4 * 6 * chunk.blocks.length, 6 * 6 * chunk.blocks.length,
@@ -55,7 +55,6 @@ case class ChunkRenderer(chunk: Chunk, texturePack: TexturePack) extends Rendera
     val p = 1
     val n = 0
     val offset = chunk.pos * chunk.size
-    println("offset = " + offset)
 
     def addSquareIndices(verts: List[VertDatum], indices: List[Short]): List[Short] =
       indices
@@ -71,13 +70,13 @@ case class ChunkRenderer(chunk: Chunk, texturePack: TexturePack) extends Rendera
     data = exposed(Up).foldLeft(data)(
       (data, b) => data match {
         case (verts, indices) =>
-          val r = texturePack(chunk(b).get.tid)
+          val r = texturePack(world.blockAt(b).get.tid)
           (
             verts
-              .::((b + V3F(n, p, p) + offset, Color.WHITE, V2F(r.getU, r.getV)))
-              .::((b + V3F(p, p, p) + offset, Color.WHITE, V2F(r.getU2, r.getV)))
-              .::((b + V3F(p, p, n) + offset, Color.WHITE, V2F(r.getU2, r.getV2)))
-              .::((b + V3F(n, p, n) + offset, Color.WHITE, V2F(r.getU, r.getV2))),
+              .::((b + V3F(n, p, p), Color.WHITE, V2F(r.getU, r.getV)))
+              .::((b + V3F(p, p, p), Color.WHITE, V2F(r.getU2, r.getV)))
+              .::((b + V3F(p, p, n), Color.WHITE, V2F(r.getU2, r.getV2)))
+              .::((b + V3F(n, p, n), Color.WHITE, V2F(r.getU, r.getV2))),
             addSquareIndices(verts, indices)
           )
       }
@@ -85,13 +84,13 @@ case class ChunkRenderer(chunk: Chunk, texturePack: TexturePack) extends Rendera
     data = exposed(West).foldLeft(data)(
       (data, b) => data match {
         case (verts, indices) =>
-          val r = texturePack(chunk(b).get.tid)
+          val r = texturePack(world.blockAt(b).get.tid)
           (
             verts
-              .::((b + V3F(n, p, p) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU, r.getV)))
-              .::((b + V3F(n, p, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU2, r.getV)))
-              .::((b + V3F(n, n, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU2, r.getV2)))
-              .::((b + V3F(n, n, p) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU, r.getV2))),
+              .::((b + V3F(n, p, p), new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU, r.getV)))
+              .::((b + V3F(n, p, n), new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU2, r.getV)))
+              .::((b + V3F(n, n, n), new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU2, r.getV2)))
+              .::((b + V3F(n, n, p), new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU, r.getV2))),
             addSquareIndices(verts, indices)
           )
       }
@@ -99,13 +98,13 @@ case class ChunkRenderer(chunk: Chunk, texturePack: TexturePack) extends Rendera
     data = exposed(East).foldLeft(data)(
       (data, b) => data match {
         case (verts, indices) =>
-          val r = texturePack(chunk(b).get.tid)
+          val r = texturePack(world.blockAt(b).get.tid)
           (
             verts
-              .::((b + V3F(p, p, n) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU, r.getV)))
-              .::((b + V3F(p, p, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU2, r.getV)))
-              .::((b + V3F(p, n, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU2, r.getV2)))
-              .::((b + V3F(p, n, n) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU, r.getV2))),
+              .::((b + V3F(p, p, n), new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU, r.getV)))
+              .::((b + V3F(p, p, p), new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU2, r.getV)))
+              .::((b + V3F(p, n, p), new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU2, r.getV2)))
+              .::((b + V3F(p, n, n), new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU, r.getV2))),
             addSquareIndices(verts, indices)
           )
       }
@@ -113,13 +112,13 @@ case class ChunkRenderer(chunk: Chunk, texturePack: TexturePack) extends Rendera
     data = exposed(South).foldLeft(data)(
       (data, b) => data match {
         case (verts, indices) =>
-          val r = texturePack(chunk(b).get.tid)
+          val r = texturePack(world.blockAt(b).get.tid)
           (
             verts
-              .::((b + V3F(n, n, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU, r.getV)))
-              .::((b + V3F(n, p, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU2, r.getV)))
-              .::((b + V3F(p, p, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU2, r.getV2)))
-              .::((b + V3F(p, n, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU, r.getV2))),
+              .::((b + V3F(n, n, n), new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU, r.getV)))
+              .::((b + V3F(n, p, n), new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU2, r.getV)))
+              .::((b + V3F(p, p, n), new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU2, r.getV2)))
+              .::((b + V3F(p, n, n), new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU, r.getV2))),
             addSquareIndices(verts, indices)
           )
       }
@@ -127,13 +126,13 @@ case class ChunkRenderer(chunk: Chunk, texturePack: TexturePack) extends Rendera
     data = exposed(North).foldLeft(data)(
       (data, b) => data match {
         case (verts, indices) =>
-          val r = texturePack(chunk(b).get.tid)
+          val r = texturePack(world.blockAt(b).get.tid)
           (
             verts
-              .::((b + V3F(n, n, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU, r.getV)))
-              .::((b + V3F(p, n, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU2, r.getV)))
-              .::((b + V3F(p, p, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU2, r.getV2)))
-              .::((b + V3F(n, p, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU, r.getV2))),
+              .::((b + V3F(n, n, p), new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU, r.getV)))
+              .::((b + V3F(p, n, p), new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU2, r.getV)))
+              .::((b + V3F(p, p, p), new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU2, r.getV2)))
+              .::((b + V3F(n, p, p), new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU, r.getV2))),
             addSquareIndices(verts, indices)
           )
       }
@@ -141,13 +140,13 @@ case class ChunkRenderer(chunk: Chunk, texturePack: TexturePack) extends Rendera
     data = exposed(Down).foldLeft(data)(
       (data, b) => data match {
         case (verts, indices) =>
-          val r = texturePack(chunk(b).get.tid)
+          val r = texturePack(world.blockAt(b).get.tid)
           (
             verts
-              .::((b + V3F(n, n, p) + offset, new Color(0.75f, 0.75f, 0.75f, 1f), V2F(r.getU, r.getV)))
-              .::((b + V3F(n, n, n) + offset, new Color(0.75f, 0.75f, 0.75f, 1f), V2F(r.getU2, r.getV)))
-              .::((b + V3F(p, n, n) + offset, new Color(0.75f, 0.75f, 0.75f, 1f), V2F(r.getU2, r.getV2)))
-              .::((b + V3F(p, n, p) + offset, new Color(0.75f, 0.75f, 0.75f, 1f), V2F(r.getU, r.getV2))),
+              .::((b + V3F(n, n, p), new Color(0.75f, 0.75f, 0.75f, 1f), V2F(r.getU, r.getV)))
+              .::((b + V3F(n, n, n), new Color(0.75f, 0.75f, 0.75f, 1f), V2F(r.getU2, r.getV)))
+              .::((b + V3F(p, n, n), new Color(0.75f, 0.75f, 0.75f, 1f), V2F(r.getU2, r.getV2)))
+              .::((b + V3F(p, n, p), new Color(0.75f, 0.75f, 0.75f, 1f), V2F(r.getU, r.getV2))),
             addSquareIndices(verts, indices)
           )
       }
@@ -193,7 +192,6 @@ case class ChunkRenderer(chunk: Chunk, texturePack: TexturePack) extends Rendera
     renderable.meshPart.offset = 0
     renderable.meshPart.size = indexArr.length
     renderable.meshPart.primitiveType = GL20.GL_TRIANGLES
-    println("meshed")
     renderable
   }
 

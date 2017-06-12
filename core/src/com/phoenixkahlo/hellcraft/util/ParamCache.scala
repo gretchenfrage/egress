@@ -1,13 +1,13 @@
 package com.phoenixkahlo.hellcraft.util
 
-class Cache[T] (factory: => T) {
+class ParamCache[P, T](factory: P => T) {
 
   private var value: Option[T] = None
 
-  def apply() =
+  def apply(param: P) =
     this.synchronized {
       if (value.isEmpty)
-        value = Some(factory)
+        value = Some(factory(param))
       value.get
     }
 

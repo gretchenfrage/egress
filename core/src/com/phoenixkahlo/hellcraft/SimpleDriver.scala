@@ -14,8 +14,8 @@ import other.PerlinNoiseGenerator
 
 class SimpleDriver extends ApplicationAdapter {
 
+  private var world: FiniteWorld = _
   private var texturePack: TexturePack = _
-  private var chunks: Seq[Chunk] = _
   private var cam: PerspectiveCamera = _
   private var controller: MMovementController = _
   private var modelBatch: ModelBatch = _
@@ -24,23 +24,22 @@ class SimpleDriver extends ApplicationAdapter {
   override def create(): Unit = {
     texturePack = new DefaultTexturePack
 
-    val size = V3I(4, 4, 4)
-    chunks = (Origin until size).map(v => new Chunk(v, 16))
+    world = new FiniteWorld(V3I(5, 5, 5), 16)
 
     println("generating")
 
     MathUtils.random.setSeed("phoenix".hashCode)
-    val heights = PerlinNoiseGenerator.generateHeightMap((size * 16).xi, (size * 16).zi, 0, 63, 11)
-    def height(v: V3I): Byte = heights.apply(v.zi * size.zi * 16 + v.xi)
-    chunks = chunks.map(c => c.mapBlocks(v => {
-      val wv = v + (c.pos * 16)
-      val depth = (height(wv) - wv.y)
+
+    val heights = PerlinNoiseGenerator.generateHeightMap((world.size * 16).xi, (world.size * 16).zi, 0, 63, 11)
+    def height(v: V3I): Byte = heights.apply(v.zi * world.size.zi * 16 + v.xi)
+    world = world.mapBlocks(v => {
+      val depth = height(v) - v.y
       if (depth > 20) Stone
       else if (depth >= 0) Dirt
       else Air
-    }))
+    })
 
-    //chunks = chunks.map(_.mapBlocks(_ => Stone))
+    //world = world.mapBlocks(_ => Stone)
     println("generated")
 
     cam = new PerspectiveCamera(67, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
@@ -62,7 +61,7 @@ class SimpleDriver extends ApplicationAdapter {
   override def render(): Unit = {
     val provider = new RenderableProvider {
       override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit =
-        chunks.flatMap(_.renderables(texturePack)).map(_()).foreach(renderables.add)
+        world.renderables(texturePack).map(_()).foreach(renderables.add)
     }
 
     Gdx.gl.glClearColor(0.5089f, 0.6941f, 1f, 1f)

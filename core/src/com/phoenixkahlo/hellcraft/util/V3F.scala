@@ -91,14 +91,26 @@ class V3F(val x: Float, val y: Float, val z: Float) {
   def copy(x: Float = this.x, y: Float = this.y, z: Float = this.z) =
     V3F(x, y, z)
 
+  def dot(v: V3F) =
+    x * v.x + y * v.y + z * v.z
+
+  def normalize =
+    this / magnitude
+
+  def angleWith(v: V3F) =
+    Trig.acos(this.normalize dot v.normalize)
+
 }
 
 class Repeated(val s: Float) extends V3F(s, s, s)
 
 object V3F {
 
-  def apply(x: Float, y: Float, z: Float) =
+  def apply(x: Float, y: Float, z: Float): V3F =
     new V3F(x, y, z)
+
+  def apply(gdxVec: Vector3): V3F =
+    V3F(gdxVec.x, gdxVec.y, gdxVec.z)
 
   def unapply(v: V3F): Option[(Float, Float, Float)] =
     Some((v.x, v.y, v.z))
