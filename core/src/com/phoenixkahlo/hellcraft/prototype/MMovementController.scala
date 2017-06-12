@@ -8,7 +8,7 @@ import com.phoenixkahlo.hellcraft.util.{Down, Up}
 
 import scala.collection.mutable
 
-class MovementController(
+class MMovementController(
                         val cam: Camera,
                         val moveVel: Float = 10,
                         val sprintVel: Float = 20,

@@ -1,4 +1,5 @@
 package com.phoenixkahlo.hellcraft
+
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
 import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
@@ -7,14 +8,15 @@ import com.phoenixkahlo.hellcraft.util._
 
 import scala.collection.immutable.{HashMap, HashSet}
 
-case class ChunkRenderer(chunk: Chunk) extends RenderableFactory {
+case class ChunkRenderer(chunk: Chunk, texturePack: TexturePack) extends RenderableFactory {
 
   lazy val cache: Renderable = {
-
+    println("meshing " + chunk.pos)
     // first, compute the exposed surfaces
-    type SurfaceMap = Map[Direction,Set[V3I]]
+    type SurfaceMap = Map[Direction, Set[V3I]]
+
     // compute the given surface of the given block
-    def surface(m: SurfaceMap, v: V3I, s: Direction): SurfaceMap = {
+    def surface(m: SurfaceMap, v: V3I, s: Direction): SurfaceMap =
       (chunk(v), chunk(v + s)) match {
         // if the target is non-existent, the face is invisible
         case (None, _) => m
@@ -29,16 +31,14 @@ case class ChunkRenderer(chunk: Chunk) extends RenderableFactory {
         // in all other cases, the face is invisible
         case _ => m.updated(s, m(s) - v)
       }
-    }
-    // compute all surfaces belonging to or touching block
-    def block(m: SurfaceMap, v: V3I): SurfaceMap = {
-      val a: Seq[(V3I, Direction)] = Stream.iterate(v)(identity).zip(Directions())
-      val b: Seq[(V3I, Direction)] = Directions().map(d => (v + d, d.neg))
-      (a ++ b).foldLeft(m)({ case (m, (v, s)) => surface(m, v, s) })
-    }
+
+    // compute all surfaces of a block
+    def block(m: SurfaceMap, v: V3I): SurfaceMap =
+      (Stream.iterate(v)(identity) zip Directions()).foldLeft(m)({ case (m, (v, s)) => surface(m, v, s) })
+
     // do the computation
-    val empty: SurfaceMap = Directions().zip(Stream.iterate(new HashSet[V3I]())(identity)).toMap
-    val blocks: Seq[V3I] = chunk.pos * chunk.size until chunk.pos + Ones * chunk.size
+    val empty: SurfaceMap = Directions() zip Stream.iterate(new HashSet[V3I]())(identity) toMap
+    val blocks: Seq[V3I] = Origin until V3I(chunk.size, chunk.size, chunk.size)
     val exposed: SurfaceMap = blocks.foldLeft(empty)(block)
 
     // create a mesh
@@ -50,14 +50,12 @@ case class ChunkRenderer(chunk: Chunk) extends RenderableFactory {
 
     // fold the exposure sets into vertex data and indices
     type VertDatum = (V3F, Color, V2F)
-    val vertSize = mesh.getVertexSize / 4 // convert from size in bytes to size in floats
-    //val p = +0.5f // positive half float
-    //val n = -0.5f // negative half float
+    val vertSize = mesh.getVertexSize / 4
+    // convert from size in bytes to size in floats
     val p = 1
     val n = 0
     val offset = chunk.pos * chunk.size
-
-    var data: (List[VertDatum], List[Short]) = (Nil, Nil)
+    println("offset = " + offset)
 
     def addSquareIndices(verts: List[VertDatum], indices: List[Short]): List[Short] =
       indices
@@ -68,76 +66,90 @@ case class ChunkRenderer(chunk: Chunk) extends RenderableFactory {
         .::((verts.length + 2).toShort)
         .::((verts.length + 3).toShort)
 
+    var data: (List[VertDatum], List[Short]) = (Nil, Nil)
+
     data = exposed(Up).foldLeft(data)(
-      (data, v) => data match {
-        case (verts, indices) => (
-          verts
-            .::((v + V3F(n, p, p) + offset, Color.WHITE, chunk(v).get.texCoord1))
-            .::((v + V3F(p, p, p) + offset, Color.WHITE, chunk(v).get.texCoord2))
-            .::((v + V3F(p, p, n) + offset, Color.WHITE, chunk(v).get.texCoord3))
-            .::((v + V3F(n, p, n) + offset, Color.WHITE, chunk(v).get.texCoord4)),
-          addSquareIndices(verts, indices)
-        )
+      (data, b) => data match {
+        case (verts, indices) =>
+          val r = texturePack(chunk(b).get.tid)
+          (
+            verts
+              .::((b + V3F(n, p, p) + offset, Color.WHITE, V2F(r.getU, r.getV)))
+              .::((b + V3F(p, p, p) + offset, Color.WHITE, V2F(r.getU2, r.getV)))
+              .::((b + V3F(p, p, n) + offset, Color.WHITE, V2F(r.getU2, r.getV2)))
+              .::((b + V3F(n, p, n) + offset, Color.WHITE, V2F(r.getU, r.getV2))),
+            addSquareIndices(verts, indices)
+          )
       }
     )
     data = exposed(West).foldLeft(data)(
-      (data, v) => data match {
-        case (verts, indices) => (
-          verts
-            .::((v + V3F(n, p, p) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), chunk(v).get.texCoord1))
-            .::((v + V3F(n, p, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), chunk(v).get.texCoord2))
-            .::((v + V3F(n, n, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), chunk(v).get.texCoord3))
-            .::((v + V3F(n, n, p) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), chunk(v).get.texCoord4)),
-          addSquareIndices(verts, indices)
-        )
+      (data, b) => data match {
+        case (verts, indices) =>
+          val r = texturePack(chunk(b).get.tid)
+          (
+            verts
+              .::((b + V3F(n, p, p) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU, r.getV)))
+              .::((b + V3F(n, p, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU2, r.getV)))
+              .::((b + V3F(n, n, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU2, r.getV2)))
+              .::((b + V3F(n, n, p) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU, r.getV2))),
+            addSquareIndices(verts, indices)
+          )
       }
     )
     data = exposed(East).foldLeft(data)(
-      (data, v) => data match {
-        case (verts, indices) => (
-          verts
-            .::((v + V3F(p, p, n) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), chunk(v).get.texCoord1))
-            .::((v + V3F(p, p, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), chunk(v).get.texCoord2))
-            .::((v + V3F(p, n, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), chunk(v).get.texCoord3))
-            .::((v + V3F(p, n, n) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), chunk(v).get.texCoord4)),
-          addSquareIndices(verts, indices)
-        )
+      (data, b) => data match {
+        case (verts, indices) =>
+          val r = texturePack(chunk(b).get.tid)
+          (
+            verts
+              .::((b + V3F(p, p, n) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU, r.getV)))
+              .::((b + V3F(p, p, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU2, r.getV)))
+              .::((b + V3F(p, n, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU2, r.getV2)))
+              .::((b + V3F(p, n, n) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU, r.getV2))),
+            addSquareIndices(verts, indices)
+          )
       }
     )
     data = exposed(South).foldLeft(data)(
-      (data, v) => data match {
-        case (verts, indices) => (
-          verts
-            .::((v + V3F(n, n, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), chunk(v).get.texCoord1))
-            .::((v + V3F(n, p, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), chunk(v).get.texCoord2))
-            .::((v + V3F(p, p, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), chunk(v).get.texCoord3))
-            .::((v + V3F(p, n, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), chunk(v).get.texCoord4)),
-          addSquareIndices(verts, indices)
-        )
+      (data, b) => data match {
+        case (verts, indices) =>
+          val r = texturePack(chunk(b).get.tid)
+          (
+            verts
+              .::((b + V3F(n, n, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU, r.getV)))
+              .::((b + V3F(n, p, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU2, r.getV)))
+              .::((b + V3F(p, p, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU2, r.getV2)))
+              .::((b + V3F(p, n, n) + offset, new Color(0.85f, 0.85f, 0.85f, 1f), V2F(r.getU, r.getV2))),
+            addSquareIndices(verts, indices)
+          )
       }
     )
     data = exposed(North).foldLeft(data)(
-      (data, v) => data match {
-        case (verts, indices) => (
-          verts
-            .::((v + V3F(n, n, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), chunk(v).get.texCoord1))
-            .::((v + V3F(p, n, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), chunk(v).get.texCoord2))
-            .::((v + V3F(p, p, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), chunk(v).get.texCoord3))
-            .::((v + V3F(n, p, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), chunk(v).get.texCoord4)),
-          addSquareIndices(verts, indices)
-        )
+      (data, b) => data match {
+        case (verts, indices) =>
+          val r = texturePack(chunk(b).get.tid)
+          (
+            verts
+              .::((b + V3F(n, n, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU, r.getV)))
+              .::((b + V3F(p, n, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU2, r.getV)))
+              .::((b + V3F(p, p, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU2, r.getV2)))
+              .::((b + V3F(n, p, p) + offset, new Color(0.8f, 0.8f, 0.8f, 1f), V2F(r.getU, r.getV2))),
+            addSquareIndices(verts, indices)
+          )
       }
     )
     data = exposed(Down).foldLeft(data)(
-      (data, v) => data match {
-        case (verts, indices) => (
-          verts
-            .::((v + V3F(n, n, p) + offset, new Color(0.75f, 0.75f, 0.75f, 1f), chunk(v).get.texCoord1))
-            .::((v + V3F(n, n, n) + offset, new Color(0.75f, 0.75f, 0.75f, 1f), chunk(v).get.texCoord2))
-            .::((v + V3F(p, n, n) + offset, new Color(0.75f, 0.75f, 0.75f, 1f), chunk(v).get.texCoord3))
-            .::((v + V3F(p, n, p) + offset, new Color(0.75f, 0.75f, 0.75f, 1f), chunk(v).get.texCoord4)),
-          addSquareIndices(verts, indices)
-        )
+      (data, b) => data match {
+        case (verts, indices) =>
+          val r = texturePack(chunk(b).get.tid)
+          (
+            verts
+              .::((b + V3F(n, n, p) + offset, new Color(0.75f, 0.75f, 0.75f, 1f), V2F(r.getU, r.getV)))
+              .::((b + V3F(n, n, n) + offset, new Color(0.75f, 0.75f, 0.75f, 1f), V2F(r.getU2, r.getV)))
+              .::((b + V3F(p, n, n) + offset, new Color(0.75f, 0.75f, 0.75f, 1f), V2F(r.getU2, r.getV2)))
+              .::((b + V3F(p, n, p) + offset, new Color(0.75f, 0.75f, 0.75f, 1f), V2F(r.getU, r.getV2))),
+            addSquareIndices(verts, indices)
+          )
       }
     )
 
@@ -171,10 +183,8 @@ case class ChunkRenderer(chunk: Chunk) extends RenderableFactory {
     mesh.setIndices(indexArr)
 
     // create the material
-    //val material = new Material()
-    //material.set(TextureAttribute.createDiffuse(textures))
     val material = new Material
-    material.set(TextureAttribute.createDiffuse(textures))
+    material.set(TextureAttribute.createDiffuse(texturePack.texture))
 
     // create the renderable
     val renderable = new Renderable()
@@ -183,6 +193,7 @@ case class ChunkRenderer(chunk: Chunk) extends RenderableFactory {
     renderable.meshPart.offset = 0
     renderable.meshPart.size = indexArr.length
     renderable.meshPart.primitiveType = GL20.GL_TRIANGLES
+    println("meshed")
     renderable
   }
 

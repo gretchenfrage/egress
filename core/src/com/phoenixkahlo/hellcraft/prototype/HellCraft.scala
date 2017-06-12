@@ -16,7 +16,7 @@ class HellCraft extends ApplicationAdapter {
   private var world: World = _
   private var worldRenderer: WorldRenderer = _
   private var cam: PerspectiveCamera = _
-  private var camController: MovementController = _
+  private var camController: MMovementController = _
   private var modelBatch: ModelBatch = _
   private var lights: Environment = _
 
@@ -29,7 +29,7 @@ class HellCraft extends ApplicationAdapter {
     println("generating")
     // perlin noise based generation
     MathUtils.random.setSeed("phoenix".hashCode)
-    val heightMap = PerlinNoiseGenerator.generateHeightMap(world.blockSize.xi, world.blockSize.zi, 0, 63, 11)
+    val heightMap: Array[Byte] = PerlinNoiseGenerator.generateHeightMap(world.blockSize.xi, world.blockSize.zi, 0, 63, 11)
     var idx = 0
     for (z <- 0 until world.blockSize.zi) {
       for (x <- 0 until world.blockSize.xi) {
@@ -85,7 +85,7 @@ class HellCraft extends ApplicationAdapter {
     cam.lookAt(0, heightMap(0), 0)
 
     val multiplexer = new InputMultiplexer
-    camController = new MovementController(cam)
+    camController = new MMovementController(cam)
     multiplexer.addProcessor(camController)
     Gdx.input.setInputProcessor(multiplexer)
 

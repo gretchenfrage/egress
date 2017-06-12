@@ -9,6 +9,6 @@ trait Entity {
 
   def update: Seq[ChunkEvent] = Nil
 
-  def renderables: Seq[RenderableFactory] = Nil
+  def renderables(texturePack: TexturePack): Seq[RenderableFactory] = Nil
 
 }

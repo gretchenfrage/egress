@@ -8,15 +8,36 @@ import com.phoenixkahlo.hellcraft.util.{Origin, Repeated, V3I}
 /**
   * A unit of world.
   */
-case class Chunk(
-                  pos: V3I, // coordinates in chunks, not blocks
-                  size: Int,
-                  blocks: Vector[Byte],
-                  entities: Vector[Entity],
-                  blocksRenderableCache: Option[RenderableFactory]
-                ) {
+class Chunk private (
+             val pos: V3I, // coordinates in chunks, not blocks
+             val size: Int,
+             val blocks: Vector[Byte],
+             val entities: Vector[Entity],
+             var blocksRenderableCache: Option[RenderableFactory]
+           ) {
 
-  def compress(v: V3I): Int = v.xi + v.zi * size + v.yi * size * size
+  def this(pos: V3I, size: Int) = this(
+    pos, size,
+    (1 to size * size * size).foldLeft(Vector[Byte]())((v, _) => v :+ 0.toByte),
+    Vector(),
+    None
+  )
+
+  def copy(
+                    pos: V3I = this.pos,
+                    size: Int = this.size,
+                    blocks: Vector[Byte] = this.blocks,
+                    entities: Vector[Entity] = this.entities,
+                    blocksRenderableCache: Option[RenderableFactory] = this.blocksRenderableCache
+                  ): Chunk = new Chunk(
+    pos,
+    size,
+    blocks,
+    entities,
+    blocksRenderableCache
+  )
+
+  private def compress(v: V3I): Int = v.xi + v.zi * size + v.yi * size * size
 
   def apply(v: V3I): Option[Block] =
     if (v >= Origin && v < Repeated(size)) Some(BlockDirectory.lookup(blocks(compress(v))))
@@ -27,25 +48,15 @@ case class Chunk(
     blocksRenderableCache = None
   )
 
-  def renderables: Seq[() => Renderable] = {
-    val blocksRenderable: RenderableFactory = blocksRenderableCache match {
-      case Some(r) => r
-      case None => ChunkRenderer(this)
+  def renderables(texturePack: TexturePack): Seq[RenderableFactory] = {
+    blocksRenderableCache match {
+      case Some(_) =>
+      case None => blocksRenderableCache = Some(ChunkRenderer(this, texturePack))
     }
-    entities.flatMap(_.renderables) :+ blocksRenderable
+    entities.flatMap(_.renderables(texturePack)) :+ blocksRenderableCache.get
   }
 
-}
-
-object Chunk {
-
-  def apply(pos: V3I, size: Int = 16) =
-    Chunk(
-      pos,
-      size,
-      (1 to size * size * size).foldLeft(Vector[Byte]())((v, _) => v :+ 0),
-      Vector(),
-      None
-    )
+  def mapBlocks(f: V3I => Block): Chunk =
+    (Origin until V3I(size, size, size)).foldLeft(this)({ case (c, v) => c.put(v, f(v)) })
 
 }
