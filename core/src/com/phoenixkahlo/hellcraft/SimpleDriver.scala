@@ -24,20 +24,37 @@ class SimpleDriver extends ApplicationAdapter {
   override def create(): Unit = {
     texturePack = new DefaultTexturePack
 
-    world = new FiniteWorld(V3I(5, 5, 5), 16)
+    world = new FiniteWorld(V3I(15, 5, 15), 16)
 
     println("generating")
 
     MathUtils.random.setSeed("phoenix".hashCode)
 
-    val heights = PerlinNoiseGenerator.generateHeightMap((world.size * 16).xi, (world.size * 16).zi, 0, 63, 11)
-    def height(v: V3I): Byte = heights.apply(v.zi * world.size.zi * 16 + v.xi)
+    val heights = PerlinNoiseGenerator.generateHeightMap((world.size * 16).xi, (world.size * 16).zi, 0, 63, 9)
+    def height(v: V3I): Byte = heights(v.zi * world.size.zi * 16 + v.xi)
     world = world.mapBlocks(v => {
       val depth = height(v) - v.y
       if (depth > 20) Stone
       else if (depth >= 0) Dirt
       else Air
     })
+
+    /*
+    world = world.mapChunks(c => {
+      (Origin until c.pos).foldLeft(c)({ case (cc, v) => cc.updateBlock(v, Stone) })
+    })
+    */
+    /*
+    for (v <- Origin until world.size) {
+      world = world.updateChunk(
+        v,
+        // it's the c.pos that breaks it...
+        // idea one: chunkAt it broken
+        // idea two: chunks don't know where the heck they are
+        c => (Origin to c.pos).foldLeft(c)({ case (cc, vv) => cc.updateBlock(vv, Stone) })
+      )
+    }
+    */
 
     //world = world.mapBlocks(_ => Stone)
     println("generated")

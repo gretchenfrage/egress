@@ -38,7 +38,14 @@ class Chunk private(
     lastRenderer
   )
 
-  private def compress(v: V3I): Int = v.xi + v.zi * size + v.yi * size * size
+  def compress(v: V3I): Int = v.xi + v.zi * size + v.yi * size * size
+
+  def decompress(i: Int): V3I = {
+    val y = i / (size * size)
+    val z = (i % (size * size)) / size
+    val x = i % size
+    V3I(x, y, z)
+  }
 
   def apply(v: V3I): Option[Block] =
     if (v >= Origin && v < Repeated(size)) Some(BlockDirectory.lookup(blocks(compress(v))))
@@ -59,6 +66,10 @@ class Chunk private(
   }
 
   def mapBlocks(f: V3I => Block): Chunk =
-    (Origin until V3I(size, size, size)).foldLeft(this)({ case (c, v) => c.updateBlock(v, f(v)) })
+    copy(
+    blocks = blocks.indices.par.map(decompress).map(f).map(_.id).seq.to[Vector],
+    lastRenderer = null
+  )
+    //(Origin until V3I(size, size, size)).foldLeft(this)({ case (c, v) => c.updateBlock(v, f(v)) })
 
 }

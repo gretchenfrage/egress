@@ -55,6 +55,13 @@ class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
   override def toString: String =
     "<" + xi + ", " + yi + ", " + zi + ">"
 
+  def decompress(i: Int): V3I = {
+    val y = i / (xi * zi)
+    val z = (i % (xi * zi)) / xi
+    val x = i % xi
+    V3I(x, y, z)
+  }
+
 }
 
 object Origin extends V3I(0, 0, 0)
