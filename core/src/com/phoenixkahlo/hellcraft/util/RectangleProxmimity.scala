@@ -6,7 +6,7 @@ package com.phoenixkahlo.hellcraft.util
 case class RectangleProxmimity(
                               rect: Rectangle,
                               r: Float
-                              ) {
+                              ) extends Shape {
 
   private val verticalRect = Rectangle(rect.min - V2F(0, r), rect.max + V2F(0, r))
   private val horizRect = Rectangle(rect.min - V2F(r, 0), rect.max + V2F(r, 0))
@@ -15,7 +15,7 @@ case class RectangleProxmimity(
   private val quad2Circle = Circle(V2F(rect.min.x, rect.max.y), r)
   private val quad4Circle = Circle(V2F(rect.max.x, rect.min.y), r)
 
-  def contains(p: V2F): Boolean =
+  override def contains(p: V2F): Boolean =
     ((verticalRect contains p)
       || (horizRect contains p)
       || (quad3Circle contains p)
@@ -23,7 +23,7 @@ case class RectangleProxmimity(
       || (quad2Circle contains p)
       || (quad4Circle contains p))
 
-  def closestPerimiterPoint(p: V2F): V2F = {
+  override def closestPerimiterPoint(p: V2F): V2F = {
     if (p > quad1Circle.center)
       (p - quad1Circle.center).normalize * r + quad1Circle.center
     else if (p < quad3Circle.center)

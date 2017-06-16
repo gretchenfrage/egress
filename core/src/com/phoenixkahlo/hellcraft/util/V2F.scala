@@ -50,7 +50,7 @@ case class V2F(x: Float, y: Float) {
   lazy val normalize: V2F =
     this / magnitude
 
-  def horizontallyInflate(height: Float): V3F =
+  def inflate(height: Float): V3F =
     V3F(x, height, y)
 
   def dist(v: V2F): Float =

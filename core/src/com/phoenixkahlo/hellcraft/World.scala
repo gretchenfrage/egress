@@ -1,5 +1,7 @@
 package com.phoenixkahlo.hellcraft
 
+import java.util.UUID
+
 import com.phoenixkahlo.hellcraft.util.V3I
 
 /**
@@ -8,5 +10,7 @@ import com.phoenixkahlo.hellcraft.util.V3I
 trait World {
 
   def blockAt(v: V3I): Option[Block]
+
+  def findEntity(id: UUID): Entity
 
 }

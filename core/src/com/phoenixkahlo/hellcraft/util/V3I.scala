@@ -64,7 +64,9 @@ class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
 
 }
 
-object Origin extends V3I(0, 0, 0)
+object Origin extends V3I(0, 0, 0) {
+  override lazy val magnitude = 0
+}
 object Ones extends V3I(1, 1, 1)
 
 object V3I {

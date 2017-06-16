@@ -1,5 +1,7 @@
 package com.phoenixkahlo.hellcraft
 
+import java.util.UUID
+
 import com.badlogic.gdx.graphics.g3d.{Renderable, RenderableProvider}
 import com.badlogic.gdx.utils.{Array, Pool}
 import com.phoenixkahlo.hellcraft.util.{Origin, V3I}
@@ -21,7 +23,7 @@ class FiniteWorld(
                    val chunks: Vector[Chunk]
                  ) extends World {
 
-  def this(size: V3I, chunkSize: Int) =
+  def this(size: V3I, chunkSize: Int = 16) =
     this(
       size, chunkSize,
       (0 until size.fold(_ * _)).map(n => new Chunk(size.decompress(n), chunkSize)).to[Vector]
@@ -40,7 +42,7 @@ class FiniteWorld(
     chunkAt(v / chunkSize floor).flatMap(_ (v % chunkSize))
   }
 
-  def updateChunk(v: V3I, f: Chunk => Chunk): FiniteWorld =
+  def transformChunk(v: V3I, f: Chunk => Chunk): FiniteWorld =
     new FiniteWorld(
       size, chunkSize,
       chunks.updated(
@@ -49,8 +51,36 @@ class FiniteWorld(
       )
     )
 
-  def updateBlock(v: V3I, b: Block): FiniteWorld =
-    updateChunk(v / chunkSize floor, _.updateBlock(v % chunkSize, b))
+  def putBlock(v: V3I, b: Block): FiniteWorld =
+    transformChunk(v / chunkSize floor, _.putBlock(v % chunkSize, b))
+
+  /*
+  def update: FiniteWorld = {
+    val events = chunks.flatMap(_.update(this)).groupBy(_.chunkPos)
+    mapChunks(c => {
+      events.get(c.pos) match {
+        case Some(e) => e.foldLeft(c)({ case (cc, ee) => ee(cc) })
+        case None => c
+      }
+    })
+  }
+  */
+
+  override def findEntity(id: UUID): Entity =
+    chunks.map(_.entities.get(id)).find(_.isDefined).get.get
+
+  def update: FiniteWorld =
+    integrate(chunks.flatMap(_.update(this)))
+
+  def integrate(events: Seq[ChunkEvent]): FiniteWorld = {
+    val grouped = events.groupBy(_.chunkPos)
+    mapChunks(c => {
+      grouped.get(c.pos) match {
+        case Some(e) => e.foldLeft(c)({ case (cc, ee) => ee(cc) })
+        case None => c
+      }
+    })
+  }
 
   def mapChunks(f: Chunk => Chunk): FiniteWorld =
     new FiniteWorld(

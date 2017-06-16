@@ -11,6 +11,7 @@ sealed trait TextureID
 case object StoneTID extends TextureID
 case object SandTID extends TextureID
 case object DirtTID extends TextureID
+case object BrickTID extends TextureID
 
 trait TexturePack {
   def apply(texID: TextureID): TextureRegion
@@ -25,7 +26,8 @@ class DefaultTexturePack extends TexturePack {
   val regions: Map[TextureID, TextureRegion] = Seq(
     StoneTID -> 0,
     DirtTID -> 1,
-    SandTID -> 2
+    SandTID -> 2,
+    BrickTID -> 3
   ) map { case (tid, n) => (tid, new TextureRegion(texture, (n % 16) * 16, (n - (n % 16)) * 16, 16, 16)) } toMap
 
   override def apply(texID: TextureID) = regions(texID)

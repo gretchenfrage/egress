@@ -42,9 +42,9 @@ class Cylinder(
       // filter out non-existent or incorporeal block
       .filter(world.block(_).map(_ isCorporeal).exists(identity))
       // add horizontally-projected rectangle proximites
-      .map(v => (v, RectangleProxmimity(Rectangle(v.projectHorizontal, (v + Ones).projectHorizontal), rad)))
+      .map(v => (v, RectangleProxmimity(Rectangle(v.flatten, (v + Ones).flatten), rad)))
       // filter out non-intersecting blocks
-      .filter({ case (_, r) => r contains pos.projectHorizontal })
+      .filter({ case (_, r) => r contains pos.flatten })
 
   def computeResolution(world: World, processed: mutable.Set[V3I]): Option[(V3I, V3F)] =
   // find any intersecting block
@@ -54,7 +54,7 @@ class Cylinder(
       .flatMap({
       case (v, r) => pos.closest(
         // horizontal collision resolution
-        r.closestPerimiterPoint(pos.projectHorizontal).horizontallyInflate(pos.y),
+        r.closestPerimiterPoint(pos.flatten).inflate(pos.y),
         // shift-up collision resolution
         V3F(pos.x, v.y + 1, pos.z),
         // shift-down collision resolution
@@ -90,11 +90,11 @@ class Cylinder(
 
     val dx = xf - xi
     if (dx.y == 0)
-      computeVfHorizontalCollision(vi.projectHorizontal, xi.projectHorizontal, xf.projectHorizontal)
-        .horizontallyInflate(vi.y)
+      computeVfHorizontalCollision(vi.flatten, xi.flatten, xf.flatten)
+        .inflate(vi.y)
     else if (!didFriction && dx.y > 0){
       didFriction = true
-      applyFriction(vi.projectHorizontal, g, 0.6f).horizontallyInflate(0)
+      applyFriction(vi.flatten, g, 0.6f).inflate(0)
     } else V3F(vi.x, 0, vi.z)
   }
 

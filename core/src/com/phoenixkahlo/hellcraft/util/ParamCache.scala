@@ -1,6 +1,6 @@
 package com.phoenixkahlo.hellcraft.util
 
-class ParamCache[P, T](factory: P => T) {
+class ParamCache[P,T](factory: P => T) {
 
   private var value: Option[T] = None
 

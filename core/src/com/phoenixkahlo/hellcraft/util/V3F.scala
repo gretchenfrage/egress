@@ -55,7 +55,7 @@ class V3F(val x: Float, val y: Float, val z: Float) {
   def ceil: V3I =
     V3I(Math.ceil(x).toInt, Math.ceil(y).toInt, Math.ceil(z).toInt)
 
-  lazy val projectHorizontal =
+  lazy val flatten =
     V2F(x, z)
 
   lazy val magnitude =
@@ -93,6 +93,13 @@ class V3F(val x: Float, val y: Float, val z: Float) {
 
   def dot(v: V3F) =
     x * v.x + y * v.y + z * v.z
+
+  def cross(v: V3F) =
+    V3F(
+      y * v.z - z * v.y,
+      z * v.x - x * v.z,
+      x * v.y - y * v.x
+    )
 
   def normalize =
     this / magnitude
