@@ -1,13 +1,12 @@
 package com.phoenixkahlo.hellcraft.util
 
-class Cache[T] (factory: => T) {
+class Cache[T](factory: => T) {
 
-  private var value: Option[T] = None
+  protected var value: Option[T] = None
 
   def apply() =
     this.synchronized {
-      if (value.isEmpty)
-        value = Some(factory)
+      if (value.isEmpty) value = Some(factory)
       value.get
     }
 

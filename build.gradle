@@ -47,10 +47,17 @@ project(":core") {
     apply plugin: "java"
     apply plugin: "scala"
 
+    repositories {
+        mavenCentral()
+    }
+
     dependencies {
         compile "com.badlogicgames.gdx:gdx:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-bullet:$gdxVersion"
         compile "org.scala-lang:scala-library:2.12.2"
+
+        compile group: 'com.esotericsoftware', name: 'kryonet', version: '2.22.0-RC1'
+        compile group: 'com.twitter', name: 'chill_2.12', version: '0.9.2'
     }
 }
 

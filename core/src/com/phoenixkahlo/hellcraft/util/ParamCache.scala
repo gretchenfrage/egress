@@ -6,8 +6,7 @@ class ParamCache[P,T](factory: P => T) {
 
   def apply(param: P) =
     this.synchronized {
-      if (value.isEmpty)
-        value = Some(factory(param))
+      if (value.isEmpty) value = Some(factory(param))
       value.get
     }
 

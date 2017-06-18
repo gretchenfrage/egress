@@ -1,0 +1,108 @@
+package com.phoenixkahlo.hellcraft.core.entity
+
+import java.util.UUID
+
+import com.badlogic.gdx.graphics.g3d.{ModelInstance, Renderable}
+import com.badlogic.gdx.utils.Pool
+import com.phoenixkahlo.hellcraft.core._
+import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
+import com.phoenixkahlo.hellcraft.util.KeyParamPool
+
+import scala.collection.JavaConverters
+
+/**
+  * An abstract entity that provides a framework for things pertaining to an entity being a moveable physical object.
+  * Update is implemented, but a function is declared to transform itself. Corpus has a position property, and if the
+  * self transformation moves the corpus into a different chunk, the update method will transfer the corpus between
+  * chunks. The corpus can produce a modelID and a modelFactory, and if it produces the same modelID on multiple tics,
+  * the generated model will be reused, after settings the translation to the position plus a model offset.
+  */
+//TODO: allow for dynamic model disposal
+abstract class Corpus(
+                          val pos: V3F,
+                          val id: UUID,
+                          val chunkSize: Int = 16
+                        ) extends Entity {
+
+
+  protected def transform(world: World): Corpus
+
+  def modelID: UUID = id
+
+  def modelOffset: V3F
+
+  def modelFactory(texturePack: TexturePack): ModelInstanceFactory
+
+  lazy val chunkPos: V3I = pos / chunkSize floor
+
+  override def update(world: World): Seq[ChunkEvent] = {
+    val replacer = transform(world)
+    if (replacer.chunkPos == this.chunkPos)
+      Seq(ChunkEvent(chunkPos, _.putEntity(replacer)))
+    else
+      Seq(
+        ChunkEvent(chunkPos, _.removeEntity(this)),
+        ChunkEvent(replacer.chunkPos, _.putEntity(replacer))
+      )
+  }
+
+  override def renderables(texturePack: TexturePack): Seq[RenderableFactory] =
+    Seq(PooledInstanceRenderer(this, texturePack))
+
+  /*
+  override def renderables(texturePack: TexturePack): Seq[RenderableFactory] =
+    Seq(new RenderableFactory {
+      override def apply(): Seq[Renderable] = {
+        // obtain model
+        val model = ModelPool(modelID, modelFactory(texturePack))
+        // transform model
+        model.transform.setTranslation(pos + modelOffset toGdx)
+        // extract renderables from model
+        val array = new com.badlogic.gdx.utils.Array[Renderable]()
+        val pool = new Pool[Renderable]() {
+          override def newObject(): Renderable = new Renderable
+        }
+        model.getRenderables(array, pool)
+        // render renderables
+        JavaConverters.iterableAsScalaIterable(array).toSeq
+      }
+    })
+    */
+
+}
+
+case class PooledInstanceRenderer(corpus: Corpus, texturePack: TexturePack) extends RenderableFactory {
+
+  /**
+    * Bring this object into an active state, generating resources, and return the renderables.
+    */
+  override def apply(): Seq[Renderable] = {
+    // obtain model
+    val model = ModelPool(corpus.modelID, corpus.modelFactory(texturePack))
+    // translate model
+    model.transform.setTranslation(corpus.pos + corpus.modelOffset toGdx)
+    // extract renderables from model
+    val array = new com.badlogic.gdx.utils.Array[Renderable]()
+    val pool = new Pool[Renderable]() {
+      override def newObject(): Renderable = new Renderable
+    }
+    model.getRenderables(array, pool)
+    // return renderables
+    JavaConverters.iterableAsScalaIterable(array).toSeq
+  }
+
+  /**
+    * Return the sequence of factories that this factory depends on for being in an activate state.
+    */
+  override def dependencies: Seq[RenderableFactory] = Nil
+
+  /**
+    * Bring this object into an unactive state, and dispose of resources.
+    */
+  override def dispose(): Unit = {}
+
+}
+
+trait ModelInstanceFactory { def apply(): ModelInstance }
+
+object ModelPool extends KeyParamPool[UUID,ModelInstanceFactory,ModelInstance](_())
