@@ -16,7 +16,8 @@ class Chunk private(
                      val size: Int,
                      val blocks: Vector[Byte],
                      val entities: Map[UUID,Entity],
-                     @transient val lastRenderer: ParamCache[(TexturePack, World), ChunkRenderer]
+                     @transient val lastRenderer: ParamCache[(TexturePack, World), ChunkRenderer],
+                     val lastRendererDirty: Boolean
                    ) {
 
 
@@ -24,7 +25,8 @@ class Chunk private(
     pos, size,
     (1 to size * size * size).foldLeft(Vector[Byte]())((v, _) => v :+ 0.toByte),
     new HashMap,
-    null
+    null,
+    true
   )
 
   def copy(
@@ -32,13 +34,15 @@ class Chunk private(
             size: Int = this.size,
             blocks: Vector[Byte] = this.blocks,
             entities: Map[UUID,Entity] = this.entities,
-            lastRenderer: ParamCache[(TexturePack, World), ChunkRenderer] = renderer
+            lastRenderer: ParamCache[(TexturePack, World), ChunkRenderer] = this.renderer,
+            lastRendererDirty: Boolean = false
           ): Chunk = new Chunk(
     pos,
     size,
     blocks,
     entities,
-    lastRenderer
+    lastRenderer,
+    lastRendererDirty
   )
 
   def compress(v: V3I): Int = v.xi + v.zi * size + v.yi * size * size
@@ -54,10 +58,15 @@ class Chunk private(
     if (v >= Origin && v < Repeated(size)) Some(BlockDirectory.lookup(blocks(compress(v))))
     else None
 
+  /**
+    * warning: this will not cause adjacent chunks to recompile their meshes
+    */
   def putBlock(v: V3I, b: Block): Chunk = copy(
     blocks = blocks.updated(compress(v), b.id),
-    lastRenderer = null
+    lastRendererDirty = true
   )
+
+  def renderUncached: Chunk = copy(lastRendererDirty = true)
 
   def putEntity(entity: Entity): Chunk = copy(
     entities = entities.updated(entity.id, entity)
@@ -72,10 +81,21 @@ class Chunk private(
   def update(world: World): Seq[ChunkEvent] =
     entities.values.flatMap(_.update(world)).toSeq
 
-  @transient private lazy val renderer: ParamCache[(TexturePack, World), ChunkRenderer] = lastRenderer match {
-    case null => new ParamCache({ case (t, w) => new ChunkRenderer(this, t, w) })
-    case r => r
+  @transient private lazy val renderer: ParamCache[(TexturePack, World), ChunkRenderer] =
+    if (lastRenderer == null)
+      new ParamCache({ case (textures, world) => new ChunkRenderer(this, textures, world, None) })
+    else {
+      if (lastRendererDirty)
+        new ParamCache({ case params@(textures, world) => new ChunkRenderer(this, textures, world, Some(lastRenderer(params)))})
+      else
+        lastRenderer
+    }
+
+    /*lastRenderer match {
+    case null => new ParamCache({ case (textures, world) => new ChunkRenderer(this, textures, world, None) })
+    case lastRenderer
   }
+  */
 
   def renderables(texturePack: TexturePack, world: World): Seq[RenderableFactory] =
     entities.values.flatMap(_.renderables(texturePack)).toSeq :+ renderer((texturePack, world))

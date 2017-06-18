@@ -54,18 +54,6 @@ class FiniteWorld(
   def putBlock(v: V3I, b: Block): FiniteWorld =
     transformChunk(v / chunkSize floor, _.putBlock(v % chunkSize, b))
 
-  /*
-  def update: FiniteWorld = {
-    val events = chunks.flatMap(_.update(this)).groupBy(_.chunkPos)
-    mapChunks(c => {
-      events.get(c.pos) match {
-        case Some(e) => e.foldLeft(c)({ case (cc, ee) => ee(cc) })
-        case None => c
-      }
-    })
-  }
-  */
-
   override def findEntity(id: UUID): Entity =
     chunks.map(_.entities.get(id)).find(_.isDefined).get.get
 

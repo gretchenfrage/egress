@@ -10,7 +10,7 @@ case class ChunkEvent(
                      event: Chunk => Chunk
                      ) {
 
-  def apply(chunk: Chunk) =
+  def apply(chunk: Chunk): Chunk =
     event(chunk)
 
 }

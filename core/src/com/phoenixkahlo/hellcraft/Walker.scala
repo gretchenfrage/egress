@@ -25,25 +25,9 @@ abstract class Walker[C <: Walker[C]](
     else direction.flatten.normalize * maxVel
 
   override protected def transform(world: World): C = {
-    // TODO: refactor air friction shenanigans into superclass
-    val dt = 1f / 60f
-
-    val s = super.transform(world)
-
-    if (jumping && s.grounded)
-      s.copy("vel" -> (s.vel + V3F(0, Math.sqrt(2 * g * jumpHeight).toFloat, 0)))
-    else if (!s.grounded && direction.magnitude != 0 && s.vel.magnitude < maxVel) {
-      val accelerated = s.vel + (direction.flatten.normalize.inflate(0) * airAccel * dt)
-      if (accelerated.magnitude > maxVel)
-        s.copy("vel" -> (accelerated.normalize * maxVel))
-      else
-        s.copy("vel" -> accelerated)
-    } else if (!s.grounded && direction.magnitude == 0 && s.vel.flatten.magnitude != 0) {
-      val reduced = s.vel - (s.vel.flatten.normalize.inflate(0) * g * 5 * dt)
-      if ((s.vel dot reduced) > 0) s.copy("vel" -> reduced)
-      else s.copy("vel" -> Origin)
-    } else
-      s
+    val f = super.transform(world)
+    if (jumping && f.grounded) f.copy("vel" -> f.vel.copy(y = Math.sqrt(2 * g * jumpHeight).toFloat))
+    else f
   }
 
 }

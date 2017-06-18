@@ -45,10 +45,12 @@ class SimpleDriver extends ApplicationAdapter {
     world = world.mapBlocks(v => {
       val depth = height(v) - v.y
       if (depth > 20) Stone
-      else if (depth >= 0)
-        if (ThreadLocalRandom.current().nextBoolean()) Dirt
-        else Brick
+      else if (depth >= 0) Dirt
       else Air
+    })
+    world = world.mapBlocks(v => {
+      if (world.blockAt(v).get == Dirt && world.blockAt(v + Up).forall(_ == Air)) Grass
+      else world.blockAt(v).get
     })
     println("generated")
 

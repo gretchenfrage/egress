@@ -27,36 +27,33 @@ abstract class Cylindroid[C <: Cylindroid[C]](
                 ) extends Corpus(pos, id) {
 
   val g = 28f
+  val u = 10f
+  val d = 10f
 
   def copy(params: (String,Any)*): C
 
   def naturalVelocity: V2F = V2F(0, 0)
 
   override protected def transform(world: World): C = {
-    val u = 10f // friction
-    val dt = 1f / 60f // time step
+    val dt = 1f / 60f
 
     def intersecting(c: C, exclude: Set[V3I]): Seq[(V3I, RectangleProxmimity)] =
       ((c.pos - V3F(c.rad, 0, c.rad)).floor to (c.pos + V3F(c.rad, c.height, c.rad)).floor)
-      .filter(!exclude(_))
-      .filter(world.blockAt(_).map(_ isCorporeal).exists(identity))
-      .map(v => (v, RectangleProxmimity(
-        Rectangle(
-          v.flatten,
-          (v + Ones).flatten
-        ),
-        c.rad
-      )))
-      .filter({ case (_, r) => r contains c.pos.flatten })
+        .filter(!exclude(_))
+        .filter(world.blockAt(_).exists(_ isCorporeal))
+        .map(v => v -> RectangleProxmimity(Rectangle(v.flatten, (v + Ones).flatten), c.rad))
+        .filter({ case (_, r) => r contains c.pos.flatten })
 
     def resolution(c: C, exclude: Set[V3I]): Option[(V3I, V3F)] =
       intersecting(c, exclude)
-      .find(_ => true)
-      .flatMap({ case (v, r) => c.pos.closest(
-        r.closestPerimiterPoint(c.pos.flatten).inflate(c.pos.y),
-        V3F(c.pos.x, v.y + 1, c.pos.z),
-        V3F(c.pos.x, v.y - height, c.pos.z)
-      ).map((v, _)) })
+        .find(_ => true)
+        .flatMap({ case (v, r) =>
+          Seq(
+            Some(r.closestPerimiterPoint(c.pos.flatten).inflate(c.pos.y)),
+            if (world.blockAt(v + Up).exists(_ isIncorporeal)) Some(V3F(c.pos.x, v.y + 1, c.pos.z)) else None,
+            if (world.blockAt(v + Down).exists(_ isIncorporeal)) Some(V3F(c.pos.x, v.y - height, c.pos.z)) else None
+          ).filter(_ isDefined).map(_ get).sortBy(c.pos.dist).headOption.map((v, _))
+        })
 
     def vfHorizontal(vi: V2F, xi: V2F, xf: V2F): V2F = {
       val dx = xf - xi
@@ -66,61 +63,51 @@ abstract class Cylindroid[C <: Cylindroid[C]](
       vfUnit * vfSize
     }
 
-    def vfFriction(vi: V2F): V2F = {
+    def vfFriction(vi: V2F, maxFf: Float): V2F = {
       val vimnv = vi - naturalVelocity
       if (vimnv.magnitude == 0) return naturalVelocity
-      val reduced = vimnv - (vimnv.normalize * g * u * dt)
+      val reduced = vimnv - (vimnv.normalize * maxFf * dt)
       if ((vimnv dot reduced) > 0) reduced + naturalVelocity
       else naturalVelocity
-      /*
-      if (vi.magnitude == 0) return V2F(0, 0)
-      val reduced = vi - (vi.normalize * g * u * dt)
-      if ((vi dot reduced) > 0) reduced
-      else V2F(0, 0)
-      */
     }
 
     case class VTransform(vf: V3F, frictioned: Boolean)
-    def transformV(vi: V3F, xi: V3F, xf: V3F, friction: Boolean): VTransform = {
+    def vTransform(vi: V3F, xi: V3F, xf: V3F, frictioned: Boolean): VTransform = {
       val dx = xf - xi
-      if (dx.y == 0)
-        VTransform(
-          vfHorizontal(
-            vi.flatten,
-            xi.flatten,
-            xf.flatten
-          ).inflate(vi.y)
-        , false)
-      else if (friction && dx.y > 0)
-        VTransform(
-          vfFriction(vi.flatten).inflate(0),
-          true
-        )
-      else VTransform(V3F(vi.x, 0, vi.z), false)
+      if (dx.y == 0) VTransform(vfHorizontal(vi.flatten, xi.flatten, xf.flatten).inflate(vi.y), frictioned)
+      else if (!frictioned && dx.y > 0) VTransform(vfFriction(vi.flatten, g * u).inflate(Math.max(vi.y, 0)), true)
+      else if (dx.y > 0) VTransform(vi.copy(y = Math.max(vi.y, 0)), true)
+      else VTransform(vi.copy(y = Math.min(vi.y, 0)), frictioned)
     }
 
-    def update(c: C, exclude: Set[V3I], frictioned: Boolean): C = {
-      resolution(c, exclude) match {
+    def update(i: C, excludei: Set[V3I], frictionedi: Boolean): C = {
+      resolution(i, excludei) match {
         case Some((v, xf)) =>
-          val vTransform = transformV(c.vel, c.pos, xf, !frictioned)
-          val vf = vTransform.vf
-          val newFrictioned = vTransform.frictioned
-          val newExclude = exclude + v
-          val newCylindroid = c.copy(
-            "pos" -> xf,
-            "vel" -> vf,
-            "grounded" -> (c.grounded || newFrictioned)
-          )
-          update(newCylindroid, newExclude, newFrictioned)
-        case None => c
+          val vi = i.vel
+          val xi = i.pos
+          val transformation = vTransform(vi, xi, xf, frictionedi)
+          val vf = transformation.vf
+          val frictionedf = transformation.frictioned
+          val excludef = excludei + v
+          val groundedf = i.grounded || frictionedf
+          update(i.copy(
+              "pos" -> xf,
+              "vel" -> vf,
+              "grounded" -> groundedf
+            ), excludef, frictionedf)
+        case None => i
       }
     }
 
-    update(copy(
-      "vel" -> vel.copy(y = vel.y - g * dt),
-      "pos" -> (pos + (vel * dt)),
+    val vi = this.vel.copy(y = vel.y - g * dt)
+    val xi = pos + (vi * dt)
+    val f = update(this.copy(
+      "vel" -> vi,
+      "pos" -> xi,
       "grounded" -> false
     ), new HashSet, false)
+    if (f.grounded) f
+    else f.copy("vel" -> vfFriction(f.vel.flatten, g * d).inflate(f.vel.y))
   }
 
   override protected def modelOffset: V3F = V3F(0, height / 2, 0)

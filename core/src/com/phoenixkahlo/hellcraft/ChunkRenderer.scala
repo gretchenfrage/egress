@@ -11,7 +11,12 @@ import scala.concurrent.duration._
 import scala.collection.immutable.{HashMap, HashSet}
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-case class ChunkRenderer(chunk: Chunk, texturePack: TexturePack, world: World) extends RenderableFactory {
+case class ChunkRenderer(
+                          chunk: Chunk,
+                          texturePack: TexturePack,
+                          world: World,
+                          previous: Option[ChunkRenderer]
+                        ) extends RenderableFactory {
 
   val meshData: Future[(Array[Float], Array[Short])] = Future {
     // first, compute the exposed surfaces
@@ -208,6 +213,9 @@ case class ChunkRenderer(chunk: Chunk, texturePack: TexturePack, world: World) e
 
   override def apply(): Seq[Renderable] =
     if (meshData.isCompleted) Seq(renderable)
-    else Nil
+    else previous match {
+      case Some(renderer) => renderer.apply()
+      case None => Nil
+    }
 
 }
