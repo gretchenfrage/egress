@@ -14,6 +14,8 @@ trait World {
 
   def findEntity(id: UUID): Entity
 
+  def chunkAt(chunkPos: V3I): Option[Chunk]
+
 }
 
 object World {

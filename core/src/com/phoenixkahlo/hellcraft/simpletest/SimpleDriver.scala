@@ -15,7 +15,7 @@ import com.badlogic.gdx.{ApplicationAdapter, Gdx}
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.math.{Origin, Up, V3F, V3I}
-import com.phoenixkahlo.hellcraft.save.NaiveWorldSave
+import com.phoenixkahlo.hellcraft.save.{NaiveWorldSave, RegionSave}
 import com.phoenixkahlo.hellcraft.util._
 import other.PerlinNoiseGenerator
 
@@ -46,12 +46,28 @@ class SimpleDriver extends ApplicationAdapter {
 
     val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\save")
     saveFolder.mkdir()
-    val save = new NaiveWorldSave(saveFolder.toPath)
+    val save = RegionSave(saveFolder.toPath, 8)
 
     MathUtils.random.setSeed("phoenix".hashCode)
     val heights = PerlinNoiseGenerator.generateHeightMap((world.size * 16).xi, (world.size * 16).zi, 0, 128, 9)
     def height(v: V3I): Byte = heights(v.zi * world.size.zi * 16 + v.xi)
 
+    val loaded = save.load(Origin until world.size)
+    world = world.mapChunks(chunk => {
+      loaded.get(chunk.pos) match {
+        case Some(loadedChunk) => loadedChunk
+        case None =>
+          chunk.mapBlocks(vLocal => {
+            val v = vLocal + (chunk.pos * 16)
+            val depth = height(v) - v.y
+            if (depth > 20) Stone
+            else if (depth >= 0) Dirt
+            else Air
+          })
+      }
+    })
+
+    /*
     world = world.mapChunks(chunk => {
       save.load(chunk.pos) match {
         case Some(loaded) =>
@@ -68,6 +84,7 @@ class SimpleDriver extends ApplicationAdapter {
           })
       }
     })
+    */
 
 
     /*
@@ -179,12 +196,15 @@ class SimpleDriver extends ApplicationAdapter {
 
   override def dispose(): Unit = {
     val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\save")
-    val save = new NaiveWorldSave(saveFolder.toPath)
+    val save = new RegionSave(saveFolder.toPath, 8)
 
+    /*
     (Origin until world.size).par.foreach(v => {
       println("saving " + v)
       save.save(world.chunkAt(v).get)
     })
+    */
+    save.save((Origin until world.size).map(world.chunkAt(_).get), world)
   }
 
 }

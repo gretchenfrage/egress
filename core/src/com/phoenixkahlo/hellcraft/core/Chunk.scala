@@ -11,7 +11,7 @@ import scala.collection.immutable.HashMap
 /**
   * A unit of world.
   */
-class Chunk private(
+class Chunk (
                      val pos: V3I, // coordinates in chunks, not blocks
                      val size: Int,
                      val blocks: Vector[Byte],
