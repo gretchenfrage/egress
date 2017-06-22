@@ -15,7 +15,8 @@ case class HashCacheWorld(loaded: Map[V3I,Chunk] = new HashMap) extends World {
   val cache = new ThreadLocal[Chunk]
 
   override def chunkAt(chunkPos: V3I): Option[Chunk] = {
-    if (cache.get() != null && cache.get().pos == chunkPos) Some(cache.get())
+    val cached = cache.get()
+    if (cached != null && cached.pos == chunkPos) Some(cached)
     else {
       val chunk = loaded get chunkPos
       if (chunk isDefined) cache.set(chunk.get)
@@ -54,8 +55,8 @@ case class HashCacheWorld(loaded: Map[V3I,Chunk] = new HashMap) extends World {
     })
   }
 
-  def update: HashCacheWorld =
-    integrate(loaded.values.flatMap(_.update(this)).toSeq)
+  def update(world: World = this): HashCacheWorld =
+    integrate(loaded.values.flatMap(_.update(world)).toSeq)
 
   def transformChunk(p: V3I, f: Chunk => Chunk): HashCacheWorld =
     HashCacheWorld(loaded.updated(p, f(loaded(p))))

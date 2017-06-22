@@ -180,7 +180,7 @@ class ChunkRenderer(
     }
 
     (vertArr, indexArr)
-  } (PriorityExecContext(if (previous isDefined) Thread.MAX_PRIORITY else Thread.MIN_PRIORITY))
+  } (PriorityExecContext(if (previous isDefined) Thread.MAX_PRIORITY else 4))
 
   var renderable = new DisposableCache[Renderable]({
     // create a mesh
@@ -234,5 +234,7 @@ class ChunkRenderer(
   /**
     * Bring this object into an unactive state, and dispose of resources.
     */
-  override def dispose(): Unit = renderable.invalidate
+  override def dispose(): Unit = {
+    renderable.invalidate
+  }
 }

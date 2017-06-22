@@ -15,7 +15,7 @@ import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.finitetest.SimpleAvatarController
-import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
+import com.phoenixkahlo.hellcraft.math.{Origin, Repeated, V3F, V3I}
 import com.phoenixkahlo.hellcraft.save.{RegionSave, WorldSave}
 import com.phoenixkahlo.hellcraft.util.{DependencyGraph, PriorityExecContext}
 import other.PerlinNoiseGenerator
@@ -28,7 +28,8 @@ import scala.concurrent.duration._
 class InfiniteDriver extends ApplicationAdapter {
 
   private var save: WorldSave = _
-  private var world: HashCacheWorld = _
+  //private var world: HashCacheWorld = _
+  private var world: InfiniteWorld = _
   private var textures: TexturePack = _
   private var cam: PerspectiveCamera = _
   private var hudCam: OrthographicCamera = _
@@ -48,16 +49,17 @@ class InfiniteDriver extends ApplicationAdapter {
 
     println("instantiating world")
     // create and load/generate world
+    /*
     world = HashCacheWorld()
-    val ps = V3I(-4, 0, -4) until V3I(4, 16, 4)
+    val ps = V3I(-8, -8, -8) until V3I(8, 8, 8) filterNot (v => v.x % 2 == 0 && v.z % 2 == 0)
     val loaded = save.load(ps)
     val chunks = ps.map(p => loaded.get(p) match {
       case Some(chunk) => chunk
       case None => new Chunk(p).mapBlocks(vl => {
         val v = (p * 16) + vl
-        if (v.yi < 80) Stone
-        else if (v.yi < 100) Dirt
-        else if (v.yi == 100) Grass
+        if (v.yi < -20) Stone
+        else if (v.yi < 0) Dirt
+        else if (v.yi == 0) Grass
         else Air
       })
     })
@@ -65,9 +67,20 @@ class InfiniteDriver extends ApplicationAdapter {
     // create avatar
     val avatar = world.loaded.values.flatMap(_.entities.values).find(_.isInstanceOf[Avatar]) match {
       case Some(entity) => entity.asInstanceOf[Avatar]
-      case None => Avatar(pos = V3F(1, 125, 1))
+      case None => Avatar(pos = V3F(-5, 20, -5))
     }
     world = world.transformChunk(avatar.chunkPos, _.putEntity(avatar))
+    */
+    world = new InfiniteWorld(save, v =>
+      if (v.yi < -20) Stone
+      else if (v.yi < 0) Dirt
+      else if (v.yi == 0) Grass
+      else Air
+    )
+    world.makeLoaded(V3I(-8, -8, -8) until V3I(8, 8, 8))
+
+    val avatar = Avatar(pos = V3F(0, 20, 0))
+    world.transformChunk(avatar.chunkPos, _.putEntity(avatar))
     println("world instantiated")
 
     cam = new PerspectiveCamera(67, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
@@ -99,9 +112,21 @@ class InfiniteDriver extends ApplicationAdapter {
     t += 1
 
     // update the world
-    world = world.update
-    world = world.integrate(controller.update(world))
+    world.update()
+    world.integrate(controller.update(world))
     controller.postUpdate(world)
+
+    // set the loaded chunks
+    if (t > 10) {
+      val avatar = world.findEntity(controller.avatarID).asInstanceOf[Avatar]
+      println(avatar)
+      val pos = avatar.chunkPos
+      val r = 4
+      val makeLoaded = ((pos - V3I(r, r, r)) to (pos + V3I(r, r, r))).filter(v => v.dist(pos) <= r)
+      world.setLoaded(makeLoaded)
+      println(world.loaded.loaded.keys)
+    }
+    //val makeLoaded = ((pos - Repeated(loadFor)) to (pos + Repeated(loadFor)))
 
     // get the renderable factories
     val factories = world.renderables(textures)
@@ -129,6 +154,10 @@ class InfiniteDriver extends ApplicationAdapter {
     spriteBatch.begin()
     controller.hud.components(textures).foreach(_.draw(spriteBatch))
     spriteBatch.end()
+  }
+
+  override def dispose(): Unit = {
+    world.saveAll()
   }
 
 }

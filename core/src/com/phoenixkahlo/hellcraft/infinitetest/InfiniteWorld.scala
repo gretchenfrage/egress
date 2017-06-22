@@ -7,6 +7,64 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.save.WorldSave
 
+class InfiniteWorld(
+                   val save: WorldSave,
+                   val generator: V3I => Block
+                   ) extends World {
+
+  var loaded = HashCacheWorld()
+
+  override def chunkAt(p: V3I): Option[Chunk] = {
+    makeLoaded(Seq(p))
+    Some(loaded.chunkAt(p).get)
+  }
+
+  override def chunkIsDefinedAt(chunkPos: V3I): Boolean = true
+
+  override def findEntity(id: UUID): Entity = loaded.findEntity(id)
+
+  def makeLoaded(ps: Seq[V3I]): Unit = {
+    val needToLoad = ps filter (loaded chunkAt _ isEmpty)
+    if (needToLoad isEmpty) return
+    loaded ++= save.load(needToLoad).values.toSeq
+    loaded ++= needToLoad filterNot (loaded chunkIsDefinedAt) map (p => new Chunk(p).mapBlocks(v => generator(p * 16 + v)))
+  }
+
+  def makeUnloaded(ps: Seq[V3I]): Unit = {
+    save.save(ps map (loaded.chunkAt(_).get), this)
+    loaded --= ps
+  }
+
+  def setLoaded(ps: Seq[V3I]): Unit = {
+    val toLoad = ps.filterNot(loaded.loaded.contains)
+    val toUnload = loaded.loaded.values.map(_.pos).filterNot(ps.contains).toSeq
+    makeLoaded(toLoad)
+    makeUnloaded(toUnload)
+  }
+
+  def saveAll(): Unit = {
+    save.save(loaded.loaded.values.toSeq, this)
+  }
+
+  def update(): Unit = {
+    loaded = loaded.update(world = this)
+  }
+
+  def integrate(events: Seq[ChunkEvent]): Unit = {
+    loaded = loaded.integrate(events)
+  }
+
+  def transformChunk(p: V3I, f: Chunk => Chunk): Unit = {
+    loaded = loaded.transformChunk(p, f)
+  }
+
+  def renderables(textures: TexturePack): Seq[RenderableFactory] = {
+    loaded.renderables(textures)
+  }
+
+}
+
+
 //TODO: don't simulate chunk hat aren't completely surrounded by loaded chunks
 //TODO: actual intelligent clustering
 //TODO: don't necessarily render all loaded chunk
