@@ -2,8 +2,10 @@ package com.phoenixkahlo.hellcraft.core
 
 import java.util.UUID
 
+import com.esotericsoftware.kryo.DefaultSerializer
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.math.{Origin, Repeated, V3I}
+import com.phoenixkahlo.hellcraft.save.ChunkSerializer
 import com.phoenixkahlo.hellcraft.util.ParamCache
 
 import scala.collection.immutable.HashMap
@@ -11,6 +13,7 @@ import scala.collection.immutable.HashMap
 /**
   * A unit of world.
   */
+@DefaultSerializer(classOf[ChunkSerializer])
 class Chunk (
                      val pos: V3I, // coordinates in chunks, not blocks
                      val size: Int,
@@ -92,12 +95,6 @@ class Chunk (
       else
         lastRenderer
     }
-
-    /*lastRenderer match {
-    case null => new ParamCache({ case (textures, world) => new ChunkRenderer(this, textures, world, None) })
-    case lastRenderer
-  }
-  */
 
   def renderables(texturePack: TexturePack, world: World): Seq[RenderableFactory] =
     entities.values.flatMap(_.renderables(texturePack)).toSeq :+ renderer((texturePack, world))

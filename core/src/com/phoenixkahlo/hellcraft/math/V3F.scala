@@ -85,6 +85,8 @@ class V3F(val x: Float, val y: Float, val z: Float) {
 
   override def hashCode(): Int = (x, y, z).hashCode()
 
+
+
   override def toString: String =
     "<" + x + ", " + y + ", " + z + ">"
 

@@ -11,7 +11,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
 // TODO: ensure meshes will be or will not be computed when last renderer is or isn't dirty
-case class ChunkRenderer(
+class ChunkRenderer(
                           chunk: Chunk,
                           texturePack: TexturePack,
                           world: World,

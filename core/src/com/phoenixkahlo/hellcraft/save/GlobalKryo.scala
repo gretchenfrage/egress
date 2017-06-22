@@ -4,7 +4,7 @@ import com.phoenixkahlo.hellcraft.core.Chunk
 import com.twitter.chill.{Kryo, ScalaKryoInstantiator}
 
 /**
-  * Global configuration for kryo, and a kryo singleton.
+  * Global configuration for kryo, and a thread-local kryo singleton
   */
 object GlobalKryo {
 
@@ -19,8 +19,5 @@ object GlobalKryo {
   }
 
   def apply() = kryo.get
-
-
-  //lazy val kryo: Kryo = config(new ScalaKryoInstantiator().newKryo())
 
 }

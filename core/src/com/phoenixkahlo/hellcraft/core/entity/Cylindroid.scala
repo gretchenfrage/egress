@@ -26,6 +26,7 @@ abstract class Cylindroid[C <: Cylindroid[C]](
   val g = 28f
   val u = 10f
   val d = 10f
+  val vt = 75f
 
   def updatePos(newPos: V3F): C
   def updateVel(newVel: V3F): C
@@ -97,8 +98,11 @@ abstract class Cylindroid[C <: Cylindroid[C]](
     val vi = this.vel.copy(y = vel.y - g * dt)
     val xi = pos + (vi * dt)
     val f = update(this.updatePos(xi).updateVel(vi).updateGrounded(false), new HashSet, false)
-    if (f.grounded) f
-    else f.updateVel(vfFriction(f.vel.flatten, g * d).inflate(f.vel.y))
+    val f2 =
+      if (f.grounded) f
+      else f.updateVel(vfFriction(f.vel.flatten, g * d).inflate(f.vel.y))
+    if (f2.vel.magnitude > vt) f2.updateVel(f2.vel.normalize * vt)
+    else f2
   }
 
   override def modelOffset: V3F = V3F(0, height / 2, 0)

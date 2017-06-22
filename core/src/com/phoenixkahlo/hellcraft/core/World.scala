@@ -10,11 +10,13 @@ import com.phoenixkahlo.hellcraft.math.{Directions, V3I}
   */
 trait World {
 
-  def blockAt(v: V3I): Option[Block]
+  def chunkAt(chunkPos: V3I): Option[Chunk]
+
+  def chunkIsDefinedAt(chunkPos: V3I): Boolean
+
+  def blockAt(v: V3I): Option[Block] = chunkAt(v / 16 floor).flatMap(_ (v % 16))
 
   def findEntity(id: UUID): Entity
-
-  def chunkAt(chunkPos: V3I): Option[Chunk]
 
 }
 

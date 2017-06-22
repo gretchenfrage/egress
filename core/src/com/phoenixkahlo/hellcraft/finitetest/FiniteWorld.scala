@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.simpletest
+package com.phoenixkahlo.hellcraft.finitetest
 
 import java.util.UUID
 
@@ -11,6 +11,9 @@ class FiniteWorld(
                    val chunkSize: Int,
                    val chunks: Vector[Chunk]
                  ) extends World {
+
+
+  override def chunkIsDefinedAt(chunkPos: V3I): Boolean = chunkPos >= Origin && chunkPos < size
 
   def this(size: V3I, chunkSize: Int = 16) =
     this(
@@ -70,6 +73,7 @@ class FiniteWorld(
 
   def renderables(texturePack: TexturePack): Seq[RenderableFactory] =
     chunks.flatMap(_.renderables(texturePack, this))
+
 
 
 }

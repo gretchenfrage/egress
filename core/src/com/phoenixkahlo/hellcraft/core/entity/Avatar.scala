@@ -2,6 +2,7 @@ package com.phoenixkahlo.hellcraft.core.entity
 
 import java.util.UUID
 
+import com.phoenixkahlo.hellcraft.core.{ChunkEvent, World}
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F}
 
 case class Avatar(
@@ -9,7 +10,7 @@ case class Avatar(
               override val jumping: Boolean = false,
               override val maxVel: Float = 4.5f,
               override val jumpHeight: Float = 1.5f,
-              override val pos: V3F = V3F(50, 200, 50),
+              override val pos: V3F = V3F(50, 250, 50),
               override val id: UUID = UUID.randomUUID(),
               override val rad: Float = 0.4f,
               override val height: Float = 1.99f,
@@ -26,5 +27,9 @@ case class Avatar(
   def updateDirection(newDirection: V3F): Avatar = copy(direction = newDirection)
 
   def updateJumping(newJumping: Boolean): Avatar = copy(jumping = newJumping)
+
+  override def update(world: World): Seq[ChunkEvent] = {
+    super.update(world)
+  }
 
 }

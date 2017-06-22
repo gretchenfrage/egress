@@ -4,7 +4,7 @@ import com.phoenixkahlo.hellcraft.core.RenderableFactory
 
 import scala.collection.immutable.HashSet
 
-case class DependencyGraph(managing: HashSet[RenderableFactory]) {
+case class DependencyGraph(managing: Set[RenderableFactory]) {
 
   type Node = RenderableFactory
 

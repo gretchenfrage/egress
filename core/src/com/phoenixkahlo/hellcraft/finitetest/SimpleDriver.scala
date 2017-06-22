@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.simpletest
+package com.phoenixkahlo.hellcraft.finitetest
 
 import java.io.File
 import java.nio.file.{Path, Paths}
@@ -167,6 +167,7 @@ class SimpleDriver extends ApplicationAdapter {
     val factories = world.renderables(texturePack)
     // do memory management
     dependencies ++= factories
+    println("graph size = " + dependencies.managing.size)
     if (t % 600 == 0)
       PriorityExecContext(Thread.MIN_PRIORITY).execute(new Runnable {
         override def run(): Unit = {
@@ -196,7 +197,7 @@ class SimpleDriver extends ApplicationAdapter {
 
   override def dispose(): Unit = {
     val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\save")
-    val save = new RegionSave(saveFolder.toPath, 8)
+    val save = new RegionSave(saveFolder.toPath, 32)
 
     /*
     (Origin until world.size).par.foreach(v => {

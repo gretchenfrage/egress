@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.simpletest
+package com.phoenixkahlo.hellcraft.finitetest
 
 import java.util.UUID
 
@@ -88,13 +88,6 @@ case class SimpleAvatarController(
 
     val avatar = world.findEntity(avatarID).asInstanceOf[Avatar]
 
-
-    /*
-    val avatarEvent = ChunkEvent(avatar.chunkPos, _.putEntity(avatar.copy(
-      "direction" -> moveDirection,
-      "jumping" -> jumping
-    )))
-    */
     val avatarEvent = ChunkEvent(avatar.chunkPos, _.putEntity(
       avatar.updateDirection(moveDirection).updateJumping(jumping)))
 
@@ -116,12 +109,14 @@ case class SimpleAvatarController(
       }
     }
 
+
     Raytrace.hit(avatar.pos + offset, camDirection, world) match {
       case Some(v) =>
         val outline = BlockOutline(v, Color.BLACK)
         events = events :+ ChunkEvent(outline.chunkPos, _.putEntity(outline))
       case None =>
     }
+    
 
     events
   }

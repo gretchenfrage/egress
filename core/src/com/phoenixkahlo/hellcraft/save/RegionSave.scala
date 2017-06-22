@@ -13,7 +13,7 @@ import scala.collection.mutable
 case class RegionSave(path: Path, regionSize: Int) extends WorldSave {
 
   def fileName(region: V3I): String =
-    "r" + region.xi + "r" + region.yi + "r" + region.zi + "r" + ".dat"
+    "c" + region.xi + "c" + region.yi + "c" + region.zi + "c" + ".region"
 
   def regionOf(chunkPos: V3I): V3I = chunkPos / regionSize floor
 
@@ -23,7 +23,7 @@ case class RegionSave(path: Path, regionSize: Int) extends WorldSave {
     println("saving regions")
     for ((region, group) <- chunks.groupBy(c => regionOf(c.pos))) {
       // generate the chunk map
-      val realChunksInRegion = chunksIn(region).filter(v => world.chunkAt(v).isDefined).to[HashSet]
+      val realChunksInRegion = chunksIn(region).filter(world chunkIsDefinedAt).to[HashSet]
       val map: Map[V3I, Chunk] =
         if (group.map(_.pos).forall(realChunksInRegion.contains)) new HashMap[V3I, Chunk]
         else load(chunksIn(region))
@@ -40,7 +40,7 @@ case class RegionSave(path: Path, regionSize: Int) extends WorldSave {
   override def save(chunk: Chunk, world: World): Unit = save(Seq(chunk), world)
 
   override def load(chunksPoss: Seq[V3I]): Map[V3I, Chunk] = {
-    println("loading regions")
+    println("loading regions " + chunksPoss)
     val accumulator = new mutable.HashMap[V3I, Chunk]()
     for ((regionPos, pos) <- chunksPoss.groupBy(regionOf(_))) {
       val file = path.resolve(fileName(regionPos)).toFile

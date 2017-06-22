@@ -26,6 +26,9 @@ class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
   def <=(o: V3I): Boolean =
     xi <= o.xi && yi <= o.yi && zi <= o.zi
 
+  def surrounding: Seq[V3I] =
+    ((this - Ones) to (this + Ones)) filterNot (this ==)
+
   override protected def toIntsStrategy: V3I =
     this
 
@@ -49,8 +52,9 @@ class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
   def fold(f: (Int, Int) => Int) =
     f(xi, f(yi, zi))
 
-  def %(s: Int) =
-    V3I(xi % s, yi % s, zi % s)
+  def %(s: Int): V3I =
+    if (this >= Origin) V3I(xi % s, yi % s, zi % s)
+    else (V3I(xi % s, yi % s, zi % s) + V3I(s, s, s)) % s
 
   override def toString: String =
     "<" + xi + ", " + yi + ", " + zi + ">"
