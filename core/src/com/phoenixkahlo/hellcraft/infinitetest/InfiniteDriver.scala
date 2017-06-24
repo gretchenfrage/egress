@@ -3,6 +3,7 @@ package com.phoenixkahlo.hellcraft.infinitetest
 
 import java.io.File
 import java.util.Scanner
+import java.util.concurrent.{ArrayBlockingQueue, BlockingQueue, LinkedBlockingQueue}
 
 import com.badlogic.gdx.{ApplicationAdapter, Gdx}
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
@@ -17,9 +18,10 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.finitetest.SimpleAvatarController
 import com.phoenixkahlo.hellcraft.math.{Origin, Repeated, V3F, V3I}
 import com.phoenixkahlo.hellcraft.save.{RegionSave, WorldSave}
-import com.phoenixkahlo.hellcraft.util.{DependencyGraph, PriorityExecContext}
+import com.phoenixkahlo.hellcraft.util.{DependencyGraph, BackgroundMeshCompilerExecutor, PriorityExecContext}
 import other.PerlinNoiseGenerator
 
+import scala.collection.JavaConverters
 import scala.collection.immutable.HashSet
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.Duration
@@ -27,8 +29,8 @@ import scala.concurrent.duration._
 
 class InfiniteDriver extends ApplicationAdapter {
 
+  private var deleted: BlockingQueue[RenderableFactory] = _
   private var save: WorldSave = _
-  //private var world: HashCacheWorld = _
   private var world: InfiniteWorld = _
   private var textures: TexturePack = _
   private var cam: PerspectiveCamera = _
@@ -41,6 +43,8 @@ class InfiniteDriver extends ApplicationAdapter {
   private var t = 0
 
   override def create(): Unit = {
+    deleted = new LinkedBlockingQueue
+
     val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\inf")
     saveFolder.mkdir()
     save = RegionSave(saveFolder.toPath, 8)
@@ -48,29 +52,6 @@ class InfiniteDriver extends ApplicationAdapter {
     textures = new DefaultTexturePack
 
     println("instantiating world")
-    // create and load/generate world
-    /*
-    world = HashCacheWorld()
-    val ps = V3I(-8, -8, -8) until V3I(8, 8, 8) filterNot (v => v.x % 2 == 0 && v.z % 2 == 0)
-    val loaded = save.load(ps)
-    val chunks = ps.map(p => loaded.get(p) match {
-      case Some(chunk) => chunk
-      case None => new Chunk(p).mapBlocks(vl => {
-        val v = (p * 16) + vl
-        if (v.yi < -20) Stone
-        else if (v.yi < 0) Dirt
-        else if (v.yi == 0) Grass
-        else Air
-      })
-    })
-    world ++= chunks
-    // create avatar
-    val avatar = world.loaded.values.flatMap(_.entities.values).find(_.isInstanceOf[Avatar]) match {
-      case Some(entity) => entity.asInstanceOf[Avatar]
-      case None => Avatar(pos = V3F(-5, 20, -5))
-    }
-    world = world.transformChunk(avatar.chunkPos, _.putEntity(avatar))
-    */
     world = new InfiniteWorld(save, v =>
       if (v.yi < -20) Stone
       else if (v.yi < 0) Dirt
@@ -82,6 +63,8 @@ class InfiniteDriver extends ApplicationAdapter {
     val avatar = Avatar(pos = V3F(0, 20, 0))
     world.transformChunk(avatar.chunkPos, _.putEntity(avatar))
     println("world instantiated")
+
+    BackgroundMeshCompilerExecutor.setPlayerPos(avatar.pos)
 
     cam = new PerspectiveCamera(67, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     cam.near = 0.1f
@@ -102,7 +85,7 @@ class InfiniteDriver extends ApplicationAdapter {
     lights.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1))
     lights.add(new DirectionalLight().set(1, 1, 1, 0, -1, 0))
 
-    vramGraph = DependencyGraph(new HashSet)
+    vramGraph = DependencyGraph()
   }
 
   override def render(): Unit = {
@@ -117,27 +100,32 @@ class InfiniteDriver extends ApplicationAdapter {
     controller.postUpdate(world)
 
     // set the loaded chunks
-    if (t > 10) {
-      val avatar = world.findEntity(controller.avatarID).asInstanceOf[Avatar]
-      println(avatar)
-      val pos = avatar.chunkPos
-      val r = 4
-      val makeLoaded = ((pos - V3I(r, r, r)) to (pos + V3I(r, r, r))).filter(v => v.dist(pos) <= r)
-      world.setLoaded(makeLoaded)
-      println(world.loaded.loaded.keys)
-    }
-    //val makeLoaded = ((pos - Repeated(loadFor)) to (pos + Repeated(loadFor)))
+    val avatar = world.findEntity(controller.avatarID).asInstanceOf[Avatar]
+    val pos = avatar.chunkPos
+    val r = 4
+    val makeLoaded = ((pos - V3I(r, r, r)) to (pos + V3I(r, r, r))).filter(v => v.dist(pos) <= r)
+    world.setLoaded(makeLoaded)
+
+    // update chunk compiler priority
+    BackgroundMeshCompilerExecutor.setPlayerPos(pos)
 
     // get the renderable factories
     val factories = world.renderables(textures)
     // do memory management
     vramGraph ++= factories
-    if (t % 600 == 0)
+    if (t % 600 == 0) {
+      var accumulator: Seq[RenderableFactory] = Seq[RenderableFactory]()
+      while (deleted.size() > 0)
+        accumulator = accumulator :+ deleted.take()
+      vramGraph --= accumulator
+
       PriorityExecContext(Thread.MIN_PRIORITY).execute(() => {
         val garbage = vramGraph.garbage(factories)
         println("garbage collecting " + garbage.size + " VRAM resources")
         Gdx.app.postRunnable(() => garbage.foreach(_.dispose()))
+        deleted.addAll(JavaConverters.asJavaCollection(garbage))
       })
+    }
 
     val chunkRenderers = vramGraph.managing.filter(_.isInstanceOf[ChunkRenderer]).map(_.asInstanceOf[ChunkRenderer])
 

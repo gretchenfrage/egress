@@ -4,12 +4,15 @@ import com.phoenixkahlo.hellcraft.core.RenderableFactory
 
 import scala.collection.immutable.HashSet
 
-case class DependencyGraph(managing: Set[RenderableFactory]) {
+case class DependencyGraph(managing: Set[RenderableFactory] = new HashSet) {
 
   type Node = RenderableFactory
 
   def ++(nodes: Seq[Node]): DependencyGraph =
     DependencyGraph(managing ++ nodes)
+
+  def --(nodes: Seq[Node]): DependencyGraph =
+    DependencyGraph(managing -- nodes)
 
   def garbage(roots: Seq[Node]): Set[Node] = {
     // depth first search starting with roots

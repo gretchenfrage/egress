@@ -5,10 +5,10 @@ import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
 import com.badlogic.gdx.graphics.g3d.{Material, Renderable}
 import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.phoenixkahlo.hellcraft.math._
-import com.phoenixkahlo.hellcraft.util.{DisposableCache, PriorityExecContext}
+import com.phoenixkahlo.hellcraft.util._
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, Awaitable, Future}
 
 // TODO: ensure meshes will be or will not be computed when last renderer is or isn't dirty
 class ChunkRenderer(
@@ -18,7 +18,7 @@ class ChunkRenderer(
                           previous: Option[ChunkRenderer]
                         ) extends RenderableFactory {
 
-  val meshData: Future[(Array[Float], Array[Short])] = Future {
+  def compileProcedure: () => (Array[Float], Array[Short]) = () => {
     // first, compute the exposed surfaces
     type SurfaceMap = Map[Direction, List[V3I]]
 
@@ -180,7 +180,11 @@ class ChunkRenderer(
     }
 
     (vertArr, indexArr)
-  } (PriorityExecContext(if (previous isDefined) Thread.MAX_PRIORITY else 4))
+  }
+
+  val meshData: MeshCompiler =
+    if (previous isDefined) InstantMeshCompiler(compileProcedure)
+    else BackgroundMeshCompiler(chunk.pos * 16 + Repeated(8), compileProcedure)
 
   var renderable = new DisposableCache[Renderable]({
     // create a mesh
@@ -191,7 +195,8 @@ class ChunkRenderer(
     )
 
     // get the arrays
-    val (vertArr, indexArr) = Await.result(meshData, Duration.Inf)
+    //val (vertArr, indexArr) = Await.result(meshData, Duration.Inf)
+    val (vertArr, indexArr) = meshData.await
 
     // plug the arrays into the mesh (this uploads them to VRAM)
     mesh.setVertices(vertArr)

@@ -20,7 +20,6 @@ case class RegionSave(path: Path, regionSize: Int) extends WorldSave {
   def chunksIn(region: V3I): Seq[V3I] = (region * regionSize) until ((region + Ones) * regionSize)
 
   override def save(chunks: Seq[Chunk], world: World): Unit = {
-    println("saving regions")
     for ((region, group) <- chunks.groupBy(c => regionOf(c.pos))) {
       // generate the chunk map
       val realChunksInRegion = chunksIn(region).filter(world chunkIsDefinedAt).to[HashSet]
@@ -39,8 +38,8 @@ case class RegionSave(path: Path, regionSize: Int) extends WorldSave {
 
   override def save(chunk: Chunk, world: World): Unit = save(Seq(chunk), world)
 
+  //TODO: parrelilize
   override def load(chunksPoss: Seq[V3I]): Map[V3I, Chunk] = {
-    println("loading regions " + chunksPoss)
     val accumulator = new mutable.HashMap[V3I, Chunk]()
     for ((regionPos, pos) <- chunksPoss.groupBy(regionOf(_))) {
       val file = path.resolve(fileName(regionPos)).toFile
