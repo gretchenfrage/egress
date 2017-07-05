@@ -16,7 +16,7 @@ class ChunkRenderer(
                           texturePack: TexturePack,
                           world: World,
                           previous: Option[ChunkRenderer]
-                        ) extends RenderableFactory {
+                        ) extends RenderableFactory with ResourceNode {
 
   def compileProcedure: () => (Array[Float], Array[Short]) = () => {
     // first, compute the exposed surfaces
@@ -186,7 +186,7 @@ class ChunkRenderer(
     if (previous isDefined) InstantMeshCompiler(compileProcedure)
     else BackgroundMeshCompiler(chunk.pos * 16 + Repeated(8), compileProcedure)
 
-  var renderable = new DisposableCache[Renderable]({
+  val renderable = new DisposableCache[Renderable]({
     // create a mesh
     val mesh = new Mesh(true, 4 * 6 * chunk.blocks.length, 6 * 6 * chunk.blocks.length,
       new VertexAttribute(Usage.Position, 3, "a_position"),
@@ -226,9 +226,12 @@ class ChunkRenderer(
       case None => Nil
     }
 
+
+
   /**
     * Return the sequence of factories that this factory depends on for being in an activate state.
     */
+    /*
   override def dependencies: Seq[RenderableFactory] =
     if (meshData.isCompleted) Nil
     else previous match {
@@ -242,4 +245,18 @@ class ChunkRenderer(
   override def dispose(): Unit = {
     renderable.invalidate
   }
+  */
+  override def resources: Seq[ResourceNode] = Seq(this)
+
+  override def dependencies: Seq[ResourceNode] =
+    if (meshData.isCompleted) Nil
+    else previous match {
+      case Some(previous) => Seq(previous)
+      case None => Nil
+    }
+
+  override def dispose(): Unit = {
+    renderable.invalidate
+  }
+
 }

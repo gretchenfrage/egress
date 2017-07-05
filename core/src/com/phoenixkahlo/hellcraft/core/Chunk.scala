@@ -6,7 +6,7 @@ import com.esotericsoftware.kryo.DefaultSerializer
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.math.{Origin, Repeated, V3I}
 import com.phoenixkahlo.hellcraft.save.ChunkSerializer
-import com.phoenixkahlo.hellcraft.util.ParamCache
+import com.phoenixkahlo.hellcraft.util.{ParamCache, RNG}
 
 import scala.collection.immutable.HashMap
 
@@ -83,8 +83,11 @@ class Chunk (
 
   def removeEntity(entity: Entity): Chunk = removeEntity(entity.id)
 
-  def update(world: World): Seq[ChunkEvent] =
-    entities.values.flatMap(_.update(world)).toSeq
+  def update(world: World, time: Long): Seq[ChunkEvent] = {
+    val idSeed = time.toInt.toLong | (pos.hashCode().toLong << 32)
+    val idStreams = RNG.meta(RNG(idSeed), RNG.uuids)
+    entities.values.zip(idStreams).flatMap({ case (entity, ids) => entity.update(world, ids) }).toSeq
+  }
 
   @transient private lazy val renderer: ParamCache[(TexturePack, World), ChunkRenderer] =
     if (lastRenderer == null)

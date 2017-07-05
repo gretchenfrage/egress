@@ -20,7 +20,7 @@ case class BlockOutline(v: V3I, color: Color, chunkSize: Int = 16) extends Entit
   val chunkPos: V3I = v / chunkSize floor
   override val id: UUID = UUID.randomUUID()
 
-  override def update(world: World): Seq[ChunkEvent] =
+  override def update(world: World, ids: Stream[UUID]) =
     Seq(ChunkEvent(chunkPos, _ removeEntity this))
 
   override def renderables(texturePack: TexturePack): Seq[RenderableFactory] =
@@ -47,15 +47,7 @@ case class BlockOutlineRenderer(v: V3I, color: Color) extends RenderableFactory 
     JavaConverters.iterableAsScalaIterable(array).toSeq
   }
 
-  /**
-    * Return the sequence of factories that this factory depends on for being in an activate state.
-    */
-  override def dependencies: Seq[RenderableFactory] = Nil
-
-  /**
-    * Bring this object into an unactive state, and dispose of resources.
-    */
-  override def dispose(): Unit = {}
+  override def resources: Seq[ResourceNode] = Nil
 
 }
 

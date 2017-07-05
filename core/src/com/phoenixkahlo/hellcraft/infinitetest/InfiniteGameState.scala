@@ -1,38 +1,37 @@
 package com.phoenixkahlo.hellcraft.infinitetest
 
-
 import java.io.File
-import java.util.Scanner
-import java.util.concurrent.{ArrayBlockingQueue, BlockingQueue, LinkedBlockingQueue}
+import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue}
+import javax.print.DocFlavor.BYTE_ARRAY
 
-import com.badlogic.gdx.{ApplicationAdapter, Gdx}
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch, Renderable, RenderableProvider}
 import com.badlogic.gdx.graphics.{GL20, OrthographicCamera, PerspectiveCamera}
-import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.finitetest.SimpleAvatarController
-import com.phoenixkahlo.hellcraft.math.{Origin, Repeated, V3F, V3I}
+import com.phoenixkahlo.hellcraft.gamedriver.GameState
+import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.save.{RegionSave, WorldSave}
-import com.phoenixkahlo.hellcraft.util.{DependencyGraph, BackgroundMeshCompilerExecutor, PriorityExecContext}
-import other.PerlinNoiseGenerator
+import com.phoenixkahlo.hellcraft.util.{BackgroundMeshCompilerExecutor, DependencyGraph, PriorityExecContext}
 
 import scala.collection.JavaConverters
-import scala.collection.immutable.HashSet
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.duration.Duration
 import scala.concurrent.duration._
-import scala.collection.JavaConverters._
 
-class InfiniteDriver extends ApplicationAdapter {
+class InfiniteGameState extends GameState {
+
+  val loadDist = V3I(7, 7, 7)
+  val updateDist = V3I(1, 1, 1)
+  val renderDist = V3I(6, 6, 6)
 
   private var deleted: BlockingQueue[ResourceNode] = _
   private var save: WorldSave = _
-  private var world: InfinityManager = _
+  private var infinitum: InfinityManager = _
   private var textures: TexturePack = _
   private var cam: PerspectiveCamera = _
   private var hudCam: OrthographicCamera = _
@@ -42,28 +41,28 @@ class InfiniteDriver extends ApplicationAdapter {
   private var lights: Environment = _
   private var vramGraph: DependencyGraph = _
   private var t = 0
+  private var g = 0
 
-  override def create(): Unit = {
+  override def onEnter(): Unit = {
     deleted = new LinkedBlockingQueue
 
     val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\inf")
     saveFolder.mkdir()
     save = RegionSave(saveFolder.toPath, 8)
-
     textures = new DefaultTexturePack
 
     println("instantiating world")
-    world = new InfinityManager(save, v => {
+    infinitum = new InfinityManager(save, v => {
       val h = (0 - (Origin.flatten dist v.flatten)).toInt
       if (v.yi < h - 20) Stone
       else if (v.yi < h) Dirt
       else if (v.yi == h) Grass
       else Air
     })
-    world.makeLoaded(V3I(-8, -8, -8) until V3I(8, 8, 8))
+    infinitum.makeLoaded(loadDist.neg until loadDist)
 
     val avatar = Avatar(pos = V3F(0, 20, 0))
-    world.transformChunk(avatar.chunkPos, _.putEntity(avatar))
+    infinitum.transformChunk(avatar.chunkPos, _.putEntity(avatar))
     println("world instantiated")
 
     BackgroundMeshCompilerExecutor.setPlayerPos(avatar.pos)
@@ -91,54 +90,27 @@ class InfiniteDriver extends ApplicationAdapter {
   }
 
   override def render(): Unit = {
-    val times = new ArrayBuffer[Long]
-    val log: () => Unit = () => times += System.nanoTime()
+    g += 1
 
-    log()
+    val world = infinitum.world
 
-    val load = V3I(8, 8, 8)
-    val update = V3I(4, 4, 4)
-    val render = V3I(7, 7, 7)
-
+    // prepare
     Gdx.gl.glClearColor(0.5089f, 0.6941f, 1f, 1f)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
-    t += 1
 
-    log()
-
-    // find the avatar pos
-    val avatar = world.findEntity(controller.avatarID).asInstanceOf[Avatar]
-    val pos = avatar.chunkPos
-
-    log()
-
-    // update the world
-    world.update((pos - update) to (pos + update), t % 120 == 0)
-    world.integrate(controller.update(world.world))
-    controller.postUpdate(world.world)
-
-    log()
-
-    // set the loaded chunks
-    val makeLoaded = (pos - load) to (pos + load)
-    world.setLoaded(makeLoaded)
-
-    log()
-
-    // update chunk compiler priority
-    BackgroundMeshCompilerExecutor.setPlayerPos(pos)
-
-    log()
+    // find the camera's chunk position
+    val chunkPos = V3F(controller.cam.position) / 16 floor
 
     // get the renderable factories
-    val factories = world.renderables(textures, (pos - render) to (pos + render))
+    //val factories = infinitum.renderables(textures, (chunkPos - renderDist) to (chunkPos + renderDist))
+    val factories = ((chunkPos - renderDist) to (chunkPos + renderDist)).map(world.chunkAt).filter(_ isDefined).map(_.get).flatMap(_.renderables(textures, world))
+
     // do memory management
-    //val nodes = factories.flatMap(_.resources)
-    val nodes = world.resources(textures)
+    //val nodes = infinitum.resources(textures)
+    val nodes = factories.flatMap(_.resources)
     vramGraph ++= nodes
-    if (t % 600 == 0) {
-      //for (node <- JavaConverters.collectionAsScalaIterable(deleted)) vramGraph --= Seq(node)
+    if (g % 600 == 0) {
       while (deleted.size > 0) vramGraph --= Seq(deleted.remove())
       PriorityExecContext(Thread.MIN_PRIORITY).execute(() => {
         val garbage = vramGraph.garbage(nodes)
@@ -147,12 +119,6 @@ class InfiniteDriver extends ApplicationAdapter {
         deleted.addAll(JavaConverters.asJavaCollection(garbage))
       })
     }
-
-    log()
-
-    val chunkRenderers = vramGraph.managing.filter(_.isInstanceOf[ChunkRenderer]).map(_.asInstanceOf[ChunkRenderer])
-
-    log()
 
     // render 3D stuff
     val provider = new RenderableProvider {
@@ -163,27 +129,56 @@ class InfiniteDriver extends ApplicationAdapter {
     modelBatch.render(provider, lights)
     modelBatch.end()
 
-    log()
-
     // render HUD
     spriteBatch.begin()
     controller.hud.components(textures).foreach(_.draw(spriteBatch))
     spriteBatch.end()
+  }
+
+  override def update(): Unit = {
+    val times = new ArrayBuffer[Long]
+    val log: () => Unit = () => times += System.nanoTime()
 
     log()
 
-    //println("times = " + times.map(t => (t - times.head) / 1000000))
+    // increment time
+    t += 1
 
-    print("main loop profile: ")
-    for (i <- 0 until (times.size - 1)) {
-      print((times(i + 1) - times(i)) / 1000000 + ", ")
+    log()
+
+    // find the avatar pos
+    val avatar = infinitum.findEntity(controller.avatarID).asInstanceOf[Avatar]
+
+    log()
+
+    // update the world and controller
+    infinitum.update((avatar.chunkPos - updateDist) to (avatar.chunkPos + updateDist), t % 600 == 0)
+    infinitum.integrate(controller.update(infinitum.world))
+    controller.postUpdate(infinitum.world)
+
+    log()
+
+    // set the loaded chunks
+    infinitum.setLoaded((avatar.chunkPos - loadDist) to (avatar.chunkPos + loadDist))
+
+    log()
+
+    // update mesh compiler priority
+    BackgroundMeshCompilerExecutor.setPlayerPos(avatar.pos)
+
+    log()
+
+    /*
+    print("update times: ")
+    for (i <- 0 until times.size - 1) {
+      print(((times(i + 1) - times(i)) nanoseconds).toMillis + ", ")
     }
     println()
-    println("total time = " + (times.last - times.head) / 1000000)
+    */
   }
 
-  override def dispose(): Unit = {
-    world.close()
+  override def onExit(): Unit = {
+    infinitum.close()
   }
 
 }

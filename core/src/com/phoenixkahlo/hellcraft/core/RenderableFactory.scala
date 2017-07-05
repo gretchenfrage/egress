@@ -13,14 +13,24 @@ trait RenderableFactory {
     */
   def apply(): Seq[Renderable]
 
+  def resources: Seq[ResourceNode]
+
   /**
     * Return the sequence of factories that this factory depends on for being in an activate state.
     */
-  def dependencies: Seq[RenderableFactory]
+  //def dependencies: Seq[RenderableFactory]
 
   /**
     * Bring this object into an unactive state, and dispose of resources.
     */
+  //def dispose(): Unit
+
+}
+
+trait ResourceNode {
+
+  def dependencies: Seq[ResourceNode]
+
   def dispose(): Unit
 
 }

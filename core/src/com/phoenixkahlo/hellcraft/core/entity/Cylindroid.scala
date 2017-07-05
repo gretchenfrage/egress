@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.g3d.{Material, ModelInstance}
 import com.phoenixkahlo.hellcraft.core._
+import com.phoenixkahlo.hellcraft.gamedriver.GameDriver
 import com.phoenixkahlo.hellcraft.math._
 
 import scala.collection.immutable.HashSet
@@ -23,7 +24,7 @@ abstract class Cylindroid[C <: Cylindroid[C]](
                 val grounded: Boolean = true
                 ) extends Corpus(pos, id) {
 
-  val g = 28f
+  val g = 9.8f
   val u = 10f
   val d = 10f
   val vt = 75f
@@ -35,7 +36,7 @@ abstract class Cylindroid[C <: Cylindroid[C]](
   def naturalVelocity: V2F = V2F(0, 0)
 
   override protected def transform(world: World): C = {
-    val dt = 1f / 60f
+    val dt = GameDriver.dt.toMillis / 1000f
 
     def intersecting(c: C, exclude: Set[V3I]): Seq[(V3I, RectangleProxmimity)] =
       ((c.pos - V3F(c.rad, 0, c.rad)).floor to (c.pos + V3F(c.rad, c.height, c.rad)).floor)
@@ -75,8 +76,8 @@ abstract class Cylindroid[C <: Cylindroid[C]](
     def vTransform(vi: V3F, xi: V3F, xf: V3F, frictioned: Boolean): VTransform = {
       val dx = xf - xi
       if (dx.y == 0) VTransform(vfHorizontal(vi.flatten, xi.flatten, xf.flatten).inflate(vi.y), frictioned)
-      else if (!frictioned && dx.y > 0) VTransform(vfFriction(vi.flatten, g * u).inflate(Math.max(vi.y, 0)), true)
-      else if (dx.y > 0) VTransform(vi.copy(y = Math.max(vi.y, 0)), true)
+      else if (!frictioned && dx.y > 0) VTransform(vfFriction(vi.flatten, g * u).inflate(Math.max(vi.y, 0)), frictioned = true)
+      else if (dx.y > 0) VTransform(vi.copy(y = Math.max(vi.y, 0)), frictioned = true)
       else VTransform(vi.copy(y = Math.min(vi.y, 0)), frictioned)
     }
 
@@ -97,7 +98,7 @@ abstract class Cylindroid[C <: Cylindroid[C]](
 
     val vi = this.vel.copy(y = vel.y - g * dt)
     val xi = pos + (vi * dt)
-    val f = update(this.updatePos(xi).updateVel(vi).updateGrounded(false), new HashSet, false)
+    val f = update(this.updatePos(xi).updateVel(vi).updateGrounded(false), new HashSet, frictionedi = false)
     val f2 =
       if (f.grounded) f
       else f.updateVel(vfFriction(f.vel.flatten, g * d).inflate(f.vel.y))

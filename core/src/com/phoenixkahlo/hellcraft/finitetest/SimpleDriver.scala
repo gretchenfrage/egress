@@ -21,6 +21,7 @@ import other.PerlinNoiseGenerator
 
 import scala.collection.immutable.HashSet
 
+@deprecated
 class SimpleDriver extends ApplicationAdapter {
 
   private var history: Vector[FiniteWorld] = _
@@ -166,6 +167,7 @@ class SimpleDriver extends ApplicationAdapter {
     // get the renderable factories
     val factories = world.renderables(texturePack)
     // do memory management
+    /*
     dependencies ++= factories
     println("graph size = " + dependencies.managing.size)
     if (t % 600 == 0)
@@ -175,6 +177,7 @@ class SimpleDriver extends ApplicationAdapter {
           Gdx.app.postRunnable(new Runnable { override def run(): Unit = garbage.foreach(_.dispose()) })
         }
       })
+      */
 
     // render 3D stuff
     val provider = new RenderableProvider {

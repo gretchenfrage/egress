@@ -1,12 +1,12 @@
 package com.phoenixkahlo.hellcraft.util
 
-import com.phoenixkahlo.hellcraft.core.RenderableFactory
+import com.phoenixkahlo.hellcraft.core.{RenderableFactory, ResourceNode}
 
 import scala.collection.immutable.HashSet
 
-case class DependencyGraph(managing: Set[RenderableFactory] = new HashSet) {
+case class DependencyGraph(managing: Set[ResourceNode] = new HashSet) {
 
-  type Node = RenderableFactory
+  type Node = ResourceNode
 
   def ++(nodes: Seq[Node]): DependencyGraph =
     DependencyGraph(managing ++ nodes)

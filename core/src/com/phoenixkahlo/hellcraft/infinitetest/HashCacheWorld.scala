@@ -7,10 +7,10 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.finitetest.FiniteWorld
 import com.phoenixkahlo.hellcraft.math.V3I
 
-import scala.collection.Map
-import scala.collection.immutable.HashMap
+import scala.collection.{Map, SortedSet}
+import scala.collection.immutable.{HashMap, TreeSet}
 
-case class HashCacheWorld(loaded: Map[V3I,Chunk] = new HashMap) extends World {
+case class HashCacheWorld(time: Long, loaded: Map[V3I, Chunk] = new HashMap) extends World {
 
   val cache = new ThreadLocal[Chunk]
 
@@ -26,15 +26,14 @@ case class HashCacheWorld(loaded: Map[V3I,Chunk] = new HashMap) extends World {
 
   override def chunkIsDefinedAt(chunkPos: V3I): Boolean = loaded contains chunkPos
 
-  // TODO: global entity positioning system
   override def findEntity(id: UUID): Entity = loaded.values.flatMap(_.entities).toMap.apply(id)
 
   def renderables(texturePack: TexturePack): Seq[RenderableFactory] =
     loaded.values.flatMap(_.renderables(texturePack, this)).toSeq
 
-  def +(chunk: Chunk): HashCacheWorld = HashCacheWorld(loaded.updated(chunk.pos, chunk))
+  def +(chunk: Chunk): HashCacheWorld = HashCacheWorld(time, loaded.updated(chunk.pos, chunk))
 
-  def -(p: V3I): HashCacheWorld = HashCacheWorld(loaded - p)
+  def -(p: V3I): HashCacheWorld = HashCacheWorld(time, loaded - p)
 
   def ++(chunks: Seq[Chunk]): HashCacheWorld =
     chunks.foldLeft(this)({ case (world, chunk) => world.+(chunk) })
@@ -42,23 +41,31 @@ case class HashCacheWorld(loaded: Map[V3I,Chunk] = new HashMap) extends World {
   def --(ps: Seq[V3I]): HashCacheWorld =
     ps.foldLeft(this)({ case (world, p) => world.-(p) })
 
-  def mapChunks(f: Chunk => Chunk): HashCacheWorld =
-    HashCacheWorld(loaded.par.mapValues(f).seq)
 
+  /*
   def integrate(events: Seq[ChunkEvent]): HashCacheWorld = {
-    val grouped = events.groupBy(_.chunkPos)
-    mapChunks(c => {
-      grouped.get(c.pos) match {
-        case Some(e) => e.foldLeft(c)({ case (cc, ee) => ee(cc) })
-        case None => c
-      }
-    })
+    val newLoaded = events.groupBy(_.chunkPos).par.map({
+      case (p, eventGroup) => eventGroup.foldLeft(loaded.get(p))({ case (cc, ee) => cc.map(ee(_)) })
+    }).filter(_ isDefined).map(_.get).foldLeft(loaded)({ case (map, chunk) => map.updated(chunk.pos, chunk) })
+    HashCacheWorld(newLoaded, time)
   }
 
   def update(world: World = this): HashCacheWorld =
     integrate(loaded.values.flatMap(_.update(world)).toSeq)
+    */
+
+  def integrate(events: SortedSet[ChunkEvent]): HashCacheWorld =
+    copy(loaded = events.groupBy(_.chunkPos).par.map({
+            case (p, eventGroup) => eventGroup.foldLeft(loaded.get(p))({ case (cc, ee) => cc.map(ee(_)) })
+          }).filter(_ isDefined).map(_.get).foldLeft(loaded)({ case (map, chunk) => map.updated(chunk.pos, chunk) }))
+
+  def incrTime: HashCacheWorld =
+    copy(time = time + 1)
+
+  def update: HashCacheWorld =
+    integrate(loaded.values.par.flatMap(_.update(this, time)).seq.foldLeft(new TreeSet[ChunkEvent])(_ + _)).incrTime
 
   def transformChunk(p: V3I, f: Chunk => Chunk): HashCacheWorld =
-    HashCacheWorld(loaded.updated(p, f(loaded(p))))
+    HashCacheWorld(time, loaded.updated(p, f(loaded(p))))
 
 }

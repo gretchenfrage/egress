@@ -38,13 +38,22 @@ case class RegionSave(path: Path, regionSize: Int) extends WorldSave {
 
   override def save(chunk: Chunk, world: World): Unit = save(Seq(chunk), world)
 
+  val buffers = new ThreadLocal[Array[Byte]] {
+    override def initialValue(): Array[Byte] = new Array[Byte](1000000)
+  }
+
   //TODO: parrelilize
   override def load(chunksPoss: Seq[V3I]): Map[V3I, Chunk] = {
     val accumulator = new mutable.HashMap[V3I, Chunk]()
     for ((regionPos, pos) <- chunksPoss.groupBy(regionOf(_))) {
       val file = path.resolve(fileName(regionPos)).toFile
       if (file.exists) {
-        val input = new Input(new FileInputStream(file))
+        //val input = new Input(new FileInputStream(file))
+        //input.setBuffer(new Array[Byte](4096))
+        val input = new Input(100000)
+        input.setBuffer(buffers.get())
+        input.setInputStream(new FileInputStream(file))
+
         val region = GlobalKryo().readObject(input, classOf[Map[V3I, Chunk]])
         input.close()
         for (chunk <- region.values)

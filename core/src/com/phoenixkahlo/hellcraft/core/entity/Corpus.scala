@@ -35,14 +35,14 @@ abstract class Corpus(
 
   lazy val chunkPos: V3I = pos / chunkSize floor
 
-  override def update(world: World): Seq[ChunkEvent] = {
+  override def update(world: World, ids: Stream[UUID]): Seq[ChunkEvent] = {
     val replacer = transform(world)
     if (replacer.chunkPos == this.chunkPos)
-      Seq(ChunkEvent(chunkPos, _.putEntity(replacer)))
+      Seq(ChunkEvent(chunkPos, ids.head, _.putEntity(replacer)))
     else
       Seq(
-        ChunkEvent(chunkPos, _.removeEntity(this)),
-        ChunkEvent(replacer.chunkPos, _.putEntity(replacer))
+        ChunkEvent(chunkPos, ids.head,_.removeEntity(this)),
+        ChunkEvent(replacer.chunkPos, ids.take(1).head, _.putEntity(replacer))
       )
   }
 
@@ -91,15 +91,7 @@ case class PooledInstanceRenderer(corpus: Corpus, texturePack: TexturePack) exte
     JavaConverters.iterableAsScalaIterable(array).toSeq
   }
 
-  /**
-    * Return the sequence of factories that this factory depends on for being in an activate state.
-    */
-  override def dependencies: Seq[RenderableFactory] = Nil
-
-  /**
-    * Bring this object into an unactive state, and dispose of resources.
-    */
-  override def dispose(): Unit = {}
+  override def resources: Seq[ResourceNode] = Nil
 
 }
 
