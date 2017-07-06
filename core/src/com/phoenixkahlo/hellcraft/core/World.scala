@@ -18,15 +18,17 @@ trait World {
 
   def findEntity(id: UUID): Entity
 
+  def time: Long
+
 }
 
 object World {
 
-  def putBlock(v: V3I, block: Block): Seq[ChunkEvent] =
-    ChunkEvent(v / 16 floor, _.putBlock(v % 16, block)) +:
-      Directions().map(d =>
-        if ((v / 16 floor) != ((v + d) / 16 floor)) Some(ChunkEvent((v + d) / 16 floor, _.renderUncached))
+  def putBlock(v: V3I, block: Block, ids: Stream[UUID]): Seq[ChunkEvent] =
+    ChunkEvent(v / 16 floor, ids.head, _.putBlock(v % 16, block)) +:
+      Directions().zip(ids.take(1)).map({ case (d, id) =>
+        if ((v / 16 floor) != ((v + d) / 16 floor)) Some(ChunkEvent((v + d) / 16 floor, id, _.renderUncached))
         else None
-      ).filter(_ isDefined).map(_.get)
+      }).filter(_ isDefined).map(_.get)
 
 }

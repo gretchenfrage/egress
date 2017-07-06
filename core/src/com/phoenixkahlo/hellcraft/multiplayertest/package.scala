@@ -6,5 +6,6 @@ package object multiplayertest {
 
   type ClientID = UUID
   type EntityID = UUID
+  type EventID = UUID
 
 }

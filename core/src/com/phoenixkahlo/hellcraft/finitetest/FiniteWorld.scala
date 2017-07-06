@@ -53,7 +53,7 @@ class FiniteWorld(
     integrate(chunks.flatMap(_.update(this)))
 
   def integrate(events: Seq[ChunkEvent]): FiniteWorld = {
-    val grouped = events.groupBy(_.chunkPos)
+    val grouped = events.groupBy(_.target)
     mapChunks(c => {
       grouped.get(c.pos) match {
         case Some(e) => e.foldLeft(c)({ case (cc, ee) => ee(cc) })

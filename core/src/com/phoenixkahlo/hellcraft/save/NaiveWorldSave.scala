@@ -40,4 +40,5 @@ case class NaiveWorldSave(path: Path) extends WorldSave {
     } else None
   }
 
+  override def weakListenForSave(listener: (Chunk) => Unit): Unit = ???
 }

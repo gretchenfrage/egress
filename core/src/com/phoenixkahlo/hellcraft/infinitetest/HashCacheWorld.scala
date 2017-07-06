@@ -55,7 +55,7 @@ case class HashCacheWorld(time: Long, loaded: Map[V3I, Chunk] = new HashMap) ext
     */
 
   def integrate(events: SortedSet[ChunkEvent]): HashCacheWorld =
-    copy(loaded = events.groupBy(_.chunkPos).par.map({
+    copy(loaded = events.groupBy(_.target).par.map({
             case (p, eventGroup) => eventGroup.foldLeft(loaded.get(p))({ case (cc, ee) => cc.map(ee(_)) })
           }).filter(_ isDefined).map(_.get).foldLeft(loaded)({ case (map, chunk) => map.updated(chunk.pos, chunk) }))
 

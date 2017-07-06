@@ -23,6 +23,7 @@ class GameDriver(state: GameState) extends ApplicationAdapter {
       while (true) {
         val currRenderTime = System.nanoTime()
         tickTimeDebt += ((currRenderTime - lastRenderTime) nanoseconds)
+        //TODO: what in the heck of this?
         /*
         val sleepFor = GameDriver.dt - tickTimeDebt
         if (sleepFor > Duration.Zero)

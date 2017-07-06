@@ -9,8 +9,9 @@ import javax.print.DocFlavor.BYTE_ARRAY
 import com.esotericsoftware.kryonet.Listener.ThreadedListener
 import com.esotericsoftware.kryonet.rmi.ObjectSpace
 import com.esotericsoftware.kryonet.{Client, Connection, Listener, Server}
-import com.phoenixkahlo.hellcraft.core.{Air, Dirt, Grass, Stone}
-import com.phoenixkahlo.hellcraft.save.{GlobalKryo, RegionSave, WorldSave}
+import com.phoenixkahlo.hellcraft.core._
+import com.phoenixkahlo.hellcraft.math.V3I
+import com.phoenixkahlo.hellcraft.save.{GeneratingSave, GlobalKryo, RegionSave, WorldSave}
 import com.phoenixkahlo.hellcraft.util.LoopingApp
 
 import scala.collection.parallel
@@ -19,7 +20,7 @@ import scala.collection.parallel.{ParMap, mutable}
 class GameServer extends Listener with LoopingApp  {
 
   var save: WorldSave = _
-  var world: ServerWorldManager = _
+  var continuum: ServerContinuum = _
 
   var server: Server = _
   var clientIDByConnection: mutable.ParMap[Connection, ClientID] = _
@@ -29,14 +30,14 @@ class GameServer extends Listener with LoopingApp  {
   override def init(deactivator: Runnable): Unit = {
     val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\mul")
     saveFolder.mkdir()
-    save = RegionSave(saveFolder toPath, 24)
-
-    world = new ServerWorldManager(save, v => {
+    save = new GeneratingSave(new RegionSave(saveFolder toPath, 24), v => {
       if (v.y < -20) Stone
       else if (v.y < 0) Dirt
       else if (v.y == 0) Grass
       else Air
     })
+
+    continuum = new ServerContinuum(save)
 
     server = new Server()
     server.bind(25565)
@@ -53,11 +54,13 @@ class GameServer extends Listener with LoopingApp  {
   }
 
   override def update(): Unit = {
-    world.update()
+    continuum.update()
+    continuum.current.pushToSave()
   }
 
   override def dispose(): Unit = {
-    world.close()
+    continuum.current.pushToSave()
+    save.close()
     server.close()
   }
 
@@ -66,7 +69,7 @@ class GameServer extends Listener with LoopingApp  {
     clientIDByConnection.put(connection, id)
     clientConnectionByID.put(id, connection)
 
-    val session = new ServerGameSession(id, this)
+    val session = new ServerSessionImpl(id, this)
 
     val rmiSpace = new ObjectSpace
     rmiSpace.register(1, session)
