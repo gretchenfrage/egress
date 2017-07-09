@@ -37,7 +37,7 @@ class InfinityManager(save: WorldSave, generator: V3I => Block) {
   }
 
   def update(ps: Seq[V3I], updateBuffer: Boolean): Unit = {
-    val events = ps.map(world.chunkAt(_)).filter(_ isDefined).map(_.get).flatMap(_.update(world))
+    val events = ps.flatMap(world.chunkAt(_)).flatMap(_.update(world))
     integrate(events)
     if (updateBuffer)
       buffer.update(world.loaded.keys.toSeq, 3, world)

@@ -63,6 +63,10 @@ case class SimpleAvatarController(
     } else false
   }
 
+
+  override def touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean =
+    mouseMoved(screenX, screenY)
+
   override def touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean =
     if (Gdx.input.isCursorCatched) {
       clicks.push(button)
@@ -72,7 +76,15 @@ case class SimpleAvatarController(
       true
     }
 
-  def update(world: World): Seq[ChunkEvent] = {
+  def update(world: World, lastAvatarChunkPos: Option[V3I] = None): Seq[ChunkEvent] = {
+    /*
+    val avatar = avatarCache.getOrElse(world.findEntity(avatarID).asInstanceOf[Avatar])
+    val avatar = lastChunkPos.flatMap(infinitum.world.chunkAt(_).flatMap(_.entities.get(controller.avatarID)))
+        .getOrElse(infinitum.findEntity(controller.avatarID)).asInstanceOf[Avatar]
+        */
+    val avatar = lastAvatarChunkPos.flatMap(world.chunkAt(_).flatMap(_.entities.get(avatarID)))
+      .getOrElse(world.findEntity(avatarID)).asInstanceOf[Avatar]
+
     val camDirection = V3F(cam.direction).normalize
 
     var moveDirection: V3F = Origin
@@ -86,8 +98,6 @@ case class SimpleAvatarController(
       moveDirection = moveDirection - (camDirection cross Up).normalize
 
     val jumping = pressed(Keys.SPACE)
-
-    val avatar = world.findEntity(avatarID).asInstanceOf[Avatar]
 
     val avatarEvent = ChunkEvent(avatar.chunkPos, UUID.randomUUID(), _.putEntity(
       avatar.updateDirection(moveDirection).updateJumping(jumping)))
@@ -117,13 +127,15 @@ case class SimpleAvatarController(
         events = events :+ ChunkEvent(outline.chunkPos, UUID.randomUUID(),  _.putEntity(outline))
       case None =>
     }
-    
+
 
     events
   }
 
-  def postUpdate(world: World): Unit = {
-    val avatar = world.findEntity(avatarID).asInstanceOf[Avatar]
+  def postUpdate(world: World, lastAvatarChunkPos: Option[V3I] = None): Unit = {
+    //val avatar = avatarCache.getOrElse(world.findEntity(avatarID).asInstanceOf[Avatar])
+    val avatar = lastAvatarChunkPos.flatMap(world.chunkAt(_).flatMap(_.entities.get(avatarID)))
+      .getOrElse(world.findEntity(avatarID)).asInstanceOf[Avatar]
     cam.position.set((avatar.pos + offset).toGdx)
     cam.update()
   }

@@ -40,23 +40,10 @@ case class HashCacheWorld(time: Long, loaded: Map[V3I, Chunk] = new HashMap) ext
   def --(ps: Seq[V3I]): HashCacheWorld =
     ps.foldLeft(this)({ case (world, p) => world.-(p) })
 
-
-  /*
-  def integrate(events: Seq[ChunkEvent]): HashCacheWorld = {
-    val newLoaded = events.groupBy(_.chunkPos).par.map({
-      case (p, eventGroup) => eventGroup.foldLeft(loaded.get(p))({ case (cc, ee) => cc.map(ee(_)) })
-    }).filter(_ isDefined).map(_.get).foldLeft(loaded)({ case (map, chunk) => map.updated(chunk.pos, chunk) })
-    HashCacheWorld(newLoaded, time)
-  }
-
-  def update(world: World = this): HashCacheWorld =
-    integrate(loaded.values.flatMap(_.update(world)).toSeq)
-    */
-
   def integrate(events: SortedSet[ChunkEvent]): HashCacheWorld =
-    copy(loaded = events.groupBy(_.target).par.map({
+    copy(loaded = events.groupBy(_.target).par.flatMap({
             case (p, eventGroup) => eventGroup.foldLeft(loaded.get(p))({ case (cc, ee) => cc.map(ee(_)) })
-          }).filter(_ isDefined).map(_.get).foldLeft(loaded)({ case (map, chunk) => map.updated(chunk.pos, chunk) }))
+          }).foldLeft(loaded)({ case (map, chunk) => map.updated(chunk.pos, chunk) }))
 
   def incrTime: HashCacheWorld =
     copy(time = time + 1)

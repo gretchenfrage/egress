@@ -46,7 +46,7 @@ class InfiniteDriver extends ApplicationAdapter {
   override def create(): Unit = {
     deleted = new LinkedBlockingQueue
 
-    val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\inf")
+    val saveFolder = new File("C:\\Users\\Phoenix\\Desktop\\inf")
     saveFolder.mkdir()
     save = new RegionSave(saveFolder.toPath, 8)
 

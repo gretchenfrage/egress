@@ -44,7 +44,8 @@ class RegionSave(path: Path, regionSize: Int) extends WorldSave {
       val newMap = group.foldLeft(map)({ case (a, c) => a.updated(c.pos, c) })
       // save to file
       val file = path.resolve(fileName(region)).toFile
-      if (!file.exists) file.createNewFile()
+      if (!file.exists)
+        file.createNewFile()
       val output = new Output(new FileOutputStream(file))
       GlobalKryo().writeObject(output, newMap)
       output.close()
@@ -55,8 +56,10 @@ class RegionSave(path: Path, regionSize: Int) extends WorldSave {
     save(Seq(chunk), world)
   }
 
+  val bufferSize = 10000000
+
   val buffers = new ThreadLocal[Array[Byte]] {
-    override def initialValue(): Array[Byte] = new Array[Byte](1000000)
+    override def initialValue(): Array[Byte] = new Array[Byte](bufferSize)
   }
 
   //TODO: parrellelize

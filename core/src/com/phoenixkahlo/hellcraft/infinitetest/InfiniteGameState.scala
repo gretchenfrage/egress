@@ -25,9 +25,11 @@ import scala.concurrent.duration._
 
 class InfiniteGameState extends GameState {
 
-  val loadDist = V3I(7, 7, 7)
-  val updateDist = V3I(1, 1, 1)
-  val renderDist = V3I(6, 6, 6)
+  val loadDist = V3I(13, 7, 13)
+  val updateDist = V3I(6, 6, 6)
+  val renderDist = V3I(12, 4, 12)
+
+  private var lastChunkPos: Option[V3I] = None
 
   private var deleted: BlockingQueue[ResourceNode] = _
   private var save: WorldSave = _
@@ -46,17 +48,16 @@ class InfiniteGameState extends GameState {
   override def onEnter(): Unit = {
     deleted = new LinkedBlockingQueue
 
-    val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\inf")
+    val saveFolder = new File("C:\\Users\\Phoenix\\Desktop\\inf")
     saveFolder.mkdir()
     save = new RegionSave(saveFolder.toPath, 8)
     textures = new DefaultTexturePack
 
     println("instantiating world")
     infinitum = new InfinityManager(save, v => {
-      val h = (0 - (Origin.flatten dist v.flatten)).toInt
-      if (v.yi < h - 20) Stone
-      else if (v.yi < h) Dirt
-      else if (v.yi == h) Grass
+      if (v.yi < -20) Stone
+      else if (v.yi < 0) Dirt
+      else if (v.yi == 0) Grass
       else Air
     })
     infinitum.makeLoaded(loadDist.neg until loadDist)
@@ -67,7 +68,7 @@ class InfiniteGameState extends GameState {
 
     BackgroundMeshCompilerExecutor.setPlayerPos(avatar.pos)
 
-    cam = new PerspectiveCamera(67, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
+    cam = new PerspectiveCamera(90, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     cam.near = 0.1f
     cam.far = 1000
     cam.position.set(V3F(-10, 10, -10) toGdx)
@@ -90,12 +91,11 @@ class InfiniteGameState extends GameState {
   }
 
   override def render(): Unit = {
-    println("rendering")
+    // some initial stuff
     g += 1
 
     val world = infinitum.world
 
-    // prepare
     Gdx.gl.glClearColor(0.5089f, 0.6941f, 1f, 1f)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
@@ -104,12 +104,10 @@ class InfiniteGameState extends GameState {
     val chunkPos = V3F(controller.cam.position) / 16 floor
 
     // get the renderable factories
-    //val factories = infinitum.renderables(textures, (chunkPos - renderDist) to (chunkPos + renderDist))
-    val factories = ((chunkPos - renderDist) to (chunkPos + renderDist)).map(world.chunkAt).filter(_ isDefined).map(_.get).flatMap(_.renderables(textures, world))
+    val factories = ((chunkPos - renderDist) to (chunkPos + renderDist)).par.flatMap(world.chunkAt).flatMap(_.renderables(textures, world)).seq
 
     // do memory management
-    //val nodes = infinitum.resources(textures)
-    val nodes = factories.flatMap(_.resources)
+    val nodes = factories.par.flatMap(_.resources).seq
     vramGraph ++= nodes
     if (g % 600 == 0) {
       while (deleted.size > 0) vramGraph --= Seq(deleted.remove())
@@ -137,46 +135,26 @@ class InfiniteGameState extends GameState {
   }
 
   override def update(): Unit = {
-    println("updating")
-    val times = new ArrayBuffer[Long]
-    val log: () => Unit = () => times += System.nanoTime()
-
-    log()
-
     // increment time
     t += 1
 
-    log()
-
-    // find the avatar pos
-    val avatar = infinitum.findEntity(controller.avatarID).asInstanceOf[Avatar]
-
-    log()
+    // find the avatar
+    val avatar = lastChunkPos.flatMap(infinitum.world.chunkAt(_).flatMap(_.entities.get(controller.avatarID)))
+        .getOrElse(infinitum.findEntity(controller.avatarID)).asInstanceOf[Avatar]
 
     // update the world and controller
     infinitum.update((avatar.chunkPos - updateDist) to (avatar.chunkPos + updateDist), t % 600 == 0)
-    infinitum.integrate(controller.update(infinitum.world))
-    controller.postUpdate(infinitum.world)
-
-    log()
+    infinitum.integrate(controller.update(infinitum.world, lastChunkPos))
+    controller.postUpdate(infinitum.world, lastChunkPos)
 
     // set the loaded chunks
-    infinitum.setLoaded((avatar.chunkPos - loadDist) to (avatar.chunkPos + loadDist))
-
-    log()
+    if (!lastChunkPos.contains(avatar.chunkPos)) {
+      infinitum.setLoaded((avatar.chunkPos - loadDist) to (avatar.chunkPos + loadDist))
+      lastChunkPos = Some(avatar.chunkPos)
+    }
 
     // update mesh compiler priority
     BackgroundMeshCompilerExecutor.setPlayerPos(avatar.pos)
-
-    log()
-
-    /*
-    print("update times: ")
-    for (i <- 0 until times.size - 1) {
-      print(((times(i + 1) - times(i)) nanoseconds).toMillis + ", ")
-    }
-    println()
-    */
   }
 
   override def onExit(): Unit = {

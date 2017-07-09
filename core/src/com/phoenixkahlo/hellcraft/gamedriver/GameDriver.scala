@@ -12,6 +12,7 @@ class GameDriver(state: GameState) extends ApplicationAdapter {
   private var lastRenderTime: Long = -1 // nano time
   private var tickTimeDebt: Duration = Duration.Zero
   private val updatedFlag = new AtomicBoolean(true)
+  @volatile private var running = true
 
   override def create(): Unit = {
     state.onEnter()
@@ -20,17 +21,13 @@ class GameDriver(state: GameState) extends ApplicationAdapter {
 
     val thread = new Thread(() => {
       lastRenderTime = System.nanoTime()
-      while (true) {
+      while (running) {
         val currRenderTime = System.nanoTime()
         tickTimeDebt += ((currRenderTime - lastRenderTime) nanoseconds)
-        //TODO: what in the heck of this?
-        /*
         val sleepFor = GameDriver.dt - tickTimeDebt
         if (sleepFor > Duration.Zero)
           Thread.sleep(sleepFor toMillis)
-        */
         while (tickTimeDebt >= GameDriver.dt) {
-          println("updating, debt = " + tickTimeDebt.toUnit(TimeUnit.SECONDS))
           state.update()
           updatedFlag.set(true)
           updatedFlag.synchronized { updatedFlag.notifyAll() }
@@ -45,40 +42,15 @@ class GameDriver(state: GameState) extends ApplicationAdapter {
   }
 
   override def render(): Unit = {
-    println("rendering")
     updatedFlag.synchronized {
       while (!updatedFlag.getAndSet(false))
         updatedFlag.wait()
     }
     state.render()
-    /*
-    if (lastRenderTime == -1) {
-      lastRenderTime = System.nanoTime()
-    } else {
-      // update
-      val currRenderTime = System.nanoTime()
-      tickTimeDebt += ((currRenderTime - lastRenderTime) nanoseconds)
-      while (tickTimeDebt >= GameDriver.dt) {
-        state.update()
-        tickTimeDebt -= GameDriver.dt
-      }
-      // render
-      state.render()
-      // prepare
-      lastRenderTime = currRenderTime
-    }
-    */
-    /*
-    val s = System.nanoTime()
-    state.update()
-    state.render()
-    val e = System.nanoTime()
-    println("dt = " + ((e - s) / 1000000))
-    */
-
   }
 
   override def dispose(): Unit = {
+    running = false
     state.onExit()
   }
 
