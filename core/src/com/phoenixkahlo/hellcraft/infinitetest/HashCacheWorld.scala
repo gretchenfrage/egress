@@ -4,7 +4,6 @@ import java.util.UUID
 
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.core._
-import com.phoenixkahlo.hellcraft.finitetest.FiniteWorld
 import com.phoenixkahlo.hellcraft.math.V3I
 
 import scala.collection.{Map, SortedSet}
@@ -63,7 +62,7 @@ case class HashCacheWorld(time: Long, loaded: Map[V3I, Chunk] = new HashMap) ext
     copy(time = time + 1)
 
   def update: HashCacheWorld =
-    integrate(loaded.values.par.flatMap(_.update(this, time)).seq.foldLeft(new TreeSet[ChunkEvent])(_ + _)).incrTime
+    integrate(loaded.values.par.flatMap(_.update(this)).seq.foldLeft(new TreeSet[ChunkEvent])(_ + _)).incrTime
 
   def transformChunk(p: V3I, f: Chunk => Chunk): HashCacheWorld =
     HashCacheWorld(time, loaded.updated(p, f(loaded(p))))

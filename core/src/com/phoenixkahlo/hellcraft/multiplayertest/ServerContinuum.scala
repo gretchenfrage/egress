@@ -37,15 +37,22 @@ class ServerContinuum(save: WorldSave) {
     history.get(target)
   }
 
+  def getStarter(client: ClientID): (Long, Seq[Chunk]) = this.synchronized {
+    (
+      time,
+      subscriptions(client).toSeq.map(current.chunkAt(_).get)
+    )
+  }
+
   /**
     * Updates the continuum to the next tick, and returns which chunk events need to be routed to which clients.
     */
-  def update(): Map[ClientID, Seq[ChunkEvent]] = this.synchronized {
+  def update(): Map[ClientID, SortedSet[ChunkEvent]] = this.synchronized {
     // collect events, including externs, grouped by their producers
     val events: Seq[(ChunkEvent, Option[V3I])] =
       subscriptions.values.foldLeft(new HashSet[V3I])(_ ++ _).toSeq.map(current.chunkAt(_).get)
-        .flatMap(chunk => chunk.update(current, time).map((_, Some(chunk.pos)))) ++
-        externs(time).toSeq.map(event => (event, None))
+        .flatMap(chunk => chunk.update(current).map((_, Some(chunk.pos)))) ++
+        externs.get(time).map(_.toSeq.map(event => (event, None))).getOrElse(Nil)
 
     // sort the events and integrate them into a new snapshot, put in history, invalidate curr cache
     val next = current.integrate(events.map(_._1).foldLeft(new TreeSet[ChunkEvent])(_ + _)).incrTime
@@ -67,7 +74,7 @@ class ServerContinuum(save: WorldSave) {
     })
 
     // return
-    eventsToSend
+    eventsToSend.mapValues(_.foldLeft(new TreeSet[ChunkEvent])(_ + _))
   }
 
   /**
@@ -75,7 +82,7 @@ class ServerContinuum(save: WorldSave) {
     * While the client could just have the ClientWorld request all these chunks from the server, we send them all at
     * once to improve performance.
     */
-  def setClientRelation(client: ClientID, subscribed: Set[V3I], updatingSet: Set[V3I]): Unit = this.synchronized {
+  def setClientRelation(client: ClientID, subscribed: Set[V3I], updatingSet: Set[V3I]): Seq[Chunk] = this.synchronized {
     val oldSubscribed: Set[V3I] = subscriptions.getOrElse(client, Set.empty)
     subscriptions.put(client, subscribed)
     updating.put(client, updatingSet)
@@ -91,9 +98,9 @@ class ServerContinuum(save: WorldSave) {
 
   /**
     * Retroactively integrate the events into the continuum, and return simillar integration maps that need to be
-    * send to each client.
+    * sent to each client.
     */
-  def integrate(newExterns: SortedMap[Long, Set[ChunkEvent]]): Map[ClientID, SortedMap[Long, SortedSet[ChunkEvent]]] = this.synchronized {
+  def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Map[ClientID, SortedMap[Long, SortedSet[ChunkEvent]]] = this.synchronized {
     // we'll need this later
     val currTime = time
 
@@ -107,7 +114,7 @@ class ServerContinuum(save: WorldSave) {
     externs ++= toIntegrate
 
     // update back to the original time and accumulate the events
-    val accumulator1 = new mutable.TreeMap[Long, Map[ClientID, Seq[ChunkEvent]]]
+    val accumulator1 = new mutable.TreeMap[Long, Map[ClientID, SortedSet[ChunkEvent]]]
     while (time < currTime)
       accumulator1.put(time, update())
 

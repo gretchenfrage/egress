@@ -28,8 +28,4 @@ case class Avatar(
 
   def updateJumping(newJumping: Boolean): Avatar = copy(jumping = newJumping)
 
-  override def update(world: World, ids: Stream[UUID]) = {
-    super.update(world, ids)
-  }
-
 }

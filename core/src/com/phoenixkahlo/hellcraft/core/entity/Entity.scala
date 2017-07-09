@@ -11,7 +11,7 @@ trait Entity {
 
   def id: UUID
 
-  def update(world: World, ids: Stream[UUID]) = Nil
+  def update(world: World, ids: Stream[UUID]): Seq[ChunkEvent] = Nil
 
   def renderables(texturePack: TexturePack): Seq[RenderableFactory] = Nil
 

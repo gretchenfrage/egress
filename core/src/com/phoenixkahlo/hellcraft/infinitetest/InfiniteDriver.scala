@@ -48,7 +48,7 @@ class InfiniteDriver extends ApplicationAdapter {
 
     val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\inf")
     saveFolder.mkdir()
-    save = RegionSave(saveFolder.toPath, 8)
+    save = new RegionSave(saveFolder.toPath, 8)
 
     textures = new DefaultTexturePack
 

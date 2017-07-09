@@ -48,7 +48,7 @@ class InfiniteGameState extends GameState {
 
     val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\inf")
     saveFolder.mkdir()
-    save = RegionSave(saveFolder.toPath, 8)
+    save = new RegionSave(saveFolder.toPath, 8)
     textures = new DefaultTexturePack
 
     println("instantiating world")
@@ -90,6 +90,7 @@ class InfiniteGameState extends GameState {
   }
 
   override def render(): Unit = {
+    println("rendering")
     g += 1
 
     val world = infinitum.world
@@ -136,6 +137,7 @@ class InfiniteGameState extends GameState {
   }
 
   override def update(): Unit = {
+    println("updating")
     val times = new ArrayBuffer[Long]
     val log: () => Unit = () => times += System.nanoTime()
 

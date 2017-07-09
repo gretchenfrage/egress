@@ -7,13 +7,16 @@ import com.phoenixkahlo.hellcraft.util.Cache
 import scala.collection.immutable.TreeSet
 import scala.collection.{SortedMap, SortedSet, mutable}
 
-class ClientContinuum(startTime: Long) {
+class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk])) {
 
   val historySize: Int = 5 * 60
 
   private var subscribed: Set[V3I] = Set.empty
   private var updating: Set[V3I] = Set.empty
   private var history = new mutable.TreeMap[Long, ClientWorld]
+  starter match {
+    case (startTime, startChunks) => history.put(startTime, new ClientWorld(session, startChunks, startTime))
+  }
 
   private val currCache = new Cache[ClientWorld](history.last._2)
 
@@ -27,10 +30,12 @@ class ClientContinuum(startTime: Long) {
 
   def revert(target: Long): Unit = {
     history = history.rangeImpl(None, Some(target + 1))
+    if (history isEmpty)
+      history.put(target, new ClientWorld(session, Map.empty, target).setLoaded(subscribed))
   }
 
   def update(unpredictable: SortedSet[ChunkEvent] = SortedSet.empty): Unit = this.synchronized {
-    val events: SortedSet[ChunkEvent] = updating.flatMap(current.chunkAt(_).get.update(current, time))
+    val events: SortedSet[ChunkEvent] = updating.flatMap(current.chunkAt(_).get.update(current))
       .foldLeft(new TreeSet[ChunkEvent])(_ + _) ++ unpredictable
 
     val newWorld = current.integrate(events).incrTime.setLoaded(subscribed)
@@ -47,17 +52,12 @@ class ClientContinuum(startTime: Long) {
     */
   def setServerRelation(atTime: Long, newSubscribed: Set[V3I], newUpdating: Set[V3I], provided: Map[V3I, Chunk]): Unit =
     this.synchronized {
-      val currTime = time
-
       revert(atTime)
 
       provide(provided)
 
       subscribed = newSubscribed
       updating = newUpdating
-
-      while (time < currTime)
-        update()
     }
 
   def integrate(events: SortedMap[Long, SortedSet[ChunkEvent]]): Unit = this.synchronized {

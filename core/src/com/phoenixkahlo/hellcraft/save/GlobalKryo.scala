@@ -14,8 +14,11 @@ object GlobalKryo {
     kryo
   }
 
+  def create(): Kryo =
+    config(new ScalaKryoInstantiator().newKryo())
+
   val kryo = new ThreadLocal[Kryo] {
-    override def initialValue(): Kryo = config(new ScalaKryoInstantiator().newKryo())
+    override def initialValue(): Kryo = create()
   }
 
   def apply() = kryo.get

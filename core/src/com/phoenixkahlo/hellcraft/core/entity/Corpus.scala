@@ -9,6 +9,7 @@ import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 import com.phoenixkahlo.hellcraft.util.KeyParamPool
 
 import scala.collection.JavaConverters
+import scala.collection.immutable.TreeSet
 
 /**
   * An abstract entity that provides a framework for things pertaining to an entity being a moveable physical object.
@@ -37,12 +38,13 @@ abstract class Corpus(
 
   override def update(world: World, ids: Stream[UUID]): Seq[ChunkEvent] = {
     val replacer = transform(world)
+
     if (replacer.chunkPos == this.chunkPos)
-      Seq(ChunkEvent(chunkPos, ids.head, _.putEntity(replacer)))
+      Seq(ChunkEvent(chunkPos, ids.head, _.putEntity(replacer), "corpus in-chunk replacement"))
     else
       Seq(
-        ChunkEvent(chunkPos, ids.head,_.removeEntity(this)),
-        ChunkEvent(replacer.chunkPos, ids.take(1).head, _.putEntity(replacer))
+        ChunkEvent(chunkPos, ids.head,_.removeEntity(this), "corpus chunk removal"),
+        ChunkEvent(replacer.chunkPos, ids.drop(1).head, _.putEntity(replacer), "corpus chunk insertion")
       )
   }
 

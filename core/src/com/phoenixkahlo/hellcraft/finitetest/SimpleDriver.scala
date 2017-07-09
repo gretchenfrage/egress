@@ -19,7 +19,6 @@ import com.phoenixkahlo.hellcraft.save.{NaiveWorldSave, RegionSave}
 import com.phoenixkahlo.hellcraft.util._
 import other.PerlinNoiseGenerator
 
-import scala.collection.immutable.HashSet
 
 @deprecated
 class SimpleDriver extends ApplicationAdapter {
@@ -47,7 +46,7 @@ class SimpleDriver extends ApplicationAdapter {
 
     val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\save")
     saveFolder.mkdir()
-    val save = RegionSave(saveFolder.toPath, 8)
+    val save = new RegionSave(saveFolder.toPath, 8)
 
     MathUtils.random.setSeed("phoenix".hashCode)
     val heights = PerlinNoiseGenerator.generateHeightMap((world.size * 16).xi, (world.size * 16).zi, 0, 128, 9)
@@ -136,7 +135,7 @@ class SimpleDriver extends ApplicationAdapter {
     lights.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1))
     lights.add(new DirectionalLight().set(1, 1, 1, 0, -1, 0))
 
-    dependencies = DependencyGraph(new HashSet)
+    dependencies = DependencyGraph()
   }
 
   override def render(): Unit = {

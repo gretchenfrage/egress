@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.util
+package com.phoenixkahlo.hellcraft.gamedriver
 
 import scala.concurrent.duration.DurationInt
 

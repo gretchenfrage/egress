@@ -20,8 +20,8 @@ case class BlockOutline(v: V3I, color: Color, chunkSize: Int = 16) extends Entit
   val chunkPos: V3I = v / chunkSize floor
   override val id: UUID = UUID.randomUUID()
 
-  override def update(world: World, ids: Stream[UUID]) =
-    Seq(ChunkEvent(chunkPos, _ removeEntity this))
+  override def update(world: World, ids: Stream[UUID]): Seq[ChunkEvent] =
+    Seq(ChunkEvent(chunkPos, ids.head, _ removeEntity this, "block outline removal"))
 
   override def renderables(texturePack: TexturePack): Seq[RenderableFactory] =
     Seq(BlockOutlineRenderer(v, color))

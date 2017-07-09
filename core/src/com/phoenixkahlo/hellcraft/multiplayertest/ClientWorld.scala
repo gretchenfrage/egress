@@ -54,6 +54,7 @@ class ClientWorld(
     * Unload or load chunks as needed.
     */
   def setLoaded(chunks: Set[V3I]): ClientWorld = {
+    // TODO: fetch large amounts of chunks from the server more efficiently
     new ClientWorld(session, chunks.map(p => (p, chunkAt(p).get)).toMap, time)
   }
 

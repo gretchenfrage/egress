@@ -7,12 +7,13 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.math.{Directions, V3I}
 import com.phoenixkahlo.hellcraft.save.WorldSave
 
+import scala.collection.immutable.TreeSet
 import scala.collection.mutable.ArrayBuffer
 
 class InfinityManager(save: WorldSave, generator: V3I => Block) {
 
   val buffer = new SaveBuffer(save, generator)
-  @volatile var world = HashCacheWorld()
+  @volatile var world = HashCacheWorld(0)
 
   def findEntity(id: UUID): Entity = world.findEntity(id)
 
@@ -43,7 +44,7 @@ class InfinityManager(save: WorldSave, generator: V3I => Block) {
   }
 
   def integrate(events: Seq[ChunkEvent]): Unit = {
-    world = world.integrate(events)
+    world = world.integrate(events.foldLeft(new TreeSet[ChunkEvent])(_ + _)).incrTime
   }
 
   def transformChunk(p: V3I, f: Chunk => Chunk): Unit = {

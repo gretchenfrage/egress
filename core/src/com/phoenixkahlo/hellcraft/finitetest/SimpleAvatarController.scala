@@ -9,6 +9,7 @@ import com.badlogic.gdx.{Gdx, InputAdapter}
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.{Avatar, BlockOutline}
 import com.phoenixkahlo.hellcraft.math._
+import com.phoenixkahlo.hellcraft.util.RNG
 
 import scala.collection.mutable
 
@@ -88,7 +89,7 @@ case class SimpleAvatarController(
 
     val avatar = world.findEntity(avatarID).asInstanceOf[Avatar]
 
-    val avatarEvent = ChunkEvent(avatar.chunkPos, _.putEntity(
+    val avatarEvent = ChunkEvent(avatar.chunkPos, UUID.randomUUID(), _.putEntity(
       avatar.updateDirection(moveDirection).updateJumping(jumping)))
 
     var events = Seq[ChunkEvent](avatarEvent)
@@ -96,14 +97,14 @@ case class SimpleAvatarController(
     if (clicks.nonEmpty) {
       clicks.pop() match {
         case Buttons.LEFT => Raytrace.hit(avatar.pos + offset, camDirection, world) match {
-          case Some(v) => events = events ++ World.putBlock(v, Air)
+          case Some(v) => events = events ++ World.putBlock(v, Air, RNG.uuids(RNG(System.nanoTime())))
           case None =>
         }
         case Buttons.RIGHT => Raytrace.place(avatar.pos + offset, camDirection, world) match {
           case Some(v) =>
             if (!(avatar.pos.y + m <= v.y + 1 - m && v.y + m <= avatar.pos.y + avatar.height - m &&
               RectangleProxmimity(Rectangle(v.flatten, (v + Ones).flatten), avatar.rad - m).contains(avatar.pos.flatten)))
-              events = events ++ World.putBlock(v, Stone)
+              events = events ++ World.putBlock(v, Stone, RNG.uuids(RNG(System.nanoTime())))
           case None =>
         }
       }
@@ -113,7 +114,7 @@ case class SimpleAvatarController(
     Raytrace.hit(avatar.pos + offset, camDirection, world) match {
       case Some(v) =>
         val outline = BlockOutline(v, Color.BLACK)
-        events = events :+ ChunkEvent(outline.chunkPos, _.putEntity(outline))
+        events = events :+ ChunkEvent(outline.chunkPos, UUID.randomUUID(),  _.putEntity(outline))
       case None =>
     }
     
