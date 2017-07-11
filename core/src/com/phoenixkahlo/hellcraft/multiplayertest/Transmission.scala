@@ -1,0 +1,3 @@
+package com.phoenixkahlo.hellcraft.multiplayertest
+
+trait Transmission

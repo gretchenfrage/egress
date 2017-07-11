@@ -17,14 +17,14 @@ public class DesktopLauncher {
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
 		config.width = 1800;
 		config.height = 800;
-		/*
+
 		new LoopExecutor(new GameServer(25565)).start();
 		try {
 			Thread.sleep(500);
 		} catch (Exception e) { throw new RuntimeException(e); }
 		new LwjglApplication(new GameDriver(new GameClient(new InetSocketAddress("localhost", 25565))));
-		*/
-		new LwjglApplication(new GameDriver(new InfiniteGameState()), config);
+
+		//new LwjglApplication(new GameDriver(new InfiniteGameState()), config);
 		//new LwjglApplication(new InfiniteDriver(), config);
 		//new LwjglApplication(new SimpleDriver(), config);
 	}

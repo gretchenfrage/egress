@@ -14,7 +14,7 @@ trait LoopingApp {
 
 }
 
-class LoopExecutor(app: LoopingApp) extends Thread {
+class LoopExecutor(app: LoopingApp) extends Thread("looping app") {
 
   private val dt: Long = ((1 second) / app.fps) toNanos
 

@@ -1,8 +1,7 @@
 package com.phoenixkahlo.hellcraft.multiplayertest
 
 import java.net.InetSocketAddress
-import java.util.concurrent.{BlockingQueue, LinkedBlockingDeque, LinkedBlockingQueue}
-import javax.print.DocFlavor.BYTE_ARRAY
+import java.util.concurrent._
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.{GL20, PerspectiveCamera}
@@ -11,9 +10,10 @@ import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch, Renderable, RenderableProvider}
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.utils.Pool
+import com.esotericsoftware.kryonet.FrameworkMessage.KeepAlive
 import com.esotericsoftware.kryonet.Listener.ThreadedListener
 import com.esotericsoftware.kryonet.{Client, Connection, KryoSerialization, Listener}
-import com.esotericsoftware.kryonet.rmi.ObjectSpace
+import com.esotericsoftware.kryonet.rmi.{ObjectSpace, RemoteObject}
 import com.phoenixkahlo.hellcraft.core.{DefaultTexturePack, ResourceNode, TexturePack}
 import com.phoenixkahlo.hellcraft.gamedriver.GameState
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
@@ -23,6 +23,9 @@ import com.phoenixkahlo.hellcraft.util.{DependencyGraph, PriorityExecContext}
 import scala.collection.JavaConverters
 
 class GameClient(serverAddress: InetSocketAddress) extends Listener with GameState {
+
+  @volatile var ready = false
+  val readyMonitor = new Object
 
   private var received: BlockingQueue[Any] = _
   private var client: Client = _
@@ -44,10 +47,9 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
   override def onEnter(): Unit = {
     received = new LinkedBlockingDeque
 
-    println("client: connecting to server")
     // connect to the server
     client = new Client(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
-    client.addListener(new ThreadedListener(this))
+    client.addListener(new ThreadedListener(this, NetworkExecutor()))
     client.start()
     client.connect(5000, serverAddress.getAddress, serverAddress.getPort)
     // send the initial data
@@ -57,17 +59,17 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     // use the initial data to create a session
     val clientSession = new ClientSessionImpl(init, this)
     rmiSpace = new ObjectSpace
+    rmiSpace.setExecutor(NetworkExecutor())
     rmiSpace.addConnection(client)
-    rmiSpace.register(1, clientSession)
-    client.sendTCP(ClientSessionReady)
+    val sessionID = 1
+    rmiSpace.register(sessionID, clientSession)
+    client.sendTCP(ClientSessionReady(sessionID))
     // wait for and setup the remote server session
-    val took = received.take()
-    if (took != ServerSessionReady)
-      throw new ClassCastException
-    session = ObjectSpace.getRemoteObject(client, 1, classOf[ServerSession])
+    val serverSessionReady = received.take().asInstanceOf[ServerSessionReady]
+    session = ObjectSpace.getRemoteObject(client, serverSessionReady.sessionID, classOf[ServerSession])
+    session.asInstanceOf[RemoteObject].setResponseTimeout(60000)
 
     // instantiate the other things
-    println("client: instantiating other things")
     deleted = new LinkedBlockingQueue
     continuum = new ClientContinuum(session,
       session.getStarter() match { case (time, chunkSeq) => (time, chunkSeq.map(chunk => (chunk.pos, chunk)).toMap) })
@@ -87,11 +89,21 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     lights.add(new DirectionalLight().set(1, 1, 1, 0, -1, 0))
 
     vramGraph = DependencyGraph()
-    println("client: setup")
+
+    readyMonitor.synchronized {
+      ready = true
+      readyMonitor.notifyAll()
+    }
+  }
+
+  def waitForReady(): Unit = {
+    readyMonitor.synchronized {
+      while (!ready)
+        readyMonitor.wait()
+    }
   }
 
   override def render(): Unit = {
-    println("client rendering")
     // prepare
     g += 1
     val world = continuum.current
@@ -132,7 +144,6 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
   }
 
   override def update(): Unit = {
-    println("client updating")
     t += 1
     continuum.update()
   }
@@ -142,8 +153,9 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
   }
 
   override def received(connection: Connection, obj: Any): Unit = {
-    println("client: received " + obj + ", adding to received queue")
-    received.add(obj)
+    if (obj.isInstanceOf[Transmission]) {
+      received.add(obj)
+    }
   }
 
   def getContinuum: ClientContinuum = continuum

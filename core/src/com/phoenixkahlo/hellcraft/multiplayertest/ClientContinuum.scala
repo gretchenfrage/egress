@@ -28,7 +28,7 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk])) 
     currCache().time
   }
 
-  def revert(target: Long): Unit = {
+  def revert(target: Long): Unit = this.synchronized {
     history = history.rangeImpl(None, Some(target + 1))
     if (history isEmpty)
       history.put(target, new ClientWorld(session, Map.empty, target).setLoaded(subscribed))
@@ -60,19 +60,20 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk])) 
       updating = newUpdating
     }
 
-  def integrate(events: SortedMap[Long, SortedSet[ChunkEvent]]): Unit = this.synchronized {
-    val currTime = time
+  def integrate(events: SortedMap[Long, SortedSet[ChunkEvent]]): Unit = {
+    this.synchronized {
+      val currTime = time
+      revert(events.firstKey)
 
-    revert(events.firstKey)
+      for ((targetTime, eventGroup) <- events) {
+        while (time < targetTime)
+          update()
+        update(eventGroup)
+      }
 
-    for ((targetTime, eventGroup) <- events) {
-      while (time < targetTime)
+      while (time < currTime)
         update()
-      update(eventGroup)
     }
-
-    while (time < currTime)
-      update()
   }
 
 }

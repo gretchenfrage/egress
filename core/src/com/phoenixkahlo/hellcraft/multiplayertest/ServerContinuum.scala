@@ -16,8 +16,8 @@ class ServerContinuum(save: WorldSave) {
 
   val historySize: Int = 5 * 60
 
-  private val subscriptions = new mutable.HashMap[ClientID, Set[V3I]]
-  private val updating = new mutable.HashMap[ClientID, Set[V3I]]
+  private val subscriptions = new mutable.HashMap[ClientID, Set[V3I]].withDefaultValue(Set.empty)
+  private val updating = new mutable.HashMap[ClientID, Set[V3I]].withDefaultValue(Set.empty)
   private val externs = new mutable.TreeMap[Long, Set[ChunkEvent]]
   private var history = new mutable.TreeMap[Long, ServerWorld]
 
@@ -33,8 +33,11 @@ class ServerContinuum(save: WorldSave) {
     currCache().time
   }
 
-  def snapshot(target: Long): Option[ServerWorld] = this.synchronized {
-    history.get(target)
+  def snapshot(target: Long): Option[ServerWorld] = {
+    this.synchronized {
+      history.get(target)
+    }
+
   }
 
   def getStarter(client: ClientID): (Long, Seq[Chunk]) = this.synchronized {

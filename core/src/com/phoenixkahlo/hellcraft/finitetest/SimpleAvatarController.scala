@@ -23,6 +23,7 @@ case class SimpleAvatarController(
   private val pressed = new mutable.HashSet[Int]()
   private val clicks = new mutable.ArrayStack[Int]()
 
+  val keys = List(Keys.W, Keys.A, Keys.S, Keys.D, Keys.SHIFT_LEFT, Keys.SPACE, Keys.CONTROL_LEFT, Keys.TAB)
 
   override def keyDown(keycode: Int): Boolean =
     if (keycode == Keys.ESCAPE) {
@@ -30,9 +31,9 @@ case class SimpleAvatarController(
       true
     } else if (keycode == Keys.C) {
       val dir = V3F(cam.direction)
-      println(Directions().map(d => (dir angleWith d, d)).sortBy(_._1).head._2)
+      println(Directions().map(d => (dir angleWith d, d)).minBy(_._1)._2)
       true
-    } else if (List(Keys.W, Keys.A, Keys.S, Keys.D, Keys.SHIFT_LEFT, Keys.SPACE, Keys.CONTROL_LEFT) contains keycode) {
+    } else if (keys contains keycode) {
       pressed.add(keycode)
       true
     } else false
@@ -77,11 +78,6 @@ case class SimpleAvatarController(
     }
 
   def update(world: World, lastAvatarChunkPos: Option[V3I] = None): Seq[ChunkEvent] = {
-    /*
-    val avatar = avatarCache.getOrElse(world.findEntity(avatarID).asInstanceOf[Avatar])
-    val avatar = lastChunkPos.flatMap(infinitum.world.chunkAt(_).flatMap(_.entities.get(controller.avatarID)))
-        .getOrElse(infinitum.findEntity(controller.avatarID)).asInstanceOf[Avatar]
-        */
     val avatar = lastAvatarChunkPos.flatMap(world.chunkAt(_).flatMap(_.entities.get(avatarID)))
       .getOrElse(world.findEntity(avatarID)).asInstanceOf[Avatar]
 
@@ -117,6 +113,7 @@ case class SimpleAvatarController(
               events = events ++ World.putBlock(v, Stone, RNG.uuids(RNG(System.nanoTime())))
           case None =>
         }
+        case _ =>
       }
     }
 
@@ -126,6 +123,14 @@ case class SimpleAvatarController(
         val outline = BlockOutline(v, Color.BLACK)
         events = events :+ ChunkEvent(outline.chunkPos, UUID.randomUUID(),  _.putEntity(outline))
       case None =>
+    }
+    if (pressed(Keys.TAB)) {
+      Raytrace.place(avatar.pos + offset, camDirection, world) match {
+        case Some(v) =>
+          val outline = BlockOutline(v, Color.RED)
+          events = events :+ ChunkEvent(outline.chunkPos, UUID.randomUUID(), _.putEntity(outline))
+        case None =>
+      }
     }
 
 

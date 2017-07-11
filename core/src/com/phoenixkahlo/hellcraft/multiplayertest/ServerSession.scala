@@ -19,13 +19,14 @@ class ServerSessionImpl(init: InitialClientData, server: GameServer, client: UUI
 
   override def getTime: Long = server.continuum.time
 
-  override def chunkAt(time: Long, p: V3I): Option[Chunk] =
+  override def chunkAt(time: Long, p: V3I): Option[Chunk] = {
     server.continuum.snapshot(time).flatMap(_.chunkAt(p))
+  }
 
   override def getStarter(): (Long, Seq[Chunk]) =
     server.continuum.getStarter(client)
 
 }
 
-case class InitialServerData(clientID: ClientID)
-object ServerSessionReady
+case class InitialServerData(clientID: ClientID) extends Transmission
+case class ServerSessionReady(sessionID: Int) extends Transmission

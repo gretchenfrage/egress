@@ -40,10 +40,11 @@ case class HashCacheWorld(time: Long, loaded: Map[V3I, Chunk] = new HashMap) ext
   def --(ps: Seq[V3I]): HashCacheWorld =
     ps.foldLeft(this)({ case (world, p) => world.-(p) })
 
-  def integrate(events: SortedSet[ChunkEvent]): HashCacheWorld =
+  def integrate(events: SortedSet[ChunkEvent]): HashCacheWorld = {
     copy(loaded = events.groupBy(_.target).par.flatMap({
-            case (p, eventGroup) => eventGroup.foldLeft(loaded.get(p))({ case (cc, ee) => cc.map(ee(_)) })
-          }).foldLeft(loaded)({ case (map, chunk) => map.updated(chunk.pos, chunk) }))
+      case (p, eventGroup) => eventGroup.foldLeft(loaded.get(p))({ case (cc, ee) => cc.map(ee(_)) })
+    }).foldLeft(loaded)({ case (map, chunk) => map.updated(chunk.pos, chunk) }))
+  }
 
   def incrTime: HashCacheWorld =
     copy(time = time + 1)

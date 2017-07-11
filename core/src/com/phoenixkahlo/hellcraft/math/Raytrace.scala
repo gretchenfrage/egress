@@ -21,9 +21,7 @@ object Raytrace {
 
     val (nextPos: V3F, nextV: V3I) =
       Seq(xy, yz, xz)
-      .map({ case (plane, block) => (line intersection plane, block) })
-      .sortBy({ case (point, _) => point dist pos })
-      .head
+        .map({ case (plane, block) => (line intersection plane, block) }).minBy { case (point, _) => point dist pos }
 
     nextV #:: collisions(nextV, nextPos, dir)
   }

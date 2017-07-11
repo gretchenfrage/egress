@@ -1,0 +1,206 @@
+"looping app@938" prio=5 tid=0xe nid=NA waiting
+  java.lang.Thread.State: WAITING
+	  at sun.misc.Unsafe.park(Unsafe.java:-1)
+	  at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:215)
+	  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2163)
+	  at com.esotericsoftware.kryonet.rmi.ObjectSpace$RemoteInvocationHandler.waitForResponse(ObjectSpace.java:436)
+	  at com.esotericsoftware.kryonet.rmi.ObjectSpace$RemoteInvocationHandler.invoke(ObjectSpace.java:408)
+	  at com.sun.proxy.$Proxy2.integrate(Unknown Source:-1)
+	  at com.phoenixkahlo.hellcraft.multiplayertest.GameServer.$anonfun$update$2(GameServer.scala:78)
+	  at com.phoenixkahlo.hellcraft.multiplayertest.GameServer.$anonfun$update$2$adapted(GameServer.scala:77)
+	  at com.phoenixkahlo.hellcraft.multiplayertest.GameServer$$Lambda$71.409103113.apply(Unknown Source:-1)
+	  at scala.collection.TraversableLike$WithFilter.$anonfun$foreach$1(TraversableLike.scala:789)
+	  at scala.collection.TraversableLike$WithFilter$$Lambda$24.325669971.apply(Unknown Source:-1)
+	  at scala.collection.MapLike$MappedValues.$anonfun$foreach$3(MapLike.scala:253)
+	  at scala.collection.MapLike$MappedValues$$Lambda$73.894530203.apply(Unknown Source:-1)
+	  at scala.collection.TraversableLike$WithFilter.$anonfun$foreach$1(TraversableLike.scala:789)
+	  at scala.collection.TraversableLike$WithFilter$$Lambda$24.325669971.apply(Unknown Source:-1)
+	  at scala.collection.MapLike$MappedValues.$anonfun$foreach$3(MapLike.scala:253)
+	  at scala.collection.MapLike$MappedValues$$Lambda$73.894530203.apply(Unknown Source:-1)
+	  at scala.collection.TraversableLike$WithFilter.$anonfun$foreach$1(TraversableLike.scala:789)
+	  at scala.collection.TraversableLike$WithFilter$$Lambda$24.325669971.apply(Unknown Source:-1)
+	  at scala.collection.immutable.Map$Map1.foreach(Map.scala:120)
+	  at scala.collection.TraversableLike$WithFilter.foreach(TraversableLike.scala:788)
+	  at scala.collection.MapLike$MappedValues.foreach(MapLike.scala:253)
+	  at scala.collection.TraversableLike$WithFilter.foreach(TraversableLike.scala:788)
+	  at scala.collection.MapLike$MappedValues.foreach(MapLike.scala:253)
+	  at scala.collection.TraversableLike$WithFilter.foreach(TraversableLike.scala:788)
+	  at com.phoenixkahlo.hellcraft.multiplayertest.GameServer.update(GameServer.scala:77)
+	  at com.phoenixkahlo.hellcraft.gamedriver.LoopExecutor.$anonfun$run$2(LoopExecutor.scala:35)
+	  at com.phoenixkahlo.hellcraft.gamedriver.LoopExecutor$$Lambda$53.1771800404.apply$mcVI$sp(Unknown Source:-1)
+	  at scala.collection.immutable.Range.foreach$mVc$sp(Range.scala:156)
+	  at com.phoenixkahlo.hellcraft.gamedriver.LoopExecutor.run(LoopExecutor.scala:34)
+
+"Thread-1@2286" prio=10 tid=0x1f nid=NA waiting
+  java.lang.Thread.State: WAITING
+	 blocks Client@2011
+	  at sun.misc.Unsafe.park(Unsafe.java:-1)
+	  at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:215)
+	  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2163)
+	  at com.esotericsoftware.kryonet.rmi.ObjectSpace$RemoteInvocationHandler.waitForResponse(ObjectSpace.java:436)
+	  at com.esotericsoftware.kryonet.rmi.ObjectSpace$RemoteInvocationHandler.invoke(ObjectSpace.java:408)
+	  at com.sun.proxy.$Proxy3.chunkAt(Unknown Source:-1)
+	  at com.phoenixkahlo.hellcraft.multiplayertest.ClientWorld.chunkAt(ClientWorld.scala:23)
+	  at com.phoenixkahlo.hellcraft.multiplayertest.ClientContinuum.$anonfun$update$1(ClientContinuum.scala:38)
+	  at com.phoenixkahlo.hellcraft.multiplayertest.ClientContinuum$$Lambda$124.775046770.apply(Unknown Source:-1)
+	  at scala.collection.TraversableLike.$anonfun$flatMap$1(TraversableLike.scala:241)
+	  at scala.collection.TraversableLike$$Lambda$59.1524896907.apply(Unknown Source:-1)
+	  at scala.collection.immutable.HashSet$HashSet1.foreach(HashSet.scala:320)
+	  at scala.collection.immutable.HashSet$HashTrieSet.foreach(HashSet.scala:976)
+	  at scala.collection.immutable.HashSet$HashTrieSet.foreach(HashSet.scala:976)
+	  at scala.collection.TraversableLike.flatMap(TraversableLike.scala:241)
+	  at scala.collection.TraversableLike.flatMap$(TraversableLike.scala:238)
+	  at scala.collection.AbstractTraversable.flatMap(Traversable.scala:104)
+	  at com.phoenixkahlo.hellcraft.multiplayertest.ClientContinuum.update(ClientContinuum.scala:38)
+	  - locked <0xb7b> (a com.phoenixkahlo.hellcraft.multiplayertest.ClientContinuum)
+	  at com.phoenixkahlo.hellcraft.multiplayertest.GameClient.update(GameClient.scala:148)
+	  at com.phoenixkahlo.hellcraft.gamedriver.GameDriver.$anonfun$create$1(GameDriver.scala:31)
+	  at com.phoenixkahlo.hellcraft.gamedriver.GameDriver$$Lambda$118.344354547.run(Unknown Source:-1)
+	  at java.lang.Thread.run(Thread.java:745)
+
+"LWJGL Application@1940" prio=10 tid=0x10 nid=NA waiting
+  java.lang.Thread.State: WAITING
+	  at sun.misc.Unsafe.park(Unsafe.java:-1)
+	  at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:215)
+	  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2163)
+	  at com.esotericsoftware.kryonet.rmi.ObjectSpace$RemoteInvocationHandler.waitForResponse(ObjectSpace.java:436)
+	  at com.esotericsoftware.kryonet.rmi.ObjectSpace$RemoteInvocationHandler.invoke(ObjectSpace.java:408)
+	  at com.sun.proxy.$Proxy3.chunkAt(Unknown Source:-1)
+	  at com.phoenixkahlo.hellcraft.multiplayertest.ClientWorld.chunkAt(ClientWorld.scala:23)
+	  at com.phoenixkahlo.hellcraft.multiplayertest.GameClient.$anonfun$render$1(GameClient.scala:120)
+	  at com.phoenixkahlo.hellcraft.multiplayertest.GameClient$$Lambda$119.645351747.apply(Unknown Source:-1)
+	  at scala.collection.TraversableLike.$anonfun$map$1(TraversableLike.scala:234)
+	  at scala.collection.TraversableLike$$Lambda$28.690599371.apply(Unknown Source:-1)
+	  at scala.collection.Iterator.foreach(Iterator.scala:929)
+	  at scala.collection.Iterator.foreach$(Iterator.scala:929)
+	  at scala.collection.AbstractIterator.foreach(Iterator.scala:1417)
+	  at scala.collection.IterableLike.foreach(IterableLike.scala:71)
+	  at scala.collection.IterableLike.foreach$(IterableLike.scala:70)
+	  at scala.collection.AbstractIterable.foreach(Iterable.scala:54)
+	  at scala.collection.TraversableLike.map(TraversableLike.scala:234)
+	  at scala.collection.TraversableLike.map$(TraversableLike.scala:227)
+	  at scala.collection.AbstractTraversable.map(Traversable.scala:104)
+	  at com.phoenixkahlo.hellcraft.multiplayertest.GameClient.render(GameClient.scala:120)
+	  at com.phoenixkahlo.hellcraft.gamedriver.GameDriver.render(GameDriver.scala:49)
+	  at com.badlogic.gdx.backends.lwjgl.LwjglApplication.mainLoop(LwjglApplication.java:225)
+	  at com.badlogic.gdx.backends.lwjgl.LwjglApplication$1.run(LwjglApplication.java:126)
+
+"Client@2011" daemon prio=5 tid=0x13 nid=NA waiting for monitor entry
+  java.lang.Thread.State: BLOCKED
+	 waiting for Thread-1@2286 to release lock on <0xb7b> (a com.phoenixkahlo.hellcraft.multiplayertest.ClientContinuum)
+	  at com.phoenixkahlo.hellcraft.multiplayertest.ClientContinuum.integrate(ClientContinuum.scala:66)
+	  at com.phoenixkahlo.hellcraft.multiplayertest.ClientSessionImpl.integrate(ClientSession.scala:22)
+	  at sun.reflect.NativeMethodAccessorImpl.invoke0(NativeMethodAccessorImpl.java:-1)
+	  at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	  at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	  at java.lang.reflect.Method.invoke(Method.java:498)
+	  at com.esotericsoftware.kryonet.rmi.ObjectSpace.invoke(ObjectSpace.java:214)
+	  at com.esotericsoftware.kryonet.rmi.ObjectSpace$1.received(ObjectSpace.java:76)
+	  at com.esotericsoftware.kryonet.Connection.notifyReceived(Connection.java:246)
+	  at com.esotericsoftware.kryonet.Client.update(Client.java:295)
+	  - locked <0xb7c> (a sun.nio.ch.Util$3)
+	  at com.esotericsoftware.kryonet.Client.run(Client.java:338)
+	  at java.lang.Thread.run(Thread.java:745)
+
+"Server@1791" prio=5 tid=0xf nid=NA runnable
+  java.lang.Thread.State: RUNNABLE
+	  at sun.nio.ch.WindowsSelectorImpl$SubSelector.poll0(WindowsSelectorImpl.java:-1)
+	  at sun.nio.ch.WindowsSelectorImpl$SubSelector.poll(WindowsSelectorImpl.java:296)
+	  at sun.nio.ch.WindowsSelectorImpl$SubSelector.access$400(WindowsSelectorImpl.java:278)
+	  at sun.nio.ch.WindowsSelectorImpl.doSelect(WindowsSelectorImpl.java:159)
+	  at sun.nio.ch.SelectorImpl.lockAndDoSelect(SelectorImpl.java:86)
+	  - locked <0xb7d> (a sun.nio.ch.WindowsSelectorImpl)
+	  - locked <0xb7e> (a java.util.Collections$UnmodifiableSet)
+	  - locked <0xb7f> (a sun.nio.ch.Util$3)
+	  at sun.nio.ch.SelectorImpl.select(SelectorImpl.java:97)
+	  at com.esotericsoftware.kryonet.Server.update(Server.java:168)
+	  at com.esotericsoftware.kryonet.Server.run(Server.java:372)
+	  at java.lang.Thread.run(Thread.java:745)
+
+"pool-1-thread-1@2014" prio=5 tid=0x14 nid=NA runnable
+  java.lang.Thread.State: RUNNABLE
+	  at scala.collection.parallel.ParMapLike.default(ParMapLike.scala:40)
+	  at scala.collection.parallel.ParMapLike.default$(ParMapLike.scala:40)
+	  at scala.collection.parallel.mutable.ParHashMap.default(ParHashMap.scala:36)
+	  at scala.collection.parallel.ParMapLike.apply(ParMapLike.scala:46)
+	  at scala.collection.parallel.ParMapLike.apply$(ParMapLike.scala:44)
+	  at scala.collection.parallel.mutable.ParHashMap.apply(ParHashMap.scala:36)
+	  at com.phoenixkahlo.hellcraft.multiplayertest.GameServer.disconnected(GameServer.scala:143)
+	  at com.esotericsoftware.kryonet.Listener$QueuedListener$2.run(Listener.java:94)
+	  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142)
+	  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)
+	  at java.lang.Thread.run(Thread.java:745)
+
+"pool-2-thread-1@2041" prio=5 tid=0x16 nid=NA waiting
+  java.lang.Thread.State: WAITING
+	  at sun.misc.Unsafe.park(Unsafe.java:-1)
+	  at java.util.concurrent.locks.LockSupport.park(LockSupport.java:175)
+	  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2039)
+	  at java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:442)
+	  at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1067)
+	  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1127)
+	  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)
+	  at java.lang.Thread.run(Thread.java:745)
+
+"pool-3-thread-1@2016" prio=5 tid=0x15 nid=NA waiting
+  java.lang.Thread.State: WAITING
+	  at sun.misc.Unsafe.park(Unsafe.java:-1)
+	  at java.util.concurrent.locks.LockSupport.park(LockSupport.java:175)
+	  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2039)
+	  at java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:442)
+	  at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1067)
+	  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1127)
+	  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)
+	  at java.lang.Thread.run(Thread.java:745)
+
+"scala-execution-context-global-30@2274" daemon prio=5 tid=0x1e nid=NA waiting
+  java.lang.Thread.State: WAITING
+	  at sun.misc.Unsafe.park(Unsafe.java:-1)
+	  at java.util.concurrent.ForkJoinPool.awaitWork(ForkJoinPool.java:1824)
+	  at java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1693)
+	  at java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:157)
+
+"scala-execution-context-global-28@2267" daemon prio=5 tid=0x1c nid=NA waiting
+  java.lang.Thread.State: WAITING
+	  at sun.misc.Unsafe.park(Unsafe.java:-1)
+	  at java.util.concurrent.ForkJoinPool.awaitWork(ForkJoinPool.java:1824)
+	  at java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1693)
+	  at java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:157)
+
+"scala-execution-context-global-24@2175" daemon prio=5 tid=0x18 nid=NA waiting
+  java.lang.Thread.State: WAITING
+	  at sun.misc.Unsafe.park(Unsafe.java:-1)
+	  at java.util.concurrent.ForkJoinPool.awaitWork(ForkJoinPool.java:1824)
+	  at java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1693)
+	  at java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:157)
+
+"scala-execution-context-global-23@2163" daemon prio=5 tid=0x17 nid=NA waiting
+  java.lang.Thread.State: WAITING
+	  at sun.misc.Unsafe.park(Unsafe.java:-1)
+	  at java.util.concurrent.ForkJoinPool.awaitWork(ForkJoinPool.java:1824)
+	  at java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1693)
+	  at java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:157)
+
+"Finalizer@2404" daemon prio=8 tid=0x3 nid=NA waiting
+  java.lang.Thread.State: WAITING
+	  at java.lang.Object.wait(Object.java:-1)
+	  at java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:143)
+	  at java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:164)
+	  at java.lang.ref.Finalizer$FinalizerThread.run(Finalizer.java:209)
+
+"Reference Handler@2405" daemon prio=10 tid=0x2 nid=NA waiting
+  java.lang.Thread.State: WAITING
+	  at java.lang.Object.wait(Object.java:-1)
+	  at java.lang.Object.wait(Object.java:502)
+	  at java.lang.ref.Reference.tryHandlePending(Reference.java:191)
+	  at java.lang.ref.Reference$ReferenceHandler.run(Reference.java:153)
+
+"DestroyJavaVM@1939" prio=5 tid=0x11 nid=NA runnable
+  java.lang.Thread.State: RUNNABLE
+
+"Attach Listener@2402" daemon prio=5 tid=0x5 nid=NA runnable
+  java.lang.Thread.State: RUNNABLE
+
+"Signal Dispatcher@2403" daemon prio=9 tid=0x4 nid=NA runnable
+  java.lang.Thread.State: RUNNABLE
+

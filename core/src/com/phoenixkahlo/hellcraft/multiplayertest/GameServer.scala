@@ -3,11 +3,12 @@ package com.phoenixkahlo.hellcraft.multiplayertest
 import java.io.File
 import java.net.InetAddress
 import java.util.UUID
-import java.util.concurrent.{BlockingQueue, Executors, LinkedBlockingQueue}
+import java.util.concurrent._
 import javax.print.DocFlavor.BYTE_ARRAY
 
+import com.esotericsoftware.kryonet.FrameworkMessage.KeepAlive
 import com.esotericsoftware.kryonet.Listener.ThreadedListener
-import com.esotericsoftware.kryonet.rmi.ObjectSpace
+import com.esotericsoftware.kryonet.rmi.{ObjectSpace, RemoteObject}
 import com.esotericsoftware.kryonet._
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.gamedriver.LoopingApp
@@ -45,7 +46,7 @@ class GameServer(port: Int) extends Listener with LoopingApp  {
     server = new Server(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
     server.bind(port)
     GlobalKryo.config(server.getKryo)
-    server.addListener(new ThreadedListener(this))
+    server.addListener(new ThreadedListener(this, NetworkExecutor()))
 
     ObjectSpace.registerClasses(server.getKryo)
 
@@ -55,13 +56,22 @@ class GameServer(port: Int) extends Listener with LoopingApp  {
     clientSessions = new mutable.ParHashMap
 
     // received will automatically create queues when one is requested for a new client ID
-    received = new mutable.ParHashMap().withDefault(_ => new LinkedBlockingQueue)
+    received = new mutable.ParHashMap[ClientID, BlockingQueue[Any]] {
+      override def get(key: ClientID): Option[BlockingQueue[Any]] = {
+        super.get(key) match {
+          case queue if queue isDefined => queue
+          case None =>
+            val queue = new LinkedBlockingQueue[Any]
+            put(key, queue)
+            Some(queue)
+        }
+      }
+    }
 
     server.start()
   }
 
   override def update(): Unit = {
-    println("server updating")
     // update and route events to clients as needed
     val (time, toRoute) = continuum.synchronized { (continuum.time, continuum.update()) }
     for ((client, events) <- toRoute) {
@@ -98,23 +108,23 @@ class GameServer(port: Int) extends Listener with LoopingApp  {
     clientConnectionByID.put(id, connection)
 
     // send the initial data
-    println("server: sending initial data")
     connection.sendTCP(InitialServerData(id))
-    println("server: sent initial data")
     // receive the client's initial data
     val init = received(id).take().asInstanceOf[InitialClientData]
     // use the initial data to create a session
     val serverSession = new ServerSessionImpl(init, this, id)
     val rmiSpace = new ObjectSpace
+    rmiSpace.setExecutor(NetworkExecutor())
     clientRMISpaces.put(id, rmiSpace)
     rmiSpace.addConnection(connection)
-    rmiSpace.register(1, serverSession)
-    println("server: sending session ready")
-    connection.sendTCP(ServerSessionReady)
-    println("server: sent session ready")
+    val sessionID = ThreadLocalRandom.current().nextInt()
+    rmiSpace.register(sessionID, serverSession)
+    connection.sendTCP(ServerSessionReady(sessionID))
     // wait for and setup the remote client session
-    if (received(id).take() != ClientSessionReady) throw new ClassCastException
-    clientSessions.put(id, ObjectSpace.getRemoteObject(connection, 1, classOf[ClientSession]))
+    val clientSessionReady = received(id).take().asInstanceOf[ClientSessionReady]
+    val clientSession = ObjectSpace.getRemoteObject(connection, clientSessionReady.sessionID, classOf[ClientSession])
+    clientSession.asInstanceOf[RemoteObject].setResponseTimeout(60000)
+    clientSessions.put(id, clientSession)
 
     // for now, make it so that each client just subscribes to the same chunk of chunks
     setClientRelation(
@@ -125,8 +135,9 @@ class GameServer(port: Int) extends Listener with LoopingApp  {
   }
 
   override def received(connection: Connection, obj: Any): Unit = {
-    println("server: received " + obj)
-    received(clientIDByConnection(connection)).add(obj)
+    if (obj.isInstanceOf[Transmission]) {
+      received(clientIDByConnection(connection)).add(obj)
+    }
   }
 
   override def disconnected(connection: Connection): Unit = {

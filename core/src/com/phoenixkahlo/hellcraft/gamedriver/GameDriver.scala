@@ -35,7 +35,7 @@ class GameDriver(state: GameState) extends ApplicationAdapter {
         }
         lastRenderTime = currRenderTime
       }
-    })
+    }, "game updating thread")
     thread.setPriority(Thread.MAX_PRIORITY)
     thread.start()
 

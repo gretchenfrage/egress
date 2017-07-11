@@ -1,7 +1,8 @@
 package com.phoenixkahlo.hellcraft.util
 
-import java.util.concurrent.Executors
+import java.util.concurrent.{ExecutorService, Executors}
 
+import scala.collection.immutable
 import scala.concurrent.ExecutionContext
 
 /**
@@ -10,15 +11,16 @@ import scala.concurrent.ExecutionContext
   */
 object PriorityExecContext {
 
-  val contexts = (1 to 10).map(priority => ExecutionContext.fromExecutor(Executors.newFixedThreadPool(
+  val services: Seq[ExecutorService] = (1 to 10).map(priority => Executors.newFixedThreadPool(
     Runtime.getRuntime.availableProcessors(),
     runnable => {
       val thread = new Thread(runnable)
       thread.setPriority(priority)
       thread
     }
-  )))
+  ))
+  val wrapped: Seq[ExecutionContext] = services.map(ExecutionContext.fromExecutor)
 
-  def apply(priority: Int): ExecutionContext = contexts(priority - 1)
+  def apply(priority: Int): ExecutionContext = wrapped(priority - 1)
 
 }

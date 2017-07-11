@@ -24,11 +24,12 @@ trait World {
 
 object World {
 
-  def putBlock(v: V3I, block: Block, ids: Stream[UUID]): Seq[ChunkEvent] =
-    ChunkEvent(v / 16 floor, ids.head, _.putBlock(v % 16, block)) +:
-      Directions().zip(ids.take(1)).map({ case (d, id) =>
+  def putBlock(v: V3I, block: Block, ids: Stream[UUID]): Seq[ChunkEvent] = {
+    ChunkEvent(v / 16 floor, ids.head, _.putBlock(v % 16, block), message = "put " + block + " at " + v) +:
+      Directions().zip(ids.drop(1)).map({ case (d, id) =>
         if ((v / 16 floor) != ((v + d) / 16 floor)) Some(ChunkEvent((v + d) / 16 floor, id, _.renderUncached))
         else None
       }).filter(_ isDefined).map(_.get)
+  }
 
 }
