@@ -134,7 +134,7 @@ class InfiniteGameState extends GameState {
     spriteBatch.end()
   }
 
-  override def update(): Unit = {
+  override def update(): Boolean = {
     // increment time
     t += 1
 
@@ -155,6 +155,8 @@ class InfiniteGameState extends GameState {
 
     // update mesh compiler priority
     BackgroundMeshCompilerExecutor.setPlayerPos(avatar.pos)
+
+    true
   }
 
   override def onExit(): Unit = {

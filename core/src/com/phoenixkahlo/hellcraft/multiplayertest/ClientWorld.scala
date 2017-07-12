@@ -5,8 +5,6 @@ import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent, World}
 import com.phoenixkahlo.hellcraft.math.V3I
 
 import scala.collection.SortedSet
-import scala.collection.parallel.mutable
-import scala.collection.parallel.mutable.{ParHashMap, ParMap}
 
 class ClientWorld(
                  session: ServerSession,

@@ -28,9 +28,12 @@ class GameDriver(state: GameState) extends ApplicationAdapter {
         if (sleepFor > Duration.Zero)
           Thread.sleep(sleepFor toMillis)
         while (tickTimeDebt >= GameDriver.dt) {
-          state.update()
-          updatedFlag.set(true)
-          updatedFlag.synchronized { updatedFlag.notifyAll() }
+          if (state.update()) {
+            updatedFlag.set(true)
+            updatedFlag.synchronized {
+              updatedFlag.notifyAll()
+            }
+          }
           tickTimeDebt -= GameDriver.dt
         }
         lastRenderTime = currRenderTime

@@ -76,10 +76,13 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     textures = new DefaultTexturePack
 
     cam = new PerspectiveCamera(67, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
+    cam.position.set(0, 10, 0)
+    cam.lookAt(0, 0, 0)
     cam.near = 0.1f
     cam.far = 1000
 
     controller = new FirstPersonCameraController(cam)
+    Gdx.input.setInputProcessor(controller)
 
     modelBatch = new ModelBatch
 
@@ -103,6 +106,7 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
   }
 
   override def render(): Unit = {
+    println("rendering")
     // prepare
     g += 1
     val world = continuum.current
@@ -117,7 +121,9 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     // get the renderable factories
     val p = V3F(cam.position) / 16 floor
     val chunks = ((p - V3I(3, 3, 3)) to (p + V3I(3, 3, 3))).flatMap(world.weakChunkAt)
+    println("rendering " + chunks.size + " chunks")
     val factories = chunks.flatMap(_.renderables(textures, world))
+    println("rendering " + factories.size + " factories")
 
     // manage the resource graph
     val nodes = factories.flatMap(_.resources)
@@ -142,24 +148,19 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     modelBatch.end()
   }
 
-  override def update(): Unit = {
+  override def update(): Boolean = {
     // TODO: predict the server time or something
-    var clientTime: Long = 0
-    var serverTime: Long = 0
-    while ({
-      clientTime = continuum.time
-      serverTime = session.getTime
-      clientTime < serverTime
-    }) {
-      println("updating: ct = " + clientTime + ", st = " + serverTime)
-      continuum.update()
-    }
-    /*
+
+    var changed = false
+
     while (continuum.time < session.getTime) {
       continuum.update()
+      changed = true
       println("client t = " + continuum.time)
     }
-    */
+
+    //changed
+    true
   }
 
   override def onExit(): Unit = {

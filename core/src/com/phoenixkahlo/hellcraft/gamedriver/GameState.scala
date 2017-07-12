@@ -6,7 +6,10 @@ trait GameState {
 
   def render(): Unit
 
-  def update(): Unit
+  /**
+    * @return whether anything was actually changed
+    */
+  def update(): Boolean
 
   def onExit(): Unit
 
