@@ -18,7 +18,7 @@ import com.phoenixkahlo.hellcraft.core.{DefaultTexturePack, ResourceNode, Textur
 import com.phoenixkahlo.hellcraft.gamedriver.GameState
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.save.GlobalKryo
-import com.phoenixkahlo.hellcraft.util.{DependencyGraph, PriorityExecContext}
+import com.phoenixkahlo.hellcraft.util.{AsyncExecutor, DependencyGraph, PriorityExecContext}
 
 import scala.collection.JavaConverters
 
@@ -37,7 +37,8 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
   private var continuum: ClientContinuum = _
   private var textures: TexturePack = _
   private var cam: PerspectiveCamera = _
-  private var controller: FirstPersonCameraController = _
+  //private var controller: FirstPersonCameraController = _
+  private var controller: ClientController = _
   private var modelBatch: ModelBatch = _
   private var lights: Environment = _
   private var vramGraph: DependencyGraph = _
@@ -48,7 +49,7 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
 
     // connect to the server
     client = new Client(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
-    client.addListener(new ThreadedListener(this, NetworkExecutor("client listener thread")))
+    client.addListener(new ThreadedListener(this, AsyncExecutor("client listener thread")))
     client.start()
     client.connect(5000, serverAddress.getAddress, serverAddress.getPort)
     // send the initial data
@@ -58,7 +59,7 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     // use the initial data to create a session
     val clientSession = new ClientSessionImpl(init, this)
     rmiSpace = new ObjectSpace
-    rmiSpace.setExecutor(NetworkExecutor("client RMI thread"))
+    rmiSpace.setExecutor(AsyncExecutor("client RMI thread"))
     rmiSpace.addConnection(client)
     val sessionID = 1
     rmiSpace.register(sessionID, clientSession)
@@ -81,8 +82,9 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     cam.near = 0.1f
     cam.far = 1000
 
-    controller = new FirstPersonCameraController(cam)
-    Gdx.input.setInputProcessor(controller)
+    //controller = new FirstPersonCameraController(cam)
+    //Gdx.input.setInputProcessor(controller)
+    controller = new ClientController(session, cam)
 
     modelBatch = new ModelBatch
 
@@ -116,7 +118,7 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
 
     // update the camera controller
-    controller.update()
+    controller.update(continuum.current)
 
     // get the renderable factories
     val p = V3F(cam.position) / 16 floor

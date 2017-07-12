@@ -1,10 +1,10 @@
-package com.phoenixkahlo.hellcraft.multiplayertest
+package com.phoenixkahlo.hellcraft.util
 
 import java.util.concurrent.{ExecutorService, LinkedBlockingQueue, ThreadPoolExecutor, TimeUnit}
 
-object NetworkExecutor {
+object AsyncExecutor {
 
-  def apply(threadName: String = "network thread"): ExecutorService = new ThreadPoolExecutor(
+  def apply(threadName: String = "async thread"): ExecutorService = new ThreadPoolExecutor(
     1,
     Int.MaxValue,
     1, TimeUnit.MINUTES,

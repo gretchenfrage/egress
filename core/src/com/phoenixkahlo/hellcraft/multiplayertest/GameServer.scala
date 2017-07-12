@@ -14,6 +14,7 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.gamedriver.LoopingApp
 import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 import com.phoenixkahlo.hellcraft.save.{GeneratingSave, GlobalKryo, RegionSave, WorldSave}
+import com.phoenixkahlo.hellcraft.util.AsyncExecutor
 
 import scala.collection.immutable.TreeMap
 import scala.collection.mutable.ArrayBuffer
@@ -49,7 +50,7 @@ class GameServer(port: Int) extends Listener with LoopingApp  {
     server = new Server(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
     server.bind(port)
     GlobalKryo.config(server.getKryo)
-    server.addListener(new ThreadedListener(this, NetworkExecutor("server listener thread")))
+    server.addListener(new ThreadedListener(this, AsyncExecutor("server listener thread")))
 
     ObjectSpace.registerClasses(server.getKryo)
 
@@ -133,7 +134,7 @@ class GameServer(port: Int) extends Listener with LoopingApp  {
 
   override def connected(connection: Connection): Unit = {
     // listen
-    connection.addListener(new ThreadedListener(this, NetworkExecutor("server client listener thread")))
+    connection.addListener(new ThreadedListener(this, AsyncExecutor("server client listener thread")))
 
     // give the client an ID
     val clientID = UUID.randomUUID()
@@ -148,7 +149,7 @@ class GameServer(port: Int) extends Listener with LoopingApp  {
     // use the initial data to create a session
     val serverSession = new ServerSessionImpl(init, this, clientID)
     val rmiSpace = new ObjectSpace
-    rmiSpace.setExecutor(NetworkExecutor("server RMI thread"))
+    rmiSpace.setExecutor(AsyncExecutor("server RMI thread"))
     clientRMISpaces.put(clientID, rmiSpace)
     rmiSpace.addConnection(connection)
     val sessionID = ThreadLocalRandom.current().nextInt()

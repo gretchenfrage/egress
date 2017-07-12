@@ -3,7 +3,7 @@ package com.phoenixkahlo.hellcraft.multiplayertest
 import java.util.UUID
 
 import com.phoenixkahlo.hellcraft.core.Chunk
-import com.phoenixkahlo.hellcraft.math.V3I
+import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 
 trait ServerSession {
 
@@ -12,6 +12,10 @@ trait ServerSession {
   def chunkAt(time: Long, p: V3I): Option[Chunk]
 
   def getStarter(): (Long, Seq[Chunk])
+
+  def avatarID: EntityID
+
+  def setMovement(atTime: Long, movDir: V3F, jumping: Boolean): Unit
 
 }
 
@@ -25,6 +29,10 @@ class ServerSessionImpl(init: InitialClientData, server: GameServer, client: UUI
 
   override def getStarter(): (Long, Seq[Chunk]) =
     server.continuum.getStarter(client)
+
+  override def avatarID: EntityID =
+
+  override def setMovement(atTime: Long, movDir: V3F, jumping: Boolean): Unit = ???
 
 }
 
