@@ -110,7 +110,7 @@ case class SimpleAvatarController(
           case Some(v) =>
             if (!(avatar.pos.y + m <= v.y + 1 - m && v.y + m <= avatar.pos.y + avatar.height - m &&
               RectangleProxmimity(Rectangle(v.flatten, (v + Ones).flatten), avatar.rad - m).contains(avatar.pos.flatten)))
-              events = events ++ World.putBlock(v, Stone, RNG.uuids(RNG(System.nanoTime())))
+              events = events ++ World.putBlock(v, Brick, RNG.uuids(RNG(System.nanoTime())))
           case None =>
         }
         case _ =>

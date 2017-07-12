@@ -6,6 +6,7 @@ import com.phoenixkahlo.hellcraft.save.WorldSave
 import com.phoenixkahlo.hellcraft.util.Cache
 
 import scala.collection.immutable.{HashSet, TreeSet}
+import scala.collection.mutable.ArrayBuffer
 import scala.collection.{SortedMap, SortedSet, mutable}
 
 /**
@@ -23,15 +24,15 @@ class ServerContinuum(save: WorldSave) {
 
   history.put(0, new ServerWorld(save, Set.empty, Map.empty, 0))
 
-  private val currCache = new Cache[ServerWorld](history.last._2)
-
   def current: ServerWorld = this.synchronized {
-    currCache()
+    history.last._2
   }
 
   def time: Long = this.synchronized {
-    currCache().time
+    history.last._1
   }
+
+
 
   def snapshot(target: Long): Option[ServerWorld] = {
     this.synchronized {
@@ -51,24 +52,41 @@ class ServerContinuum(save: WorldSave) {
     * Updates the continuum to the next tick, and returns which chunk events need to be routed to which clients.
     */
   def update(): Map[ClientID, SortedSet[ChunkEvent]] = this.synchronized {
+    val times = new ArrayBuffer[Long]
+    def log(): Unit = times += System.nanoTime()
+
     // collect events, including externs, grouped by their producers
-    val events: Seq[(ChunkEvent, Option[V3I])] =
-      subscriptions.values.foldLeft(new HashSet[V3I])(_ ++ _).toSeq.map(current.chunkAt(_).get)
-        .flatMap(chunk => chunk.update(current).map((_, Some(chunk.pos)))) ++
-        externs.get(time).map(_.toSeq.map(event => (event, None))).getOrElse(Nil)
+    log()
+    val allSubscribedChunkPositions = subscriptions.values.foldLeft(new HashSet[V3I])(_ ++ _)
+    log()
+    var next = current.setKeepLoaded(allSubscribedChunkPositions)
+    log()
+    val allSubscribedChunks = allSubscribedChunkPositions.toSeq.map(current.chunkAt(_).get)
+    log()
+    val eventsProducedByChunks = allSubscribedChunks.flatMap(chunk => chunk.update(current).map((_, Some(chunk.pos))))
+    log()
+    val externalEvents = externs.get(time).map(_.toSeq.map(event => (event, None))).getOrElse(Nil)
+    log()
+    val events = eventsProducedByChunks ++ externalEvents
+    log()
 
     // sort the events and integrate them into a new snapshot, put in history, invalidate curr cache
-    val next = current.integrate(events.map(_._1).foldLeft(new TreeSet[ChunkEvent])(_ + _)).incrTime
+    next = next.integrate(events.map(_._1).foldLeft(new TreeSet[ChunkEvent])(_ + _)).incrTime
     history.put(next.time, next)
-    currCache.invalidate
+
+    log()
 
     // forget history
     if (history.size > historySize)
       history.drop(historySize - history.size)
 
+    log()
+
     // sort the events by their targets
     val eventsByTarget: Map[V3I, Seq[(ChunkEvent, Option[V3I])]] =
       events.groupBy(_._1.target)
+
+    log()
 
     // compute which events need to be sent to which clients
     val eventsToSend: Map[ClientID, Seq[ChunkEvent]] = subscriptions.toMap.mapValues({
@@ -76,8 +94,21 @@ class ServerContinuum(save: WorldSave) {
         .filterNot({ case (_, producer) => producer.exists(subscribed.contains) }).map(_._1)
     })
 
+    log()
+
     // return
-    eventsToSend.mapValues(_.foldLeft(new TreeSet[ChunkEvent])(_ + _))
+    val result = eventsToSend.filter(_._2.nonEmpty).mapValues(_.foldLeft(new TreeSet[ChunkEvent])(_ + _))
+
+    log()
+
+    /*
+    print("servercontinuum.update profile = [")
+    for (i <- 0 until times.size - 1)
+      print((times(i + 1) - times(i)) / 1000000 + "ms, ")
+    println("]")
+    */
+
+    result
   }
 
   /**

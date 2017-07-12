@@ -16,8 +16,10 @@ import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 import com.phoenixkahlo.hellcraft.save.{GeneratingSave, GlobalKryo, RegionSave, WorldSave}
 
 import scala.collection.immutable.TreeMap
+import scala.collection.mutable.ArrayBuffer
 import scala.collection.{SortedMap, SortedSet, parallel}
 import scala.collection.parallel.{ParMap, mutable}
+import scala.concurrent.ExecutionContext
 
 class GameServer(port: Int) extends Listener with LoopingApp  {
 
@@ -29,10 +31,11 @@ class GameServer(port: Int) extends Listener with LoopingApp  {
   var clientConnectionByID: mutable.ParMap[ClientID, Connection] = _
   var clientRMISpaces: mutable.ParMap[ClientID, ObjectSpace] = _
   var clientSessions: mutable.ParMap[ClientID, ClientSession] = _
+  var clientSeqExecutors: mutable.ParMap[ClientID, ExecutionContext] = _
   var received: mutable.ParMap[ClientID, BlockingQueue[Any]] = _
 
   override def init(deactivator: Runnable): Unit = {
-    val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\mul")
+    val saveFolder = new File("C:\\Users\\Phoenix\\Desktop\\mul")
     saveFolder.mkdir()
     save = new GeneratingSave(new RegionSave(saveFolder toPath, 24), v => {
       if (v.y < -20) Stone
@@ -46,7 +49,7 @@ class GameServer(port: Int) extends Listener with LoopingApp  {
     server = new Server(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
     server.bind(port)
     GlobalKryo.config(server.getKryo)
-    server.addListener(new ThreadedListener(this, NetworkExecutor()))
+    server.addListener(new ThreadedListener(this, NetworkExecutor("server listener thread")))
 
     ObjectSpace.registerClasses(server.getKryo)
 
@@ -54,6 +57,7 @@ class GameServer(port: Int) extends Listener with LoopingApp  {
     clientConnectionByID = new mutable.ParHashMap
     clientRMISpaces = new mutable.ParHashMap
     clientSessions = new mutable.ParHashMap
+    clientSeqExecutors = new mutable.ParHashMap
 
     // received will automatically create queues when one is requested for a new client ID
     received = new mutable.ParHashMap[ClientID, BlockingQueue[Any]] {
@@ -73,23 +77,52 @@ class GameServer(port: Int) extends Listener with LoopingApp  {
 
   override def update(): Unit = {
     // update and route events to clients as needed
+
+    val times = new ArrayBuffer[Long]
+    val log: () => Unit = () => times += System.nanoTime()
+
+    log()
+
     val (time, toRoute) = continuum.synchronized { (continuum.time, continuum.update()) }
+
+    println("SERVER t = " + time)
+
+    log()
+
     for ((client, events) <- toRoute) {
-      clientSessions(client).integrate(new TreeMap[Long, SortedSet[ChunkEvent]]().updated(time, events))
+      clientSeqExecutors(client).execute(() => {
+        clientSessions(client).integrate(new TreeMap[Long, SortedSet[ChunkEvent]]().updated(time, events))
+      })
     }
+
+    log()
+
     continuum.current.pushToSave()
+
+    log()
+
+    /*
+    print("server update times = [")
+    for (i <- 0 until times.size - 1)
+      print((times(i + 1) - times(i)) / 1000000 + "ms, ")
+    println("]")
+    */
   }
 
   def setClientRelation(client: ClientID, subscribed: Set[V3I], updatingSet: Set[V3I]): Unit = {
     val (time, provide) = continuum.synchronized {
       (continuum.time, continuum.setClientRelation(client, subscribed, updatingSet))
     }
-    clientSessions(client).setServerRelation(time, subscribed, updatingSet, provide)
+    clientSeqExecutors(client).execute(() => {
+      clientSessions(client).setServerRelation(time, subscribed, updatingSet, provide)
+    })
   }
 
   def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Unit = {
     for ((client, events) <- continuum.integrateExterns(newExterns))
-      clientSessions(client).integrate(events)
+      clientSeqExecutors(client).execute(() => {
+        clientSessions(client).integrate(events)
+      })
   }
 
   override def dispose(): Unit = {
@@ -100,35 +133,37 @@ class GameServer(port: Int) extends Listener with LoopingApp  {
 
   override def connected(connection: Connection): Unit = {
     // listen
-    connection.addListener(new ThreadedListener(this))
+    connection.addListener(new ThreadedListener(this, NetworkExecutor("server client listener thread")))
 
     // give the client an ID
-    val id = UUID.randomUUID()
-    clientIDByConnection.put(connection, id)
-    clientConnectionByID.put(id, connection)
+    val clientID = UUID.randomUUID()
+    clientIDByConnection.put(connection, clientID)
+    clientConnectionByID.put(clientID, connection)
+    clientSeqExecutors.put(clientID, ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor()))
 
     // send the initial data
-    connection.sendTCP(InitialServerData(id))
+    connection.sendTCP(InitialServerData(clientID))
     // receive the client's initial data
-    val init = received(id).take().asInstanceOf[InitialClientData]
+    val init = received(clientID).take().asInstanceOf[InitialClientData]
     // use the initial data to create a session
-    val serverSession = new ServerSessionImpl(init, this, id)
+    val serverSession = new ServerSessionImpl(init, this, clientID)
     val rmiSpace = new ObjectSpace
-    rmiSpace.setExecutor(NetworkExecutor())
-    clientRMISpaces.put(id, rmiSpace)
+    rmiSpace.setExecutor(NetworkExecutor("server RMI thread"))
+    clientRMISpaces.put(clientID, rmiSpace)
     rmiSpace.addConnection(connection)
     val sessionID = ThreadLocalRandom.current().nextInt()
     rmiSpace.register(sessionID, serverSession)
+    // tell the client the session is ready
     connection.sendTCP(ServerSessionReady(sessionID))
     // wait for and setup the remote client session
-    val clientSessionReady = received(id).take().asInstanceOf[ClientSessionReady]
+    val clientSessionReady = received(clientID).take().asInstanceOf[ClientSessionReady]
     val clientSession = ObjectSpace.getRemoteObject(connection, clientSessionReady.sessionID, classOf[ClientSession])
     clientSession.asInstanceOf[RemoteObject].setResponseTimeout(60000)
-    clientSessions.put(id, clientSession)
+    clientSessions.put(clientID, clientSession)
 
     // for now, make it so that each client just subscribes to the same chunk of chunks
     setClientRelation(
-      id,
+      clientID,
       (Origin - V3I(5, 5, 5)) to (Origin + V3I(5, 5, 5)) toSet,
       (Origin - V3I(3, 3, 3)) to (Origin + V3I(3, 3, 3)) toSet
     )
@@ -146,6 +181,7 @@ class GameServer(port: Int) extends Listener with LoopingApp  {
     clientConnectionByID -= id
     clientRMISpaces(id).close()
     clientRMISpaces -= id
+    clientSeqExecutors -= id
     received -= id
   }
 

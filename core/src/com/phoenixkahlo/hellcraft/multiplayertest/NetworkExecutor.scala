@@ -4,13 +4,13 @@ import java.util.concurrent.{ExecutorService, LinkedBlockingQueue, ThreadPoolExe
 
 object NetworkExecutor {
 
-  def apply(): ExecutorService = new ThreadPoolExecutor(
+  def apply(threadName: String = "network thread"): ExecutorService = new ThreadPoolExecutor(
     1,
     Int.MaxValue,
     1, TimeUnit.MINUTES,
     new LinkedBlockingQueue,
     runnable => {
-      new Thread(runnable, "network thread")
+      new Thread(runnable, threadName)
     }
   )
 

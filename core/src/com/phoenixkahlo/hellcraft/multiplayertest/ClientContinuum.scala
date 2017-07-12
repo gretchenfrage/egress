@@ -13,34 +13,46 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk])) 
 
   private var subscribed: Set[V3I] = Set.empty
   private var updating: Set[V3I] = Set.empty
-  private var history = new mutable.TreeMap[Long, ClientWorld]
+  private var history: mutable.SortedMap[Long, ClientWorld] = new mutable.TreeMap
   starter match {
     case (startTime, startChunks) => history.put(startTime, new ClientWorld(session, startChunks, startTime))
   }
 
-  private val currCache = new Cache[ClientWorld](history.last._2)
-
   def current: ClientWorld = this.synchronized {
-    currCache()
+    history.last._2
   }
 
   def time: Long = this.synchronized {
-    currCache().time
+    history.last._1
   }
 
   def revert(target: Long): Unit = this.synchronized {
     history = history.rangeImpl(None, Some(target + 1))
-    if (history isEmpty)
+    if (history isEmpty) {
+      println("warning: reverted to unrecorded point in history")
       history.put(target, new ClientWorld(session, Map.empty, target).setLoaded(subscribed))
+    }
   }
 
   def update(unpredictable: SortedSet[ChunkEvent] = SortedSet.empty): Unit = this.synchronized {
+    /*
     val events: SortedSet[ChunkEvent] = updating.flatMap(current.chunkAt(_).get.update(current))
       .foldLeft(new TreeSet[ChunkEvent])(_ + _) ++ unpredictable
 
     val newWorld = current.integrate(events).incrTime.setLoaded(subscribed)
 
     history.put(newWorld.time, newWorld)
+    */
+    val updated = current.update(subscribed, updating, unpredictable)
+    println("previous history = " + history)
+    println("putting " + updated.time + " -> " + updated)
+    //history.put(updated.time, updated)
+    println("FUCK YOU")
+    history(updated.time) = updated
+    /*
+    println("postvious history = " + history)
+    println()
+    */
   }
 
   def provide(chunks: Map[V3I, Chunk]): Unit = this.synchronized {
@@ -50,15 +62,16 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk])) 
   /**
     * This must never revert back into the time-range for which the server has supplied the client with events.
     */
-  def setServerRelation(atTime: Long, newSubscribed: Set[V3I], newUpdating: Set[V3I], provided: Map[V3I, Chunk]): Unit =
+  def setServerRelation(atTime: Long, newSubscribed: Set[V3I], newUpdating: Set[V3I], provided: Map[V3I, Chunk]): Unit = {
+    println("clientcontinuum.setserverrelation, provided=" + provided)
     this.synchronized {
       revert(atTime)
-
       provide(provided)
 
       subscribed = newSubscribed
       updating = newUpdating
     }
+  }
 
   def integrate(events: SortedMap[Long, SortedSet[ChunkEvent]]): Unit = {
     this.synchronized {

@@ -41,7 +41,6 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
   private var modelBatch: ModelBatch = _
   private var lights: Environment = _
   private var vramGraph: DependencyGraph = _
-  private var t = 0
   private var g = 0
 
   override def onEnter(): Unit = {
@@ -49,7 +48,7 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
 
     // connect to the server
     client = new Client(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
-    client.addListener(new ThreadedListener(this, NetworkExecutor()))
+    client.addListener(new ThreadedListener(this, NetworkExecutor("client listener thread")))
     client.start()
     client.connect(5000, serverAddress.getAddress, serverAddress.getPort)
     // send the initial data
@@ -59,7 +58,7 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     // use the initial data to create a session
     val clientSession = new ClientSessionImpl(init, this)
     rmiSpace = new ObjectSpace
-    rmiSpace.setExecutor(NetworkExecutor())
+    rmiSpace.setExecutor(NetworkExecutor("client RMI thread"))
     rmiSpace.addConnection(client)
     val sessionID = 1
     rmiSpace.register(sessionID, clientSession)
@@ -117,8 +116,8 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
 
     // get the renderable factories
     val p = V3F(cam.position) / 16 floor
-    val factories = ((p - V3I(3, 3, 3)) to (p + V3I(3, 3, 3))).map(world.chunkAt(_).get)
-      .flatMap(_.renderables(textures, world))
+    val chunks = ((p - V3I(3, 3, 3)) to (p + V3I(3, 3, 3))).flatMap(world.weakChunkAt)
+    val factories = chunks.flatMap(_.renderables(textures, world))
 
     // manage the resource graph
     val nodes = factories.flatMap(_.resources)
@@ -144,12 +143,31 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
   }
 
   override def update(): Unit = {
-    t += 1
-    continuum.update()
+    // TODO: predict the server time or something
+    var clientTime: Long = 0
+    var serverTime: Long = 0
+    while ({
+      clientTime = continuum.time
+      serverTime = session.getTime
+      clientTime < serverTime
+    }) {
+      println("updating: ct = " + clientTime + ", st = " + serverTime)
+      continuum.update()
+    }
+    /*
+    while (continuum.time < session.getTime) {
+      continuum.update()
+      println("client t = " + continuum.time)
+    }
+    */
   }
 
   override def onExit(): Unit = {
     client.close()
+  }
+
+  override def disconnected(connection: Connection): Unit = {
+    Gdx.app.exit()
   }
 
   override def received(connection: Connection, obj: Any): Unit = {

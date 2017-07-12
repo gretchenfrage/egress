@@ -10,6 +10,7 @@ import com.phoenixkahlo.hellcraft.infinitetest.InfiniteGameState;
 import com.phoenixkahlo.hellcraft.multiplayertest.GameClient;
 import com.phoenixkahlo.hellcraft.multiplayertest.GameServer;
 
+import java.io.File;
 import java.net.InetSocketAddress;
 
 public class DesktopLauncher {
@@ -18,10 +19,13 @@ public class DesktopLauncher {
 		config.width = 1800;
 		config.height = 800;
 
+		File mul = new File("C:\\Users\\Phoenix\\Desktop\\mul");
+		for (File sub : mul.listFiles()) {
+			sub.delete();
+		}
+
 		new LoopExecutor(new GameServer(25565)).start();
-		try {
-			Thread.sleep(500);
-		} catch (Exception e) { throw new RuntimeException(e); }
+		try { Thread.sleep(500); } catch (Exception e) { throw new RuntimeException(e); }
 		new LwjglApplication(new GameDriver(new GameClient(new InetSocketAddress("localhost", 25565))));
 
 		//new LwjglApplication(new GameDriver(new InfiniteGameState()), config);

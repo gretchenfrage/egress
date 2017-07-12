@@ -46,7 +46,7 @@ class ChunkRenderer(
     // do the computation
     val empty: SurfaceMap = Directions() zip Stream.iterate(Nil)(identity) toMap
     val blocks: Seq[V3I] = (Origin until V3I(chunk.size, chunk.size, chunk.size)) map (_ + (chunk.pos * chunk.size))
-    val exposed: SurfaceMap = blocks.foldLeft(empty)(block) //.mapValues(_.map(_ - (chunk.pos * chunk.size)))
+    val exposed: SurfaceMap = blocks.foldLeft(empty)(block)
 
     // fold the exposure sets into vertex data and indices
     type VertDatum = (V3F, Color, V2F)

@@ -23,70 +23,71 @@ import scala.collection.{SortedSet, mutable}
   */
 //TODO: make locking smarter so that updating can be parallelized.
 class ServerWorld(
-                        save: WorldSave,
-                        keepLoaded: Set[V3I],
-                        provided: Map[V3I, Chunk],
-                        val time: Long
-                      ) extends World {
+                 save: WorldSave,
+                 keepLoaded: Set[V3I],
+                 provided: Map[V3I, Chunk],
+                 val time: Long
+                 ) extends World {
 
-  // create a mutable memoization map from the provided chunks
-  private val memoizations = new mutable.HashMap[V3I, Chunk] ++ provided
-  // listen for save pushes
-  save.weakListenForSave(chunk => {
-    memoizations.get(chunk.pos) match {
-      case None => memoizations.put(chunk.pos, chunk)
-      case Some(memoized) => if (!keepLoaded.contains(chunk.pos) && memoized == chunk) memoizations -= chunk.pos
-    }
-  })
-  // load chunks that should always be loaded and are not already loaded
-  memoizations ++= save.load(keepLoaded.filterNot(provided.contains).toSeq)
-
+  // a map of chunks which override the save, and a monitor for changing it
+  // also, load the chunks that need to be kept loaded and were not provided
+  private val monitor = new Object
+  @volatile private var chunks: Map[V3I, Chunk] = provided ++ save.load(keepLoaded.filterNot(provided.contains).toSeq)
   private val cache = new ThreadLocal[Chunk]
 
-  override def chunkAt(chunkPos: V3I): Option[Chunk] = save.synchronized {
-    val chunk = cache.get() match {
-      case chunk if chunk != null && chunk.pos == chunkPos => Some(chunk)
-      case _ => memoizations.get(chunkPos) match {
-        case memoized if memoized isDefined => memoized
-        case None => save.load(chunkPos)
-      }
+  // when a chunk is pushed to the save, memoize it, or maybe even unmemoize it
+  save.weakListenForSave(saving => {
+    chunks.get(saving.pos) match {
+      case None =>
+        monitor.synchronized {
+          chunks = chunks.updated(saving.pos, saving)
+        }
+      case Some(old) =>
+        if (!keepLoaded.contains(saving.pos) && saving == old) monitor.synchronized {
+          chunks -= saving.pos
+        }
     }
-    chunk.foreach(cache.set)
-    chunk
-  }
+  })
+
 
   override def chunkIsDefinedAt(chunkPos: V3I): Boolean = true
 
-  override def findEntity(id: EventID): Entity = save.synchronized {
-    memoizations.values.flatMap(_.entities).toMap.apply(id)
+  override def chunkAt(p: V3I): Option[Chunk] = save.synchronized {
+    //println("serverworld(t=" + time + ").chunkat(" + p + ")")
+    val cached = cache.get()
+    if (cached != null && cached.pos == p) Some(cached)
+
+    chunks.get(p) match {
+      case chunk if chunk isDefined => chunk
+      case None => save.load(p)
+    }
+  }
+
+  override def findEntity(id: EntityID): Entity = save.synchronized {
+    chunks.values.flatMap(_.entities.get(id)).head
   }
 
   /**
     * While this is an imperative method, is does not actually externally mutate any objects.
     */
   def pushToSave(): Unit = save.synchronized {
-    save.save(memoizations.values.toSeq, this)
+    save.save(chunks.values.toSeq, this)
   }
 
   def incrTime: ServerWorld = save.synchronized {
-    new ServerWorld(save, keepLoaded, memoizations.toMap, time + 1)
+    new ServerWorld(save, keepLoaded, chunks, time + 1)
   }
 
   def integrate(events: SortedSet[ChunkEvent]): ServerWorld = save.synchronized {
-    // sort the events by their target
-    val eventsByTarget = events.groupBy(_.target)
-    // create the map of transformed chunks, not including memoized but non-transformed chunks
-    val transformed: Map[V3I, Chunk] =
-      eventsByTarget.map({
-        case (target, group) => (target, group.foldLeft(chunkAt(target).get)({ case (chunk, event) => event(chunk) }))
-      })
-    // combine the memoized and transformed chunks to create a new snapshot
-    new ServerWorld(
-      save,
-      keepLoaded,
-      memoizations.toMap ++ transformed,
-      time
-    )
+    val eventsByTarget: Map[V3I, SortedSet[ChunkEvent]] = events.groupBy(_.target)
+    val transformed: Map[V3I, Chunk] = eventsByTarget.map({ case (target, group) =>
+      (target, group.foldLeft(chunkAt(target).get)({ case (chunk, event) => event(chunk) }))
+    })
+    new ServerWorld(save, keepLoaded, chunks ++ transformed, time)
+  }
+
+  def setKeepLoaded(newKeepLoaded: Set[V3I]): ServerWorld = save.synchronized {
+    new ServerWorld(save, newKeepLoaded, chunks, time)
   }
 
 }
