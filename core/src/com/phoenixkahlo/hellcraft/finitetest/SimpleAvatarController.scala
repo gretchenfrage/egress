@@ -79,7 +79,7 @@ case class SimpleAvatarController(
 
   def update(world: World, lastAvatarChunkPos: Option[V3I] = None): Seq[ChunkEvent] = {
     val avatar = lastAvatarChunkPos.flatMap(world.chunkAt(_).flatMap(_.entities.get(avatarID)))
-      .getOrElse(world.findEntity(avatarID)).asInstanceOf[Avatar]
+      .getOrElse(world.findEntity(avatarID).get).asInstanceOf[Avatar]
 
     val camDirection = V3F(cam.direction).normalize
 
@@ -140,7 +140,7 @@ case class SimpleAvatarController(
   def postUpdate(world: World, lastAvatarChunkPos: Option[V3I] = None): Unit = {
     //val avatar = avatarCache.getOrElse(world.findEntity(avatarID).asInstanceOf[Avatar])
     val avatar = lastAvatarChunkPos.flatMap(world.chunkAt(_).flatMap(_.entities.get(avatarID)))
-      .getOrElse(world.findEntity(avatarID)).asInstanceOf[Avatar]
+      .getOrElse(world.findEntity(avatarID).get).asInstanceOf[Avatar]
     cam.position.set((avatar.pos + offset).toGdx)
     cam.update()
   }

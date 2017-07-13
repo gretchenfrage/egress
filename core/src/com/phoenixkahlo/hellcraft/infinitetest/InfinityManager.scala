@@ -15,7 +15,7 @@ class InfinityManager(save: WorldSave, generator: V3I => Block) {
   val buffer = new SaveBuffer(save, generator)
   @volatile var world = HashCacheWorld(0)
 
-  def findEntity(id: UUID): Entity = world.findEntity(id)
+  def findEntity(id: UUID): Entity = world.findEntity(id).get
 
   def makeLoaded(ps: Seq[V3I]): Unit = {
     val needToLoad = ps filterNot (world chunkIsDefinedAt)

@@ -52,8 +52,8 @@ class FiniteWorld(
   def putBlock(v: V3I, b: Block): FiniteWorld =
     transformChunk(v / chunkSize floor, _.putBlock(v % chunkSize, b))
 
-  override def findEntity(id: UUID): Entity =
-    chunks.map(_.entities.get(id)).find(_.isDefined).flatten.get
+  override def findEntity(id: UUID): Option[Entity] =
+    chunks.map(_.entities.get(id)).find(_.isDefined).flatten
 
   def incrTime: FiniteWorld =
     new FiniteWorld(size, chunkSize, chunks, time + 1)

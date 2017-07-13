@@ -63,8 +63,8 @@ class ServerWorld(
     }
   }
 
-  override def findEntity(id: EntityID): Entity = save.synchronized {
-    chunks.values.flatMap(_.entities.get(id)).head
+  override def findEntity(id: EntityID): Option[Entity] = save.synchronized {
+    chunks.values.flatMap(_.entities.get(id)).headOption
   }
 
   /**

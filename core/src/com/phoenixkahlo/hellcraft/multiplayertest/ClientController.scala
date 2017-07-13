@@ -8,7 +8,7 @@ import com.phoenixkahlo.hellcraft.math._
 import scala.collection.mutable
 import com.badlogic.gdx.Input.Keys._
 import com.badlogic.gdx.math.Vector3
-import com.phoenixkahlo.hellcraft.core.entity.Avatar
+import com.phoenixkahlo.hellcraft.core.entity.{Avatar, Entity}
 import com.phoenixkahlo.hellcraft.core.{ChunkEvent, World}
 
 class ClientController(session: ServerSession, cam: Camera) extends InputAdapter {
@@ -66,27 +66,31 @@ class ClientController(session: ServerSession, cam: Camera) extends InputAdapter
     }
 
   def update(world: World, posHint: Option[V3I] = None): Unit = {
-    val avatar = posHint.flatMap(world.chunkAt(_).flatMap(_.entities.get(avatarID)))
-      .getOrElse(world.findEntity(avatarID)).asInstanceOf[Avatar]
+    (posHint.flatMap(world.chunkAt(_).get.entities.get(avatarID)) match {
+      case option if option isDefined => option
+      case None => world.findEntity(avatarID)
+    }).map(_.asInstanceOf[Avatar]) match {
+      case Some(avatar) =>
+        val camDir = V3F(cam.direction).normalize
 
-    val camDir = V3F(cam.direction).normalize
+        var movDir: V3F = Origin
+        if (pressed(W))
+          movDir += camDir
+        if (pressed(S))
+          movDir -= camDir
+        if (pressed(D))
+          movDir += (camDir cross Up).normalize
+        if (pressed(A))
+          movDir -= (camDir cross Up).normalize
 
-    var movDir: V3F = Origin
-    if (pressed(W))
-      movDir += camDir
-    if (pressed(S))
-      movDir -= camDir
-    if (pressed(D))
-      movDir += (camDir cross Up).normalize
-    if (pressed(A))
-      movDir -= (camDir cross Up).normalize
+        val jumping = pressed(SPACE)
 
-    val jumping = pressed(SPACE)
+        session.setMovement(world.time, movDir, jumping)
 
-    session.setMovement(world.time, movDir, jumping)
-
-    cam.position.set((avatar.pos + offset) toGdx)
-    cam.update()
+        cam.position.set((avatar.pos + offset) toGdx)
+        cam.update()
+      case None => println("failed to update due because cannot find avatar")
+    }
   }
 
 }

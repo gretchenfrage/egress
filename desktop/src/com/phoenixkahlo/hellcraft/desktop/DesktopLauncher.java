@@ -19,7 +19,7 @@ public class DesktopLauncher {
 		config.width = 1800;
 		config.height = 800;
 
-		File mul = new File("C:\\Users\\Phoenix\\Desktop\\mul");
+		File mul = new File("C:\\Users\\kahlo\\Desktop\\mul");
 		for (File sub : mul.listFiles()) {
 			sub.delete();
 		}

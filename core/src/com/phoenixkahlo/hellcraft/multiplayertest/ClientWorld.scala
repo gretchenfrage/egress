@@ -33,7 +33,7 @@ class ClientWorld(
 
   override def chunkIsDefinedAt(chunkPos: V3I): Boolean = true
 
-  override def findEntity(id: EntityID): Entity = chunks.values.flatMap(_.entities.get(id)).head
+  override def findEntity(id: EntityID): Option[Entity] = chunks.values.flatMap(_.entities.get(id)).headOption
 
   /**
     * Take care to also integrate events, including unpredictable events pulled from the server, as this function

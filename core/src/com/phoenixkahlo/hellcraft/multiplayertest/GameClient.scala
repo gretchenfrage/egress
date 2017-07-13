@@ -49,6 +49,7 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
 
     // connect to the server
     client = new Client(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
+    //GlobalKryo.config(client.getKryo)
     client.addListener(new ThreadedListener(this, AsyncExecutor("client listener thread")))
     client.start()
     client.connect(5000, serverAddress.getAddress, serverAddress.getPort)
@@ -61,9 +62,9 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     rmiSpace = new ObjectSpace
     rmiSpace.setExecutor(AsyncExecutor("client RMI thread"))
     rmiSpace.addConnection(client)
-    val sessionID = 1
-    rmiSpace.register(sessionID, clientSession)
-    client.sendTCP(ClientSessionReady(sessionID))
+    val clientSessionID = ThreadLocalRandom.current.nextInt()
+    rmiSpace.register(clientSessionID, clientSession)
+    client.sendTCP(ClientSessionReady(clientSessionID))
     // wait for and setup the remote server session
     val serverSessionReady = received.take().asInstanceOf[ServerSessionReady]
     session = ObjectSpace.getRemoteObject(client, serverSessionReady.sessionID, classOf[ServerSession])
@@ -77,8 +78,6 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     textures = new DefaultTexturePack
 
     cam = new PerspectiveCamera(67, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
-    cam.position.set(0, 10, 0)
-    cam.lookAt(0, 0, 0)
     cam.near = 0.1f
     cam.far = 1000
 

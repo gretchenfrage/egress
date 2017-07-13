@@ -16,7 +16,7 @@ trait World {
 
   def blockAt(v: V3I): Option[Block] = chunkAt(v / 16 floor).flatMap(_ (v % 16))
 
-  def findEntity(id: UUID): Entity
+  def findEntity(id: UUID): Option[Entity]
 
   def time: Long
 
