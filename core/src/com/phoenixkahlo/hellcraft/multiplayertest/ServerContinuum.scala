@@ -5,7 +5,7 @@ import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.save.WorldSave
 import com.phoenixkahlo.hellcraft.util.Cache
 
-import scala.collection.immutable.{HashSet, TreeSet}
+import scala.collection.immutable.{HashMap, HashSet, TreeMap, TreeSet}
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.{SortedMap, SortedSet, mutable}
 
@@ -52,41 +52,25 @@ class ServerContinuum(save: WorldSave) {
     * Updates the continuum to the next tick, and returns which chunk events need to be routed to which clients.
     */
   def update(): Map[ClientID, SortedSet[ChunkEvent]] = this.synchronized {
-    val times = new ArrayBuffer[Long]
-    def log(): Unit = times += System.nanoTime()
-
     // collect events, including externs, grouped by their producers
-    log()
     val allSubscribedChunkPositions = subscriptions.values.foldLeft(new HashSet[V3I])(_ ++ _)
-    log()
     var next = current.setKeepLoaded(allSubscribedChunkPositions)
-    log()
     val allSubscribedChunks = allSubscribedChunkPositions.toSeq.map(current.chunkAt(_).get)
-    log()
     val eventsProducedByChunks = allSubscribedChunks.flatMap(chunk => chunk.update(current).map((_, Some(chunk.pos))))
-    log()
     val externalEvents = externs.get(time).map(_.toSeq.map(event => (event, None))).getOrElse(Nil)
-    log()
     val events = eventsProducedByChunks ++ externalEvents
-    log()
 
     // sort the events and integrate them into a new snapshot, put in history, invalidate curr cache
     next = next.integrate(events.map(_._1).foldLeft(new TreeSet[ChunkEvent])(_ + _)).incrTime
     history.put(next.time, next)
 
-    log()
-
     // forget history
     if (history.size > historySize)
       history.drop(historySize - history.size)
 
-    log()
-
     // sort the events by their targets
     val eventsByTarget: Map[V3I, Seq[(ChunkEvent, Option[V3I])]] =
       events.groupBy(_._1.target)
-
-    log()
 
     // compute which events need to be sent to which clients
     val eventsToSend: Map[ClientID, Seq[ChunkEvent]] = subscriptions.toMap.mapValues({
@@ -94,21 +78,8 @@ class ServerContinuum(save: WorldSave) {
         .filterNot({ case (_, producer) => producer.exists(subscribed.contains) }).map(_._1)
     })
 
-    log()
-
     // return
-    val result = eventsToSend.filter(_._2.nonEmpty).mapValues(_.foldLeft(new TreeSet[ChunkEvent])(_ + _))
-
-    log()
-
-    /*
-    print("servercontinuum.update profile = [")
-    for (i <- 0 until times.size - 1)
-      print((times(i + 1) - times(i)) / 1000000 + "ms, ")
-    println("]")
-    */
-
-    result
+    eventsToSend.filter(_._2.nonEmpty).mapValues(_.foldLeft(new TreeSet[ChunkEvent])(_ + _)).filter(_._2.nonEmpty)
   }
 
   /**
@@ -131,7 +102,7 @@ class ServerContinuum(save: WorldSave) {
   }
 
   /**
-    * Retroactively integrate the events into the continuum, and return simillar integration maps that need to be
+    * Retroactively integrate the events into the continuum, and return similar integration maps that need to be
     * sent to each client.
     */
   def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Map[ClientID, SortedMap[Long, SortedSet[ChunkEvent]]] = this.synchronized {
@@ -148,6 +119,15 @@ class ServerContinuum(save: WorldSave) {
     externs ++= toIntegrate
 
     // update back to the original time and accumulate the events
+    var accumulator = new HashMap[ClientID, SortedMap[Long, SortedSet[ChunkEvent]]]
+    while (time < currTime)
+      for ((client, events) <- update())
+        accumulator = accumulator.updated(client,
+          accumulator.getOrElse(client, new TreeMap[Long, SortedSet[ChunkEvent]]).updated(time, events))
+
+    accumulator.filter({ case (_, events) => events.nonEmpty })
+
+    /*
     val accumulator1 = new mutable.TreeMap[Long, Map[ClientID, SortedSet[ChunkEvent]]]
     while (time < currTime)
       accumulator1.put(time, update())
@@ -155,15 +135,16 @@ class ServerContinuum(save: WorldSave) {
     // refactor the accumulator
     val accumulator2 = new mutable.TreeMap[ClientID, SortedMap[Long, SortedSet[ChunkEvent]]]
     for (client <- subscriptions.keys) {
-      val accumulator3 = new mutable.TreeMap[Long, SortedSet[ChunkEvent]]
+      var accumulator3 = new TreeMap[Long, SortedSet[ChunkEvent]]
       for (time <- accumulator1.keys) {
-        accumulator3.put(time, accumulator1(time)(client).foldLeft(new TreeSet[ChunkEvent])(_ + _))
+        accumulator3 = accumulator3.updated(time, accumulator1(time)(client).foldLeft(new TreeSet[ChunkEvent])(_ + _))
       }
       accumulator2.put(client, accumulator3)
     }
 
     // return
-    accumulator2.toMap
+    accumulator2.toMap.filter(_._2.nonEmpty)
+    */
   }
 
 }

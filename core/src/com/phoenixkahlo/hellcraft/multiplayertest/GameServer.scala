@@ -14,14 +14,15 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.gamedriver.LoopingApp
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
-import com.phoenixkahlo.hellcraft.save.{GeneratingSave, GlobalKryo, RegionSave, WorldSave}
-import com.phoenixkahlo.hellcraft.util.AsyncExecutor
+import com.phoenixkahlo.hellcraft.save.{GeneratingSave, RegionSave, WorldSave}
+import com.phoenixkahlo.hellcraft.util.{AsyncExecutor, GlobalKryo}
 import com.twitter.chill.{Input, Output}
 
-import scala.collection.immutable.{HashSet, TreeMap}
+import scala.collection.immutable.{HashSet, TreeMap, TreeSet}
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.{SortedMap, SortedSet, parallel}
-import scala.collection.parallel.{ParMap, mutable}
+import scala.collection.parallel
+import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 
 class GameServer(port: Int) extends Listener with LoopingApp {
@@ -30,16 +31,16 @@ class GameServer(port: Int) extends Listener with LoopingApp {
   var continuum: ServerContinuum = _
 
   var server: Server = _
-  var clientIDByConnection: mutable.ParMap[Connection, ClientID] = _
-  var clientConnectionByID: mutable.ParMap[ClientID, Connection] = _
-  var clientRMISpaces: mutable.ParMap[ClientID, ObjectSpace] = _
-  var clientSessions: mutable.ParMap[ClientID, ClientSession] = _
-  var clientSeqExecutors: mutable.ParMap[ClientID, ExecutionContext] = _
-  var received: mutable.ParMap[ClientID, BlockingQueue[Any]] = _
-  var avatars: mutable.ParMap[ClientID, AvatarID] = _
+  var clientIDByConnection: parallel.mutable.ParMap[Connection, ClientID] = _
+  var clientConnectionByID: parallel.mutable.ParMap[ClientID, Connection] = _
+  var clientRMISpaces: parallel.mutable.ParMap[ClientID, ObjectSpace] = _
+  var clientSessions: parallel.mutable.ParMap[ClientID, ClientSession] = _
+  var clientSeqExecutors: parallel.mutable.ParMap[ClientID, ExecutionContext] = _
+  var received: parallel.mutable.ParMap[ClientID, BlockingQueue[Any]] = _
+  var avatars: parallel.mutable.ParMap[ClientID, AvatarID] = _
 
   override def init(deactivator: Runnable): Unit = {
-    val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\mul")
+    val saveFolder = new File("C:\\Users\\Phoenix\\Desktop\\mul")
     saveFolder.mkdir()
     save = new GeneratingSave(new RegionSave(saveFolder toPath, 24), v => {
       if (v.y < -20) Stone
@@ -52,22 +53,17 @@ class GameServer(port: Int) extends Listener with LoopingApp {
 
     server = new Server(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
     server.bind(port)
-    //GlobalKryo.config(server.getKryo)
     server.addListener(new ThreadedListener(this, AsyncExecutor("server listener thread")))
-    //server.addListener(this) // the connections and disconnections must happen synchronously to avoid race conditions
 
-    ObjectSpace.registerClasses(server.getKryo)
-
-
-    clientIDByConnection = new mutable.ParHashMap
-    clientConnectionByID = new mutable.ParHashMap
-    clientRMISpaces = new mutable.ParHashMap
-    clientSessions = new mutable.ParHashMap
-    clientSeqExecutors = new mutable.ParHashMap
-    avatars = new mutable.ParHashMap
+    clientIDByConnection = new parallel.mutable.ParHashMap
+    clientConnectionByID = new parallel.mutable.ParHashMap
+    clientRMISpaces = new parallel.mutable.ParHashMap
+    clientSessions = new parallel.mutable.ParHashMap
+    clientSeqExecutors = new parallel.mutable.ParHashMap
+    avatars = new parallel.mutable.ParHashMap
 
     // received will automatically create queues when one is requested for a new client ID
-    received = new mutable.ParHashMap[ClientID, BlockingQueue[Any]] {
+    received = new parallel.mutable.ParHashMap[ClientID, BlockingQueue[Any]] {
       override def get(key: ClientID): Option[BlockingQueue[Any]] = {
         super.get(key) match {
           case queue if queue isDefined => queue
@@ -128,10 +124,13 @@ class GameServer(port: Int) extends Listener with LoopingApp {
   }
 
   def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Unit = {
-    for ((client, events) <- continuum.integrateExterns(newExterns))
+    for ((client, events: SortedMap[Long, SortedSet[ChunkEvent]]) <- continuum.integrateExterns(newExterns)) {
+      if (events.isInstanceOf[mutable.TreeMap[_, _]])
+        throw new Error(":(")
       clientSeqExecutors(client).execute(() => {
         clientSessions(client).integrate(events)
       })
+    }
   }
 
   def integrateExterns(atTime: Long, newExterns: Set[ChunkEvent]): Unit =
@@ -159,7 +158,8 @@ class GameServer(port: Int) extends Listener with LoopingApp {
     val clientID = UUID.randomUUID()
     clientIDByConnection.put(connection, clientID)
     clientConnectionByID.put(clientID, connection)
-    clientSeqExecutors.put(clientID, ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor()))
+    clientSeqExecutors.put(clientID, ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor(
+      runnable => new Thread(runnable, "client seq thread"))))
 
     // send the initial data
     connection.sendTCP(InitialServerData(clientID))

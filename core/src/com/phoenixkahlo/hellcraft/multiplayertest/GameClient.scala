@@ -17,8 +17,7 @@ import com.esotericsoftware.kryonet.rmi.{ObjectSpace, RemoteObject}
 import com.phoenixkahlo.hellcraft.core.{DefaultTexturePack, ResourceNode, TexturePack}
 import com.phoenixkahlo.hellcraft.gamedriver.GameState
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
-import com.phoenixkahlo.hellcraft.save.GlobalKryo
-import com.phoenixkahlo.hellcraft.util.{AsyncExecutor, DependencyGraph, PriorityExecContext}
+import com.phoenixkahlo.hellcraft.util.{AsyncExecutor, DependencyGraph, GlobalKryo, PriorityExecContext}
 
 import scala.collection.JavaConverters
 
@@ -49,7 +48,6 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
 
     // connect to the server
     client = new Client(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
-    //GlobalKryo.config(client.getKryo)
     client.addListener(new ThreadedListener(this, AsyncExecutor("client listener thread")))
     client.start()
     client.connect(5000, serverAddress.getAddress, serverAddress.getPort)

@@ -2,6 +2,7 @@ package com.phoenixkahlo.hellcraft.desktop;
 
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
+import com.esotericsoftware.minlog.Log;
 import com.phoenixkahlo.hellcraft.finitetest.SimpleDriver;
 import com.phoenixkahlo.hellcraft.gamedriver.GameDriver;
 import com.phoenixkahlo.hellcraft.gamedriver.LoopExecutor;
@@ -19,7 +20,9 @@ public class DesktopLauncher {
 		config.width = 1800;
 		config.height = 800;
 
-		File mul = new File("C:\\Users\\kahlo\\Desktop\\mul");
+		Log.set(3);
+
+		File mul = new File("C:\\Users\\Phoenix\\Desktop\\mul");
 		for (File sub : mul.listFiles()) {
 			sub.delete();
 		}

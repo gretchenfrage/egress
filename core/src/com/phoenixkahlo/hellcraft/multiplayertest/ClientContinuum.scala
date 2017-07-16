@@ -56,6 +56,8 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk])) 
     }
 
   def integrate(events: SortedMap[Long, SortedSet[ChunkEvent]]): Unit = this.synchronized {
+    if (events isEmpty) return
+
     val currTime = time
     revert(events.firstKey)
 

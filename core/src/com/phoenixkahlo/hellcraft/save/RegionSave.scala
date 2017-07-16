@@ -5,6 +5,7 @@ import java.nio.file.Path
 
 import com.phoenixkahlo.hellcraft.core.{Chunk, World}
 import com.phoenixkahlo.hellcraft.math.{Ones, V3I}
+import com.phoenixkahlo.hellcraft.util.GlobalKryo
 import com.twitter.chill.{Input, Output}
 
 import scala.collection.immutable.{HashMap, HashSet}

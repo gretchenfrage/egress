@@ -6,6 +6,7 @@ import java.nio.file.Path
 import com.esotericsoftware.kryo.io.{Input, Output}
 import com.phoenixkahlo.hellcraft.core.{Chunk, World}
 import com.phoenixkahlo.hellcraft.math.V3I
+import com.phoenixkahlo.hellcraft.util.GlobalKryo
 
 /**
   * A world save implementation that keeps each chunk in its own file, serializing them with the Kryo.

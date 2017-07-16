@@ -51,26 +51,6 @@ abstract class Corpus(
   override def renderables(texturePack: TexturePack): Seq[RenderableFactory] =
     Seq(PooledInstanceRenderer(this, texturePack))
 
-  /*
-  override def renderables(texturePack: TexturePack): Seq[RenderableFactory] =
-    Seq(new RenderableFactory {
-      override def apply(): Seq[Renderable] = {
-        // obtain model
-        val model = ModelPool(modelID, modelFactory(texturePack))
-        // transform model
-        model.transform.setTranslation(pos + modelOffset toGdx)
-        // extract renderables from model
-        val array = new com.badlogic.gdx.utils.Array[Renderable]()
-        val pool = new Pool[Renderable]() {
-          override def newObject(): Renderable = new Renderable
-        }
-        model.getRenderables(array, pool)
-        // render renderables
-        JavaConverters.iterableAsScalaIterable(array).toSeq
-      }
-    })
-    */
-
 }
 
 case class PooledInstanceRenderer(corpus: Corpus, texturePack: TexturePack) extends RenderableFactory {
@@ -99,4 +79,4 @@ case class PooledInstanceRenderer(corpus: Corpus, texturePack: TexturePack) exte
 
 trait ModelInstanceFactory { def apply(): ModelInstance }
 
-object ModelPool extends KeyParamPool[UUID,ModelInstanceFactory,ModelInstance](_())
+object ModelPool extends KeyParamPool[UUID, ModelInstanceFactory, ModelInstance](_())

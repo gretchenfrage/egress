@@ -89,7 +89,7 @@ class ClientController(session: ServerSession, cam: Camera) extends InputAdapter
 
         cam.position.set((avatar.pos + offset) toGdx)
         cam.update()
-      case None => println("failed to update due because cannot find avatar")
+      case None => println("failed to update because cannot find avatar")
     }
   }
 
