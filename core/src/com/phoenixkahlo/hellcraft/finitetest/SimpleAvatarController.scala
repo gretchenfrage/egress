@@ -95,8 +95,9 @@ case class SimpleAvatarController(
 
     val jumping = pressed(Keys.SPACE)
 
-    val avatarEvent = ChunkEvent(avatar.chunkPos, UUID.randomUUID(), _.putEntity(
-      avatar.updateDirection(moveDirection).updateJumping(jumping)))
+    //val avatarEvent = ChunkEvent(avatar.chunkPos, UUID.randomUUID(), _.putEntity(
+    //  avatar.updateDirection(moveDirection).updateJumping(jumping)))
+    val avatarEvent = PutEntity(avatar.chunkPos, avatar.updateDirection(moveDirection).updateJumping(jumping), UUID.randomUUID())
 
     var events = Seq[ChunkEvent](avatarEvent)
     val m = 1e-3f
@@ -121,14 +122,14 @@ case class SimpleAvatarController(
     Raytrace.hit(avatar.pos + offset, camDirection, world) match {
       case Some(v) =>
         val outline = BlockOutline(v, Color.BLACK)
-        events = events :+ ChunkEvent(outline.chunkPos, UUID.randomUUID(),  _.putEntity(outline))
+        events = events :+ PutEntity(outline.chunkPos, outline, UUID.randomUUID())//ChunkEvent(outline.chunkPos, UUID.randomUUID(),  _.putEntity(outline))
       case None =>
     }
     if (pressed(Keys.TAB)) {
       Raytrace.place(avatar.pos + offset, camDirection, world) match {
         case Some(v) =>
           val outline = BlockOutline(v, Color.RED)
-          events = events :+ ChunkEvent(outline.chunkPos, UUID.randomUUID(), _.putEntity(outline))
+          events = events :+ PutEntity(outline.chunkPos, outline, UUID.randomUUID())//ChunkEvent(outline.chunkPos, UUID.randomUUID(), _.putEntity(outline))
         case None =>
       }
     }

@@ -158,8 +158,7 @@ class GameServer(port: Int) extends Listener with LoopingApp {
     val clientID = UUID.randomUUID()
     clientIDByConnection.put(connection, clientID)
     clientConnectionByID.put(clientID, connection)
-    clientSeqExecutors.put(clientID, ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor(
-      runnable => new Thread(runnable, "client seq thread"))))
+    clientSeqExecutors.put(clientID, ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor(runnable => new Thread(runnable, "client seq thread"))))
 
     // send the initial data
     connection.sendTCP(InitialServerData(clientID))
@@ -190,7 +189,8 @@ class GameServer(port: Int) extends Listener with LoopingApp {
 
     // create the avatar
     val avatar = Avatar(pos = V3F(0, 10, 0))
-    integrateExternNow(ChunkEvent(avatar.chunkPos, UUID.randomUUID(), _.putEntity(avatar), "create avatar"))
+    //integrateExternNow(ChunkEvent(avatar.chunkPos, UUID.randomUUID(), _.putEntity(avatar), "create avatar"))
+    integrateExternNow(PutEntity(avatar.chunkPos, avatar, UUID.randomUUID()))
     avatars.synchronized {
       avatars.put(clientID, avatar.id)
       avatars.notifyAll()

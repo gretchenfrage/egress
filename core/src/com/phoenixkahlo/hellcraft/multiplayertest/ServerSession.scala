@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.multiplayertest
 
 import java.util.UUID
 
-import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent}
+import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent, PutEntity}
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 
@@ -41,8 +41,9 @@ class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: C
     val avatarOption: Option[Avatar] = server.continuum.snapshot(atTime).map(_.findEntity(avatarID).asInstanceOf[Avatar])
     avatarOption match {
       case Some(avatar) =>
-        val event = ChunkEvent(avatar.chunkPos, UUID.randomUUID(),
-          _.putEntity(avatar.updateDirection(movDir).updateJumping(jumping)), "set entity movement")
+        //val event = ChunkEvent(avatar.chunkPos, UUID.randomUUID(),
+        //  _.putEntity(avatar.updateDirection(movDir).updateJumping(jumping)), "set entity movement")
+        val event = PutEntity(avatar.chunkPos, avatar.updateDirection(movDir).updateJumping(jumping), UUID.randomUUID())
         server.integrateExtern(atTime, event)
       case None => println("setmovement rejected")
     }

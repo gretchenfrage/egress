@@ -40,11 +40,14 @@ abstract class Corpus(
     val replacer = transform(world)
 
     if (replacer.chunkPos == this.chunkPos)
-      Seq(ChunkEvent(chunkPos, ids.head, _.putEntity(replacer), "corpus in-chunk replacement"))
+      Seq(PutEntity(chunkPos, replacer, ids.head))
+    //Seq(ChunkEvent(chunkPos, ids.head, _.putEntity(replacer), "corpus in-chunk replacement"))
     else
       Seq(
-        ChunkEvent(chunkPos, ids.head,_.removeEntity(this), "corpus chunk removal"),
-        ChunkEvent(replacer.chunkPos, ids.drop(1).head, _.putEntity(replacer), "corpus chunk insertion")
+        RemoveEntity(chunkPos, id, ids.head),
+        PutEntity(replacer.chunkPos, replacer, ids.drop(1).head)
+        //ChunkEvent(chunkPos, ids.head,_.removeEntity(this), "corpus chunk removal"),
+        //ChunkEvent(replacer.chunkPos, ids.drop(1).head, _.putEntity(replacer), "corpus chunk insertion")
       )
   }
 
