@@ -105,7 +105,6 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
   }
 
   override def render(): Unit = {
-    println("rendering")
     // prepare
     g += 1
     val world = continuum.current
@@ -120,9 +119,7 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     // get the renderable factories
     val p = V3F(cam.position) / 16 floor
     val chunks = ((p - V3I(3, 3, 3)) to (p + V3I(3, 3, 3))).flatMap(world.weakChunkAt)
-    println("rendering " + chunks.size + " chunks")
     val factories = chunks.flatMap(_.renderables(textures, world))
-    println("rendering " + factories.size + " factories")
 
     // manage the resource graph
     val nodes = factories.flatMap(_.resources)

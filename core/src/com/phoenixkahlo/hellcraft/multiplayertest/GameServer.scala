@@ -40,7 +40,7 @@ class GameServer(port: Int) extends Listener with LoopingApp {
   var avatars: parallel.mutable.ParMap[ClientID, AvatarID] = _
 
   override def init(deactivator: Runnable): Unit = {
-    val saveFolder = new File("C:\\Users\\Phoenix\\Desktop\\mul")
+    val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\mul")
     saveFolder.mkdir()
     save = new GeneratingSave(new RegionSave(saveFolder toPath, 24), v => {
       if (v.y < -20) Stone
@@ -125,8 +125,6 @@ class GameServer(port: Int) extends Listener with LoopingApp {
 
   def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Unit = {
     for ((client, events: SortedMap[Long, SortedSet[ChunkEvent]]) <- continuum.integrateExterns(newExterns)) {
-      if (events.isInstanceOf[mutable.TreeMap[_, _]])
-        throw new Error(":(")
       clientSeqExecutors(client).execute(() => {
         clientSessions(client).integrate(events)
       })
@@ -189,7 +187,6 @@ class GameServer(port: Int) extends Listener with LoopingApp {
 
     // create the avatar
     val avatar = Avatar(pos = V3F(0, 10, 0))
-    //integrateExternNow(ChunkEvent(avatar.chunkPos, UUID.randomUUID(), _.putEntity(avatar), "create avatar"))
     integrateExternNow(PutEntity(avatar.chunkPos, avatar, UUID.randomUUID()))
     avatars.synchronized {
       avatars.put(clientID, avatar.id)

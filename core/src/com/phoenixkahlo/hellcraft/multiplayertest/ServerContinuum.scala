@@ -106,6 +106,7 @@ class ServerContinuum(save: WorldSave) {
     * sent to each client.
     */
   def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Map[ClientID, SortedMap[Long, SortedSet[ChunkEvent]]] = this.synchronized {
+    println("server continuum: integrating externs: " + newExterns)
     // we'll need this later
     val currTime = time
 

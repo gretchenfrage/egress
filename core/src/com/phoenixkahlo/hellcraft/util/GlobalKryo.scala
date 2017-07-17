@@ -24,8 +24,8 @@ object GlobalKryo {
     kryo.register(classOf[Chunk], new ChunkSerializer)
 
     // session registration
-    //kryo.register(classOf[ServerSession])
-    //kryo.register(classOf[ClientSession])
+    kryo.register(classOf[ServerSession])
+    kryo.register(classOf[ClientSession])
 
     // kryonet registration
     ObjectSpace.registerClasses(kryo)

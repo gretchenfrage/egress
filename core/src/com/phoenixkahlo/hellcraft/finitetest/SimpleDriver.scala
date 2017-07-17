@@ -143,6 +143,8 @@ class SimpleDriver extends ApplicationAdapter {
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
 
+    BackgroundMeshCompilerExecutor.setPlayerPos(V3F(controller.cam.position))
+
     // update the world
     t += 1
     if (true) {

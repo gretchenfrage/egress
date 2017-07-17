@@ -84,12 +84,18 @@ class FiniteWorld(
 
   def integrate(events: SortedSet[ChunkEvent]): FiniteWorld = {
     val grouped: Map[V3I, SortedSet[ChunkEvent]] = events.groupBy(_.target)
+    /*
     mapChunks(c => {
       grouped.get(c.pos) match {
         case Some(e) => e.foldLeft(c)({ case (cc, ee) => ee(cc) })
         case None => c
       }
     })
+    */
+    val newGrid: Vector[Chunk] = grouped.par.filterKeys(chunkIsDefinedAt).map({
+      case (target, group) => group.foldLeft(chunkAt(target).get)({ case (c, e) => e(c) })
+    }).seq.foldLeft(chunks)((grid, chunk) => grid.updated(compress(chunk.pos), chunk))
+    new FiniteWorld(size, chunkSize, newGrid, time)
   }
 
   def mapChunks(f: Chunk => Chunk): FiniteWorld =
