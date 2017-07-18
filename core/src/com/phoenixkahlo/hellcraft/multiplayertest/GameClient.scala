@@ -79,9 +79,8 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     cam.near = 0.1f
     cam.far = 1000
 
-    //controller = new FirstPersonCameraController(cam)
-    //Gdx.input.setInputProcessor(controller)
     controller = new ClientController(session, cam)
+    Gdx.input.setInputProcessor(controller)
 
     modelBatch = new ModelBatch
 

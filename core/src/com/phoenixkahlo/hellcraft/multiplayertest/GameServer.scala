@@ -40,7 +40,7 @@ class GameServer(port: Int) extends Listener with LoopingApp {
   var avatars: parallel.mutable.ParMap[ClientID, AvatarID] = _
 
   override def init(deactivator: Runnable): Unit = {
-    val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\mul")
+    val saveFolder = new File("C:\\Users\\Phoenix\\Desktop\\mul")
     saveFolder.mkdir()
     save = new GeneratingSave(new RegionSave(saveFolder toPath, 24), v => {
       if (v.y < -20) Stone

@@ -22,7 +22,7 @@ public class DesktopLauncher {
 
 		Log.set(3);
 
-		File mul = new File("C:\\Users\\kahlo\\Desktop\\mul");
+		File mul = new File("C:\\Users\\Phoenix\\Desktop\\mul");
 		for (File sub : mul.listFiles()) {
 			sub.delete();
 		}

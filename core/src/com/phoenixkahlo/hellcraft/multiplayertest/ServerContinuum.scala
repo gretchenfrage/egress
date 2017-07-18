@@ -12,46 +12,38 @@ import scala.collection.{SortedMap, SortedSet, mutable}
 /**
   * All methods are thread safe
   */
-//TODO: don't route events to clients if the event set is actually empty
 class ServerContinuum(save: WorldSave) {
 
   val historySize: Int = 5 * 60
 
   private val subscriptions = new mutable.HashMap[ClientID, Set[V3I]].withDefaultValue(Set.empty)
   private val updating = new mutable.HashMap[ClientID, Set[V3I]].withDefaultValue(Set.empty)
-  private val externs = new mutable.TreeMap[Long, Set[ChunkEvent]]
-  private var history = new mutable.TreeMap[Long, ServerWorld]
+  private var externs = new TreeMap[Long, Set[ChunkEvent]]
+  private var history = new TreeMap[Long, ServerWorld]
 
-  history.put(0, new ServerWorld(save, Set.empty, Map.empty, 0))
+  history = history.updated(0, new ServerWorld(save, Set.empty, Map.empty, 0))
 
   def current: ServerWorld = this.synchronized {
     history.last._2
   }
 
   def time: Long = this.synchronized {
-    history.last._1
+    history.lastKey
   }
 
-
-
-  def snapshot(target: Long): Option[ServerWorld] = {
-    this.synchronized {
-      history.get(target)
-    }
-
+  def snapshot(target: Long): Option[ServerWorld] = this.synchronized {
+    history.get(target)
   }
 
   def getStarter(client: ClientID): (Long, Seq[Chunk]) = this.synchronized {
-    (
-      time,
-      subscriptions(client).toSeq.map(current.chunkAt(_).get)
-    )
+    (time, subscriptions(client).toSeq.map(current.chunkAt(_).get))
   }
 
   /**
     * Updates the continuum to the next tick, and returns which chunk events need to be routed to which clients.
     */
   def update(): Map[ClientID, SortedSet[ChunkEvent]] = this.synchronized {
+    println("server updating in thread " + Thread.currentThread().getName)
     // collect events, including externs, grouped by their producers
     val allSubscribedChunkPositions = subscriptions.values.foldLeft(new HashSet[V3I])(_ ++ _)
     var next = current.setKeepLoaded(allSubscribedChunkPositions)
@@ -60,13 +52,14 @@ class ServerContinuum(save: WorldSave) {
     val externalEvents = externs.get(time).map(_.toSeq.map(event => (event, None))).getOrElse(Nil)
     val events = eventsProducedByChunks ++ externalEvents
 
-    // sort the events and integrate them into a new snapshot, put in history, invalidate curr cache
+    // sort the events and integrate them into a new snapshot, put in history
     next = next.integrate(events.map(_._1).foldLeft(new TreeSet[ChunkEvent])(_ + _)).incrTime
-    history.put(next.time, next)
+    //history.put(next.time, next)
+    history = history.updated(next.time, next)
 
     // forget history
     if (history.size > historySize)
-      history.drop(historySize - history.size)
+      history = history.drop(historySize - history.size)
 
     // sort the events by their targets
     val eventsByTarget: Map[V3I, Seq[(ChunkEvent, Option[V3I])]] =
@@ -106,7 +99,6 @@ class ServerContinuum(save: WorldSave) {
     * sent to each client.
     */
   def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Map[ClientID, SortedMap[Long, SortedSet[ChunkEvent]]] = this.synchronized {
-    println("server continuum: integrating externs: " + newExterns)
     // we'll need this later
     val currTime = time
 
@@ -127,25 +119,6 @@ class ServerContinuum(save: WorldSave) {
           accumulator.getOrElse(client, new TreeMap[Long, SortedSet[ChunkEvent]]).updated(time, events))
 
     accumulator.filter({ case (_, events) => events.nonEmpty })
-
-    /*
-    val accumulator1 = new mutable.TreeMap[Long, Map[ClientID, SortedSet[ChunkEvent]]]
-    while (time < currTime)
-      accumulator1.put(time, update())
-
-    // refactor the accumulator
-    val accumulator2 = new mutable.TreeMap[ClientID, SortedMap[Long, SortedSet[ChunkEvent]]]
-    for (client <- subscriptions.keys) {
-      var accumulator3 = new TreeMap[Long, SortedSet[ChunkEvent]]
-      for (time <- accumulator1.keys) {
-        accumulator3 = accumulator3.updated(time, accumulator1(time)(client).foldLeft(new TreeSet[ChunkEvent])(_ + _))
-      }
-      accumulator2.put(client, accumulator3)
-    }
-
-    // return
-    accumulator2.toMap.filter(_._2.nonEmpty)
-    */
   }
 
 }

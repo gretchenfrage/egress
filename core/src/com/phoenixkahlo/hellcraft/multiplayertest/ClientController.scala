@@ -24,6 +24,9 @@ class ClientController(session: ServerSession, cam: Camera) extends InputAdapter
 
   val keys = List(W, A, S, D, SHIFT_LEFT, SPACE, CONTROL_LEFT, TAB)
 
+  private var lastMovDir: Option[V3F] = None
+  private var lastJumping: Option[Boolean] = None
+
   override def keyDown(k: Int): Boolean =
     if (k == ESCAPE) {
       Gdx.input.setCursorCatched(false)
@@ -85,11 +88,15 @@ class ClientController(session: ServerSession, cam: Camera) extends InputAdapter
 
         val jumping = pressed(SPACE)
 
-        session.setMovement(world.time, movDir, jumping)
+        if (!(lastMovDir.contains(movDir) && lastJumping.contains(jumping))) {
+          session.setMovement(world.time, movDir, jumping)
+          lastMovDir = Some(movDir)
+          lastJumping = Some(jumping)
+        }
 
         cam.position.set((avatar.pos + offset) toGdx)
         cam.update()
-      case None => println("failed to update because cannot find avatar")
+      case None =>
     }
   }
 
