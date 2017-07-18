@@ -16,7 +16,6 @@ trait ClientSession {
 class ClientSessionImpl(init: InitialServerData, client: GameClient) extends ClientSession {
 
   override def integrate(events: SortedMap[Long, SortedSet[ChunkEvent]]): Unit = {
-    println("client: integrating " + events)
     client.waitForReady()
     client.getContinuum.integrate(events)
   }

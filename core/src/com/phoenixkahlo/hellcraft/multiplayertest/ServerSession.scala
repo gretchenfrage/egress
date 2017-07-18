@@ -38,13 +38,12 @@ class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: C
   }
 
   override def setMovement(atTime: Long, movDir: V3F, jumping: Boolean): Unit = {
-    val avatarOption: Option[Avatar] =
-      server.continuum.snapshot(atTime).flatMap(_.findEntity(avatarID).map(_.asInstanceOf[Avatar]))
-    avatarOption match {
+    server.continuum.snapshot(atTime).flatMap(_.findEntity(avatarID).map(_.asInstanceOf[Avatar])) match {
       case Some(avatar) =>
         val event = PutEntity(avatar.chunkPos, avatar.updateDirection(movDir).updateJumping(jumping), UUID.randomUUID())
+        println("setting avatar movement")
         server.integrateExtern(atTime, event)
-      case None => println("setmovement rejected")
+      case None => println("setmovement rejected - failed to find avatar")
     }
   }
 

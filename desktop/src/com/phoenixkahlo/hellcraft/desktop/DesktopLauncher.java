@@ -21,17 +21,19 @@ public class DesktopLauncher {
 		config.height = 800;
 
 		Log.set(3);
-
+		/*
 		File mul = new File("C:\\Users\\Phoenix\\Desktop\\mul");
-		for (File sub : mul.listFiles()) {
-			sub.delete();
+		if (mul.exists()) {
+			for (File sub : mul.listFiles()) {
+				sub.delete();
+			}
 		}
 
 		new LoopExecutor(new GameServer(25565)).start();
-		try { Thread.sleep(500); } catch (Exception e) { throw new RuntimeException(e); }
+		try { Thread.sleep(5000); } catch (Exception e) { throw new RuntimeException(e); }
 		new LwjglApplication(new GameDriver(new GameClient(new InetSocketAddress("localhost", 25565))));
-
-		//new LwjglApplication(new GameDriver(new InfiniteGameState()), config);
+		*/
+		new LwjglApplication(new GameDriver(new InfiniteGameState()), config);
 		//new LwjglApplication(new InfiniteDriver(), config);
 		//new LwjglApplication(new SimpleDriver(), config);
 	}

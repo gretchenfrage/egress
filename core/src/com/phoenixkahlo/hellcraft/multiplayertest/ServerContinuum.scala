@@ -43,7 +43,6 @@ class ServerContinuum(save: WorldSave) {
     * Updates the continuum to the next tick, and returns which chunk events need to be routed to which clients.
     */
   def update(): Map[ClientID, SortedSet[ChunkEvent]] = this.synchronized {
-    println("server updating in thread " + Thread.currentThread().getName)
     // collect events, including externs, grouped by their producers
     val allSubscribedChunkPositions = subscriptions.values.foldLeft(new HashSet[V3I])(_ ++ _)
     var next = current.setKeepLoaded(allSubscribedChunkPositions)

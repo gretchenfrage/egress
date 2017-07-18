@@ -53,14 +53,15 @@ class ServerWorld(
   override def chunkIsDefinedAt(chunkPos: V3I): Boolean = true
 
   override def chunkAt(p: V3I): Option[Chunk] = save.synchronized {
-    //println("serverworld(t=" + time + ").chunkat(" + p + ")")
     val cached = cache.get()
     if (cached != null && cached.pos == p) Some(cached)
 
-    chunks.get(p) match {
+    val chunk = chunks.get(p) match {
       case chunk if chunk isDefined => chunk
       case None => save.load(p)
     }
+    chunk.foreach(cache.set)
+    chunk
   }
 
   override def findEntity(id: EntityID): Option[Entity] = save.synchronized {

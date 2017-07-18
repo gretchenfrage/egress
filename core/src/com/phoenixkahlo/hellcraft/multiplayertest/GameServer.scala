@@ -4,6 +4,7 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
 import java.net.InetAddress
 import java.util.UUID
 import java.util.concurrent._
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.print.DocFlavor.BYTE_ARRAY
 
 import com.esotericsoftware.kryonet.FrameworkMessage.KeepAlive
@@ -15,7 +16,7 @@ import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.gamedriver.LoopingApp
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.save.{GeneratingSave, RegionSave, WorldSave}
-import com.phoenixkahlo.hellcraft.util.{AsyncExecutor, GlobalKryo}
+import com.phoenixkahlo.hellcraft.util.{AsyncExecutor, GlobalKryo, PriorityExecContext}
 import com.twitter.chill.{Input, Output}
 
 import scala.collection.immutable.{HashSet, TreeMap, TreeSet}
@@ -38,6 +39,8 @@ class GameServer(port: Int) extends Listener with LoopingApp {
   var clientSeqExecutors: parallel.mutable.ParMap[ClientID, ExecutionContext] = _
   var received: parallel.mutable.ParMap[ClientID, BlockingQueue[Any]] = _
   var avatars: parallel.mutable.ParMap[ClientID, AvatarID] = _
+
+  val savingFlag = new AtomicBoolean(false)
 
   override def init(deactivator: Runnable): Unit = {
     val saveFolder = new File("C:\\Users\\Phoenix\\Desktop\\mul")
@@ -82,7 +85,7 @@ class GameServer(port: Int) extends Listener with LoopingApp {
     // update and route events to clients as needed
 
     val times = new ArrayBuffer[Long]
-    val log: () => Unit = () => times += System.nanoTime()
+    def log(): Unit = times += System.nanoTime()
 
     log()
 
@@ -90,7 +93,7 @@ class GameServer(port: Int) extends Listener with LoopingApp {
       (continuum.time, continuum.update())
     }
 
-    println("SERVER t = " + time)
+    //println("SERVER t = " + time)
 
     log()
 
@@ -102,7 +105,13 @@ class GameServer(port: Int) extends Listener with LoopingApp {
 
     log()
 
-    continuum.current.pushToSave()
+    val current = continuum.current
+    if (time % 600 == 0 && !savingFlag.getAndSet(true)) PriorityExecContext(1).execute(() => {
+      println("saving")
+      current.pushToSave()
+      println("finished saving")
+      savingFlag.set(false)
+    })
 
     log()
 

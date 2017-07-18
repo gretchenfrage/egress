@@ -36,7 +36,6 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
   private var continuum: ClientContinuum = _
   private var textures: TexturePack = _
   private var cam: PerspectiveCamera = _
-  //private var controller: FirstPersonCameraController = _
   private var controller: ClientController = _
   private var modelBatch: ModelBatch = _
   private var lights: Environment = _
@@ -145,16 +144,11 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
 
   override def update(): Boolean = {
     // TODO: predict the server time or something
-
-    var changed = false
-
     while (continuum.time < session.getTime) {
+      //println("client t = " + continuum.time)
       continuum.update()
-      changed = true
-      println("client t = " + continuum.time)
     }
 
-    //changed
     true
   }
 
