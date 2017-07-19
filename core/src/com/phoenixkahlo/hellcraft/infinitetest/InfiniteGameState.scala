@@ -48,7 +48,7 @@ class InfiniteGameState extends GameState {
   override def onEnter(): Unit = {
     deleted = new LinkedBlockingQueue
 
-    val saveFolder = new File("C:\\Users\\Phoenix\\Desktop\\inf")
+    val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\inf")
     saveFolder.mkdir()
     save = new RegionSave(saveFolder.toPath, 8)
     textures = new DefaultTexturePack

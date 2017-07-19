@@ -78,7 +78,7 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     cam.near = 0.1f
     cam.far = 1000
 
-    controller = new ClientController(session, cam)
+    controller = new ClientController(session, cam, this)
     Gdx.input.setInputProcessor(controller)
 
     modelBatch = new ModelBatch
@@ -145,7 +145,6 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
   override def update(): Boolean = {
     // TODO: predict the server time or something
     while (continuum.time < session.getTime) {
-      //println("client t = " + continuum.time)
       continuum.update()
     }
 

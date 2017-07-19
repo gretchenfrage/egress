@@ -22,6 +22,8 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk])) 
 
   def current: ClientWorld = history.last._2
 
+  def snapshot(atTime: Long): Option[ClientWorld] = history.get(atTime)
+
   def revert(target: Long): Unit = this.synchronized {
     history = history.rangeImpl(None, Some(target + 1))
     if (history isEmpty) {

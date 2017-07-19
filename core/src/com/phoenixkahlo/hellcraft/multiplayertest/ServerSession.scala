@@ -18,6 +18,10 @@ trait ServerSession {
 
   def setMovement(atTime: Long, movDir: V3F, jumping: Boolean): Unit
 
+  def avatarCount: Int
+
+  def hashChunk(atTime: Long, p: V3I): Option[Int]
+
 }
 
 class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: ClientID) extends ServerSession {
@@ -43,9 +47,16 @@ class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: C
         val event = PutEntity(avatar.chunkPos, avatar.updateDirection(movDir).updateJumping(jumping), UUID.randomUUID())
         println("setting avatar movement")
         server.integrateExtern(atTime, event)
-      case None => println("setmovement rejected - failed to find avatar")
+      case None =>
+        println("setmovement rejected - failed to find avatar")
     }
   }
+
+  override def avatarCount: Int =
+    server.continuum.current.loaded.values.flatMap(_.entities.get(avatarID)).size
+
+  override def hashChunk(atTime: Long, p: V3I): Option[Int] =
+    server.continuum.snapshot(atTime).flatMap(_.chunkAt(p).map(_.hashCode()))
 
 }
 

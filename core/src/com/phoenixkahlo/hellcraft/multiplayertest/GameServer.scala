@@ -43,7 +43,7 @@ class GameServer(port: Int) extends Listener with LoopingApp {
   val savingFlag = new AtomicBoolean(false)
 
   override def init(deactivator: Runnable): Unit = {
-    val saveFolder = new File("C:\\Users\\Phoenix\\Desktop\\mul")
+    val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\mul")
     saveFolder.mkdir()
     save = new GeneratingSave(new RegionSave(saveFolder toPath, 24), v => {
       if (v.y < -20) Stone

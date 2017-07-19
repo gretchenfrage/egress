@@ -11,6 +11,8 @@ trait ClientSession {
 
   def setServerRelation(atTime: Long, newSubscribed: Set[V3I], newUpdating: Set[V3I], provided: Seq[Chunk]): Unit
 
+  def hashChunk(atTime: Long, p: V3I): Option[Int]
+
 }
 
 class ClientSessionImpl(init: InitialServerData, client: GameClient) extends ClientSession {
@@ -26,6 +28,9 @@ class ClientSessionImpl(init: InitialServerData, client: GameClient) extends Cli
     client.getContinuum.setServerRelation(atTime, newSubscribed, newUpdating,
       provided.map(chunk => (chunk.pos, chunk)).toMap)
   }
+
+  override def hashChunk(atTime: Long, p: V3I): Option[Int] =
+    client.getContinuum.snapshot(atTime).flatMap(_.chunkAt(p).map(_.hashCode()))
 
 }
 

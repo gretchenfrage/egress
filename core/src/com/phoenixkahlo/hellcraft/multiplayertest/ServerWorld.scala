@@ -49,6 +49,8 @@ class ServerWorld(
     }
   })
 
+  def loaded: Map[V3I, Chunk] =
+    chunks
 
   override def chunkIsDefinedAt(chunkPos: V3I): Boolean = true
 

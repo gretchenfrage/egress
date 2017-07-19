@@ -1,6 +1,6 @@
 package com.phoenixkahlo.hellcraft.core
 
-import java.util.UUID
+import java.util.{Objects, UUID}
 
 import com.esotericsoftware.kryo.DefaultSerializer
 import com.phoenixkahlo.hellcraft.core.entity.Entity
@@ -22,7 +22,6 @@ class Chunk (
                      @transient val lastRenderer: ParamCache[(TexturePack, World), ChunkRenderer],
                      val lastRendererDirty: Boolean
                    ) {
-
 
   def this(pos: V3I, size: Int = 16) = this(
     pos, size,
@@ -106,5 +105,13 @@ class Chunk (
       blocks = blocks.indices.par.map(decompress).map(f).map(_.id).seq.to[Vector],
       lastRenderer = null
     )
+
+  override def hashCode(): Int =
+    Objects.hash(pos, new Integer(size), blocks, entities)
+
+  override def equals(o: Any): Boolean = o match {
+    case chunk: Chunk => pos == chunk.pos && size == chunk.size && blocks == chunk.blocks && entities == chunk.entities
+    case _ => false
+  }
 
 }

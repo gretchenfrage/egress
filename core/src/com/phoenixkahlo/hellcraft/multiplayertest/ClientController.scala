@@ -11,7 +11,7 @@ import com.badlogic.gdx.math.Vector3
 import com.phoenixkahlo.hellcraft.core.entity.{Avatar, Entity}
 import com.phoenixkahlo.hellcraft.core.{ChunkEvent, World}
 
-class ClientController(session: ServerSession, cam: Camera) extends InputAdapter {
+class ClientController(session: ServerSession, cam: Camera, val client: GameClient) extends InputAdapter {
 
   val sensitivity = 0.25f
   val offset = V3F(0, 1.75f, 0)
@@ -22,7 +22,7 @@ class ClientController(session: ServerSession, cam: Camera) extends InputAdapter
   private val pressed = new mutable.HashSet[Int]
   private val clicks = new mutable.ArrayStack[Int]
 
-  val keys = List(W, A, S, D, SHIFT_LEFT, SPACE, CONTROL_LEFT, TAB)
+  val keys = List(W, A, S, D, SHIFT_LEFT, SPACE, CONTROL_LEFT, TAB, C, H)
 
   private var lastMovDir: Option[V3F] = None
   private var lastJumping: Option[Boolean] = None
@@ -96,6 +96,26 @@ class ClientController(session: ServerSession, cam: Camera) extends InputAdapter
 
         cam.position.set((avatar.pos + offset) toGdx)
         cam.update()
+
+        if (pressed(C)) {
+          pressed -= C
+
+          println("client count: " + world.asInstanceOf[ClientWorld].getLoadedChunks.values.flatMap(_.entities.get(avatarID)).size)
+          println("server count: " + session.avatarCount)
+        }
+
+        if (pressed(H)) {
+          pressed -= H
+
+          println("hash verifying")
+          for (chunk <- world.asInstanceOf[ClientWorld].getLoadedChunks.values) {
+            (chunk.hashCode(), session.hashChunk(world.time, chunk.pos)) match {
+              case (n1, Some(n2)) if n1 != n2 => println("desynchronization at " + chunk.pos)
+              case _ =>
+            }
+          }
+          println("finished hash veryifying")
+        }
       case None => println("controller failed to find avatar")
     }
   }
