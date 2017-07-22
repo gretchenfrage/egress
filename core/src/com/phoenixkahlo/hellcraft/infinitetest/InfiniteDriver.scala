@@ -18,8 +18,8 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.finitetest.SimpleAvatarController
 import com.phoenixkahlo.hellcraft.math.{Origin, Repeated, V3F, V3I}
 import com.phoenixkahlo.hellcraft.save.{RegionSave, WorldSave}
-import com.phoenixkahlo.hellcraft.util.{DependencyGraph, BackgroundMeshCompilerExecutor, PriorityExecContext}
-import other.PerlinNoiseGenerator
+import com.phoenixkahlo.hellcraft.util.{BackgroundMeshCompilerExecutor, DependencyGraph, PriorityExecContext}
+import other.{AppDirs, PerlinNoiseGenerator}
 
 import scala.collection.JavaConverters
 import scala.collection.immutable.HashSet
@@ -46,7 +46,8 @@ class InfiniteDriver extends ApplicationAdapter {
   override def create(): Unit = {
     deleted = new LinkedBlockingQueue
 
-    val saveFolder = new File("C:\\Users\\Phoenix\\Desktop\\inf")
+    val saveFolder = AppDirs.dataDir("egress").resolve("inf").toFile
+    //val saveFolder = new File("C:\\Users\\Phoenix\\Desktop\\inf")
     saveFolder.mkdir()
     save = new RegionSave(saveFolder.toPath, 8)
 

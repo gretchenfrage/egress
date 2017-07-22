@@ -22,7 +22,7 @@ abstract class Cylindroid[C <: Cylindroid[C]](
                 val height: Float,
                 val vel: V3F = Origin,
                 val grounded: Boolean = true
-                ) extends Corpus(pos, id) {
+                ) extends Corpus(pos, id)  {
 
   val g = 9.8f
   val u = 10f

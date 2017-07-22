@@ -4,7 +4,7 @@ import scala.concurrent.duration.DurationInt
 
 trait LoopingApp {
 
-  val fps: Int = 20
+  val fps: Int = GameDriver.updatesPerSecond
 
   def init(deactivator: Runnable): Unit
 

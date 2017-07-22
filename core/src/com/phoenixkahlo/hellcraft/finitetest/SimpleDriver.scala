@@ -15,12 +15,10 @@ import com.badlogic.gdx.{ApplicationAdapter, Gdx}
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.math.{Origin, Up, V3F, V3I}
-import com.phoenixkahlo.hellcraft.save.{NaiveWorldSave, RegionSave}
+import com.phoenixkahlo.hellcraft.save.RegionSave
 import com.phoenixkahlo.hellcraft.util._
-import other.PerlinNoiseGenerator
+import other.{AppDirs, PerlinNoiseGenerator}
 
-
-@deprecated
 class SimpleDriver extends ApplicationAdapter {
 
   private var history: Vector[FiniteWorld] = _
@@ -44,7 +42,8 @@ class SimpleDriver extends ApplicationAdapter {
 
     println("loading / generating")
 
-    val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\save")
+    //val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\save")
+    val saveFolder = AppDirs.dataDir("egress").resolve("fin").toFile
     saveFolder.mkdir()
     val save = new RegionSave(saveFolder.toPath, 8)
 

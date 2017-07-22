@@ -11,7 +11,7 @@ import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch, Renderable, Rende
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.utils.Pool
 import com.esotericsoftware.kryonet.FrameworkMessage.KeepAlive
-import com.esotericsoftware.kryonet.Listener.ThreadedListener
+import com.esotericsoftware.kryonet.Listener.{LagListener, ThreadedListener}
 import com.esotericsoftware.kryonet.{Client, Connection, KryoSerialization, Listener}
 import com.esotericsoftware.kryonet.rmi.{ObjectSpace, RemoteObject}
 import com.phoenixkahlo.hellcraft.core.{DefaultTexturePack, ResourceNode, TexturePack}
@@ -31,6 +31,8 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
   private var rmiSpace: ObjectSpace = _
   private var session: ServerSession = _
   private var clientID: ClientID = _
+  private var serverNanotime: NanotimeMirror = _
+  private var clock: GametimeClock = _
 
   private var deleted: BlockingQueue[ResourceNode] = _
   private var continuum: ClientContinuum = _
@@ -47,10 +49,12 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
 
     // connect to the server
     client = new Client(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
-    client.addListener(new ThreadedListener(this, AsyncExecutor("client listener thread")))
+    client.addListener(new ThreadedListener(new LagListener(MinLag, MaxLag, this), AsyncExecutor("client listener thread")))
     client.start()
     client.connect(5000, serverAddress.getAddress, serverAddress.getPort)
+    client.setTimeout(0)
     // send the initial data
+    println("sending initial client data")
     client.sendTCP(InitialClientData())
     // receive the client's initial data
     val init = received.take().asInstanceOf[InitialServerData]
@@ -67,10 +71,16 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     session = ObjectSpace.getRemoteObject(client, serverSessionReady.sessionID, classOf[ServerSession])
     session.asInstanceOf[RemoteObject].setResponseTimeout(60000)
 
+    // synchronize the times
+    serverNanotime = NanotimeMirror.mirrorServer(session)
+    clock = GametimeClock.clientClock(session, serverNanotime)
+
     // instantiate the other things
     deleted = new LinkedBlockingQueue
     continuum = new ClientContinuum(session,
-      session.getStarter() match { case (time, chunkSeq) => (time, chunkSeq.map(chunk => (chunk.pos, chunk)).toMap) })
+      session.getStarter() match { case (time, chunkSeq) => (time, chunkSeq.map(chunk => (chunk.pos, chunk)).toMap) },
+      session.getTime
+    )
 
     textures = new DefaultTexturePack
 
@@ -144,9 +154,11 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
 
   override def update(): Boolean = {
     // TODO: predict the server time or something
-    while (continuum.time < session.getTime) {
+    //while (continuum.time < session.getTime) {
+    while (continuum.time < clock.gametime) {
       continuum.update()
     }
+    println("client t = " + continuum.time)
 
     true
   }

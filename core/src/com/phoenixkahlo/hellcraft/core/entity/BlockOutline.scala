@@ -15,16 +15,15 @@ import com.phoenixkahlo.hellcraft.util.KeyParamPool
 
 import scala.collection.JavaConverters
 
-case class BlockOutline(v: V3I, color: Color, chunkSize: Int = 16) extends Entity {
+case class BlockOutline(override val pos: V3I, color: Color, chunkSize: Int = 16) extends PositionHaver {
 
-  val chunkPos: V3I = v / chunkSize floor
   override val id: UUID = UUID.randomUUID()
 
   override def update(world: World, ids: Stream[UUID]): Seq[ChunkEvent] =
     Seq(RemoveEntity(chunkPos, id, ids.head))
 
   override def renderables(texturePack: TexturePack): Seq[RenderableFactory] =
-    Seq(BlockOutlineRenderer(v, color))
+    Seq(BlockOutlineRenderer(pos, color))
 
 }
 

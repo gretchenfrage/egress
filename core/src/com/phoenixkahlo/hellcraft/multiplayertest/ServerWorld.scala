@@ -21,6 +21,80 @@ import scala.collection.{SortedSet, mutable}
   *
   * A thread that constructs a snapshot should synchonize to the save while doing so.
   */
+class ServerWorld(
+                 save: WorldSave,
+                 keepLoaded: Set[V3I],
+                 provided: Map[V3I, Chunk],
+                 val time: Long
+                 ) extends World {
+
+  @volatile private var chunks: Map[V3I, Chunk] = provided ++ save.load(keepLoaded.filterNot(provided.contains).toSeq)
+  private val chunkMutex = new Object
+  save.weakListenForSave((prior, saving) => {
+    chunks.get(saving.pos) match {
+      case None => chunkMutex.synchronized {
+        chunks = chunks.updated(saving.pos, prior)
+      }
+      case Some(memoized) if !keepLoaded.contains(prior.pos) && saving == memoized => chunkMutex.synchronized {
+        chunks -= prior.pos
+      }
+      case _ =>
+    }
+  })
+  private val cache = new ThreadLocal[Option[Chunk]] {
+    override def initialValue(): Option[Chunk] = None
+  }
+
+  def loaded: Map[V3I, Chunk] = chunks
+
+  override def chunkIsDefinedAt(chunkPos: V3I): Boolean = true
+
+  override def chunkAt(p: V3I): Option[Chunk] = {
+    val cached = cache.get().filter(_.pos == p)
+    if (cached isDefined) cached
+
+    // this may seem strange, but it's necessary for concurrency reasons
+    val chunk: Chunk = chunks.get(p) match {
+      case Some(chunk) => chunk
+      case None =>
+        val loaded = save.load(p).get
+        chunks.get(p) match {
+          case Some(chunk) => chunk
+          case None => loaded
+        }
+    }
+
+    cache.set(Some(chunk))
+
+    Some(chunk)
+  }
+
+  override def findEntity(id: EntityID): Option[Entity] =
+    chunks.values.flatMap(_.entities.get(id)).headOption
+
+  def pushToSave(): Unit =
+    save.save(chunks.values.toSeq, this)
+
+  //TODO: what if we integrated and incremented time at the same time, since it requires synchronizing to the save
+  def incrTime: ServerWorld = save.synchronized {
+    new ServerWorld(save, keepLoaded, chunks, time + 1)
+  }
+
+  def integrate(events: SortedSet[ChunkEvent]): ServerWorld = {
+    val transformed: Map[V3I, Chunk] = events.groupBy(_.target).map({
+      case (target, group) => (target, group.foldLeft(chunkAt(target).get)({ case (chunk, event) => event(chunk) }))
+    })
+    save.synchronized {
+      new ServerWorld(save, keepLoaded, chunks ++ transformed, time)
+    }
+  }
+
+  def setKeepLoaded(newKeepLoaded: Set[V3I]): ServerWorld = save.synchronized {
+    new ServerWorld(save, newKeepLoaded, chunks, time)
+  }
+
+}
+/*
 //TODO: make locking smarter so that updating can be parallelized.
 class ServerWorld(
                  save: WorldSave,
@@ -36,18 +110,18 @@ class ServerWorld(
   private val cache = new ThreadLocal[Chunk]
 
   // when a chunk is pushed to the save, memoize it, or maybe even unmemoize it
-  save.weakListenForSave(saving => {
-    chunks.get(saving.pos) match {
-      case None =>
-        monitor.synchronized {
-          chunks = chunks.updated(saving.pos, saving)
-        }
-      case Some(old) =>
-        if (!keepLoaded.contains(saving.pos) && saving == old) monitor.synchronized {
-          chunks -= saving.pos
-        }
-    }
-  })
+  save.weakListenForSave((prior, saving) => {
+      chunks.get(prior.pos) match {
+        case None =>
+          monitor.synchronized {
+            chunks = chunks.updated(prior.pos, prior)
+          }
+        case Some(old) =>
+          if (!keepLoaded.contains(prior.pos) && saving == old) monitor.synchronized {
+            chunks -= prior.pos
+          }
+      }
+    })
 
   def loaded: Map[V3I, Chunk] =
     chunks
@@ -94,3 +168,4 @@ class ServerWorld(
   }
 
 }
+*/

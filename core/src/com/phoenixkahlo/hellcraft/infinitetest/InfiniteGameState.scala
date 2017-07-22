@@ -18,6 +18,7 @@ import com.phoenixkahlo.hellcraft.gamedriver.GameState
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.save.{RegionSave, WorldSave}
 import com.phoenixkahlo.hellcraft.util.{BackgroundMeshCompilerExecutor, DependencyGraph, PriorityExecContext}
+import other.AppDirs
 
 import scala.collection.JavaConverters
 import scala.collection.mutable.ArrayBuffer
@@ -48,7 +49,8 @@ class InfiniteGameState extends GameState {
   override def onEnter(): Unit = {
     deleted = new LinkedBlockingQueue
 
-    val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\inf")
+    //val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\inf")
+    val saveFolder = AppDirs.dataDir("egress").resolve("inf").toFile
     saveFolder.mkdir()
     save = new RegionSave(saveFolder.toPath, 8)
     textures = new DefaultTexturePack

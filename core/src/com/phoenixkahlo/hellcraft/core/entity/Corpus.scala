@@ -23,7 +23,7 @@ abstract class Corpus(
                           val pos: V3F,
                           val id: UUID,
                           val chunkSize: Int = 16
-                        ) extends Entity {
+                        ) extends PositionHaver {
 
 
   protected def transform(world: World): Corpus
@@ -34,20 +34,18 @@ abstract class Corpus(
 
   def modelFactory(texturePack: TexturePack): ModelInstanceFactory
 
-  lazy val chunkPos: V3I = pos / chunkSize floor
+  override lazy val chunkPos: V3I = pos / chunkSize floor
 
   override def update(world: World, ids: Stream[UUID]): Seq[ChunkEvent] = {
     val replacer = transform(world)
 
     if (replacer.chunkPos == this.chunkPos)
-      Seq(PutEntity(chunkPos, replacer, ids.head))
-    //Seq(ChunkEvent(chunkPos, ids.head, _.putEntity(replacer), "corpus in-chunk replacement"))
+      Seq(UpdateEntity(replacer, ids.head))
+      //Seq(AddEntity(replacer, ids.head))
     else
       Seq(
-        RemoveEntity(chunkPos, id, ids.head),
-        PutEntity(replacer.chunkPos, replacer, ids.drop(1).head)
-        //ChunkEvent(chunkPos, ids.head,_.removeEntity(this), "corpus chunk removal"),
-        //ChunkEvent(replacer.chunkPos, ids.drop(1).head, _.putEntity(replacer), "corpus chunk insertion")
+        RemoveEntity(this, ids.head),
+        AddEntity(replacer, ids.drop(1).head)
       )
   }
 

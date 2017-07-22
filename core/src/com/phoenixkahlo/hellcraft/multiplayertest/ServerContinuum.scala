@@ -14,12 +14,12 @@ import scala.collection.{SortedMap, SortedSet, mutable}
   */
 class ServerContinuum(save: WorldSave) {
 
-  val historySize: Int = 5 * 60
+  val maxHistorySize: Int = 5 * 60
 
   private val subscriptions = new mutable.HashMap[ClientID, Set[V3I]].withDefaultValue(Set.empty)
   private val updating = new mutable.HashMap[ClientID, Set[V3I]].withDefaultValue(Set.empty)
-  private var externs = new TreeMap[Long, Set[ChunkEvent]]
-  private var history = new TreeMap[Long, ServerWorld]
+  private var externs = new TreeMap[Long, Set[ChunkEvent]] // TODO: forget externs
+  @volatile private var history = new TreeMap[Long, ServerWorld]
 
   history = history.updated(0, new ServerWorld(save, Set.empty, Map.empty, 0))
 
@@ -37,6 +37,10 @@ class ServerContinuum(save: WorldSave) {
 
   def getStarter(client: ClientID): (Long, Seq[Chunk]) = this.synchronized {
     (time, subscriptions(client).toSeq.map(current.chunkAt(_).get))
+  }
+
+  def getHistory: TreeMap[Long, ServerWorld] = this.synchronized {
+    history
   }
 
   /**
@@ -57,8 +61,8 @@ class ServerContinuum(save: WorldSave) {
     history = history.updated(next.time, next)
 
     // forget history
-    if (history.size > historySize)
-      history = history.drop(historySize - history.size)
+    if (history.size > maxHistorySize)
+      history = history.drop(history.size - maxHistorySize)
 
     // sort the events by their targets
     val eventsByTarget: Map[V3I, Seq[(ChunkEvent, Option[V3I])]] =
@@ -71,7 +75,10 @@ class ServerContinuum(save: WorldSave) {
     })
 
     // return
-    eventsToSend.filter(_._2.nonEmpty).mapValues(_.foldLeft(new TreeSet[ChunkEvent])(_ + _)).filter(_._2.nonEmpty)
+    val setsToSend: Map[ClientID, SortedSet[ChunkEvent]] =
+      eventsToSend.filter(_._2.nonEmpty).mapValues(_.foldLeft(new TreeSet[ChunkEvent])(_ + _)).filter(_._2.nonEmpty)
+
+    setsToSend
   }
 
   /**

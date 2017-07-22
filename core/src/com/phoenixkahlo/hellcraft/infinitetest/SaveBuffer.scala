@@ -107,8 +107,11 @@ class SaveBuffer(val save: WorldSave, generator: V3I => Block) {
   }
 
   def resources(textures: TexturePack, world: World): Seq[ResourceNode] = this.synchronized {
-    buffer.values.filter(_ isLeft).map({ case Left(chunk) => chunk })
-      .flatMap(_.renderables(textures, world)).flatMap(_.resources).toSeq
+    //buffer.values.filter(_ isLeft).map({ case Left(chunk) => chunk })
+    buffer.values.flatMap({
+      case Left(chunk) => Some(chunk)
+      case Right(_) => None
+    }).flatMap(_.renderables(textures, world)).flatMap(_.resources).toSeq
   }
 
   def close(world: World): Unit = this.synchronized {

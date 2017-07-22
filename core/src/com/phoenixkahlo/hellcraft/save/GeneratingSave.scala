@@ -23,7 +23,7 @@ class GeneratingSave(wraps: WorldSave, generator: V3I => Block) extends WorldSav
   override def load(chunkPos: V3I): Option[Chunk] =
     load(Seq(chunkPos)).get(chunkPos)
 
-  override def weakListenForSave(listener: (Chunk) => Unit): Unit =
+  override def weakListenForSave(listener: (Chunk, Chunk) => Unit): Unit =
     wraps.weakListenForSave(listener)
 
 }

@@ -88,22 +88,35 @@ class ClientController(session: ServerSession, cam: Camera, val client: GameClie
 
         val jumping = pressed(SPACE)
 
+        /*
         if (!(lastMovDir.contains(movDir) && lastJumping.contains(jumping))) {
           session.setMovement(world.time, movDir, jumping)
           lastMovDir = Some(movDir)
           lastJumping = Some(jumping)
         }
+        */
+        if (!session.setMovement(world.time, movDir, jumping))
+          println("server failed to set avatar movement")
+        /*
+        if (!(lastMovDir.contains(movDir) && lastJumping.contains(jumping))) {
+          if (session.setMovement(world.time, movDir, jumping)) {
+            lastMovDir = Some(movDir)
+            lastJumping = Some(jumping)
+          }
+        }
+        */
 
         cam.position.set((avatar.pos + offset) toGdx)
         cam.update()
 
+        // press c to count occurences of avatar on client and server, for debugging purposes
         if (pressed(C)) {
           pressed -= C
 
           println("client count: " + world.asInstanceOf[ClientWorld].getLoadedChunks.values.flatMap(_.entities.get(avatarID)).size)
           println("server count: " + session.avatarCount)
         }
-
+        // press h to check for hashcode discrepencies between chunks in the client and server
         if (pressed(H)) {
           pressed -= H
 
@@ -111,6 +124,7 @@ class ClientController(session: ServerSession, cam: Camera, val client: GameClie
           for (chunk <- world.asInstanceOf[ClientWorld].getLoadedChunks.values) {
             (chunk.hashCode(), session.hashChunk(world.time, chunk.pos)) match {
               case (n1, Some(n2)) if n1 != n2 => println("desynchronization at " + chunk.pos)
+              case (_, None) => println("server failed to hash " + chunk.pos)
               case _ =>
             }
           }

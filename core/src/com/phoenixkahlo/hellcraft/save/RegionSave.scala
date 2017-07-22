@@ -14,7 +14,7 @@ import scala.ref.WeakReference
 
 class RegionSave(path: Path, regionSize: Int) extends WorldSave {
 
-  private var listeners = Vector[WeakReference[Chunk => Unit]]()
+  private var listeners = Vector[WeakReference[(Chunk, Chunk) => Unit]]()
 
   private def fileName(region: V3I): String =
     "c" + region.xi + "c" + region.yi + "c" + region.zi + "c" + ".region"
@@ -23,18 +23,23 @@ class RegionSave(path: Path, regionSize: Int) extends WorldSave {
 
   private def chunksIn(region: V3I): Seq[V3I] = (region * regionSize) until ((region + Ones) * regionSize)
 
-  override def weakListenForSave(listener: (Chunk) => Unit): Unit = this.synchronized {
+  override def weakListenForSave(listener: (Chunk, Chunk) => Unit): Unit = this.synchronized {
     listeners :+= WeakReference(listener)
   }
 
   // TODO: make asynchronous
   override def save(chunks: Seq[Chunk], world: World): Unit = this.synchronized {
+    //TODO: don't load them twice
     // invoke listeners and remove dead listeners
-    for {
-      listener <- listeners
-      chunk <- chunks
-    } yield listener.get.foreach(_(chunk))
-    listeners = listeners.filter(_.get.isDefined)
+    if (listeners nonEmpty) {
+      val prior: Map[V3I, Chunk] = load(chunks.map(_.pos))
+      for {
+        listener <- listeners
+        chunk <- chunks
+      } yield listener.get.foreach(_(prior(chunk.pos), chunk))
+      listeners = listeners.filter(_.get.isDefined)
+    }
+
     // do the saving
     for ((region, group) <- chunks.groupBy(c => regionOf(c.pos))) {
       // generate the chunk map

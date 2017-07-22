@@ -47,12 +47,13 @@ class ClientWorld(
     new ClientWorld(session, chunks ++ newChunks, time)
 
   def setLoaded(ps: Set[V3I]): ClientWorld = {
-    new ClientWorld(session, ps.map(p => (p, chunkAt(p).get)).toMap, time)
+    new ClientWorld(session, ps.toSeq.map(p => (p, chunkAt(p).get)).toMap, time)
   }
 
   def integrate(events: SortedSet[ChunkEvent]): ClientWorld = {
+    //println("client world integrating " + events)
     // sort the events by their target
-    val eventsByTarget = events.groupBy(_.target)
+    val eventsByTarget: Map[V3I, SortedSet[ChunkEvent]] = events.groupBy(_.target)
     // transform the chunks for which events exist
     val transformed: Map[V3I, Chunk] =
       eventsByTarget.par.map({
@@ -63,6 +64,7 @@ class ClientWorld(
   }
 
   def update(subscribed: Set[V3I], updating: Set[V3I], unpredictable: SortedSet[ChunkEvent]): ClientWorld = {
+    //println("upgrading with unpredictables " + unpredictable)
     // accumulate all the events from chunks we are updating, and then join them with the unpredictable events
     // filter out events targeted at chunks we are not subscribed to
     val events = updating.flatMap(chunkAt(_).get.update(this)).filter(e => subscribed.contains(e.target))

@@ -13,7 +13,7 @@ trait WorldSave extends AutoCloseable {
 
   def load(chunkPos: V3I): Option[Chunk]
 
-  def weakListenForSave(listener: Chunk => Unit): Unit
+  def weakListenForSave(listener: (Chunk, Chunk) => Unit): Unit
 
   override def close(): Unit = {}
 

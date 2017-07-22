@@ -28,4 +28,6 @@ case class Avatar(
 
   def updateJumping(newJumping: Boolean): Avatar = copy(jumping = newJumping)
 
+  override def toString: String = "avatar " + id.toString.substring(0, 6) + " at " + pos
+
 }

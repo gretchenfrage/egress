@@ -17,4 +17,8 @@ package object multiplayertest {
   type EventID = UUID
   type AvatarID = UUID
 
+  val MinLag = 10
+  val MaxLag = 15
+  def rmiLagSimTime: Long = (Math.random() * (MaxLag - MinLag) + MinLag) * 2 toLong
+
 }
