@@ -69,7 +69,6 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), 
     * A server operation
     */
   def integrate(events: SortedMap[Long, SortedSet[ChunkEvent]]): Unit = {
-    //println("client continuum integrating " + events)
     if (events isEmpty) return
     serverMutex.synchronized {
       // capture the history
@@ -95,45 +94,5 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), 
       }
     }
   }
-
-  /*
-  def setServerRelation(atTime: Long, newSubscribed: Set[V3I], newUpdating: Set[V3I], provided: Map[V3I, Chunk]): Unit =
-    this.synchronized {
-      currentOverride = Some(history.last._2)
-
-      val currTime = time
-
-      revert(atTime)
-      provide(provided)
-      subscribed = newSubscribed
-      updating = newUpdating
-
-      while (time < currTime)
-        update()
-
-      currentOverride = None
-    }
-
-  def integrate(events: SortedMap[Long, SortedSet[ChunkEvent]]): Unit = this.synchronized {
-    if (events isEmpty) return
-
-    currentOverride = Some(history.last._2)
-
-    val currTime = time
-    revert(events.firstKey)
-
-    for ((targetTime, eventGroup) <- events) {
-      while (time < targetTime)
-        update()
-      update(eventGroup)
-    }
-
-    while (time < currTime)
-      update()
-
-    currentOverride = None
-  }
-
-    */
 
 }

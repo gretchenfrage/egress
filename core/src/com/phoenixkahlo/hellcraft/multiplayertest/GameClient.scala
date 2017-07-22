@@ -79,7 +79,8 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     deleted = new LinkedBlockingQueue
     continuum = new ClientContinuum(session,
       session.getStarter() match { case (time, chunkSeq) => (time, chunkSeq.map(chunk => (chunk.pos, chunk)).toMap) },
-      session.getTime
+      clock.gametime
+      //session.getTime
     )
 
     textures = new DefaultTexturePack
@@ -153,12 +154,9 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
   }
 
   override def update(): Boolean = {
-    // TODO: predict the server time or something
-    //while (continuum.time < session.getTime) {
     while (continuum.time < clock.gametime) {
       continuum.update()
     }
-    println("client t = " + continuum.time)
 
     true
   }

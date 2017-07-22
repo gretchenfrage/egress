@@ -19,6 +19,6 @@ package object multiplayertest {
 
   val MinLag = 0
   val MaxLag = 0
-  def rmiLagSimTime: Long = (Math.random() * (MaxLag - MinLag) + MinLag) * 2 toLong
+  def randLag: Long = (Math.random() * (MaxLag - MinLag) + MinLag) toLong
 
 }

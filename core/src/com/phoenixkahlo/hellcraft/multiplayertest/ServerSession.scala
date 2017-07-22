@@ -31,59 +31,77 @@ trait ServerSession {
 class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: ClientID) extends ServerSession {
 
   override def getTime: Long = {
-    Thread.sleep(rmiLagSimTime)
-    server.clock.gametime
+    try {
+      Thread.sleep(randLag)
+      server.clock.gametime
+    } finally Thread.sleep(randLag)
   }
 
   override def chunkAt(time: Long, p: V3I): Option[Chunk] = {
-    Thread.sleep(rmiLagSimTime)
-    server.continuum.snapshot(time).flatMap(_.chunkAt(p))
+    try {
+      Thread.sleep(randLag)
+      server.continuum.snapshot(time).flatMap(_.chunkAt(p))
+    } finally Thread.sleep(randLag)
   }
 
   override def getStarter(): (Long, Seq[Chunk]) = {
-    Thread.sleep(rmiLagSimTime)
-    server.continuum.getStarter(clientID)
+    try {
+      Thread.sleep(randLag)
+      server.continuum.getStarter(clientID)
+    } finally Thread.sleep(randLag)
   }
 
   lazy val avatarID: EntityID = {
-    Thread.sleep(rmiLagSimTime)
-    server.avatars.synchronized {
-      while (!server.avatars.contains(clientID))
-        server.avatars.wait()
-      server.avatars(clientID)
-    }
+    try {
+      Thread.sleep(randLag)
+      server.avatars.synchronized {
+        while (!server.avatars.contains(clientID))
+          server.avatars.wait()
+        server.avatars(clientID)
+      }
+    } finally Thread.sleep(randLag)
   }
 
   override def setMovement(atTime: Long, movDir: V3F, jumping: Boolean): Boolean = {
-    Thread.sleep(rmiLagSimTime)
-    server.continuum.snapshot(atTime).flatMap(_.findEntity(avatarID).map(_.asInstanceOf[Avatar])) match {
-      case Some(avatar) =>
-        server.integrateExtern(atTime,
-          UpdateEntity(avatar.updateDirection(movDir).updateJumping(jumping), UUID.randomUUID()))
-        true
-      case None =>
-        false
-    }
+    try {
+      Thread.sleep(randLag)
+      server.continuum.snapshot(atTime).flatMap(_.findEntity(avatarID).map(_.asInstanceOf[Avatar])) match {
+        case Some(avatar) =>
+          server.integrateExtern(atTime,
+            UpdateEntity(avatar.updateDirection(movDir).updateJumping(jumping), UUID.randomUUID()))
+          true
+        case None =>
+          false
+      }
+    } finally Thread.sleep(randLag)
   }
 
   override def avatarCount: Int = {
-    Thread.sleep(rmiLagSimTime)
-    server.continuum.current.loaded.values.flatMap(_.entities.get(avatarID)).size
+    try {
+      Thread.sleep(randLag)
+      server.continuum.current.loaded.values.flatMap(_.entities.get(avatarID)).size
+    } finally Thread.sleep(randLag)
   }
 
   override def hashChunk(atTime: Long, p: V3I): Option[Int] = {
-    Thread.sleep(rmiLagSimTime)
-    server.continuum.snapshot(atTime).flatMap(_.chunkAt(p).map(_.hashCode()))
+    try {
+      Thread.sleep(randLag)
+      server.continuum.snapshot(atTime).flatMap(_.chunkAt(p).map(_.hashCode()))
+    } finally Thread.sleep(randLag)
   }
 
   override def getServerNanotime: Long = {
-    Thread.sleep(rmiLagSimTime)
-    System.nanoTime()
+    try {
+      Thread.sleep(randLag)
+      System.nanoTime()
+    } finally Thread.sleep(randLag)
   }
 
   override def getGameclockStartNanotime: Long = {
-    Thread.sleep(rmiLagSimTime)
-    server.clock.nanotimeStart
+    try {
+      Thread.sleep(randLag)
+      server.clock.nanotimeStart
+    } finally Thread.sleep(randLag)
   }
 
 }

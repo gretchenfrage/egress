@@ -106,8 +106,6 @@ class GameServer(port: Int) extends Listener with LoopingApp {
     // loop via recursion TODO: integrate this with the driver
     if (time < clock.gametime)
       update()
-    else
-      println("SERVER t = " + time)
   }
 
   def setClientRelation(client: ClientID, subscribed: Set[V3I], updatingSet: Set[V3I]): Unit = {

@@ -70,8 +70,9 @@ class ServerContinuum(save: WorldSave) {
 
     // compute which events need to be sent to which clients
     val eventsToSend: Map[ClientID, Seq[ChunkEvent]] = subscriptions.toMap.mapValues({
-      subscribed => subscribed.toSeq.map(eventsByTarget.get).filter(_ isDefined).flatMap(_.get)
-        .filterNot({ case (_, producer) => producer.exists(subscribed.contains) }).map(_._1)
+      subscribed =>
+        subscribed.toSeq.map(eventsByTarget.get).filter(_ isDefined).flatMap(_.get)
+          .filterNot({ case (_, producer) => producer.exists(subscribed.contains) }).map(_._1)
     })
 
     // return
@@ -104,27 +105,28 @@ class ServerContinuum(save: WorldSave) {
     * Retroactively integrate the events into the continuum, and return similar integration maps that need to be
     * sent to each client.
     */
-  def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Map[ClientID, SortedMap[Long, SortedSet[ChunkEvent]]] = this.synchronized {
-    // we'll need this later
-    val currTime = time
+  def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Map[ClientID, SortedMap[Long, SortedSet[ChunkEvent]]] =
+    this.synchronized {
+      // we'll need this later
+      val currTime = time
 
-    // discard externs that are impossible to integrate
-    val toIntegrate = newExterns.rangeImpl(Some(history.firstKey), None)
+      // discard externs that are impossible to integrate
+      val toIntegrate = newExterns.rangeImpl(Some(history.firstKey), None)
 
-    // revert
-    revert(toIntegrate.firstKey)
+      // revert
+      revert(toIntegrate.firstKey)
 
-    // introduce the externs
-    externs ++= toIntegrate
+      // introduce the externs
+      externs ++= toIntegrate
 
-    // update back to the original time and accumulate the events
-    var accumulator = new HashMap[ClientID, SortedMap[Long, SortedSet[ChunkEvent]]]
-    while (time < currTime)
-      for ((client, events) <- update())
-        accumulator = accumulator.updated(client,
-          accumulator.getOrElse(client, new TreeMap[Long, SortedSet[ChunkEvent]]).updated(time, events))
+      // update back to the original time and accumulate the events
+      var accumulator = new HashMap[ClientID, SortedMap[Long, SortedSet[ChunkEvent]]]
+      while (time < currTime)
+        for ((client, events) <- update())
+          accumulator = accumulator.updated(client,
+            accumulator.getOrElse(client, new TreeMap[Long, SortedSet[ChunkEvent]]).updated(time, events))
 
-    accumulator.filter({ case (_, events) => events.nonEmpty })
-  }
+      accumulator.filter({ case (_, events) => events.nonEmpty })
+    }
 
 }

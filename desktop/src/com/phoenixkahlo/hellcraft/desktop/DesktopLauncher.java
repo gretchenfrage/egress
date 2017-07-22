@@ -4,6 +4,7 @@ import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
 import com.phoenixkahlo.hellcraft.gamedriver.GameDriver;
 import com.phoenixkahlo.hellcraft.gamedriver.LoopExecutor;
+import com.phoenixkahlo.hellcraft.infinitetest.InfiniteDriver;
 import com.phoenixkahlo.hellcraft.multiplayertest.GameClient;
 import com.phoenixkahlo.hellcraft.multiplayertest.GameServer;
 import other.AppDirs;
@@ -20,7 +21,7 @@ public class DesktopLauncher {
 		//config.width = 1800;
 		//config.height = 800;
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-		double factor = 0.4;
+		double factor = 0.5;
 		config.width = (int) (screenSize.width * factor);
 		config.height = (int) (screenSize.height * factor);
 
@@ -29,7 +30,6 @@ public class DesktopLauncher {
 		dir.toFile().mkdir();
 
 
-		//File mul = new File("C:\\Users\\kahlo\\Desktop\\mul");
 		File mul = AppDirs.dataDir("egress").resolve("mul").toFile();
 		if (mul.exists()) Arrays.asList(mul.listFiles()).forEach(File::delete);
 		new LoopExecutor(new GameServer(25565)).start();
