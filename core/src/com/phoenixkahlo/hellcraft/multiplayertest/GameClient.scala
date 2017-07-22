@@ -122,7 +122,7 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
 
     // update the camera controller
-    controller.update(continuum.current)
+    controller.update(world)
 
     // get the renderable factories
     val p = V3F(cam.position) / 16 floor
