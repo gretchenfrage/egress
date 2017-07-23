@@ -106,7 +106,21 @@ class ClientController(session: ServerSession, cam: Camera, val client: GameClie
         }
         */
 
-        cam.position.set((avatar.pos + offset) toGdx)
+        /*
+        val interpolation: Option[(World, Float)] =
+      continuum.snapshot(world.time - 1) match {
+        case Some(previous) => Some((previous, 1 - clock.fractionalTicksSince(previous.time)))
+        case None => None
+      }
+         */
+        val interpolation: Option[(World, Float)] =
+          client.getContinuum.snapshot(world.time - 1) match {
+            case Some(previous) => Some((previous, 1 - client.getClock.fractionalTicksSince(previous.time)))
+            case None => None
+          }
+        val pos = interpolation.map({ case (a, b) => avatar.interpolatePos(a, b) }).getOrElse(avatar.pos)
+
+        cam.position.set((pos + offset) toGdx)
         cam.update()
 
         // press c to count occurences of avatar on client and server, for debugging purposes

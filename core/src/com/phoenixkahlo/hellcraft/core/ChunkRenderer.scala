@@ -219,33 +219,13 @@ class ChunkRenderer(
   /**
     * Bring this object into an active state, generating resources, and return the renderables.
     */
-  override def apply(): Seq[Renderable] =
+  override def apply(interpolate: Option[(World, Float)]): Seq[Renderable] =
     if (meshData.isCompleted) Seq(renderable())
     else previous match {
       case Some(renderer) => renderer()
       case None => Nil
     }
 
-
-
-  /**
-    * Return the sequence of factories that this factory depends on for being in an activate state.
-    */
-    /*
-  override def dependencies: Seq[RenderableFactory] =
-    if (meshData.isCompleted) Nil
-    else previous match {
-      case Some(previous) => Seq(previous)
-      case None => Nil
-    }
-
-  /**
-    * Bring this object into an unactive state, and dispose of resources.
-    */
-  override def dispose(): Unit = {
-    renderable.invalidate
-  }
-  */
   override def resources: Seq[ResourceNode] = Seq(this)
 
   override def dependencies: Seq[ResourceNode] =

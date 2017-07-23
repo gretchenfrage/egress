@@ -52,6 +52,12 @@ abstract class Corpus(
   override def renderables(texturePack: TexturePack): Seq[RenderableFactory] =
     Seq(PooledInstanceRenderer(this, texturePack))
 
+  def interpolatePos(world: World, fraction: Float): V3F =
+    world.findEntity(id).map(_.asInstanceOf[Corpus].pos) match {
+      case Some(pos2) => ((pos2 - pos) * fraction) + pos
+      case None => pos
+    }
+
 }
 
 case class PooledInstanceRenderer(corpus: Corpus, texturePack: TexturePack) extends RenderableFactory {
@@ -59,11 +65,17 @@ case class PooledInstanceRenderer(corpus: Corpus, texturePack: TexturePack) exte
   /**
     * Bring this object into an active state, generating resources, and return the renderables.
     */
-  override def apply(): Seq[Renderable] = {
+  override def apply(interpolate: Option[(World, Float)]): Seq[Renderable] = {
     // obtain model
     val model = ModelPool(corpus.modelID, corpus.modelFactory(texturePack))
+    // interpolate
+    val translate = (interpolate match {
+      case Some((world, fraction)) => corpus.interpolatePos(world, fraction)
+      case None => corpus.pos
+    }) + corpus.modelOffset
     // translate model
-    model.transform.setTranslation(corpus.pos + corpus.modelOffset toGdx)
+    //model.transform.setTranslation(corpus.pos + corpus.modelOffset toGdx)
+    model.transform.setTranslation(translate toGdx)
     // extract renderables from model
     val array = new com.badlogic.gdx.utils.Array[Renderable]()
     val pool = new Pool[Renderable]() {

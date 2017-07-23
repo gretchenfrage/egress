@@ -1,6 +1,6 @@
 package com.phoenixkahlo.hellcraft.multiplayertest
 
-import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent}
+import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent, World}
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.util.Cache
 

@@ -14,14 +14,14 @@ import com.esotericsoftware.kryonet.FrameworkMessage.KeepAlive
 import com.esotericsoftware.kryonet.Listener.{LagListener, ThreadedListener}
 import com.esotericsoftware.kryonet.{Client, Connection, KryoSerialization, Listener}
 import com.esotericsoftware.kryonet.rmi.{ObjectSpace, RemoteObject}
-import com.phoenixkahlo.hellcraft.core.{DefaultTexturePack, ResourceNode, TexturePack}
-import com.phoenixkahlo.hellcraft.gamedriver.GameState
+import com.phoenixkahlo.hellcraft.core.{DefaultTexturePack, ResourceNode, TexturePack, World}
+import com.phoenixkahlo.hellcraft.gamedriver.{GameState, RunnableGameState}
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.util.{AsyncExecutor, DependencyGraph, GlobalKryo, PriorityExecContext}
 
 import scala.collection.JavaConverters
 
-class GameClient(serverAddress: InetSocketAddress) extends Listener with GameState {
+class GameClient(serverAddress: InetSocketAddress) extends Listener with RunnableGameState {
 
   @volatile var ready = false
   val readyMonitor = new Object
@@ -80,7 +80,6 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     continuum = new ClientContinuum(session,
       session.getStarter() match { case (time, chunkSeq) => (time, chunkSeq.map(chunk => (chunk.pos, chunk)).toMap) },
       clock.gametime
-      //session.getTime
     )
 
     textures = new DefaultTexturePack
@@ -125,6 +124,15 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     // update the camera controller
     controller.update(world)
 
+    /*
+
+  def interpolation(clock: GametimeClock): Option[(World, Float)] =
+    snapshot(time - 1) match {
+      case Some(previous) => Some((previous, 1 - clock.fractionalTicksSince(previous.time)))
+      case None => None
+    }
+     */
+
     // get the renderable factories
     val p = V3F(cam.position) / 16 floor
     val chunks = ((p - V3I(3, 3, 3)) to (p + V3I(3, 3, 3))).flatMap(world.weakChunkAt)
@@ -144,21 +152,25 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
     }
 
     // do the rendering
+    val interpolation: Option[(World, Float)] =
+      continuum.snapshot(world.time - 1) match {
+        case Some(previous) => Some((previous, 1 - clock.fractionalTicksSince(previous.time)))
+        case None => None
+      }
     val provider = new RenderableProvider {
       override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit =
-        factories.flatMap(_()).foreach(renderables.add)
+        factories.flatMap(_(interpolation)).foreach(renderables.add)
     }
     modelBatch.begin(cam)
     modelBatch.render(provider, lights)
     modelBatch.end()
   }
 
-  override def update(): Boolean = {
-    while (continuum.time < clock.gametime) {
+  override def run(): Unit = {
+    while (true) {
       continuum.update()
+      clock.waitUntil(continuum.time + 1)
     }
-
-    true
   }
 
   override def onExit(): Unit = {
@@ -176,5 +188,7 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with GameSta
   }
 
   def getContinuum: ClientContinuum = continuum
+
+  def getClock: GametimeClock = clock
 
 }

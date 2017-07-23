@@ -9,21 +9,12 @@ import com.badlogic.gdx.graphics.g3d.Renderable
 trait RenderableFactory {
 
   /**
-    * Bring this object into an active state, generating resources, and return the renderables.
+    * Bring this object into an active state, generating resources, and return the renderables. While activating,
+    * interpolate with the other world.
     */
-  def apply(): Seq[Renderable]
+  def apply(interpolate: Option[(World, Float)] = None): Seq[Renderable]
 
   def resources: Seq[ResourceNode]
-
-  /**
-    * Return the sequence of factories that this factory depends on for being in an activate state.
-    */
-  //def dependencies: Seq[RenderableFactory]
-
-  /**
-    * Bring this object into an unactive state, and dispose of resources.
-    */
-  //def dispose(): Unit
 
 }
 

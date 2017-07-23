@@ -27,7 +27,7 @@ import scala.collection.parallel
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 
-class GameServer(port: Int) extends Listener with LoopingApp {
+class GameServer extends Listener with Runnable {
 
   var save: WorldSave = _
   var continuum: ServerContinuum = _
@@ -44,7 +44,9 @@ class GameServer(port: Int) extends Listener with LoopingApp {
 
   val savingFlag = new AtomicBoolean(false)
 
-  override def init(deactivator: Runnable): Unit = {
+  def this(port: Int) = {
+    this()
+
     val saveFolder = AppDirs.dataDir("egress").resolve("mul").toFile
     saveFolder.mkdir()
     save = new GeneratingRegionSave(saveFolder toPath, 24, v => {
@@ -85,6 +87,7 @@ class GameServer(port: Int) extends Listener with LoopingApp {
     server.start()
   }
 
+  /*
   override def update(): Unit = {
     // update and route events to clients as needed
     val (time, toRoute) = continuum.synchronized {
@@ -106,6 +109,30 @@ class GameServer(port: Int) extends Listener with LoopingApp {
     // loop via recursion TODO: integrate this with the driver
     if (time < clock.gametime)
       update()
+  }
+  */
+  override def run(): Unit = {
+    while (true) {
+      // update and route events to clients as needed
+      val (time, toRoute) = continuum.synchronized {
+        (continuum.time, continuum.update())
+      }
+      for ((client, events) <- toRoute) {
+        clientSeqExecutors(client).execute(() => {
+          clientSessions(client).integrate(new TreeMap[Long, SortedSet[ChunkEvent]]().updated(time, events))
+        })
+      }
+      // push the current world to the save, if the time is right
+      val current = continuum.current
+      if (time % 600 == 0 && !savingFlag.getAndSet(true)) PriorityExecContext(1).execute(() => {
+        println("saving")
+        current.pushToSave()
+        println("finished saving")
+        savingFlag.set(false)
+      })
+      // possibly sleep until the next tick
+      clock.waitUntil(time + 1)
+    }
   }
 
   def setClientRelation(client: ClientID, subscribed: Set[V3I], updatingSet: Set[V3I]): Unit = {
@@ -136,12 +163,6 @@ class GameServer(port: Int) extends Listener with LoopingApp {
 
   def integrateExternNow(extern: ChunkEvent): Unit =
     integrateExternsNow(new HashSet[ChunkEvent] + extern)
-
-  override def dispose(): Unit = {
-    continuum.current.pushToSave()
-    save.close()
-    server.close()
-  }
 
   override def connected(connection: Connection): Unit = {
     println("connection received in thread " + Thread.currentThread())

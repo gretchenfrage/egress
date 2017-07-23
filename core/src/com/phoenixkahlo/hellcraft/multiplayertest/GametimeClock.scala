@@ -8,6 +8,18 @@ class GametimeClock(getNanotime: => Long, val nanotimeStart: Long) {
 
   def gametime: Long = (((getNanotime - nanotimeStart) nanoseconds) / GameDriver.dt) toLong
 
+  def waitUntil(time: Long): Unit = {
+    val duration = (time * GameDriver.dt) + (nanotimeStart nanoseconds) - (System.nanoTime() nanoseconds)
+    if (duration > Duration.Zero)
+      Thread.sleep(duration toMillis)
+  }
+
+  def timeSince(time: Long): Duration =
+    ((System.nanoTime() - nanotimeStart) nanoseconds) - (time * GameDriver.dt)
+
+  def fractionalTicksSince(time: Long): Float =
+    (timeSince(time) / GameDriver.dt) toFloat
+
 }
 
 object GametimeClock {

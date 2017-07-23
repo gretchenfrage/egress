@@ -32,7 +32,7 @@ case class BlockOutlineRenderer(v: V3I, color: Color) extends RenderableFactory 
   /**
     * Bring this object into an active state, generating resources, and return the renderables.
     */
-  override def apply(): Seq[Renderable] = {
+  override def apply(interpolate: Option[(World, Float)]): Seq[Renderable] = {
     // obtain instance
     val instance = new ModelInstance(OutlineModelPool(color, color))
     instance.transform.setTranslation(v toGdx)
