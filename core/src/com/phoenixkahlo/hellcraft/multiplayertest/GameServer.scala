@@ -87,30 +87,6 @@ class GameServer extends Listener with Runnable {
     server.start()
   }
 
-  /*
-  override def update(): Unit = {
-    // update and route events to clients as needed
-    val (time, toRoute) = continuum.synchronized {
-      (continuum.time, continuum.update())
-    }
-    for ((client, events) <- toRoute) {
-      clientSeqExecutors(client).execute(() => {
-        clientSessions(client).integrate(new TreeMap[Long, SortedSet[ChunkEvent]]().updated(time, events))
-      })
-    }
-    // push the current world to the save, if the time is right
-    val current = continuum.current
-    if (time % 600 == 0 && !savingFlag.getAndSet(true)) PriorityExecContext(1).execute(() => {
-      println("saving")
-      current.pushToSave()
-      println("finished saving")
-      savingFlag.set(false)
-    })
-    // loop via recursion TODO: integrate this with the driver
-    if (time < clock.gametime)
-      update()
-  }
-  */
   override def run(): Unit = {
     while (true) {
       // update and route events to clients as needed

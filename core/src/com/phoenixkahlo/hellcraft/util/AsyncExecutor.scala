@@ -23,7 +23,7 @@ object AsyncExecutor {
 
   val global: ExecutionContext = context("global async thread")
 
-  def run(task: => Unit): Future[Unit] =
+  def run[T](task: => T): Future[T] =
     Future { task } (global)
 
 }

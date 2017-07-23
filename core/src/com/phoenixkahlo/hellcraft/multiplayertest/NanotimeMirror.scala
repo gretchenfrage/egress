@@ -14,7 +14,7 @@ case class NanotimeMirror(delta: Long) {
 object NanotimeMirror {
 
   def mirror(queryRemoteTime: => Long): NanotimeMirror = {
-    var deltas = new ArrayBuffer[Long]
+    val deltas = new ArrayBuffer[Long]
     for (_ <- 1 to 10) {
       val sendTime = System.nanoTime()
       val serverTime = queryRemoteTime

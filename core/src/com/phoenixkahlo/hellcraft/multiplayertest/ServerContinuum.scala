@@ -19,9 +19,8 @@ class ServerContinuum(save: WorldSave) {
   private val subscriptions = new mutable.HashMap[ClientID, Set[V3I]].withDefaultValue(Set.empty)
   private val updating = new mutable.HashMap[ClientID, Set[V3I]].withDefaultValue(Set.empty)
   private var externs = new TreeMap[Long, Set[ChunkEvent]] // TODO: forget externs
-  @volatile private var history = new TreeMap[Long, ServerWorld]
-
-  history = history.updated(0, new ServerWorld(save, Set.empty, Map.empty, 0))
+  @volatile private var history =
+    new TreeMap[Long, ServerWorld].updated(0, new ServerWorld(save, Set.empty, Map.empty, 0)) // notify on modification
 
   def current: ServerWorld = this.synchronized {
     history.last._2
@@ -32,6 +31,12 @@ class ServerContinuum(save: WorldSave) {
   }
 
   def snapshot(target: Long): Option[ServerWorld] = this.synchronized {
+    history.get(target)
+  }
+
+  def waitForSnapshot(target: Long): Option[ServerWorld] = this.synchronized {
+    while (history.lastKey < target)
+      wait()
     history.get(target)
   }
 
@@ -63,6 +68,9 @@ class ServerContinuum(save: WorldSave) {
     // forget history
     if (history.size > maxHistorySize)
       history = history.drop(history.size - maxHistorySize)
+
+    // notify
+    notifyAll()
 
     // sort the events by their targets
     val eventsByTarget: Map[V3I, Seq[(ChunkEvent, Option[V3I])]] =
@@ -99,6 +107,7 @@ class ServerContinuum(save: WorldSave) {
     */
   def revert(target: Long): Unit = this.synchronized {
     history = history.rangeImpl(None, Some(target + 1))
+    notifyAll()
   }
 
   /**

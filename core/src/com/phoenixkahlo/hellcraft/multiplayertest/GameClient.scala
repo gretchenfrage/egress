@@ -124,15 +124,6 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with Runnabl
     // update the camera controller
     controller.update(world)
 
-    /*
-
-  def interpolation(clock: GametimeClock): Option[(World, Float)] =
-    snapshot(time - 1) match {
-      case Some(previous) => Some((previous, 1 - clock.fractionalTicksSince(previous.time)))
-      case None => None
-    }
-     */
-
     // get the renderable factories
     val p = V3F(cam.position) / 16 floor
     val chunks = ((p - V3I(3, 3, 3)) to (p + V3I(3, 3, 3))).flatMap(world.weakChunkAt)

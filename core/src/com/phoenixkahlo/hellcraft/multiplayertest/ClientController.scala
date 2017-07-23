@@ -1,5 +1,7 @@
 package com.phoenixkahlo.hellcraft.multiplayertest
 
+import java.util.concurrent.atomic.AtomicBoolean
+
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.{Gdx, InputAdapter}
 import com.badlogic.gdx.graphics.Camera
@@ -10,6 +12,7 @@ import com.badlogic.gdx.Input.Keys._
 import com.badlogic.gdx.math.Vector3
 import com.phoenixkahlo.hellcraft.core.entity.{Avatar, Entity}
 import com.phoenixkahlo.hellcraft.core.{ChunkEvent, World}
+import com.phoenixkahlo.hellcraft.util.AsyncExecutor
 
 class ClientController(session: ServerSession, cam: Camera, val client: GameClient) extends InputAdapter {
 
@@ -24,8 +27,7 @@ class ClientController(session: ServerSession, cam: Camera, val client: GameClie
 
   val keys = List(W, A, S, D, SHIFT_LEFT, SPACE, CONTROL_LEFT, TAB, C, H)
 
-  private var lastMovDir: Option[V3F] = None
-  private var lastJumping: Option[Boolean] = None
+  private val sendingSetMovement = new AtomicBoolean(false)
 
   override def keyDown(k: Int): Boolean =
     if (k == ESCAPE) {
@@ -88,36 +90,20 @@ class ClientController(session: ServerSession, cam: Camera, val client: GameClie
 
         val jumping = pressed(SPACE)
 
-        /*
-        if (!(lastMovDir.contains(movDir) && lastJumping.contains(jumping))) {
-          session.setMovement(world.time, movDir, jumping)
-          lastMovDir = Some(movDir)
-          lastJumping = Some(jumping)
-        }
-        */
-        if (!session.setMovement(world.time, movDir, jumping))
-          println("server failed to set avatar movement")
-        /*
-        if (!(lastMovDir.contains(movDir) && lastJumping.contains(jumping))) {
-          if (session.setMovement(world.time, movDir, jumping)) {
-            lastMovDir = Some(movDir)
-            lastJumping = Some(jumping)
+        if (!sendingSetMovement.getAndSet(true)) {
+          AsyncExecutor run {
+            if (!session.setMovement(world.time, movDir, jumping))
+              println("server failed to set movement")
+            sendingSetMovement.set(false)
           }
         }
-        */
 
-        /*
-        val interpolation: Option[(World, Float)] =
-      continuum.snapshot(world.time - 1) match {
-        case Some(previous) => Some((previous, 1 - clock.fractionalTicksSince(previous.time)))
-        case None => None
-      }
-         */
         val interpolation: Option[(World, Float)] =
           client.getContinuum.snapshot(world.time - 1) match {
             case Some(previous) => Some((previous, 1 - client.getClock.fractionalTicksSince(previous.time)))
             case None => None
           }
+
         val pos = interpolation.map({ case (a, b) => avatar.interpolatePos(a, b) }).getOrElse(avatar.pos)
 
         cam.position.set((pos + offset) toGdx)
@@ -130,7 +116,7 @@ class ClientController(session: ServerSession, cam: Camera, val client: GameClie
           println("client count: " + world.asInstanceOf[ClientWorld].getLoadedChunks.values.flatMap(_.entities.get(avatarID)).size)
           println("server count: " + session.avatarCount)
         }
-        // press h to check for hashcode discrepencies between chunks in the client and server
+        // press h to check for hashcode discrepencies between chunks in the client and server, for debugging purposes
         if (pressed(H)) {
           pressed -= H
 

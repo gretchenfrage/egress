@@ -40,7 +40,7 @@ class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: C
   override def chunkAt(time: Long, p: V3I): Option[Chunk] = {
     try {
       Thread.sleep(randLag)
-      server.continuum.snapshot(time).flatMap(_.chunkAt(p))
+      server.continuum.waitForSnapshot(time).flatMap(_.chunkAt(p))
     } finally Thread.sleep(randLag)
   }
 
@@ -65,7 +65,7 @@ class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: C
   override def setMovement(atTime: Long, movDir: V3F, jumping: Boolean): Boolean = {
     try {
       Thread.sleep(randLag)
-      server.continuum.snapshot(atTime).flatMap(_.findEntity(avatarID).map(_.asInstanceOf[Avatar])) match {
+      server.continuum.waitForSnapshot(atTime).flatMap(_.findEntity(avatarID).map(_.asInstanceOf[Avatar])) match {
         case Some(avatar) =>
           server.integrateExtern(atTime,
             UpdateEntity(avatar.updateDirection(movDir).updateJumping(jumping), UUID.randomUUID()))
