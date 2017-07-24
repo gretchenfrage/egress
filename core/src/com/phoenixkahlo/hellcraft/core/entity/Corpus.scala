@@ -40,7 +40,7 @@ abstract class Corpus(
     val replacer = transform(world)
 
     if (replacer.chunkPos == this.chunkPos)
-      Seq(UpdateEntity(replacer, ids.head))
+      Seq(ReplaceEntity(replacer, ids.head))
       //Seq(AddEntity(replacer, ids.head))
     else
       Seq(

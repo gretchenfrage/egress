@@ -1,5 +1,6 @@
 package com.phoenixkahlo.hellcraft.multiplayertest
 
+import java.io.{FileOutputStream, PrintStream}
 import java.net.InetSocketAddress
 import java.util.concurrent._
 
@@ -14,10 +15,12 @@ import com.esotericsoftware.kryonet.FrameworkMessage.KeepAlive
 import com.esotericsoftware.kryonet.Listener.{LagListener, ThreadedListener}
 import com.esotericsoftware.kryonet.{Client, Connection, KryoSerialization, Listener}
 import com.esotericsoftware.kryonet.rmi.{ObjectSpace, RemoteObject}
+import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.core.{DefaultTexturePack, ResourceNode, TexturePack, World}
 import com.phoenixkahlo.hellcraft.gamedriver.{GameState, RunnableGameState}
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.util.{AsyncExecutor, DependencyGraph, GlobalKryo, PriorityExecContext}
+import other.AppDirs
 
 import scala.collection.JavaConverters
 
@@ -112,6 +115,11 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with Runnabl
     }
   }
 
+  val log = AppDirs.dataDir("egress").resolve("pos.csv").toFile
+  log.createNewFile()
+  val logStream = new PrintStream(new FileOutputStream(AppDirs.dataDir("egress").resolve("pos").toFile))
+  logStream.println("time, pos")
+
   override def render(): Unit = {
     // prepare
     g += 1
@@ -123,6 +131,10 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with Runnabl
 
     // update the camera controller
     controller.update(world)
+
+    world.findEntity(controller.avatarID).map(_.asInstanceOf[Avatar])
+      .foreach(avatar => logStream.println(System.nanoTime() + ", " + avatar.pos.dist(Origin)))
+    logStream.flush()
 
     // get the renderable factories
     val p = V3F(cam.position) / 16 floor

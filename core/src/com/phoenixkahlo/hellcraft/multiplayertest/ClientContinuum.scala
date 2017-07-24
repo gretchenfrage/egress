@@ -95,4 +95,7 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), 
     }
   }
 
+  def integrate(event: ChunkEvent, atTime: Long): Unit =
+    integrate(new TreeMap[Long, SortedSet[ChunkEvent]]().updated(atTime, new TreeSet[ChunkEvent] + event))
+
 }

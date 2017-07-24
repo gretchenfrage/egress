@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.multiplayertest
 
 import java.util.UUID
 
-import com.phoenixkahlo.hellcraft.core.{AddEntity, Chunk, ChunkEvent, UpdateEntity}
+import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 
@@ -17,6 +17,8 @@ trait ServerSession {
   def avatarID: EntityID
 
   def setMovement(atTime: Long, movDir: V3F, jumping: Boolean): Boolean
+
+  def submitExtern(event: ChunkEvent, atTime: Long): Boolean
 
   def avatarCount: Int
 
@@ -68,10 +70,9 @@ class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: C
       server.continuum.waitForSnapshot(atTime).flatMap(_.findEntity(avatarID).map(_.asInstanceOf[Avatar])) match {
         case Some(avatar) =>
           server.integrateExtern(atTime,
-            UpdateEntity(avatar.updateDirection(movDir).updateJumping(jumping), UUID.randomUUID()))
+            SetAvatarMovement(avatar.id, movDir, jumping, avatar.chunkPos, UUID.randomUUID()))
           true
-        case None =>
-          false
+        case None => false
       }
     } finally Thread.sleep(randLag)
   }
@@ -86,7 +87,7 @@ class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: C
   override def hashChunk(atTime: Long, p: V3I): Option[Int] = {
     try {
       Thread.sleep(randLag)
-      server.continuum.snapshot(atTime).flatMap(_.chunkAt(p).map(_.hashCode()))
+      server.continuum.waitForSnapshot(atTime).flatMap(_.chunkAt(p).map(_.hashCode()))
     } finally Thread.sleep(randLag)
   }
 
@@ -104,5 +105,19 @@ class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: C
     } finally Thread.sleep(randLag)
   }
 
+  override def submitExtern(event: ChunkEvent, atTime: Long): Boolean = {
+    try {
+      Thread.sleep(randLag)
+      val accept = event match {
+        case SetAvatarMovement(aID, _, _, _, _) if aID == avatarID => true
+        case _ => false
+      }
+      if (accept)
+        server.integrateExtern(atTime, event)
+      else
+        System.err.println("server: rejecting " + event)
+      accept
+    } finally Thread.sleep(randLag)
+  }
 }
 

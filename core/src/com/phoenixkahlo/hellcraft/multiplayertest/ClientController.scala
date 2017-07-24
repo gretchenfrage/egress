@@ -1,6 +1,7 @@
 package com.phoenixkahlo.hellcraft.multiplayertest
 
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.UUID
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.{Gdx, InputAdapter}
@@ -11,7 +12,7 @@ import scala.collection.mutable
 import com.badlogic.gdx.Input.Keys._
 import com.badlogic.gdx.math.Vector3
 import com.phoenixkahlo.hellcraft.core.entity.{Avatar, Entity}
-import com.phoenixkahlo.hellcraft.core.{ChunkEvent, World}
+import com.phoenixkahlo.hellcraft.core.{ChunkEvent, SetAvatarMovement, World}
 import com.phoenixkahlo.hellcraft.util.AsyncExecutor
 
 class ClientController(session: ServerSession, cam: Camera, val client: GameClient) extends InputAdapter {
@@ -90,12 +91,24 @@ class ClientController(session: ServerSession, cam: Camera, val client: GameClie
 
         val jumping = pressed(SPACE)
 
+        /*
         if (!sendingSetMovement.getAndSet(true)) {
           AsyncExecutor run {
             if (!session.setMovement(world.time, movDir, jumping))
               println("server failed to set movement")
             sendingSetMovement.set(false)
           }
+        }
+        */
+        val setMovement = SetAvatarMovement(avatar.id, movDir, jumping, avatar.chunkPos, UUID.randomUUID())
+        if (!sendingSetMovement.getAndSet(true)) {
+          AsyncExecutor run {
+            val accepted = session.submitExtern(setMovement, world.time)
+            if (!accepted)
+              System.err.println("server rejected setmovement!")
+            sendingSetMovement.set(false)
+          }
+          //client.getContinuum.integrate(setMovement, world.time)
         }
 
         val interpolation: Option[(World, Float)] =

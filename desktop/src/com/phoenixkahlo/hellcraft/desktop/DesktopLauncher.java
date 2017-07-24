@@ -4,6 +4,7 @@ import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
 import com.phoenixkahlo.hellcraft.gamedriver.GameDriver;
 import com.phoenixkahlo.hellcraft.gamedriver.LoopExecutor;
+import com.phoenixkahlo.hellcraft.gamedriver.RunnableGameStateDriver;
 import com.phoenixkahlo.hellcraft.infinitetest.InfiniteDriver;
 import com.phoenixkahlo.hellcraft.multiplayertest.GameClient;
 import com.phoenixkahlo.hellcraft.multiplayertest.GameServer;
@@ -32,9 +33,9 @@ public class DesktopLauncher {
 
 		File mul = AppDirs.dataDir("egress").resolve("mul").toFile();
 		if (mul.exists()) Arrays.asList(mul.listFiles()).forEach(File::delete);
-		new LoopExecutor(new GameServer(25565)).start();
+		new Thread(new GameServer(25565)).start();
 		try { Thread.sleep(5000); } catch (Exception e) { throw new RuntimeException(e); }
-		new LwjglApplication(new GameDriver(new GameClient(new InetSocketAddress("localhost", 25565))), config);
+		new LwjglApplication(new RunnableGameStateDriver(new GameClient(new InetSocketAddress("localhost", 25565))), config);
 
 
 		//new LwjglApplication(new GameDriver(new InfiniteGameState()), config);

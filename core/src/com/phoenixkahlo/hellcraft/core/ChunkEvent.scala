@@ -2,8 +2,9 @@ package com.phoenixkahlo.hellcraft.core
 
 import java.util.UUID
 
-import com.phoenixkahlo.hellcraft.core.entity.{Entity, PositionHaver}
+import com.phoenixkahlo.hellcraft.core.entity.{Avatar, Entity, PositionHaver}
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
+import com.phoenixkahlo.hellcraft.multiplayertest.EntityID
 
 /**
   * A transformation that is applied to a particular chunk.
@@ -46,8 +47,27 @@ object RemoveEntity {
   def apply(entity: PositionHaver, id: UUID): RemoveEntity = RemoveEntity(entity.chunkPos, entity.id, id)
 }
 
-case class UpdateEntity(updated: PositionHaver, override val id: UUID) extends ChunkEvent(updated.chunkPos, id) {
+case class ReplaceEntity(replacer: PositionHaver, override val id: UUID) extends ChunkEvent(replacer.chunkPos, id) {
   override def apply(chunk: Chunk): Chunk =
-    if (chunk.entities.contains(updated.id)) chunk.putEntity(updated)
+    if (chunk.entities.contains(replacer.id)) chunk.putEntity(replacer)
     else chunk
+}
+
+abstract class TransformEntity(entityID: UUID, override val target: V3I, override val id: UUID)
+  extends ChunkEvent(target, id) {
+
+  def transform(entity: Entity): Entity
+
+  override def apply(chunk: Chunk): Chunk =
+    chunk.entities.get(entityID) match {
+      case Some(entity) => chunk.putEntity(transform(entity))
+      case None => chunk
+    }
+
+}
+
+case class SetAvatarMovement(avatarID: UUID, movDir: V3F, jumping: Boolean, override val target: V3I,
+                             override val id: UUID) extends TransformEntity(avatarID, target, id) {
+  override def transform(entity: Entity): Entity =
+    entity.asInstanceOf[Avatar].updateDirection(movDir).updateJumping(jumping)
 }
