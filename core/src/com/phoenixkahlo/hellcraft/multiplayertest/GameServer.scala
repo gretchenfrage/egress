@@ -34,8 +34,10 @@ class GameServer extends Listener with Runnable {
   var clock: GametimeClock = _
 
   var server: Server = _
+
   var clientIDByConnection: parallel.mutable.ParMap[Connection, ClientID] = _
   var clientConnectionByID: parallel.mutable.ParMap[ClientID, Connection] = _
+
   var clientRMISpaces: parallel.mutable.ParMap[ClientID, ObjectSpace] = _
   var clientSessions: parallel.mutable.ParMap[ClientID, ClientSession] = _
   var clientSeqExecutors: parallel.mutable.ParMap[ClientID, ExecutionContext] = _
@@ -62,7 +64,9 @@ class GameServer extends Listener with Runnable {
 
     server = new Server(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
     server.bind(port)
-    server.addListener(new ThreadedListener(new LagListener(MinLag, MaxLag, this), AsyncExecutor("server listener thread")))
+    server.addListener(new LagListener(MinLag, MaxLag, new ThreadedListener(this,
+      Executors.newSingleThreadExecutor(runnable => new Thread(runnable, "server listener thread")))))
+
 
     clientIDByConnection = new parallel.mutable.ParHashMap
     clientConnectionByID = new parallel.mutable.ParHashMap
@@ -70,19 +74,7 @@ class GameServer extends Listener with Runnable {
     clientSessions = new parallel.mutable.ParHashMap
     clientSeqExecutors = new parallel.mutable.ParHashMap
     avatars = new parallel.mutable.ParHashMap
-
-    // received will automatically create queues when one is requested for a new client ID
-    received = new parallel.mutable.ParHashMap[ClientID, BlockingQueue[Any]] {
-      override def get(key: ClientID): Option[BlockingQueue[Any]] = this.synchronized {
-        super.get(key) match {
-          case queue if queue isDefined => queue
-          case None =>
-            val queue = new LinkedBlockingQueue[Any]
-            put(key, queue)
-            Some(queue)
-        }
-      }
-    }
+    received = new parallel.mutable.ParHashMap
 
     server.start()
   }
@@ -141,59 +133,56 @@ class GameServer extends Listener with Runnable {
     integrateExternsNow(new HashSet[ChunkEvent] + extern)
 
   override def connected(connection: Connection): Unit = {
-    println("connection received in thread " + Thread.currentThread())
-    // listen
-    connection.addListener(new ThreadedListener(new LagListener(MinLag, MaxLag, this), AsyncExecutor("server client listener thread")))
-    // disable timeout
+    // in the one server listener thread, get ready to receive objects
     connection.setTimeout(0)
-    // give the client an ID
     val clientID = UUID.randomUUID()
     clientIDByConnection.put(connection, clientID)
     clientConnectionByID.put(clientID, connection)
     clientSeqExecutors.put(clientID, ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor(runnable => new Thread(runnable, "client seq thread"))))
+    received.put(clientID, new LinkedBlockingQueue)
+    // do the rest of the handshake in a different thread
+    AsyncExecutor run {
+      println("handshaking in " + Thread.currentThread())
+      // send the initial data
+      connection.sendTCP(InitialServerData(clientID))
+      // receive the client's initial data
+      val init = received(clientID).take().asInstanceOf[InitialClientData]
+      // use the initial data to create a session
+      val serverSession = new ServerSessionImpl(init, this, clientID)
+      val rmiSpace = new ObjectSpace
+      rmiSpace.setExecutor(AsyncExecutor("server RMI thread"))
+      clientRMISpaces.put(clientID, rmiSpace)
+      rmiSpace.addConnection(connection)
+      val sessionID = ThreadLocalRandom.current().nextInt()
+      rmiSpace.register(sessionID, serverSession)
+      // tell the client the session is ready
+      connection.sendTCP(ServerSessionReady(sessionID))
+      // wait for and setup the remote client session
+      val clientSessionReady = received(clientID).take().asInstanceOf[ClientSessionReady]
+      val clientSession = ObjectSpace.getRemoteObject(connection, clientSessionReady.sessionID, classOf[ClientSession])
+      clientSession.asInstanceOf[RemoteObject].setResponseTimeout(60000)
+      clientSessions.put(clientID, clientSession)
 
-    // send the initial data
-    connection.sendTCP(InitialServerData(clientID))
-    // receive the client's initial data
-    val init = received(clientID).take().asInstanceOf[InitialClientData]
-    // use the initial data to create a session
-    val serverSession = new ServerSessionImpl(init, this, clientID)
-    val rmiSpace = new ObjectSpace
-    rmiSpace.setExecutor(AsyncExecutor("server RMI thread"))
-    clientRMISpaces.put(clientID, rmiSpace)
-    rmiSpace.addConnection(connection)
-    val sessionID = ThreadLocalRandom.current().nextInt()
-    rmiSpace.register(sessionID, serverSession)
-    // tell the client the session is ready
-    println("sending server session ready")
-    connection.sendTCP(ServerSessionReady(sessionID))
-    // wait for and setup the remote client session
-    val clientSessionReady = received(clientID).take().asInstanceOf[ClientSessionReady]
-    val clientSession = ObjectSpace.getRemoteObject(connection, clientSessionReady.sessionID, classOf[ClientSession])
-    clientSession.asInstanceOf[RemoteObject].setResponseTimeout(60000)
-    clientSessions.put(clientID, clientSession)
+      // for now, make it so that each client just subscribes to the same chunk of chunks
+      setClientRelation(
+        clientID,
+        (Origin - V3I(5, 5, 5)) to (Origin + V3I(5, 5, 5)) toSet,
+        (Origin - V3I(3, 3, 3)) to (Origin + V3I(3, 3, 3)) toSet
+      )
 
-    // for now, make it so that each client just subscribes to the same chunk of chunks
-    setClientRelation(
-      clientID,
-      (Origin - V3I(5, 5, 5)) to (Origin + V3I(5, 5, 5)) toSet,
-      (Origin - V3I(3, 3, 3)) to (Origin + V3I(3, 3, 3)) toSet
-    )
-
-    // create the avatar
-    val avatar = Avatar(pos = V3F(0, 10, 0))
-    integrateExternNow(AddEntity(avatar, UUID.randomUUID()))
-    avatars.synchronized {
-      avatars.put(clientID, avatar.id)
-      avatars.notifyAll()
+      // create the avatar
+      val avatar = Avatar(pos = V3F(0, 10, 0))
+      integrateExternNow(AddEntity(avatar, UUID.randomUUID()))
+      avatars.synchronized {
+        avatars.put(clientID, avatar.id)
+        avatars.notifyAll()
+      }
     }
-
   }
 
   override def received(connection: Connection, obj: Any): Unit = {
     if (obj.isInstanceOf[Transmission]) {
-      val queue = received(clientIDByConnection(connection))
-      queue.add(obj)
+      received(clientIDByConnection(connection)).add(obj)
     }
   }
 

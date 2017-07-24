@@ -52,12 +52,12 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with Runnabl
 
     // connect to the server
     client = new Client(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
-    client.addListener(new ThreadedListener(new LagListener(MinLag, MaxLag, this), AsyncExecutor("client listener thread")))
+    //client.addListener(new ThreadedListener(new LagListener(MinLag, MaxLag, this), AsyncExecutor("client listener thread")))
+    client.addListener(new LagListener(MinLag, MaxLag, new ThreadedListener(this, AsyncExecutor("client listener thread"))))
     client.start()
     client.connect(5000, serverAddress.getAddress, serverAddress.getPort)
     client.setTimeout(0)
     // send the initial data
-    println("sending initial client data")
     client.sendTCP(InitialClientData())
     // receive the client's initial data
     val init = received.take().asInstanceOf[InitialServerData]
@@ -115,11 +115,6 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with Runnabl
     }
   }
 
-  val log = AppDirs.dataDir("egress").resolve("pos.csv").toFile
-  log.createNewFile()
-  val logStream = new PrintStream(new FileOutputStream(AppDirs.dataDir("egress").resolve("pos").toFile))
-  logStream.println("time, pos")
-
   override def render(): Unit = {
     // prepare
     g += 1
@@ -131,10 +126,6 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with Runnabl
 
     // update the camera controller
     controller.update(world)
-
-    world.findEntity(controller.avatarID).map(_.asInstanceOf[Avatar])
-      .foreach(avatar => logStream.println(System.nanoTime() + ", " + avatar.pos.dist(Origin)))
-    logStream.flush()
 
     // get the renderable factories
     val p = V3F(cam.position) / 16 floor

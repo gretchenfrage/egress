@@ -24,6 +24,8 @@ trait ServerSession {
 
   def hashChunk(atTime: Long, p: V3I): Option[Int]
 
+  def hashChunks(atTime: Long, chunks: Seq[V3I]): Map[V3I, Int]
+
   def getServerNanotime: Long
 
   def getGameclockStartNanotime: Long
@@ -87,7 +89,17 @@ class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: C
   override def hashChunk(atTime: Long, p: V3I): Option[Int] = {
     try {
       Thread.sleep(randLag)
-      server.continuum.waitForSnapshot(atTime).flatMap(_.chunkAt(p).map(_.hashCode()))
+      server.continuum.snapshot(atTime).flatMap(_.chunkAt(p).map(_.hashCode()))
+    } finally Thread.sleep(randLag)
+  }
+
+  override def hashChunks(atTime: Long, chunks: Seq[V3I]): Map[V3I, Int] = {
+    try {
+      Thread.sleep(randLag)
+      server.continuum.snapshot(atTime) match {
+        case Some(world) => chunks.flatMap(world.chunkAt(_).map(chunk => (chunk.pos, chunk.hashCode))).toMap
+        case None => Map.empty
+      }
     } finally Thread.sleep(randLag)
   }
 
@@ -112,12 +124,13 @@ class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: C
         case SetAvatarMovement(aID, _, _, _, _) if aID == avatarID => true
         case _ => false
       }
-      if (accept)
+      if (accept) {
+
         server.integrateExtern(atTime, event)
-      else
-        System.err.println("server: rejecting " + event)
+      }
       accept
     } finally Thread.sleep(randLag)
   }
+
 }
 
