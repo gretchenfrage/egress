@@ -12,7 +12,7 @@ import scala.collection.mutable
 import com.badlogic.gdx.Input.Keys._
 import com.badlogic.gdx.math.Vector3
 import com.phoenixkahlo.hellcraft.core.entity.{Avatar, Entity}
-import com.phoenixkahlo.hellcraft.core.{ChunkEvent, SetAvatarMovement, World}
+import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent, SetAvatarMovement, World}
 import com.phoenixkahlo.hellcraft.util.AsyncExecutor
 
 class ClientController(session: ServerSession, cam: Camera, val client: GameClient) extends InputAdapter {
@@ -134,10 +134,12 @@ class ClientController(session: ServerSession, cam: Camera, val client: GameClie
           pressed -= H
 
           println("hash verifying")
-          for (chunk <- world.asInstanceOf[ClientWorld].getLoadedChunks.values) {
-            (chunk.hashCode(), session.hashChunk(world.time, chunk.pos)) match {
-              case (n1, Some(n2)) if n1 != n2 => println("desynchronization at " + chunk.pos)
-              case (_, None) => println("server failed to hash " + chunk.pos)
+          val chunks = world.asInstanceOf[ClientWorld].getLoadedChunks.keys.toSeq
+          val hashes = session.hashChunks(world.time, chunks)
+          for (p <- chunks) {
+            (world.chunkAt(p).get.hashCode, hashes.get(p)) match {
+              case (n1, Some(n2)) if n1 != n2 => println("desynchronization at " + p)
+              case (_, None) => println("server failed to hash " + p)
               case _ =>
             }
           }

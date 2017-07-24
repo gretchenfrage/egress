@@ -142,7 +142,6 @@ class GameServer extends Listener with Runnable {
     received.put(clientID, new LinkedBlockingQueue)
     // do the rest of the handshake in a different thread
     AsyncExecutor run {
-      println("handshaking in " + Thread.currentThread())
       // send the initial data
       connection.sendTCP(InitialServerData(clientID))
       // receive the client's initial data
