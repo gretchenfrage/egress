@@ -6,6 +6,8 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 
+import scala.collection.immutable.SortedMap
+
 trait ServerSession {
 
   def getTime: Long
@@ -19,6 +21,8 @@ trait ServerSession {
   def setMovement(atTime: Long, movDir: V3F, jumping: Boolean): Boolean
 
   def submitExtern(event: ChunkEvent, atTime: Long): Boolean
+
+  def submitExterns(events: SortedMap[Long, Set[ChunkEvent]]): Seq[(Long, ChunkEvent)]
 
   def avatarCount: Int
 
@@ -117,20 +121,38 @@ class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: C
     } finally Thread.sleep(randLag)
   }
 
+  private def isLegit(extern: ChunkEvent): Boolean = extern match {
+    case SetAvatarMovement(aID, _, _, _, _) if aID == avatarID => true
+    case _ => false
+  }
+
+
   override def submitExtern(event: ChunkEvent, atTime: Long): Boolean = {
     try {
       Thread.sleep(randLag)
-      val accept = event match {
-        case SetAvatarMovement(aID, _, _, _, _) if aID == avatarID => true
-        case _ => false
-      }
+      val accept = isLegit(event)
       if (accept) {
-
         server.integrateExtern(atTime, event)
       }
       accept
     } finally Thread.sleep(randLag)
   }
+
+
+  override def submitExterns(events: SortedMap[Long, Set[ChunkEvent]]): Seq[(Long, ChunkEvent)] = {
+    try {
+      Thread.sleep(randLag)
+      // filter which ones to accept
+      val accepted = events.mapValues(_.filter(isLegit)).filterNot({ case (_, set) => set isEmpty })
+      // integrate then
+      if (accepted nonEmpty)
+        server.integrateExterns(accepted)
+      // compute which ones were rejected and send back
+      events.toSeq.flatMap({ case (time, set) => set.map((time, _)) })
+        .filterNot({ case (time, event) => accepted.getOrElse(time, Set.empty).contains(event) })
+    } finally Thread.sleep(randLag)
+  }
+
 
 }
 

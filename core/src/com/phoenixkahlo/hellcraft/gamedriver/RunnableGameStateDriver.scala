@@ -6,7 +6,7 @@ class RunnableGameStateDriver(state: RunnableGameState) extends ApplicationAdapt
 
   override def create(): Unit = {
     state.onEnter()
-    new Thread(state).start()
+    new Thread(state, "client loop thread").start()
   }
 
   override def render(): Unit = {

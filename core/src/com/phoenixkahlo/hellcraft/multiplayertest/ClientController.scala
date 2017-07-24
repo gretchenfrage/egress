@@ -1,6 +1,7 @@
 package com.phoenixkahlo.hellcraft.multiplayertest
 
 import java.util.UUID
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
 import com.badlogic.gdx.Input.Keys
@@ -15,6 +16,8 @@ import com.phoenixkahlo.hellcraft.core.entity.{Avatar, Entity}
 import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent, SetAvatarMovement, World}
 import com.phoenixkahlo.hellcraft.util.AsyncExecutor
 
+import scala.collection.immutable.TreeMap
+
 class ClientController(session: ServerSession, cam: Camera, val client: GameClient) extends InputAdapter {
 
   val sensitivity = 0.25f
@@ -28,7 +31,22 @@ class ClientController(session: ServerSession, cam: Camera, val client: GameClie
 
   val keys = List(W, A, S, D, SHIFT_LEFT, SPACE, CONTROL_LEFT, TAB, C, H)
 
-  private val sendingSetMovement = new AtomicBoolean(false)
+  //private val sendingSetMovement = new AtomicBoolean(false)
+  private val toSubmit = new LinkedBlockingQueue[(Long, ChunkEvent)]
+
+  new Thread(() => {
+    while (true) {
+      var events = new TreeMap[Long, Set[ChunkEvent]]
+      def add(submission: (Long, ChunkEvent)): Unit = submission match {
+        case (time, event) => events = events.updated(time, events.getOrElse(time, Set.empty) + event)
+      }
+      add(toSubmit.take())
+      while (toSubmit.size > 0)
+        add(toSubmit.remove())
+      for (failed <- session.submitExterns(events))
+        System.err.println("server rejected " + failed)
+    }
+  }).start()
 
   override def keyDown(k: Int): Boolean =
     if (k == ESCAPE) {
@@ -100,6 +118,7 @@ class ClientController(session: ServerSession, cam: Camera, val client: GameClie
           }
         }
         */
+        /*
         val setMovement = SetAvatarMovement(avatar.id, movDir, jumping, avatar.chunkPos, UUID.randomUUID())
         if (!sendingSetMovement.getAndSet(true)) {
           AsyncExecutor run {
@@ -110,6 +129,9 @@ class ClientController(session: ServerSession, cam: Camera, val client: GameClie
           }
           //client.getContinuum.integrate(setMovement, world.time)
         }
+        */
+        val setMovement = SetAvatarMovement(avatar.id, movDir, jumping, avatar.chunkPos, UUID.randomUUID())
+        toSubmit.add((world.time, setMovement))
 
         val interpolation: Option[(World, Float)] =
           client.getContinuum.snapshot(world.time - 1) match {
