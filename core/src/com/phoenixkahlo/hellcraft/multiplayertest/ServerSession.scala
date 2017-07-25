@@ -34,6 +34,8 @@ trait ServerSession {
 
   def getGameclockStartNanotime: Long
 
+  def getSubscribedChunks(atTime: Long): Seq[Chunk]
+
 }
 
 class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: ClientID) extends ServerSession {
@@ -117,6 +119,9 @@ class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: C
       .filterNot({ case (time, event) => accepted.getOrElse(time, Set.empty).contains(event) })
   }
 
+  override def getSubscribedChunks(atTime: Long): Seq[Chunk] = {
+    server.continuum.getSubscribedChunks(clientID, atTime)
+  }
 
 }
 

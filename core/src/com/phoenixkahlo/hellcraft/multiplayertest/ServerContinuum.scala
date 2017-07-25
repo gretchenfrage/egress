@@ -44,6 +44,11 @@ class ServerContinuum(save: WorldSave) {
     (time, subscriptions(client).toSeq.map(current.chunkAt(_).get))
   }
 
+  def getSubscribedChunks(client: ClientID, time: Long): Seq[Chunk] = this.synchronized {
+    val world = snapshot(time).get
+    subscriptions(client).toSeq.map(world.chunkAt(_).get)
+  }
+
   def getHistory: TreeMap[Long, ServerWorld] = this.synchronized {
     history
   }

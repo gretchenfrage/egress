@@ -31,7 +31,6 @@ class ClientController(session: ServerSession, cam: Camera, val client: GameClie
 
   val keys = List(W, A, S, D, SHIFT_LEFT, SPACE, CONTROL_LEFT, TAB, C, H)
 
-  //private val sendingSetMovement = new AtomicBoolean(false)
   private var lastSetMovement: Long = Long.MinValue
   private val toSubmit = new LinkedBlockingQueue[(Long, ChunkEvent)]
 
@@ -44,11 +43,11 @@ class ClientController(session: ServerSession, cam: Camera, val client: GameClie
       add(toSubmit.take())
       while (toSubmit.size > 0)
         add(toSubmit.remove())
-      println("submitting " + events)
+      println("submitting " + events.size + " events")
       for (failed <- session.submitExterns(events))
         System.err.println("server rejected " + failed)
     }
-  }).start()
+  }, "controller event submission thread").start()
 
   override def keyDown(k: Int): Boolean =
     if (k == ESCAPE) {
@@ -111,18 +110,6 @@ class ClientController(session: ServerSession, cam: Camera, val client: GameClie
 
         val jumping = pressed(SPACE)
 
-        /*
-        val setMovement = SetAvatarMovement(avatar.id, movDir, jumping, avatar.chunkPos, UUID.randomUUID())
-        if (!sendingSetMovement.getAndSet(true)) {
-          AsyncExecutor run {
-            val accepted = session.submitExtern(setMovement, world.time)
-            if (!accepted)
-              System.err.println("server rejected setmovement!")
-            sendingSetMovement.set(false)
-          }
-          //client.getContinuum.integrate(setMovement, world.time)
-        }
-        */
         if (lastSetMovement != world.time) {
           lastSetMovement = world.time
           val setMovement = SetAvatarMovement(avatar.id, movDir, jumping, avatar.chunkPos, UUID.randomUUID())
