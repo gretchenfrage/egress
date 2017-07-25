@@ -39,86 +39,56 @@ trait ServerSession {
 class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: ClientID) extends ServerSession {
 
   override def getTime: Long = {
-    try {
-      Thread.sleep(randLag)
-      server.clock.gametime
-    } finally Thread.sleep(randLag)
+    server.clock.gametime
   }
 
   override def chunkAt(time: Long, p: V3I): Option[Chunk] = {
-    try {
-      Thread.sleep(randLag)
-      server.continuum.waitForSnapshot(time).flatMap(_.chunkAt(p))
-    } finally Thread.sleep(randLag)
+    server.continuum.waitForSnapshot(time).flatMap(_.chunkAt(p))
   }
 
   override def getStarter(): (Long, Seq[Chunk]) = {
-    try {
-      Thread.sleep(randLag)
-      server.continuum.getStarter(clientID)
-    } finally Thread.sleep(randLag)
+    server.continuum.getStarter(clientID)
   }
 
   lazy val avatarID: EntityID = {
-    try {
-      Thread.sleep(randLag)
-      server.avatars.synchronized {
-        while (!server.avatars.contains(clientID))
-          server.avatars.wait()
-        server.avatars(clientID)
-      }
-    } finally Thread.sleep(randLag)
+    server.avatars.synchronized {
+      while (!server.avatars.contains(clientID))
+        server.avatars.wait()
+      server.avatars(clientID)
+    }
   }
 
   override def setMovement(atTime: Long, movDir: V3F, jumping: Boolean): Boolean = {
-    try {
-      Thread.sleep(randLag)
-      server.continuum.waitForSnapshot(atTime).flatMap(_.findEntity(avatarID).map(_.asInstanceOf[Avatar])) match {
-        case Some(avatar) =>
-          server.integrateExtern(atTime,
-            SetAvatarMovement(avatar.id, movDir, jumping, avatar.chunkPos, UUID.randomUUID()))
-          true
-        case None => false
-      }
-    } finally Thread.sleep(randLag)
+    server.continuum.waitForSnapshot(atTime).flatMap(_.findEntity(avatarID).map(_.asInstanceOf[Avatar])) match {
+      case Some(avatar) =>
+        server.integrateExtern(atTime,
+          SetAvatarMovement(avatar.id, movDir, jumping, avatar.chunkPos, UUID.randomUUID()))
+        true
+      case None => false
+    }
   }
 
   override def avatarCount: Int = {
-    try {
-      Thread.sleep(randLag)
-      server.continuum.current.loaded.values.flatMap(_.entities.get(avatarID)).size
-    } finally Thread.sleep(randLag)
+    server.continuum.current.loaded.values.flatMap(_.entities.get(avatarID)).size
   }
 
   override def hashChunk(atTime: Long, p: V3I): Option[Int] = {
-    try {
-      Thread.sleep(randLag)
-      server.continuum.snapshot(atTime).flatMap(_.chunkAt(p).map(_.hashCode()))
-    } finally Thread.sleep(randLag)
+    server.continuum.snapshot(atTime).flatMap(_.chunkAt(p).map(_.hashCode()))
   }
 
   override def hashChunks(atTime: Long, chunks: Seq[V3I]): Map[V3I, Int] = {
-    try {
-      Thread.sleep(randLag)
-      server.continuum.snapshot(atTime) match {
-        case Some(world) => chunks.flatMap(world.chunkAt(_).map(chunk => (chunk.pos, chunk.hashCode))).toMap
-        case None => Map.empty
-      }
-    } finally Thread.sleep(randLag)
+    server.continuum.snapshot(atTime) match {
+      case Some(world) => chunks.flatMap(world.chunkAt(_).map(chunk => (chunk.pos, chunk.hashCode))).toMap
+      case None => Map.empty
+    }
   }
 
   override def getServerNanotime: Long = {
-    try {
-      Thread.sleep(randLag)
-      System.nanoTime()
-    } finally Thread.sleep(randLag)
+    System.nanoTime()
   }
 
   override def getGameclockStartNanotime: Long = {
-    try {
-      Thread.sleep(randLag)
-      server.clock.nanotimeStart
-    } finally Thread.sleep(randLag)
+    server.clock.nanotimeStart
   }
 
   private def isLegit(extern: ChunkEvent): Boolean = extern match {
@@ -128,29 +98,23 @@ class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: C
 
 
   override def submitExtern(event: ChunkEvent, atTime: Long): Boolean = {
-    try {
-      Thread.sleep(randLag)
-      val accept = isLegit(event)
-      if (accept) {
-        server.integrateExtern(atTime, event)
-      }
-      accept
-    } finally Thread.sleep(randLag)
+    val accept = isLegit(event)
+    if (accept) {
+      server.integrateExtern(atTime, event)
+    }
+    accept
   }
 
 
   override def submitExterns(events: SortedMap[Long, Set[ChunkEvent]]): Seq[(Long, ChunkEvent)] = {
-    try {
-      Thread.sleep(randLag)
-      // filter which ones to accept
-      val accepted = events.mapValues(_.filter(isLegit)).filterNot({ case (_, set) => set isEmpty })
-      // integrate then
-      if (accepted nonEmpty)
-        server.integrateExterns(accepted)
-      // compute which ones were rejected and send back
-      events.toSeq.flatMap({ case (time, set) => set.map((time, _)) })
-        .filterNot({ case (time, event) => accepted.getOrElse(time, Set.empty).contains(event) })
-    } finally Thread.sleep(randLag)
+    // filter which ones to accept
+    val accepted = events.mapValues(_.filter(isLegit)).filterNot({ case (_, set) => set isEmpty })
+    // integrate then
+    if (accepted nonEmpty)
+      server.integrateExterns(accepted)
+    // compute which ones were rejected and send back
+    events.toSeq.flatMap({ case (time, set) => set.map((time, _)) })
+      .filterNot({ case (time, event) => accepted.getOrElse(time, Set.empty).contains(event) })
   }
 
 

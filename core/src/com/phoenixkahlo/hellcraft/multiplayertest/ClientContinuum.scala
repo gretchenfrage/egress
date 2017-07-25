@@ -50,8 +50,14 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), 
     var newHistory = history
     // truncate it (revert)
     newHistory = newHistory.rangeImpl(None, Some(atTime + 1))
-    // provide the chunks TODO: think about if this could be causing a problem
-    newHistory = newHistory.updated(newHistory.lastKey, newHistory.last._2.provide(provided))
+    // provide the chunks
+    if (newHistory nonEmpty)
+      newHistory = newHistory.updated(newHistory.lastKey, newHistory.last._2.provide(provided))
+    else
+      newHistory = session.getStarter() match {
+        case (t, chunks) => new TreeMap[Long, ClientWorld]()
+          .updated(t, new ClientWorld(session, chunks.map(c => (c.pos, c)).toMap, t))
+      }
     // update it back to the current time
     while (newHistory.lastKey < getServerTime) {
       val newWorld = newHistory.last._2.update(newSubscribed, newUpdating, SortedSet.empty)
@@ -75,6 +81,11 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), 
       var newHistory = history
       // truncate it (revert)
       newHistory = newHistory.rangeImpl(None, Some(events.firstKey + 1))
+      if (newHistory isEmpty)
+        newHistory = session.getStarter() match {
+          case (t, chunks) => new TreeMap[Long, ClientWorld]()
+            .updated(t, new ClientWorld(session, chunks.map(c => (c.pos, c)).toMap, t))
+        }
       // define a function for updating the history with unpredictables
       def upd8(h: SortedMap[Long, ClientWorld], u: SortedSet[ChunkEvent] = SortedSet.empty) = {
         val n = h.last._2.update(subscribed, updating, u)

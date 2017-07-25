@@ -32,6 +32,7 @@ class ClientController(session: ServerSession, cam: Camera, val client: GameClie
   val keys = List(W, A, S, D, SHIFT_LEFT, SPACE, CONTROL_LEFT, TAB, C, H)
 
   //private val sendingSetMovement = new AtomicBoolean(false)
+  private var lastSetMovement: Long = Long.MinValue
   private val toSubmit = new LinkedBlockingQueue[(Long, ChunkEvent)]
 
   new Thread(() => {
@@ -43,6 +44,7 @@ class ClientController(session: ServerSession, cam: Camera, val client: GameClie
       add(toSubmit.take())
       while (toSubmit.size > 0)
         add(toSubmit.remove())
+      println("submitting " + events)
       for (failed <- session.submitExterns(events))
         System.err.println("server rejected " + failed)
     }
@@ -110,15 +112,6 @@ class ClientController(session: ServerSession, cam: Camera, val client: GameClie
         val jumping = pressed(SPACE)
 
         /*
-        if (!sendingSetMovement.getAndSet(true)) {
-          AsyncExecutor run {
-            if (!session.setMovement(world.time, movDir, jumping))
-              println("server failed to set movement")
-            sendingSetMovement.set(false)
-          }
-        }
-        */
-        /*
         val setMovement = SetAvatarMovement(avatar.id, movDir, jumping, avatar.chunkPos, UUID.randomUUID())
         if (!sendingSetMovement.getAndSet(true)) {
           AsyncExecutor run {
@@ -130,8 +123,11 @@ class ClientController(session: ServerSession, cam: Camera, val client: GameClie
           //client.getContinuum.integrate(setMovement, world.time)
         }
         */
-        val setMovement = SetAvatarMovement(avatar.id, movDir, jumping, avatar.chunkPos, UUID.randomUUID())
-        toSubmit.add((world.time, setMovement))
+        if (lastSetMovement != world.time) {
+          lastSetMovement = world.time
+          val setMovement = SetAvatarMovement(avatar.id, movDir, jumping, avatar.chunkPos, UUID.randomUUID())
+          toSubmit.add((world.time, setMovement))
+        }
 
         val interpolation: Option[(World, Float)] =
           client.getContinuum.snapshot(world.time - 1) match {

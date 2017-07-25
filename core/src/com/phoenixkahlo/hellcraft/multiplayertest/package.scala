@@ -17,8 +17,7 @@ package object multiplayertest {
   type EventID = UUID
   type AvatarID = UUID
 
-  val MinLag = 20
-  val MaxLag = 20
-  def randLag: Long = (Math.random() * (MaxLag - MinLag) + MinLag) toLong
+  val FakeLag = 100
+  val TimeOut = Int.MaxValue
 
 }

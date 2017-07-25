@@ -16,7 +16,7 @@ import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.gamedriver.LoopingApp
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.save.{GeneratingRegionSave, GeneratingSave, RegionSave, WorldSave}
-import com.phoenixkahlo.hellcraft.util.{AsyncExecutor, GlobalKryo, PriorityExecContext}
+import com.phoenixkahlo.hellcraft.util.{AsyncExecutor, GlobalKryo, LaggyProxy, PriorityExecContext}
 import com.twitter.chill.{Input, Output}
 import other.AppDirs
 
@@ -26,6 +26,8 @@ import scala.collection.{SortedMap, SortedSet, parallel}
 import scala.collection.parallel
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
+
+import scala.concurrent.duration._
 
 class GameServer extends Listener with Runnable {
 
@@ -64,9 +66,8 @@ class GameServer extends Listener with Runnable {
 
     server = new Server(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
     server.bind(port)
-    server.addListener(new LagListener(MinLag, MaxLag, new ThreadedListener(this,
+    server.addListener(new LagListener(FakeLag, FakeLag, new ThreadedListener(this,
       Executors.newSingleThreadExecutor(runnable => new Thread(runnable, "server listener thread")))))
-
 
     clientIDByConnection = new parallel.mutable.ParHashMap
     clientConnectionByID = new parallel.mutable.ParHashMap
@@ -134,11 +135,12 @@ class GameServer extends Listener with Runnable {
 
   override def connected(connection: Connection): Unit = {
     // in the one server listener thread, get ready to receive objects
-    connection.setTimeout(0)
+    connection.setTimeout(TimeOut)
     val clientID = UUID.randomUUID()
     clientIDByConnection.put(connection, clientID)
     clientConnectionByID.put(clientID, connection)
-    clientSeqExecutors.put(clientID, ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor(runnable => new Thread(runnable, "client seq thread"))))
+    clientSeqExecutors.put(clientID, ExecutionContext.fromExecutor(
+      Executors.newSingleThreadExecutor(runnable => new Thread(runnable, "client seq thread"))))
     received.put(clientID, new LinkedBlockingQueue)
     // do the rest of the handshake in a different thread
     AsyncExecutor run {
@@ -158,8 +160,9 @@ class GameServer extends Listener with Runnable {
       connection.sendTCP(ServerSessionReady(sessionID))
       // wait for and setup the remote client session
       val clientSessionReady = received(clientID).take().asInstanceOf[ClientSessionReady]
-      val clientSession = ObjectSpace.getRemoteObject(connection, clientSessionReady.sessionID, classOf[ClientSession])
-      clientSession.asInstanceOf[RemoteObject].setResponseTimeout(60000)
+      var clientSession = ObjectSpace.getRemoteObject(connection, clientSessionReady.sessionID, classOf[ClientSession])
+      clientSession.asInstanceOf[RemoteObject].setResponseTimeout(TimeOut)
+      clientSession = LaggyProxy(clientSession, FakeLag milliseconds, classOf[ClientSession])
       clientSessions.put(clientID, clientSession)
 
       // for now, make it so that each client just subscribes to the same chunk of chunks

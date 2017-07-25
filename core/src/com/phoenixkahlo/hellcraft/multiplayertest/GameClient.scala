@@ -19,8 +19,9 @@ import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.core.{DefaultTexturePack, ResourceNode, TexturePack, World}
 import com.phoenixkahlo.hellcraft.gamedriver.{GameState, RunnableGameState}
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
-import com.phoenixkahlo.hellcraft.util.{AsyncExecutor, DependencyGraph, GlobalKryo, PriorityExecContext}
+import com.phoenixkahlo.hellcraft.util._
 import other.AppDirs
+import scala.concurrent.duration._
 
 import scala.collection.JavaConverters
 
@@ -53,10 +54,10 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with Runnabl
     // connect to the server
     client = new Client(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
     //client.addListener(new ThreadedListener(new LagListener(MinLag, MaxLag, this), AsyncExecutor("client listener thread")))
-    client.addListener(new LagListener(MinLag, MaxLag, new ThreadedListener(this, AsyncExecutor("client listener thread"))))
+    client.addListener(new LagListener(FakeLag, FakeLag, new ThreadedListener(this, AsyncExecutor("client listener thread"))))
     client.start()
     client.connect(5000, serverAddress.getAddress, serverAddress.getPort)
-    client.setTimeout(0)
+    client.setTimeout(TimeOut)
     // send the initial data
     client.sendTCP(InitialClientData())
     // receive the client's initial data
@@ -72,7 +73,9 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with Runnabl
     // wait for and setup the remote server session
     val serverSessionReady = received.take().asInstanceOf[ServerSessionReady]
     session = ObjectSpace.getRemoteObject(client, serverSessionReady.sessionID, classOf[ServerSession])
-    session.asInstanceOf[RemoteObject].setResponseTimeout(60000)
+    session.asInstanceOf[RemoteObject].setResponseTimeout(TimeOut)
+    session = LaggyProxy(session, FakeLag milliseconds, classOf[ServerSession])
+
 
     // synchronize the times
     serverNanotime = NanotimeMirror.mirrorServer(session)
