@@ -38,7 +38,6 @@ trait ServerSession {
 
 }
 
-//class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: ClientID) extends ServerSession {
 class ServerSessionImpl(server: GameServer, client: ClientLogic) extends  ServerSession {
 
   override def getTime: Long = {
@@ -55,13 +54,6 @@ class ServerSessionImpl(server: GameServer, client: ClientLogic) extends  Server
 
   lazy val avatarID: EntityID = {
     client.avatarID
-    /*
-    server.avatars.synchronized {
-      while (!server.avatars.contains(clientID))
-        server.avatars.wait()
-      server.avatars(clientID)
-    }
-    */
   }
 
   override def setMovement(atTime: Long, movDir: V3F, jumping: Boolean): Boolean = {

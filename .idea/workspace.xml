@@ -2,20 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="057238bf-08b5-4616-96bb-ab63b5dd1646" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientLogic.scala" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/desktop/build/classes/main/com/phoenixkahlo/hellcraft/desktop/DesktopLauncher.class" afterPath="$PROJECT_DIR$/desktop/build/classes/main/com/phoenixkahlo/hellcraft/desktop/DesktopLauncher.class" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__com_badlogicgames_jlayer_jlayer_1_0_1_gdx.xml" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__com_badlogicgames_jlayer_jlayer_1_0_1_gdx.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__net_java_jinput_jinput_2_0_5.xml" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__net_java_jinput_jinput_2_0_5.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__net_java_jinput_jinput_platform_natives_linux_2_0_5.xml" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__net_java_jinput_jinput_platform_natives_linux_2_0_5.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__net_java_jinput_jinput_platform_natives_osx_2_0_5.xml" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__net_java_jinput_jinput_platform_natives_osx_2_0_5.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__net_java_jinput_jinput_platform_natives_windows_2_0_5.xml" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__net_java_jinput_jinput_platform_natives_windows_2_0_5.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__net_java_jutils_jutils_1_0_0.xml" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__net_java_jutils_jutils_1_0_0.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_jcraft_jorbis_0_0_17.xml" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_jcraft_jorbis_0_0_17.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_lwjgl_lwjgl_lwjgl_2_9_2.xml" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_lwjgl_lwjgl_lwjgl_2_9_2.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_lwjgl_lwjgl_lwjgl_platform_natives_linux_2_9_2.xml" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_lwjgl_lwjgl_lwjgl_platform_natives_linux_2_9_2.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_lwjgl_lwjgl_lwjgl_platform_natives_osx_2_9_2.xml" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_lwjgl_lwjgl_lwjgl_platform_natives_osx_2_9_2.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_lwjgl_lwjgl_lwjgl_platform_natives_windows_2_9_2.xml" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_lwjgl_lwjgl_lwjgl_platform_natives_windows_2_9_2.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_lwjgl_lwjgl_lwjgl_util_2_9_2.xml" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_lwjgl_lwjgl_lwjgl_util_2_9_2.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/scala_compiler.xml" afterPath="$PROJECT_DIR$/.idea/scala_compiler.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/GameServer.scala" afterPath="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/GameServer.scala" />
@@ -68,9 +55,11 @@
       <file leaf-file-name="GameClient.scala" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/GameClient.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="25">
+            <state relative-caret-position="1100">
               <caret line="67" column="30" lean-forward="false" selection-start-line="67" selection-start-column="30" selection-end-line="67" selection-end-column="30" />
-              <folding />
+              <folding>
+                <element signature="e#52#98#0" expanded="false" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -90,8 +79,8 @@
       <file leaf-file-name="GameServer.scala" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/GameServer.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="627">
-              <caret line="153" column="23" lean-forward="false" selection-start-line="153" selection-start-column="23" selection-end-line="153" selection-end-column="23" />
+            <state relative-caret-position="677">
+              <caret line="139" column="0" lean-forward="false" selection-start-line="139" selection-start-column="0" selection-end-line="139" selection-end-column="0" />
               <folding>
                 <element signature="e#52#118#0" expanded="true" />
               </folding>
@@ -99,24 +88,12 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="ObjectSpace.java" pinned="false" current-in-tab="false">
-        <entry file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.esotericsoftware/kryonet/2.22.0-RC1/8ee2b983164bf6b9d194004c84b11b7397079d32/kryonet-2.22.0-RC1-sources.jar!/com/esotericsoftware/kryonet/rmi/ObjectSpace.java">
+      <file leaf-file-name="ClientSession.scala" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientSession.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="8875">
-              <caret line="395" column="47" lean-forward="false" selection-start-line="395" selection-start-column="38" selection-end-line="395" selection-end-column="47" />
-              <folding>
-                <element signature="imports" expanded="false" />
-                <element signature="e#3469#3470#0" expanded="false" />
-                <element signature="e#3524#3525#0" expanded="false" />
-                <element signature="e#3595#3596#0" expanded="false" />
-                <element signature="e#3632#3633#0" expanded="false" />
-                <element signature="e#4682#4683#0" expanded="false" />
-                <element signature="e#4713#4714#0" expanded="false" />
-                <element signature="e#13709#13710#0" expanded="false" />
-                <element signature="e#13729#13730#0" expanded="false" />
-                <element signature="e#19020#19021#0" expanded="false" />
-                <element signature="e#19072#19073#0" expanded="false" />
-              </folding>
+            <state relative-caret-position="450">
+              <caret line="21" column="4" lean-forward="false" selection-start-line="21" selection-start-column="4" selection-end-line="21" selection-end-column="4" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -126,7 +103,9 @@
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="300">
               <caret line="20" column="79" lean-forward="false" selection-start-line="20" selection-start-column="79" selection-end-line="20" selection-end-column="79" />
-              <folding />
+              <folding>
+                <element signature="e#52#99#0" expanded="false" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -141,23 +120,21 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="ClientLogic.scala" pinned="false" current-in-tab="true">
+      <file leaf-file-name="ClientLogic.scala" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientLogic.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="524">
+            <state relative-caret-position="1250">
               <caret line="62" column="49" lean-forward="false" selection-start-line="62" selection-start-column="49" selection-end-line="62" selection-end-column="49" />
-              <folding>
-                <element signature="e#52#73#0" expanded="true" />
-              </folding>
+              <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="ServerSession.scala" pinned="false" current-in-tab="false">
+      <file leaf-file-name="ServerSession.scala" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ServerSession.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="852">
-              <caret line="125" column="56" lean-forward="false" selection-start-line="125" selection-start-column="56" selection-end-line="125" selection-end-column="56" />
+            <state relative-caret-position="850">
+              <caret line="40" column="0" lean-forward="false" selection-start-line="40" selection-start-column="0" selection-end-line="40" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -168,7 +145,9 @@
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="100">
               <caret line="8" column="7" lean-forward="false" selection-start-line="8" selection-start-column="7" selection-end-line="8" selection-end-column="7" />
-              <folding />
+              <folding>
+                <element signature="e#41#137#0" expanded="false" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -827,7 +806,12 @@
     </option>
     <option name="modificationStamps">
       <map>
-        <entry key="$PROJECT_DIR$" value="7503744465629" />
+        <entry key="$PROJECT_DIR$" value="7505940676423" />
+        <entry key="$PROJECT_DIR$/build.gradle" value="610687642" />
+        <entry key="$PROJECT_DIR$/core/build.gradle" value="4050483580" />
+        <entry key="$PROJECT_DIR$/desktop/build.gradle" value="2560349433" />
+        <entry key="$PROJECT_DIR$/gradle.properties" value="975134833" />
+        <entry key="$PROJECT_DIR$/settings.gradle" value="4074417265" />
       </map>
     </option>
     <option name="projectBuildClasspath">
@@ -908,9 +892,9 @@
         <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/package.scala" />
         <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ConnectedClient.scala" />
         <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientConnection.scala" />
+        <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientLogic.scala" />
         <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/GameServer.scala" />
         <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ServerSession.scala" />
-        <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientLogic.scala" />
       </list>
     </option>
   </component>
@@ -921,10 +905,10 @@
     <sorting>DEFINITION_ORDER</sorting>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="873" />
-    <option name="y" value="551" />
-    <option name="width" value="1942" />
-    <option name="height" value="1042" />
+    <option name="x" value="-11" />
+    <option name="y" value="-11" />
+    <option name="width" value="2582" />
+    <option name="height" value="1402" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectView">
@@ -942,8 +926,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scratches" />
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -1056,28 +1038,6 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="desktop" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="org.jetbrains.plugins.gradle.projectView.GradleTreeStructureProvider$GradleSourceSetDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="desktop" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="egress" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="egress" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
               <option name="myItemId" value="core" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
@@ -1098,32 +1058,6 @@
             <PATH_ELEMENT>
               <option name="myItemId" value="src" />
               <option name="myItemType" value="org.jetbrains.plugins.gradle.projectView.GradleTreeStructureProvider$GradleSourceSetDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="egress" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="egress" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="core" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="org.jetbrains.plugins.gradle.projectView.GradleTreeStructureProvider$GradleSourceSetDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="hellcraft" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="util" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
           <PATH>
@@ -1176,6 +1110,8 @@
           </PATH>
         </subPane>
       </pane>
+      <pane id="Scope" />
+      <pane id="Scratches" />
       <pane id="PackagesPane" />
     </panes>
   </component>
@@ -1755,7 +1691,7 @@
     </recent_temporary>
   </component>
   <component name="SbtLocalSettings">
-    <option name="lastUpdateTimestamp" value="1501185320554" />
+    <option name="lastUpdateTimestamp" value="1501188649614" />
     <option name="externalProjectsViewState">
       <projects_view />
     </option>
@@ -1780,14 +1716,17 @@
       <workItem from="1500936071656" duration="8013000" />
       <workItem from="1501004658946" duration="6556000" />
       <workItem from="1501185292433" duration="2069000" />
+      <workItem from="1501188239762" duration="446000" />
+      <workItem from="1501188722300" duration="231000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="50566000" />
+    <option name="totallyTimeSpent" value="51243000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="873" y="551" width="1942" height="1042" extended-state="0" />
+    <frame x="-11" y="-11" width="2582" height="1402" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -1798,14 +1737,13 @@
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="true" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3783784" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" x="940" y="334" width="679" height="711" />
+      <window_info id="Run" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.22650602" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" x="940" y="334" width="679" height="711" />
       <window_info id="Properties" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Capture Tool" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.22432433" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.23012048" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32936078" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Gradle" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.16907631" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -1819,6 +1757,7 @@
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24979919" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32936078" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32936078" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -1838,7 +1777,7 @@
       <breakpoints-dialog>
         <breakpoints-dialog />
       </breakpoints-dialog>
-      <option name="time" value="5" />
+      <option name="time" value="7" />
     </breakpoint-manager>
     <watches-manager />
   </component>
@@ -1931,13 +1870,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientSession.scala">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="450">
-          <caret line="21" column="4" lean-forward="false" selection-start-line="21" selection-start-column="4" selection-end-line="21" selection-end-column="4" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ServerContinuum.scala">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="281">
@@ -2001,7 +1933,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-298">
           <caret line="8" column="17" lean-forward="false" selection-start-line="8" selection-start-column="17" selection-end-line="8" selection-end-column="17" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -2009,7 +1940,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="725">
           <caret line="45" column="0" lean-forward="false" selection-start-line="45" selection-start-column="0" selection-end-line="45" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -2017,50 +1947,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="30025">
           <caret line="1258" column="11" lean-forward="false" selection-start-line="1258" selection-start-column="11" selection-end-line="1258" selection-end-column="11" />
-          <folding>
-            <element signature="e#0#80896#0" expanded="false" />
-            <element signature="imports" expanded="false" />
-            <element signature="e#16480#16481#0" expanded="false" />
-            <element signature="e#16508#16509#0" expanded="false" />
-            <element signature="e#16568#16569#0" expanded="false" />
-            <element signature="e#16597#16598#0" expanded="false" />
-            <element signature="e#16644#16645#0" expanded="false" />
-            <element signature="e#16679#16680#0" expanded="false" />
-            <element signature="e#16824#16825#0" expanded="false" />
-            <element signature="e#16884#16885#0" expanded="false" />
-            <element signature="e#17029#17030#0" expanded="false" />
-            <element signature="e#17089#17090#0" expanded="false" />
-            <element signature="e#17336#17337#0" expanded="false" />
-            <element signature="e#17409#17410#0" expanded="false" />
-            <element signature="e#25063#25064#0" expanded="false" />
-            <element signature="e#25102#25103#0" expanded="false" />
-            <element signature="e#25293#25294#0" expanded="false" />
-            <element signature="e#25339#25340#0" expanded="false" />
-            <element signature="e#31552#31553#0" expanded="false" />
-            <element signature="e#31595#31596#0" expanded="false" />
-            <element signature="e#31948#31949#0" expanded="false" />
-            <element signature="e#32004#32005#0" expanded="false" />
-            <element signature="e#57238#57239#0" expanded="false" />
-            <element signature="e#57283#57284#0" expanded="false" />
-            <element signature="e#57976#57977#0" expanded="false" />
-            <element signature="e#58037#58038#0" expanded="false" />
-            <element signature="e#58750#58751#0" expanded="false" />
-            <element signature="e#58776#58777#0" expanded="false" />
-            <element signature="e#59415#59416#0" expanded="false" />
-            <element signature="e#59451#59452#0" expanded="false" />
-            <element signature="e#60105#60106#0" expanded="false" />
-            <element signature="e#60135#60136#0" expanded="false" />
-            <element signature="e#61630#61631#0" expanded="false" />
-            <element signature="e#61665#61666#0" expanded="false" />
-            <element signature="e#63465#63466#0" expanded="false" />
-            <element signature="e#63510#63511#0" expanded="false" />
-            <element signature="e#65777#65778#0" expanded="false" />
-            <element signature="e#65815#65816#0" expanded="false" />
-            <element signature="e#67446#67447#0" expanded="false" />
-            <element signature="e#67518#67519#0" expanded="false" />
-            <element signature="e#67915#67916#0" expanded="false" />
-            <element signature="e#67947#67948#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -2068,50 +1954,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="10500">
           <caret line="463" column="11" lean-forward="false" selection-start-line="463" selection-start-column="11" selection-end-line="463" selection-end-column="11" />
-          <folding>
-            <element signature="e#0#47363#0" expanded="false" />
-            <element signature="imports" expanded="false" />
-            <element signature="e#6406#6407#0" expanded="false" />
-            <element signature="e#6446#6447#0" expanded="false" />
-            <element signature="e#8316#8317#0" expanded="false" />
-            <element signature="e#8386#8387#0" expanded="false" />
-            <element signature="e#9317#9318#0" expanded="false" />
-            <element signature="e#9359#9360#0" expanded="false" />
-            <element signature="e#18041#18042#0" expanded="false" />
-            <element signature="e#18114#18115#0" expanded="false" />
-            <element signature="e#23406#23407#0" expanded="false" />
-            <element signature="e#23455#23456#0" expanded="false" />
-            <element signature="e#23678#23679#0" expanded="false" />
-            <element signature="e#23731#23732#0" expanded="false" />
-            <element signature="e#24181#24182#0" expanded="false" />
-            <element signature="e#24234#24235#0" expanded="false" />
-            <element signature="e#27292#27293#0" expanded="false" />
-            <element signature="e#27330#27331#0" expanded="false" />
-            <element signature="e#27737#27738#0" expanded="false" />
-            <element signature="e#27774#27775#0" expanded="false" />
-            <element signature="e#28617#28618#0" expanded="false" />
-            <element signature="e#28649#28650#0" expanded="false" />
-            <element signature="e#29685#29686#0" expanded="false" />
-            <element signature="e#29727#29728#0" expanded="false" />
-            <element signature="e#30242#30243#0" expanded="false" />
-            <element signature="e#30281#30282#0" expanded="false" />
-            <element signature="e#37330#37331#0" expanded="false" />
-            <element signature="e#37372#37373#0" expanded="false" />
-            <element signature="e#37414#37415#0" expanded="false" />
-            <element signature="e#37462#37463#0" expanded="false" />
-            <element signature="e#38584#38585#0" expanded="false" />
-            <element signature="e#38616#38617#0" expanded="false" />
-            <element signature="e#38658#38659#0" expanded="false" />
-            <element signature="e#38697#38698#0" expanded="false" />
-            <element signature="e#38770#38771#0" expanded="false" />
-            <element signature="e#38809#38810#0" expanded="false" />
-            <element signature="e#46265#46266#0" expanded="false" />
-            <element signature="e#46331#46332#0" expanded="false" />
-            <element signature="e#46737#46738#0" expanded="false" />
-            <element signature="e#46787#46788#0" expanded="false" />
-            <element signature="e#46827#46828#0" expanded="false" />
-            <element signature="e#46887#46888#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -2164,15 +2006,19 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="300">
           <caret line="20" column="79" lean-forward="false" selection-start-line="20" selection-start-column="79" selection-end-line="20" selection-end-column="79" />
-          <folding />
+          <folding>
+            <element signature="e#52#99#0" expanded="false" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/GameClient.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="25">
+        <state relative-caret-position="1100">
           <caret line="67" column="30" lean-forward="false" selection-start-line="67" selection-start-column="30" selection-end-line="67" selection-end-column="30" />
-          <folding />
+          <folding>
+            <element signature="e#52#98#0" expanded="false" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -2180,15 +2026,9 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="100">
           <caret line="8" column="7" lean-forward="false" selection-start-line="8" selection-start-column="7" selection-end-line="8" selection-end-column="7" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ServerSession.scala">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="852">
-          <caret line="125" column="56" lean-forward="false" selection-start-line="125" selection-start-column="56" selection-end-line="125" selection-end-column="56" />
-          <folding />
+          <folding>
+            <element signature="e#41#137#0" expanded="false" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -2200,23 +2040,37 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientLogic.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1250">
+          <caret line="62" column="49" lean-forward="false" selection-start-line="62" selection-start-column="49" selection-end-line="62" selection-end-column="49" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/GameServer.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="627">
-          <caret line="153" column="23" lean-forward="false" selection-start-line="153" selection-start-column="23" selection-end-line="153" selection-end-column="23" />
+        <state relative-caret-position="677">
+          <caret line="139" column="0" lean-forward="false" selection-start-line="139" selection-start-column="0" selection-end-line="139" selection-end-column="0" />
           <folding>
             <element signature="e#52#118#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientLogic.scala">
+    <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientSession.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="524">
-          <caret line="62" column="49" lean-forward="false" selection-start-line="62" selection-start-column="49" selection-end-line="62" selection-end-column="49" />
-          <folding>
-            <element signature="e#52#73#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="450">
+          <caret line="21" column="4" lean-forward="false" selection-start-line="21" selection-start-column="4" selection-end-line="21" selection-end-column="4" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ServerSession.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="850">
+          <caret line="40" column="0" lean-forward="false" selection-start-line="40" selection-start-column="0" selection-end-line="40" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>

@@ -41,15 +41,6 @@ class GameServer extends Listener with Runnable {
 
   var clientLogics: parallel.mutable.ParMap[ClientID, ClientLogic] = _
 
-  /*
-  var clientRMISpaces: parallel.mutable.ParMap[ClientID, ObjectSpace] = _
-  var clientSessions: parallel.mutable.ParMap[ClientID, ClientSession] = _
-  var clientSessionsNoReply: parallel.mutable.ParMap[ClientID, ClientSession] = _
-  var clientSeqExecutors: parallel.mutable.ParMap[ClientID, ExecutionContext] = _
-  var received: parallel.mutable.ParMap[ClientID, BlockingQueue[Any]] = _
-  var avatars: parallel.mutable.ParMap[ClientID, AvatarID] = _
-  */
-
   val savingFlag = new AtomicBoolean(false)
 
   def this(port: Int) = {
@@ -75,14 +66,6 @@ class GameServer extends Listener with Runnable {
 
     clientIDByConnection = new parallel.mutable.ParHashMap
     clientConnectionByID = new parallel.mutable.ParHashMap
-    /*
-    clientRMISpaces = new parallel.mutable.ParHashMap
-    clientSessions = new parallel.mutable.ParHashMap
-    clientSessionsNoReply = new parallel.mutable.ParHashMap
-    clientSeqExecutors = new parallel.mutable.ParHashMap
-    avatars = new parallel.mutable.ParHashMap
-    received = new parallel.mutable.ParHashMap
-    */
     clientLogics = new parallel.mutable.ParHashMap
 
     server.start()
@@ -96,11 +79,6 @@ class GameServer extends Listener with Runnable {
       }
       for ((client, events) <- toRoute) {
         clientLogics(client).route(new TreeMap[Long, SortedSet[ChunkEvent]]().updated(time, events))
-        /*
-        clientSeqExecutors(client).execute(() => {
-          clientSessionsNoReply(client).integrate(new TreeMap[Long, SortedSet[ChunkEvent]]().updated(time, events))
-        })
-        */
       }
       // push the current world to the save, if the time is right
       val current = continuum.current
@@ -120,20 +98,10 @@ class GameServer extends Listener with Runnable {
       (continuum.time, continuum.setClientRelation(client, subscribed, updating))
     }
     clientLogics(client).setRelation(time, subscribed, updating, provide)
-    /*
-    clientSeqExecutors(client).execute(() => {
-      clientSessionsNoReply(client).setServerRelation(time, subscribed, updatingSet, provide)
-    })
-    */
   }
 
   def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Unit = {
     for ((client, events) <- continuum.integrateExterns(newExterns)) {
-      /*
-      clientSeqExecutors(client).execute(() => {
-        clientSessionsNoReply(client).integrate(events)
-      })
-      */
       clientLogics(client).route(events)
     }
   }
@@ -165,65 +133,10 @@ class GameServer extends Listener with Runnable {
         V3I(-3, -3, -3) to V3I(3, 3, 3) toSet
       )
     }
-    /*
-    // in the one server listener thread, get ready to receive objects
-    connection.setTimeout(TimeOut)
-    val clientID = UUID.randomUUID()
-    clientIDByConnection.put(connection, clientID)
-    clientConnectionByID.put(clientID, connection)
-    clientSeqExecutors.put(clientID, ExecutionContext.fromExecutor(
-      Executors.newSingleThreadExecutor(runnable => new Thread(runnable, "client seq thread"))))
-    received.put(clientID, new LinkedBlockingQueue)
-    // do the rest of the handshake in a different thread
-    AsyncExecutor run {
-      // send the initial data
-      connection.sendTCP(InitialServerData(clientID))
-      // receive the client's initial data
-      val init = received(clientID).take().asInstanceOf[InitialClientData]
-      // use the initial data to create a session
-      val serverSession = new ServerSessionImpl(init, this, clientID)
-      val rmiSpace = new ObjectSpace
-      rmiSpace.setExecutor(AsyncExecutor("server RMI thread"))
-      clientRMISpaces.put(clientID, rmiSpace)
-      rmiSpace.addConnection(connection)
-      val sessionID = ThreadLocalRandom.current().nextInt()
-      rmiSpace.register(sessionID, serverSession)
-      // tell the client the session is ready
-      connection.sendTCP(ServerSessionReady(sessionID))
-      // wait for and setup the remote client session
-      val clientSessionReady = received(clientID).take().asInstanceOf[ClientSessionReady]
-      var clientSession = ObjectSpace.getRemoteObject(connection, clientSessionReady.sessionID, classOf[ClientSession])
-      clientSession.asInstanceOf[RemoteObject].setResponseTimeout(TimeOut)
-      clientSession = LaggyProxy(clientSession, FakeLag milliseconds, classOf[ClientSession])
-      clientSessions.put(clientID, clientSession)
-      var clientSessionNoReply = ObjectSpace.getRemoteObject(connection, clientSessionReady.sessionID, classOf[ClientSession])
-      clientSessionNoReply.asInstanceOf[RemoteObject].setNonBlocking(true)
-      clientSessionNoReply.asInstanceOf[RemoteObject].setResponseTimeout(TimeOut)
-      //clientSessionNoReply = LaggyProxy(clientSessionNoReply, FakeLag milliseconds, classOf[ClientSession])
-      clientSessionNoReply = LaggyNoReplyProxy(clientSessionNoReply, FakeLag milliseconds, classOf[ClientSession])
-      clientSessionsNoReply.put(clientID, clientSessionNoReply)
-
-      // for now, make it so that each client just subscribes to the same chunk of chunks
-      setClientRelation(
-        clientID,
-        (Origin - V3I(5, 5, 5)) to (Origin + V3I(5, 5, 5)) toSet,
-        (Origin - V3I(3, 3, 3)) to (Origin + V3I(3, 3, 3)) toSet
-      )
-
-      // create the avatar
-      val avatar = Avatar(pos = V3F(0, 10, 0))
-      integrateExternNow(AddEntity(avatar, UUID.randomUUID()))
-      avatars.synchronized {
-        avatars.put(clientID, avatar.id)
-        avatars.notifyAll()
-      }
-    }
-    */
   }
 
   override def received(connection: Connection, obj: Any): Unit = {
     if (obj.isInstanceOf[Transmission]) {
-      //received(clientIDByConnection(connection)).add(obj)
       clientLogics(clientIDByConnection(connection)).receive(obj)
     }
   }
@@ -233,12 +146,6 @@ class GameServer extends Listener with Runnable {
     clientIDByConnection -= connection
     clientConnectionByID -= id
     clientLogics -= id
-    /*
-    clientRMISpaces(id).close()
-    clientRMISpaces -= id
-    clientSeqExecutors -= id
-    received -= id
-    */
   }
 
 }
