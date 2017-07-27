@@ -38,7 +38,8 @@ trait ServerSession {
 
 }
 
-class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: ClientID) extends ServerSession {
+//class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: ClientID) extends ServerSession {
+class ServerSessionImpl(server: GameServer, client: ClientLogic) extends  ServerSession {
 
   override def getTime: Long = {
     server.clock.gametime
@@ -49,15 +50,18 @@ class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: C
   }
 
   override def getStarter(): (Long, Seq[Chunk]) = {
-    server.continuum.getStarter(clientID)
+    server.continuum.getStarter(client.clientID)
   }
 
   lazy val avatarID: EntityID = {
+    client.avatarID
+    /*
     server.avatars.synchronized {
       while (!server.avatars.contains(clientID))
         server.avatars.wait()
       server.avatars(clientID)
     }
+    */
   }
 
   override def setMovement(atTime: Long, movDir: V3F, jumping: Boolean): Boolean = {
@@ -119,7 +123,7 @@ class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: C
   }
 
   override def getSubscribedChunks(atTime: Long): Seq[Chunk] = {
-    server.continuum.getSubscribedChunks(clientID, atTime)
+    server.continuum.getSubscribedChunks(client.clientID, atTime)
   }
 
 }

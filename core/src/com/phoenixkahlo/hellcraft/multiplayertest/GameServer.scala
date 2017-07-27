@@ -39,12 +39,16 @@ class GameServer extends Listener with Runnable {
   var clientIDByConnection: parallel.mutable.ParMap[Connection, ClientID] = _
   var clientConnectionByID: parallel.mutable.ParMap[ClientID, Connection] = _
 
+  var clientLogics: parallel.mutable.ParMap[ClientID, ClientLogic] = _
+
+  /*
   var clientRMISpaces: parallel.mutable.ParMap[ClientID, ObjectSpace] = _
   var clientSessions: parallel.mutable.ParMap[ClientID, ClientSession] = _
   var clientSessionsNoReply: parallel.mutable.ParMap[ClientID, ClientSession] = _
   var clientSeqExecutors: parallel.mutable.ParMap[ClientID, ExecutionContext] = _
   var received: parallel.mutable.ParMap[ClientID, BlockingQueue[Any]] = _
   var avatars: parallel.mutable.ParMap[ClientID, AvatarID] = _
+  */
 
   val savingFlag = new AtomicBoolean(false)
 
@@ -71,12 +75,15 @@ class GameServer extends Listener with Runnable {
 
     clientIDByConnection = new parallel.mutable.ParHashMap
     clientConnectionByID = new parallel.mutable.ParHashMap
+    /*
     clientRMISpaces = new parallel.mutable.ParHashMap
     clientSessions = new parallel.mutable.ParHashMap
     clientSessionsNoReply = new parallel.mutable.ParHashMap
     clientSeqExecutors = new parallel.mutable.ParHashMap
     avatars = new parallel.mutable.ParHashMap
     received = new parallel.mutable.ParHashMap
+    */
+    clientLogics = new parallel.mutable.ParHashMap
 
     server.start()
   }
@@ -88,9 +95,12 @@ class GameServer extends Listener with Runnable {
         (continuum.time, continuum.update())
       }
       for ((client, events) <- toRoute) {
+        clientLogics(client).route(new TreeMap[Long, SortedSet[ChunkEvent]]().updated(time, events))
+        /*
         clientSeqExecutors(client).execute(() => {
           clientSessionsNoReply(client).integrate(new TreeMap[Long, SortedSet[ChunkEvent]]().updated(time, events))
         })
+        */
       }
       // push the current world to the save, if the time is right
       val current = continuum.current
@@ -105,20 +115,26 @@ class GameServer extends Listener with Runnable {
     }
   }
 
-  def setClientRelation(client: ClientID, subscribed: Set[V3I], updatingSet: Set[V3I]): Unit = {
-    val (time, provide) = continuum.synchronized {
-      (continuum.time, continuum.setClientRelation(client, subscribed, updatingSet))
+  def setClientRelation(client: ClientID, subscribed: Set[V3I], updating: Set[V3I]): Unit = {
+    val (time, provide: Seq[Chunk]) = continuum.synchronized {
+      (continuum.time, continuum.setClientRelation(client, subscribed, updating))
     }
+    clientLogics(client).setRelation(time, subscribed, updating, provide)
+    /*
     clientSeqExecutors(client).execute(() => {
       clientSessionsNoReply(client).setServerRelation(time, subscribed, updatingSet, provide)
     })
+    */
   }
 
   def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Unit = {
-    for ((client, events: SortedMap[Long, SortedSet[ChunkEvent]]) <- continuum.integrateExterns(newExterns)) {
+    for ((client, events) <- continuum.integrateExterns(newExterns)) {
+      /*
       clientSeqExecutors(client).execute(() => {
         clientSessionsNoReply(client).integrate(events)
       })
+      */
+      clientLogics(client).route(events)
     }
   }
 
@@ -135,6 +151,21 @@ class GameServer extends Listener with Runnable {
     integrateExternsNow(new HashSet[ChunkEvent] + extern)
 
   override def connected(connection: Connection): Unit = {
+    val logic = new ClientLogic(this)
+    clientLogics.put(logic.clientID, logic)
+    clientIDByConnection.put(connection, logic.clientID)
+    clientConnectionByID.put(logic.clientID, connection)
+    AsyncExecutor run {
+      // initialize the connection
+      logic.initialize(connection)
+      // subscribe to some chunks
+      setClientRelation(
+        logic.clientID,
+        V3I(-5, -5, -5) to V3I(5, 5, 5) toSet,
+        V3I(-3, -3, -3) to V3I(3, 3, 3) toSet
+      )
+    }
+    /*
     // in the one server listener thread, get ready to receive objects
     connection.setTimeout(TimeOut)
     val clientID = UUID.randomUUID()
@@ -187,11 +218,13 @@ class GameServer extends Listener with Runnable {
         avatars.notifyAll()
       }
     }
+    */
   }
 
   override def received(connection: Connection, obj: Any): Unit = {
     if (obj.isInstanceOf[Transmission]) {
-      received(clientIDByConnection(connection)).add(obj)
+      //received(clientIDByConnection(connection)).add(obj)
+      clientLogics(clientIDByConnection(connection)).receive(obj)
     }
   }
 
@@ -199,10 +232,13 @@ class GameServer extends Listener with Runnable {
     val id = clientIDByConnection(connection)
     clientIDByConnection -= connection
     clientConnectionByID -= id
+    clientLogics -= id
+    /*
     clientRMISpaces(id).close()
     clientRMISpaces -= id
     clientSeqExecutors -= id
     received -= id
+    */
   }
 
 }
