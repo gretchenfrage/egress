@@ -2,13 +2,15 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="057238bf-08b5-4616-96bb-ab63b5dd1646" name="Default" comment="">
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/util/LaggyNoReplyProxy.scala" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/desktop/build/classes/main/com/phoenixkahlo/hellcraft/desktop/DesktopLauncher.class" afterPath="$PROJECT_DIR$/desktop/build/classes/main/com/phoenixkahlo/hellcraft/desktop/DesktopLauncher.class" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientContinuum.scala" afterPath="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientContinuum.scala" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientController.scala" afterPath="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientController.scala" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ServerContinuum.scala" afterPath="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ServerContinuum.scala" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/GameServer.scala" afterPath="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/GameServer.scala" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ServerSession.scala" afterPath="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ServerSession.scala" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/core/src/other/audio/VUServer.java" afterPath="$PROJECT_DIR$/core/src/other/audio/VUServer.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/Transmission.scala" afterPath="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/Transmission.scala" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/package.scala" afterPath="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/package.scala" />
     </list>
     <ignored path="$PROJECT_DIR$/core/.gradle/" />
     <ignored path="$PROJECT_DIR$/core/build/" />
@@ -57,12 +59,9 @@
       <file leaf-file-name="GameClient.scala" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/GameClient.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="527">
-              <caret line="54" column="0" lean-forward="false" selection-start-line="54" selection-start-column="0" selection-end-line="54" selection-end-column="0" />
-              <folding>
-                <element signature="e#52#98#0" expanded="true" />
-                <marker date="1500953017999" expanded="true" signature="2707:4658" ph="{...}" />
-              </folding>
+            <state relative-caret-position="25">
+              <caret line="67" column="30" lean-forward="false" selection-start-line="67" selection-start-column="30" selection-end-line="67" selection-end-column="30" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -70,54 +69,72 @@
       <file leaf-file-name="ClientController.scala" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientController.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="255">
-              <caret line="31" column="72" lean-forward="false" selection-start-line="31" selection-start-column="72" selection-end-line="31" selection-end-column="72" />
+            <state relative-caret-position="605">
+              <caret line="45" column="0" lean-forward="false" selection-start-line="45" selection-start-column="0" selection-end-line="45" selection-end-column="0" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="package.scala" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/package.scala">
+      <file leaf-file-name="GameServer.scala" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/GameServer.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="323">
-              <caret line="19" column="19" lean-forward="false" selection-start-line="19" selection-start-column="19" selection-end-line="19" selection-end-column="19" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="GameDriver.scala" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/gamedriver/GameDriver.scala">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="733">
-              <caret line="63" column="32" lean-forward="false" selection-start-line="63" selection-start-column="32" selection-end-line="63" selection-end-column="32" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="VUClient.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/core/src/other/audio/VUClient.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-1834">
-              <caret line="11" column="37" lean-forward="false" selection-start-line="11" selection-start-column="37" selection-end-line="11" selection-end-column="37" />
+            <state relative-caret-position="356">
+              <caret line="119" column="0" lean-forward="false" selection-start-line="119" selection-start-column="0" selection-end-line="119" selection-end-column="0" />
               <folding>
-                <element signature="imports" expanded="true" />
-                <element signature="e#464#465#0" expanded="true" />
-                <element signature="e#494#495#0" expanded="true" />
-                <element signature="e#1622#1623#0" expanded="true" />
-                <element signature="e#1665#1666#0" expanded="true" />
+                <element signature="e#52#118#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="ClientContinuum.scala" pinned="false" current-in-tab="true">
+      <file leaf-file-name="LaggyNoReplyProxy.scala" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/util/LaggyNoReplyProxy.scala">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="725">
+              <caret line="29" column="0" lean-forward="false" selection-start-line="29" selection-start-column="0" selection-end-line="29" selection-end-column="0" />
+              <folding>
+                <element signature="e#41#57#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="ObjectSpace.java" pinned="false" current-in-tab="false">
+        <entry file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.esotericsoftware/kryonet/2.22.0-RC1/8ee2b983164bf6b9d194004c84b11b7397079d32/kryonet-2.22.0-RC1-sources.jar!/com/esotericsoftware/kryonet/rmi/ObjectSpace.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="403">
+              <caret line="395" column="47" lean-forward="false" selection-start-line="395" selection-start-column="38" selection-end-line="395" selection-end-column="47" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="ScheduledThreadPoolExecutor.java" pinned="false" current-in-tab="false">
+        <entry file="jar://C:/Program Files/Java/jdk1.8.0_121/src.zip!/java/util/concurrent/ScheduledThreadPoolExecutor.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="959">
+              <caret line="463" column="11" lean-forward="false" selection-start-line="463" selection-start-column="11" selection-end-line="463" selection-end-column="11" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="ThreadPoolExecutor.java" pinned="false" current-in-tab="false">
+        <entry file="jar://C:/Program Files/Java/jdk1.8.0_121/src.zip!/java/util/concurrent/ThreadPoolExecutor.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="384">
+              <caret line="1258" column="11" lean-forward="false" selection-start-line="1258" selection-start-column="11" selection-end-line="1258" selection-end-column="11" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="ClientContinuum.scala" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientContinuum.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="410">
-              <caret line="129" column="56" lean-forward="true" selection-start-line="129" selection-start-column="56" selection-end-line="129" selection-end-column="56" />
+            <state relative-caret-position="500">
+              <caret line="20" column="79" lean-forward="true" selection-start-line="20" selection-start-column="79" selection-end-line="20" selection-end-column="79" />
               <folding>
                 <element signature="e#52#99#0" expanded="true" />
               </folding>
@@ -125,52 +142,22 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="AtomicInteger.java" pinned="false" current-in-tab="false">
-        <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/src.zip!/java/util/concurrent/atomic/AtomicInteger.java">
+      <file leaf-file-name="package.scala" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/package.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="408">
-              <caret line="59" column="0" lean-forward="false" selection-start-line="59" selection-start-column="0" selection-end-line="59" selection-end-column="0" />
-              <folding>
-                <element signature="e#1762#1763#0" expanded="true" />
-                <element signature="e#1798#1799#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="VUServer.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/core/src/other/audio/VUServer.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-202">
-              <caret line="20" column="36" lean-forward="false" selection-start-line="20" selection-start-column="36" selection-end-line="20" selection-end-column="36" />
-              <folding>
-                <element signature="imports" expanded="true" />
-                <element signature="e#626#627#0" expanded="true" />
-                <element signature="e#666#667#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="AudioSystem.java" pinned="false" current-in-tab="false">
-        <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/src.zip!/javax/sound/sampled/AudioSystem.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="298">
-              <caret line="408" column="23" lean-forward="false" selection-start-line="408" selection-start-column="23" selection-end-line="408" selection-end-column="23" />
+            <state relative-caret-position="275">
+              <caret line="11" column="17" lean-forward="false" selection-start-line="11" selection-start-column="17" selection-end-line="11" selection-end-column="17" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="DataLine.java" pinned="false" current-in-tab="false">
-        <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/src.zip!/javax/sound/sampled/DataLine.java">
+      <file leaf-file-name="Transmission.scala" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/Transmission.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="289">
-              <caret line="350" column="15" lean-forward="false" selection-start-line="350" selection-start-column="15" selection-end-line="350" selection-end-column="15" />
-              <folding>
-                <element signature="e#14584#14585#0" expanded="true" />
-                <element signature="e#14658#14659#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="25">
+              <caret line="1" column="0" lean-forward="false" selection-start-line="1" selection-start-column="0" selection-end-line="1" selection-end-column="0" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -190,6 +177,7 @@
       <find>continuum</find>
       <find>cam</find>
       <find>addListener</find>
+      <find>int.class</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -893,15 +881,17 @@
         <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/util/LaggyProxy_.scala" />
         <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/util/LaggyProxy.scala" />
         <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/GameClient.scala" />
-        <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/GameServer.scala" />
         <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ServerContinuum.scala" />
-        <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ServerSession.scala" />
         <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/gamedriver/GameDriver.scala" />
         <option value="$PROJECT_DIR$/core/src/other/audio/VUClient.java" />
         <option value="$PROJECT_DIR$/core/src/other/audio/VUServer.java" />
+        <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ServerSession.scala" />
         <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientController.scala" />
-        <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/package.scala" />
+        <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/util/LaggyNoReplyProxy.scala" />
+        <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/Transmission.scala" />
         <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientContinuum.scala" />
+        <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/GameServer.scala" />
+        <option value="$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/package.scala" />
       </list>
     </option>
   </component>
@@ -912,10 +902,10 @@
     <sorting>DEFINITION_ORDER</sorting>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="-8" />
-    <option name="y" value="-8" />
-    <option name="width" value="1936" />
-    <option name="height" value="1056" />
+    <option name="x" value="-11" />
+    <option name="y" value="-11" />
+    <option name="width" value="2582" />
+    <option name="height" value="1402" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectView">
@@ -933,9 +923,87 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="PackagesPane" />
       <pane id="Scratches" />
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="egress" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="External Libraries" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ExternalLibrariesNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="egress" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="External Libraries" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ExternalLibrariesNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Gradle: com.esotericsoftware:kryonet:2.22.0-RC1" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.NamedLibraryElementNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="kryonet-2.22.0-RC1.jar" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="egress" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="External Libraries" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ExternalLibrariesNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Gradle: com.esotericsoftware:kryonet:2.22.0-RC1" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.NamedLibraryElementNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="kryonet-2.22.0-RC1.jar" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="kryonet" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="egress" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="External Libraries" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ExternalLibrariesNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Gradle: com.esotericsoftware:kryonet:2.22.0-RC1" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.NamedLibraryElementNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="kryonet-2.22.0-RC1.jar" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="kryonet" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="rmi" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
           <PATH>
             <PATH_ELEMENT>
               <option name="myItemId" value="egress" />
@@ -954,6 +1022,28 @@
             <PATH_ELEMENT>
               <option name="myItemId" value="egress" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="desktop" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="egress" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="egress" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="desktop" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="src" />
+              <option name="myItemType" value="org.jetbrains.plugins.gradle.projectView.GradleTreeStructureProvider$GradleSourceSetDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
               <option name="myItemId" value="desktop" />
@@ -1043,6 +1133,32 @@
               <option name="myItemId" value="hellcraft" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="util" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="egress" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="egress" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="core" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="src" />
+              <option name="myItemType" value="org.jetbrains.plugins.gradle.projectView.GradleTreeStructureProvider$GradleSourceSetDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="hellcraft" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
           </PATH>
           <PATH>
             <PATH_ELEMENT>
@@ -1072,8 +1188,6 @@
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scope" />
-      <pane id="PackagesPane" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -1680,18 +1794,45 @@
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="44538000" />
+    <option name="totallyTimeSpent" value="48497000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
-    <editor active="true" />
+    <frame x="-11" y="-11" width="2582" height="1402" extended-state="6" />
     <layout>
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Nl-Palette" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3288926" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Palette&#9;" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Image Layers" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Capture Analysis" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25943774" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" x="9" y="17" width="2542" height="1346" />
+      <window_info id="Properties" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
+      <window_info id="Capture Tool" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.16385542" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
+      <window_info id="Gradle" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.16907631" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="UI Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Theme Preview" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="WINDOWED" visible="false" show_stripe_button="true" weight="0.33261105" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" x="1946" y="44" width="1265" height="959" />
+      <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Nl-Palette" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Properties" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Capture Tool" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24979919" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -1703,6 +1844,7 @@
       <window_info id="Palette&#9;" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Image Layers" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Capture Analysis" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="WINDOWED" visible="false" show_stripe_button="true" weight="0.28144988" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" x="2888" y="31" width="944" height="1001" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
@@ -1711,11 +1853,6 @@
       <window_info id="Gradle" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.16907631" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Theme Preview" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24979919" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
-      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -1744,21 +1881,6 @@
     <option name="FILTER_TARGETS" value="false" />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/core/entity/Avatar.scala">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="100">
-          <caret line="7" column="11" lean-forward="false" selection-start-line="7" selection-start-column="11" selection-end-line="7" selection-end-column="11" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/desktop/src/com/phoenixkahlo/hellcraft/desktop/DesktopLauncher.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="575">
-          <caret line="37" column="57" lean-forward="false" selection-start-line="37" selection-start-column="57" selection-end-line="37" selection-end-column="57" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://C:/Program Files/Java/jdk1.8.0_121/src.zip!/java/util/concurrent/BlockingQueue.java" />
     <entry file="jar://C:/Program Files/Java/jdk1.8.0_121/src.zip!/java/util/concurrent/locks/Condition.java" />
     <entry file="jar://C:/Program Files/Java/jdk1.8.0_121/src.zip!/java/util/AbstractQueue.java" />
     <entry file="jar://C:/Program Files/Java/jdk1.8.0_121/src.zip!/java/util/concurrent/ArrayBlockingQueue.java" />
@@ -1779,8 +1901,6 @@
       </provider>
     </entry>
     <entry file="jar://C:/Program Files/Java/jdk1.8.0_121/src.zip!/java/util/concurrent/Executors.java" />
-    <entry file="jar://C:/Program Files/Java/jdk1.8.0_121/src.zip!/java/util/concurrent/ScheduledThreadPoolExecutor.java" />
-    <entry file="jar://C:/Program Files/Java/jdk1.8.0_121/src.zip!/java/util/concurrent/ThreadPoolExecutor.java" />
     <entry file="jar://C:/Program Files/Java/jdk1.8.0_121/jre/lib/rt.jar!/sun/awt/windows/WToolkit.class" />
     <entry file="jar://C:/Program Files/Java/jdk1.8.0_121/jre/lib/rt.jar!/sun/misc/Unsafe.class" />
     <entry file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.badlogicgames.gdx/gdx-backend-lwjgl/1.9.6/54887b828ab0c6c55deae03b0cca70c31531bacd/gdx-backend-lwjgl-1.9.6-sources.jar!/com/badlogic/gdx/backends/lwjgl/LwjglApplication.java">
@@ -1819,110 +1939,54 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/util/LaggyProxy.java" />
-    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/src.zip!/java/util/function/IntSupplier.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="289">
-          <caret line="40" column="17" lean-forward="false" selection-start-line="40" selection-start-column="17" selection-end-line="40" selection-end-column="17" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/src.zip!/java/lang/reflect/Proxy.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="289">
-          <caret line="702" column="25" lean-forward="false" selection-start-line="702" selection-start-column="25" selection-end-line="702" selection-end-column="25" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/util/LaggyProxy.scala">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="272">
-          <caret line="16" column="38" lean-forward="false" selection-start-line="16" selection-start-column="38" selection-end-line="16" selection-end-column="38" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/src.zip!/java/lang/Thread.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="298">
-          <caret line="744" column="0" lean-forward="false" selection-start-line="744" selection-start-column="0" selection-end-line="744" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/src.zip!/java/util/concurrent/ThreadPoolExecutor.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="289">
-          <caret line="1141" column="0" lean-forward="false" selection-start-line="1141" selection-start-column="0" selection-end-line="1141" selection-end-column="0" />
-          <folding>
-            <element signature="e#25063#25064#0" expanded="false" />
-            <element signature="e#25102#25103#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.esotericsoftware/kryonet/2.22.0-RC1/8ee2b983164bf6b9d194004c84b11b7397079d32/kryonet-2.22.0-RC1-sources.jar!/com/esotericsoftware/kryonet/rmi/ObjectSpace.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="289">
-          <caret line="213" column="0" lean-forward="false" selection-start-line="213" selection-start-column="0" selection-end-line="213" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/src.zip!/java/lang/reflect/Method.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="298">
-          <caret line="497" column="0" lean-forward="false" selection-start-line="497" selection-start-column="0" selection-end-line="497" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/jre/lib/rt.jar!/sun/reflect/DelegatingMethodAccessorImpl.class">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="204">
-          <caret line="17" column="0" lean-forward="false" selection-start-line="17" selection-start-column="0" selection-end-line="17" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/jre/lib/rt.jar!/sun/reflect/NativeMethodAccessorImpl.class">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="408">
-          <caret line="33" column="33" lean-forward="false" selection-start-line="33" selection-start-column="33" selection-end-line="33" selection-end-column="33" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/src.zip!/java/util/function/IntSupplier.java" />
+    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/src.zip!/java/lang/reflect/Proxy.java" />
+    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/src.zip!/java/lang/Thread.java" />
+    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/src.zip!/java/util/concurrent/ThreadPoolExecutor.java" />
+    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/src.zip!/java/lang/reflect/Method.java" />
+    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/jre/lib/rt.jar!/sun/reflect/DelegatingMethodAccessorImpl.class" />
+    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/jre/lib/rt.jar!/sun/reflect/NativeMethodAccessorImpl.class" />
     <entry file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.scala-lang/scala-library/2.12.2/ec3a24b6f9b85c8fb566cb206f34c208b1c8a87/scala-library-2.12.2-sources.jar!/scala/collection/TraversableLike.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="427">
+        <state relative-caret-position="19425">
           <caret line="788" column="8" lean-forward="false" selection-start-line="788" selection-start-column="8" selection-end-line="788" selection-end-column="8" />
+          <folding>
+            <element signature="n#!!doc" expanded="false" />
+            <element signature="e#560#576#0" expanded="false" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.scala-lang/scala-library/2.12.2/ec3a24b6f9b85c8fb566cb206f34c208b1c8a87/scala-library-2.12.2-sources.jar!/scala/collection/immutable/TreeMap.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="289">
+        <state relative-caret-position="1450">
           <caret line="66" column="25" lean-forward="false" selection-start-line="66" selection-start-column="25" selection-end-line="66" selection-end-column="25" />
+          <folding>
+            <element signature="n#!!doc" expanded="false" />
+            <element signature="e#578#594#0" expanded="false" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.scala-lang/scala-library/2.12.2/ec3a24b6f9b85c8fb566cb206f34c208b1c8a87/scala-library-2.12.2-sources.jar!/scala/collection/immutable/RedBlackTree.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1394">
+        <state relative-caret-position="2050">
           <caret line="89" column="4" lean-forward="false" selection-start-line="89" selection-start-column="4" selection-end-line="89" selection-end-column="4" />
-          <folding />
+          <folding>
+            <element signature="n#!!doc" expanded="false" />
+            <element signature="e#580#611#0" expanded="false" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientSession.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="306">
+        <state relative-caret-position="450">
           <caret line="21" column="4" lean-forward="false" selection-start-line="21" selection-start-column="4" selection-end-line="21" selection-end-column="4" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/GameServer.scala">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="714">
-          <caret line="69" column="102" lean-forward="false" selection-start-line="69" selection-start-column="102" selection-end-line="69" selection-end-column="102" />
           <folding>
-            <element signature="e#52#118#0" expanded="false" />
+            <marker date="1501007074166" expanded="true" signature="558:1192" ph="{...}" />
+            <marker date="1501007074166" expanded="true" signature="642:648" ph="{...}" />
+            <marker date="1501007074166" expanded="true" signature="1184:1189" ph="{...}" />
           </folding>
         </state>
       </provider>
@@ -1934,19 +1998,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ServerSession.scala">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1768">
-          <caret line="110" column="33" lean-forward="false" selection-start-line="110" selection-start-column="33" selection-end-line="110" selection-end-column="33" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/gamedriver/RunnableGameStateDriver.scala">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="119">
           <caret line="7" column="0" lean-forward="false" selection-start-line="7" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1954,17 +2009,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1122">
           <caret line="91" column="0" lean-forward="false" selection-start-line="91" selection-start-column="0" selection-end-line="91" selection-end-column="0" />
-          <folding>
-            <element signature="imports" expanded="false" />
-            <element signature="e#1929#1930#0" expanded="false" />
-            <element signature="e#1952#1953#0" expanded="false" />
-            <element signature="e#3915#3916#0" expanded="false" />
-            <element signature="e#3942#3943#0" expanded="false" />
-            <element signature="e#3969#3970#0" expanded="false" />
-            <element signature="e#4027#4028#0" expanded="false" />
-            <element signature="e#14959#14960#0" expanded="false" />
-            <element signature="e#14985#14986#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1972,7 +2016,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="34">
           <caret line="2" column="6" lean-forward="false" selection-start-line="2" selection-start-column="6" selection-end-line="2" selection-end-column="6" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1980,7 +2023,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="34">
           <caret line="2" column="6" lean-forward="false" selection-start-line="2" selection-start-column="6" selection-end-line="2" selection-end-column="6" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1988,100 +2030,141 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="733">
           <caret line="63" column="32" lean-forward="false" selection-start-line="63" selection-start-column="32" selection-end-line="63" selection-end-column="32" />
-          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/src.zip!/javax/sound/sampled/DataLine.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="289">
-          <caret line="350" column="15" lean-forward="false" selection-start-line="350" selection-start-column="15" selection-end-line="350" selection-end-column="15" />
-          <folding>
-            <element signature="e#14584#14585#0" expanded="true" />
-            <element signature="e#14658#14659#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
+    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/src.zip!/javax/sound/sampled/DataLine.java" />
     <entry file="file://$PROJECT_DIR$/core/src/other/audio/VUClient.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1834">
-          <caret line="11" column="37" lean-forward="false" selection-start-line="11" selection-start-column="37" selection-end-line="11" selection-end-column="37" />
-          <folding>
-            <element signature="imports" expanded="true" />
-            <element signature="e#464#465#0" expanded="true" />
-            <element signature="e#494#495#0" expanded="true" />
-            <element signature="e#1622#1623#0" expanded="true" />
-            <element signature="e#1665#1666#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/src.zip!/javax/sound/sampled/AudioSystem.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="298">
-          <caret line="408" column="23" lean-forward="false" selection-start-line="408" selection-start-column="23" selection-end-line="408" selection-end-column="23" />
+        <state relative-caret-position="627">
+          <caret line="44" column="41" lean-forward="false" selection-start-line="44" selection-start-column="41" selection-end-line="44" selection-end-column="41" />
           <folding />
         </state>
       </provider>
     </entry>
+    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/src.zip!/javax/sound/sampled/AudioSystem.java" />
     <entry file="file://$PROJECT_DIR$/core/src/other/audio/VUServer.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-202">
           <caret line="20" column="36" lean-forward="false" selection-start-line="20" selection-start-column="36" selection-end-line="20" selection-end-column="36" />
           <folding>
-            <element signature="imports" expanded="true" />
-            <element signature="e#626#627#0" expanded="true" />
-            <element signature="e#666#667#0" expanded="true" />
+            <element signature="imports" expanded="false" />
+            <element signature="e#626#627#0" expanded="false" />
+            <element signature="e#666#667#0" expanded="false" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/GameClient.scala">
+    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/src.zip!/java/util/concurrent/atomic/AtomicInteger.java" />
+    <entry file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.esotericsoftware/kryonet/2.22.0-RC1/8ee2b983164bf6b9d194004c84b11b7397079d32/kryonet-2.22.0-RC1-sources.jar!/com/esotericsoftware/kryonet/rmi/RemoteObject.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="527">
-          <caret line="54" column="0" lean-forward="false" selection-start-line="54" selection-start-column="0" selection-end-line="54" selection-end-column="0" />
-          <folding>
-            <element signature="e#52#98#0" expanded="true" />
-            <marker date="1500953017999" expanded="true" signature="2707:4658" ph="{...}" />
-          </folding>
+        <state relative-caret-position="-298">
+          <caret line="8" column="17" lean-forward="false" selection-start-line="8" selection-start-column="17" selection-end-line="8" selection-end-column="17" />
+          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="jar://C:/Program Files/Java/jdk1.8.0_111/src.zip!/java/util/concurrent/atomic/AtomicInteger.java">
+    <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ServerSession.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="408">
-          <caret line="59" column="0" lean-forward="false" selection-start-line="59" selection-start-column="0" selection-end-line="59" selection-end-column="0" />
-          <folding>
-            <element signature="e#1762#1763#0" expanded="true" />
-            <element signature="e#1798#1799#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="788">
+          <caret line="114" column="23" lean-forward="false" selection-start-line="114" selection-start-column="23" selection-end-line="114" selection-end-column="23" />
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientController.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="255">
-          <caret line="31" column="72" lean-forward="false" selection-start-line="31" selection-start-column="72" selection-end-line="31" selection-end-column="72" />
+        <state relative-caret-position="605">
+          <caret line="45" column="0" lean-forward="false" selection-start-line="45" selection-start-column="0" selection-end-line="45" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/package.scala">
+    <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/GameClient.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="323">
-          <caret line="19" column="19" lean-forward="false" selection-start-line="19" selection-start-column="19" selection-end-line="19" selection-end-column="19" />
+        <state relative-caret-position="25">
+          <caret line="67" column="30" lean-forward="false" selection-start-line="67" selection-start-column="30" selection-end-line="67" selection-end-column="30" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://C:/Program Files/Java/jdk1.8.0_121/src.zip!/java/util/concurrent/ThreadPoolExecutor.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="384">
+          <caret line="1258" column="11" lean-forward="false" selection-start-line="1258" selection-start-column="11" selection-end-line="1258" selection-end-column="11" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://C:/Program Files/Java/jdk1.8.0_121/src.zip!/java/util/concurrent/ScheduledThreadPoolExecutor.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="959">
+          <caret line="463" column="11" lean-forward="false" selection-start-line="463" selection-start-column="11" selection-end-line="463" selection-end-column="11" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/util/LaggyProxy.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="400">
+          <caret line="16" column="38" lean-forward="false" selection-start-line="16" selection-start-column="38" selection-end-line="16" selection-end-column="38" />
+          <folding>
+            <element signature="e#41#82#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.esotericsoftware/kryonet/2.22.0-RC1/8ee2b983164bf6b9d194004c84b11b7397079d32/kryonet-2.22.0-RC1-sources.jar!/com/esotericsoftware/kryonet/rmi/ObjectSpace.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="403">
+          <caret line="395" column="47" lean-forward="false" selection-start-line="395" selection-start-column="38" selection-end-line="395" selection-end-column="47" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/util/LaggyNoReplyProxy.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="725">
+          <caret line="29" column="0" lean-forward="false" selection-start-line="29" selection-start-column="0" selection-end-line="29" selection-end-column="0" />
+          <folding>
+            <element signature="e#41#57#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/Transmission.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="25">
+          <caret line="1" column="0" lean-forward="false" selection-start-line="1" selection-start-column="0" selection-end-line="1" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/ClientContinuum.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="410">
-          <caret line="129" column="56" lean-forward="true" selection-start-line="129" selection-start-column="56" selection-end-line="129" selection-end-column="56" />
+        <state relative-caret-position="500">
+          <caret line="20" column="79" lean-forward="true" selection-start-line="20" selection-start-column="79" selection-end-line="20" selection-end-column="79" />
           <folding>
             <element signature="e#52#99#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/GameServer.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="356">
+          <caret line="119" column="0" lean-forward="false" selection-start-line="119" selection-start-column="0" selection-end-line="119" selection-end-column="0" />
+          <folding>
+            <element signature="e#52#118#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/core/src/com/phoenixkahlo/hellcraft/multiplayertest/package.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="275">
+          <caret line="11" column="17" lean-forward="false" selection-start-line="11" selection-start-column="17" selection-end-line="11" selection-end-column="17" />
+          <folding />
         </state>
       </provider>
     </entry>

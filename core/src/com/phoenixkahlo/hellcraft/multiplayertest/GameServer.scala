@@ -4,7 +4,7 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
 import java.net.InetAddress
 import java.util.UUID
 import java.util.concurrent._
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import javax.print.DocFlavor.BYTE_ARRAY
 
 import com.esotericsoftware.kryonet.FrameworkMessage.KeepAlive
@@ -16,7 +16,7 @@ import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.gamedriver.LoopingApp
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.save.{GeneratingRegionSave, GeneratingSave, RegionSave, WorldSave}
-import com.phoenixkahlo.hellcraft.util.{AsyncExecutor, GlobalKryo, LaggyProxy, PriorityExecContext}
+import com.phoenixkahlo.hellcraft.util._
 import com.twitter.chill.{Input, Output}
 import other.AppDirs
 
@@ -26,7 +26,6 @@ import scala.collection.{SortedMap, SortedSet, parallel}
 import scala.collection.parallel
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
-
 import scala.concurrent.duration._
 
 class GameServer extends Listener with Runnable {
@@ -42,6 +41,7 @@ class GameServer extends Listener with Runnable {
 
   var clientRMISpaces: parallel.mutable.ParMap[ClientID, ObjectSpace] = _
   var clientSessions: parallel.mutable.ParMap[ClientID, ClientSession] = _
+  var clientSessionsNoReply: parallel.mutable.ParMap[ClientID, ClientSession] = _
   var clientSeqExecutors: parallel.mutable.ParMap[ClientID, ExecutionContext] = _
   var received: parallel.mutable.ParMap[ClientID, BlockingQueue[Any]] = _
   var avatars: parallel.mutable.ParMap[ClientID, AvatarID] = _
@@ -73,6 +73,7 @@ class GameServer extends Listener with Runnable {
     clientConnectionByID = new parallel.mutable.ParHashMap
     clientRMISpaces = new parallel.mutable.ParHashMap
     clientSessions = new parallel.mutable.ParHashMap
+    clientSessionsNoReply = new parallel.mutable.ParHashMap
     clientSeqExecutors = new parallel.mutable.ParHashMap
     avatars = new parallel.mutable.ParHashMap
     received = new parallel.mutable.ParHashMap
@@ -88,7 +89,7 @@ class GameServer extends Listener with Runnable {
       }
       for ((client, events) <- toRoute) {
         clientSeqExecutors(client).execute(() => {
-          clientSessions(client).integrate(new TreeMap[Long, SortedSet[ChunkEvent]]().updated(time, events))
+          clientSessionsNoReply(client).integrate(new TreeMap[Long, SortedSet[ChunkEvent]]().updated(time, events))
         })
       }
       // push the current world to the save, if the time is right
@@ -109,14 +110,14 @@ class GameServer extends Listener with Runnable {
       (continuum.time, continuum.setClientRelation(client, subscribed, updatingSet))
     }
     clientSeqExecutors(client).execute(() => {
-      clientSessions(client).setServerRelation(time, subscribed, updatingSet, provide)
+      clientSessionsNoReply(client).setServerRelation(time, subscribed, updatingSet, provide)
     })
   }
 
   def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Unit = {
     for ((client, events: SortedMap[Long, SortedSet[ChunkEvent]]) <- continuum.integrateExterns(newExterns)) {
       clientSeqExecutors(client).execute(() => {
-        clientSessions(client).integrate(events)
+        clientSessionsNoReply(client).integrate(events)
       })
     }
   }
@@ -164,6 +165,12 @@ class GameServer extends Listener with Runnable {
       clientSession.asInstanceOf[RemoteObject].setResponseTimeout(TimeOut)
       clientSession = LaggyProxy(clientSession, FakeLag milliseconds, classOf[ClientSession])
       clientSessions.put(clientID, clientSession)
+      var clientSessionNoReply = ObjectSpace.getRemoteObject(connection, clientSessionReady.sessionID, classOf[ClientSession])
+      clientSessionNoReply.asInstanceOf[RemoteObject].setNonBlocking(true)
+      clientSessionNoReply.asInstanceOf[RemoteObject].setResponseTimeout(TimeOut)
+      //clientSessionNoReply = LaggyProxy(clientSessionNoReply, FakeLag milliseconds, classOf[ClientSession])
+      clientSessionNoReply = LaggyNoReplyProxy(clientSessionNoReply, FakeLag milliseconds, classOf[ClientSession])
+      clientSessionsNoReply.put(clientID, clientSessionNoReply)
 
       // for now, make it so that each client just subscribes to the same chunk of chunks
       setClientRelation(

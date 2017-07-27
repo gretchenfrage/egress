@@ -43,7 +43,6 @@ class ClientController(session: ServerSession, cam: Camera, val client: GameClie
       add(toSubmit.take())
       while (toSubmit.size > 0)
         add(toSubmit.remove())
-      println("submitting " + events.size + " events")
       for (failed <- session.submitExterns(events))
         System.err.println("server rejected " + failed)
     }

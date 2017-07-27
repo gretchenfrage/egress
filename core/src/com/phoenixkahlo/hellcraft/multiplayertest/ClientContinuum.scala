@@ -14,15 +14,16 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), 
 
   val maxHistorySize = 5 * 60
 
-  //private val serverMutex = new Object // synchronize outer
-  private val mutateMutex = this // synchronize inner
+  private val mutateMutex = this
 
-  @volatile private var subscribed: Set[V3I] = Set.empty // protected by both mutexes
-  @volatile private var updating: Set[V3I] = Set.empty // protected by both mutexes
-  @volatile private var history: SortedMap[Long, ClientWorld] = starter match { // protected by only mutate mutex
+  @volatile private var subscribed: Set[V3I] = Set.empty
+  @volatile private var updating: Set[V3I] = Set.empty
+  @volatile private var history: SortedMap[Long, ClientWorld] = starter match {
     case (startTime, startChunks) => new TreeMap[Long, ClientWorld]()
       .updated(startTime, new ClientWorld(session, startChunks, startTime))
   }
+
+  private val restartThrowback = new AtomicInteger(20)
 
   def time: Long = history.lastKey
 
@@ -59,7 +60,7 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), 
             newHistory = newHistory.updated(newHistory.lastKey, newHistory.last._2.provide(prov))
           } else {
             println("client continuum: pulling new starter from server")
-            val startT = getServerTime - 20
+            val startT = getServerTime - restartThrowback.getAndUpdate(_ * 2)
             val chunks = session.getSubscribedChunks(startT)
             newHistory = new TreeMap[Long, ClientWorld]()
               .updated(startT, new ClientWorld(session, chunks.map(c => (c.pos, c)).toMap, startT))
@@ -94,7 +95,7 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), 
             newHistory = newHistory.rangeImpl(None, Some(events.firstKey + 1))
             if (newHistory isEmpty) {
               println("client continuum: pulling new starter from server")
-              val startT = getServerTime - 20
+              val startT = getServerTime - restartThrowback.getAndUpdate(_ * 2)
               val chunks = session.getSubscribedChunks(startT)
               newHistory = new TreeMap[Long, ClientWorld]()
                 .updated(startT, new ClientWorld(session, chunks.map(c => (c.pos, c)).toMap, startT))
@@ -118,14 +119,12 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), 
             }
           }
           // notify all that we've finished
-          //task.not.foreach(_.notify())
           for (n <- task.not) {
             n.synchronized {
               n.notify()
             }
           }
       }
-      println("client continuum: task completed")
     }
   }, "client continuum server operation thread").start()
 

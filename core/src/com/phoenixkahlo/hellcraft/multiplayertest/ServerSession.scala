@@ -98,7 +98,6 @@ class ServerSessionImpl(init: InitialClientData, server: GameServer, clientID: C
     case _ => false
   }
 
-
   override def submitExtern(event: ChunkEvent, atTime: Long): Boolean = {
     val accept = isLegit(event)
     if (accept) {
