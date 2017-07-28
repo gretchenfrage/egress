@@ -8,7 +8,7 @@ package com.phoenixkahlo.hellcraft.multiplayertest
   * - they send each other session-ready objects to signal that the session are ready for RMI
   * - it's showtime
   */
-trait Transmission
+sealed trait Transmission
 
 case class InitialClientData() extends Transmission
 
