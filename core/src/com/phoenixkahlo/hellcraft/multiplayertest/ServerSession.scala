@@ -38,7 +38,7 @@ trait ServerSession {
 
 }
 
-class ServerSessionImpl(server: GameServer, client: ClientLogic) extends  ServerSession {
+class ServerSessionImpl(server: EgressServer, client: ClientLogic) extends  ServerSession {
 
   override def getTime: Long = {
     server.clock.gametime

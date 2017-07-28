@@ -20,28 +20,23 @@ import scala.concurrent.duration._
   * It is ready to receive message upon construction, but initialize must be called to
   * perform the handshake.
   */
-class ClientLogic(server: GameServer) {
+class ClientLogic(server: EgressServer) {
 
   val clientID: ClientID = UUID.randomUUID()
   val received = new LinkedBlockingQueue[Any]
 
   def receive(message: Any): Unit = received.add(message)
 
-  var seqExecutor: ExecutionContext = _
-  var rmiSpace: ObjectSpace = _
   var avatarID: AvatarID = _
 
   var session: ClientSession = _
-  var sessionNoReply: ClientSession = _
+  var seqSession: ClientSession = _
 
   def initialize(connection: Connection): Unit = {
     // configure the connection
     connection.setTimeout(TimeOut)
-    // create the seq executor
-    seqExecutor = ExecutionContext.fromExecutor(
-      Executors.newSingleThreadExecutor(runnable => new Thread(runnable, "client seq thread")))
     // create the RMI space
-    rmiSpace = new ObjectSpace
+    val rmiSpace = new ObjectSpace
     rmiSpace.setExecutor(AsyncExecutor("server RMI thread"))
     rmiSpace.addConnection(connection)
     // create the avatar, we will integrate it at the end
@@ -62,26 +57,25 @@ class ClientLogic(server: GameServer) {
     // create the client session proxy
     session = ObjectSpace.getRemoteObject(connection, clientSessionReady.sessionID, classOf[ClientSession])
     session.asInstanceOf[RemoteObject].setResponseTimeout(TimeOut)
-    session = LaggyProxy(session, FakeLag milliseconds, classOf[ClientSession])
-    // create the no-reply client session proxy
-    sessionNoReply = ObjectSpace.getRemoteObject(connection, clientSessionReady.sessionID, classOf[ClientSession])
-    sessionNoReply.asInstanceOf[RemoteObject].setNonBlocking(true)
-    sessionNoReply.asInstanceOf[RemoteObject].setResponseTimeout(TimeOut)
-    sessionNoReply = LaggyNoReplyProxy(sessionNoReply, FakeLag milliseconds, classOf[ClientSession])
+    if (FakeLag > 0)
+      session = LaggyProxy(session, FakeLag milliseconds, classOf[ClientSession])
+    // create the seq client session proxy
+    seqSession = ObjectSpace.getRemoteObject(connection, session.createSingleThreadSession("seq session"),
+      classOf[ClientSession])
+    seqSession.asInstanceOf[RemoteObject].setNonBlocking(true)
+    seqSession.asInstanceOf[RemoteObject].setResponseTimeout(TimeOut)
+    if (FakeLag > 0)
+      seqSession = LaggyNoReplyProxy(seqSession, FakeLag milliseconds, classOf[ClientSession])
     // integrate the avatar into the world
     server.integrateExternNow(AddEntity(avatar, UUID.randomUUID()))
   }
 
   def route(events: SortedMap[Long, SortedSet[ChunkEvent]]): Unit = {
-    seqExecutor.execute(() => {
-      sessionNoReply.integrate(events)
-    })
+    seqSession.integrate(events)
   }
 
   def setRelation(atTime: Long, subscribed: Set[V3I], updating: Set[V3I], provide: Seq[Chunk]): Unit = {
-    seqExecutor.execute(() => {
-      sessionNoReply.setServerRelation(atTime, subscribed, updating, provide)
-    })
+    seqSession.setServerRelation(atTime, subscribed, updating, provide)
   }
 
 }

@@ -25,14 +25,13 @@ import scala.concurrent.duration._
 
 import scala.collection.JavaConverters
 
-class GameClient(serverAddress: InetSocketAddress) extends Listener with RunnableGameState {
+class EgressClient(serverAddress: InetSocketAddress) extends Listener with RunnableGameState {
 
   @volatile var ready = false
   val readyMonitor = new Object
 
   private var received: BlockingQueue[Any] = _
-  private var client: Client = _
-  private var rmiSpace: ObjectSpace = _
+  private var kryonetClient: KryonetClient = _
   private var session: ServerSession = _
   private var clientID: ClientID = _
   private var serverNanotime: NanotimeMirror = _
@@ -52,30 +51,28 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with Runnabl
     received = new LinkedBlockingDeque
 
     // connect to the server
-    client = new Client(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
-    //client.addListener(new ThreadedListener(new LagListener(MinLag, MaxLag, this), AsyncExecutor("client listener thread")))
-    client.addListener(new LagListener(FakeLag, FakeLag, new ThreadedListener(this, AsyncExecutor("client listener thread"))))
-    client.start()
-    client.connect(5000, serverAddress.getAddress, serverAddress.getPort)
-    client.setTimeout(TimeOut)
+    kryonetClient = new Client(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
+    kryonetClient.addListener(new LagListener(FakeLag, FakeLag, new ThreadedListener(this, AsyncExecutor("client listener thread"))))
+    kryonetClient.start()
+    kryonetClient.connect(5000, serverAddress.getAddress, serverAddress.getPort)
+    kryonetClient.setTimeout(TimeOut)
     // send the initial data
-    client.sendTCP(InitialClientData())
+    kryonetClient.sendTCP(InitialClientData())
     // receive the client's initial data
     val init = received.take().asInstanceOf[InitialServerData]
     // use the initial data to create a session
-    val clientSession = new ClientSessionImpl(init, this)
-    rmiSpace = new ObjectSpace
+    val clientSession = new ClientSessionImpl(this)
+    val rmiSpace = new ObjectSpace
     rmiSpace.setExecutor(AsyncExecutor("client RMI thread"))
-    rmiSpace.addConnection(client)
+    rmiSpace.addConnection(kryonetClient)
     val clientSessionID = ThreadLocalRandom.current.nextInt()
     rmiSpace.register(clientSessionID, clientSession)
-    client.sendTCP(ClientSessionReady(clientSessionID))
+    kryonetClient.sendTCP(ClientSessionReady(clientSessionID))
     // wait for and setup the remote server session
     val serverSessionReady = received.take().asInstanceOf[ServerSessionReady]
-    session = ObjectSpace.getRemoteObject(client, serverSessionReady.sessionID, classOf[ServerSession])
+    session = ObjectSpace.getRemoteObject(kryonetClient, serverSessionReady.sessionID, classOf[ServerSession])
     session.asInstanceOf[RemoteObject].setResponseTimeout(TimeOut)
     session = LaggyProxy(session, FakeLag milliseconds, classOf[ServerSession])
-
 
     // synchronize the times
     serverNanotime = NanotimeMirror.mirrorServer(session)
@@ -171,7 +168,7 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with Runnabl
   }
 
   override def onExit(): Unit = {
-    client.close()
+    kryonetClient.close()
   }
 
   override def disconnected(connection: Connection): Unit = {
@@ -187,5 +184,7 @@ class GameClient(serverAddress: InetSocketAddress) extends Listener with Runnabl
   def getContinuum: ClientContinuum = continuum
 
   def getClock: GametimeClock = clock
+
+  def getKryonetClient: KryonetClient = kryonetClient
 
 }

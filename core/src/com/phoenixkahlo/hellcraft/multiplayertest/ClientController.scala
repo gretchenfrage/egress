@@ -18,7 +18,7 @@ import com.phoenixkahlo.hellcraft.util.AsyncExecutor
 
 import scala.collection.immutable.TreeMap
 
-class ClientController(session: ServerSession, cam: Camera, val client: GameClient) extends InputAdapter {
+class ClientController(session: ServerSession, cam: Camera, val client: EgressClient) extends InputAdapter {
 
   val sensitivity = 0.25f
   val offset = V3F(0, 1.75f, 0)

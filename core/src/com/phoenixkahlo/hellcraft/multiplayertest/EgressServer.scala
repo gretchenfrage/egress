@@ -28,13 +28,13 @@ import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
-class GameServer extends Listener with Runnable {
+class EgressServer extends Listener with Runnable {
 
   var save: WorldSave = _
   var continuum: ServerContinuum = _
   var clock: GametimeClock = _
 
-  var server: Server = _
+  var kryonetServer: KryonetServer = _
 
   var clientIDByConnection: parallel.mutable.ParMap[Connection, ClientID] = _
   var clientConnectionByID: parallel.mutable.ParMap[ClientID, Connection] = _
@@ -59,16 +59,16 @@ class GameServer extends Listener with Runnable {
 
     continuum = new ServerContinuum(save)
 
-    server = new Server(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
-    server.bind(port)
-    server.addListener(new LagListener(FakeLag, FakeLag, new ThreadedListener(this,
+    kryonetServer = new Server(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
+    kryonetServer.bind(port)
+    kryonetServer.addListener(new LagListener(FakeLag, FakeLag, new ThreadedListener(this,
       Executors.newSingleThreadExecutor(runnable => new Thread(runnable, "server listener thread")))))
 
     clientIDByConnection = new parallel.mutable.ParHashMap
     clientConnectionByID = new parallel.mutable.ParHashMap
     clientLogics = new parallel.mutable.ParHashMap
 
-    server.start()
+    kryonetServer.start()
   }
 
   override def run(): Unit = {

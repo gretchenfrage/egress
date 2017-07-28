@@ -9,7 +9,10 @@ package object multiplayertest {
   type EventID = UUID
   type AvatarID = UUID
 
-  val FakeLag = 0
+  type KryonetClient = com.esotericsoftware.kryonet.Client
+  type KryonetServer = com.esotericsoftware.kryonet.Server
+
+  val FakeLag = 100
   val TimeOut = Int.MaxValue
 
 }
