@@ -9,14 +9,14 @@ import com.badlogic.gdx.{Gdx, InputAdapter}
 import com.badlogic.gdx.graphics.Camera
 import com.phoenixkahlo.hellcraft.math._
 
-import scala.collection.{SortedMap, SortedSet, mutable}
+import scala.collection.mutable
 import com.badlogic.gdx.Input.Keys._
 import com.badlogic.gdx.math.Vector3
 import com.phoenixkahlo.hellcraft.core.entity.{Avatar, Entity}
 import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent, SetAvatarMovement, World}
 import com.phoenixkahlo.hellcraft.util.AsyncExecutor
 
-import scala.collection.immutable.{TreeMap, TreeSet}
+import scala.collection.immutable.TreeMap
 
 class ClientController(session: ServerSession, cam: Camera, val client: EgressClient) extends InputAdapter {
 
@@ -47,12 +47,6 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
         System.err.println("server rejected " + failed)
     }
   }, "controller event submission thread").start()
-
-  private def submit(atTime: Long, event: ChunkEvent): Unit = {
-    toSubmit.add((atTime, event))
-    client.getContinuum.integrate(
-      new TreeMap[Long, SortedSet[ChunkEvent]]().updated(atTime, (SortedSet.empty: SortedSet[ChunkEvent]) + event))
-  }
 
   override def keyDown(k: Int): Boolean =
     if (k == ESCAPE) {
@@ -118,8 +112,7 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
         if (lastSetMovement != world.time) {
           lastSetMovement = world.time
           val setMovement = SetAvatarMovement(avatar.id, movDir, jumping, avatar.chunkPos, UUID.randomUUID())
-          //toSubmit.add((world.time, setMovement))
-          submit(world.time, setMovement)
+          toSubmit.add((world.time, setMovement))
         }
 
         val interpolation: Option[(World, Float)] =
