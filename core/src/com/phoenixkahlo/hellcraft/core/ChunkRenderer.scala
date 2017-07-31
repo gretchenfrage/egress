@@ -24,6 +24,20 @@ class ChunkRenderer(
 
     // compute the given surface of the given block
     def surface(m: SurfaceMap, v: V3I, s: Direction): SurfaceMap =
+      (chunk(v % 16).get, world.weakBlockAt(v + s)) match {
+        // if the target is translucent, the face is invisible
+        case (t, _) if t isTranslucent => m
+        // if the cover is opaque, the face is invisible
+        case (_, Some(c)) if c isOpaque => m
+        // if the cover is translucent (and the target is opaque), the face is visible
+        case (_, Some(c)) if c isTranslucent => m.updated(s, v :: m(s))
+        // if the cover is non-existent (and the target is opaque), the face is visible
+        case (_, None) => m.updated(s, v :: m(s))
+        // in all other cases, the face is invisible
+        case _ => m
+      }
+    /*
+    def surface(m: SurfaceMap, v: V3I, s: Direction): SurfaceMap =
       (world.blockAt(v), world.blockAt(v + s)) match {
         // if the target is non-existent, the face is invisible
         case (None, _) => m
@@ -38,6 +52,7 @@ class ChunkRenderer(
         // in all other cases, the face is invisible
         case _ => m
       }
+      */
 
     // compute all surfaces of a block
     def block(m: SurfaceMap, v: V3I): SurfaceMap =

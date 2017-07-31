@@ -28,7 +28,7 @@ class ClientWorld(
     }
   }
 
-  def weakChunkAt(p: V3I): Option[Chunk] =
+  override def weakChunkAt(p: V3I): Option[Chunk] =
     chunks.get(p)
 
   def getLoadedChunks: Map[V3I, Chunk] =

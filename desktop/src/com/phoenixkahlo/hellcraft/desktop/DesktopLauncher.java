@@ -3,6 +3,7 @@ package com.phoenixkahlo.hellcraft.desktop;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
 import com.esotericsoftware.minlog.Log;
+import com.phoenixkahlo.hellcraft.finitetest.SimpleDriver;
 import com.phoenixkahlo.hellcraft.gamedriver.RunnableGameStateDriver;
 import com.phoenixkahlo.hellcraft.multiplayertest.EgressClient;
 import com.phoenixkahlo.hellcraft.multiplayertest.EgressServer;
@@ -18,18 +19,15 @@ public class DesktopLauncher {
 	public static void main (String[] arg) {
 		Log.set(Log.LEVEL_ERROR);
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
-		//config.width = 1800;
-		//config.height = 800;
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 		double factor = 0.5;
 		config.width = (int) (screenSize.width * factor);
 		config.height = (int) (screenSize.height * factor);
 
+
 		Path dir = AppDirs.dataDir("egress");
 		System.out.println("using directory " + dir);
 		dir.toFile().mkdir();
-
-
 		File mul = AppDirs.dataDir("egress").resolve("mul").toFile();
 		if (mul.exists()) Arrays.asList(mul.listFiles()).forEach(File::delete);
 		new Thread(new EgressServer(25565)).start();
