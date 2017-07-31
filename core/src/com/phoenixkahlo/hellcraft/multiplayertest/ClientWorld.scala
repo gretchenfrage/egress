@@ -70,9 +70,10 @@ class ClientWorld(
     val eventsByTarget: Map[V3I, SortedSet[ChunkEvent]] = events.groupBy(_.target)
     // transform the chunks for which events exist
     val transformed: Map[V3I, Chunk] =
-      eventsByTarget.par.map({
+    //TODO: parallelize this
+      eventsByTarget.map({
         case (target, group) => (target, group.foldLeft(chunkAt(target).get)({ case (chunk, event) => event(chunk) }))
-      }).seq
+      })
     // integrate the transformed chunks into the world
     provide(transformed)
   }

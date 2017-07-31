@@ -81,10 +81,7 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
 
     // instantiate the other things
     deleted = new LinkedBlockingQueue
-    continuum = new ClientContinuum(session,
-      session.getStarter() match { case (time, chunkSeq) => (time, chunkSeq.map(chunk => (chunk.pos, chunk)).toMap) },
-      clock.gametime
-    )
+    continuum = new ClientContinuum(session, clock.gametime)
 
     textures = new DefaultTexturePack
 
