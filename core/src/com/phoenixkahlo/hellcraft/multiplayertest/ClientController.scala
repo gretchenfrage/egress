@@ -9,7 +9,7 @@ import com.badlogic.gdx.{Gdx, InputAdapter}
 import com.badlogic.gdx.graphics.Camera
 import com.phoenixkahlo.hellcraft.math._
 
-import scala.collection.mutable
+import scala.collection.{SortedSet, mutable}
 import com.badlogic.gdx.Input.Keys._
 import com.badlogic.gdx.math.Vector3
 import com.phoenixkahlo.hellcraft.core.entity.{Avatar, Entity}
@@ -29,10 +29,12 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
   private val pressed = new mutable.HashSet[Int]
   private val clicks = new mutable.ArrayStack[Int]
 
-  val keys = List(W, A, S, D, SHIFT_LEFT, SPACE, CONTROL_LEFT, TAB, C, H)
+  val keys = List(W, A, S, D, SHIFT_LEFT, SPACE, CONTROL_LEFT, TAB, H)
 
-  private var lastSetMovement: Long = Long.MinValue
+  //private var lastSetMovement: Long = Long.MinValue
   private val toSubmit = new LinkedBlockingQueue[(Long, ChunkEvent)]
+
+  @volatile var camDir = V3F(cam.direction)
 
   new Thread(() => {
     while (true) {
@@ -89,13 +91,12 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
       true
     }
 
-  def update(world: World, posHint: Option[V3I] = None): Unit = {
-    (posHint.flatMap(world.chunkAt(_).get.entities.get(avatarID)) match {
-      case option if option isDefined => option
-      case None => world.findEntity(avatarID)
-    }).map(_.asInstanceOf[Avatar]) match {
+  def mainUpdate(world: World): SortedSet[ChunkEvent] = {
+    world.findEntity(avatarID).map(_.asInstanceOf[Avatar]) match {
       case Some(avatar) =>
-        val camDir = V3F(cam.direction).normalize
+        var accumulator: SortedSet[ChunkEvent] = SortedSet.empty
+
+        val camDir = this.camDir
 
         var movDir: V3F = Origin
         if (pressed(W))
@@ -109,30 +110,10 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
 
         val jumping = pressed(SPACE)
 
-        if (lastSetMovement != world.time) {
-          lastSetMovement = world.time
-          val setMovement = SetAvatarMovement(avatar.id, movDir, jumping, avatar.chunkPos, UUID.randomUUID())
-          toSubmit.add((world.time, setMovement))
-        }
+        val setMovement = SetAvatarMovement(avatar.id, movDir, jumping, avatar.chunkPos, UUID.randomUUID())
+        toSubmit.add((world.time, setMovement))
+        accumulator += setMovement
 
-        val interpolation: Option[(World, Float)] =
-          client.getContinuum.snapshot(world.time - 1) match {
-            case Some(previous) => Some((previous, 1 - client.getClock.fractionalTicksSince(previous.time)))
-            case None => None
-          }
-
-        val pos = interpolation.map({ case (a, b) => avatar.interpolatePos(a, b) }).getOrElse(avatar.pos)
-
-        cam.position.set((pos + offset) toGdx)
-        cam.update()
-
-        // press c to count occurences of avatar on client and server, for debugging purposes
-        if (pressed(C)) {
-          pressed -= C
-
-          println("client count: " + world.asInstanceOf[ClientWorld].getLoadedChunks.values.flatMap(_.entities.get(avatarID)).size)
-          println("server count: " + session.avatarCount)
-        }
         // press h to check for hashcode discrepencies between chunks in the client and server, for debugging purposes
         if (pressed(H)) {
           pressed -= H
@@ -149,7 +130,31 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
           }
           println("finished hash veryifying")
         }
-      case None => println("controller failed to find avatar")
+
+        accumulator
+      case None => SortedSet.empty
+    }
+  }
+
+  def camUpdate(world: World): Unit = {
+    world.findEntity(avatarID).map(_.asInstanceOf[Avatar]) match {
+      case Some(avatar) =>
+        this.camDir = V3F(cam.direction)
+
+        /*
+        val interpolation: Option[(World, Float)] =
+          client.getContinuum.snapshot(world.time - 1) match {
+            case Some(previous) => Some((previous, 1 - client.getClock.fractionalTicksSince(previous.time)))
+            case None => None
+          }
+          */
+        val interpolation = Interpolation(world, client.getContinuum, client.getClock)
+
+        val pos = interpolation.map({ case (a, b) => avatar.interpolatePos(a, b) }).getOrElse(avatar.pos)
+
+        cam.position.set((pos + offset) toGdx)
+        cam.update()
+      case None =>
     }
   }
 

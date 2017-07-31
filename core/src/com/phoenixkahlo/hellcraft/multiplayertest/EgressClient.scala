@@ -125,7 +125,9 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
 
     // update the camera controller
-    controller.update(world)
+    controller.camUpdate(world)
+    //controller.mainUpdate(world)
+    //controller.update(world)
 
     // get the renderable factories
     val p = V3F(cam.position) / 16 floor
@@ -146,11 +148,14 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
     }
 
     // do the rendering
+    /*
     val interpolation: Option[(World, Float)] =
       continuum.snapshot(world.time - 1) match {
         case Some(previous) => Some((previous, 1 - clock.fractionalTicksSince(previous.time)))
         case None => None
       }
+      */
+    val interpolation = Interpolation(world, continuum, clock)
     val provider = new RenderableProvider {
       override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit =
         factories.flatMap(_(interpolation)).foreach(renderables.add)
@@ -162,8 +167,12 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
 
   override def run(): Unit = {
     while (true) {
-      continuum.update()
-      clock.waitUntil(continuum.time + 1)
+      val time = continuum.synchronized {
+        val submissions = controller.mainUpdate(continuum.current)
+        continuum.update(submissions)
+        continuum.time
+      }
+      clock.waitUntil(time + 1)
     }
   }
 

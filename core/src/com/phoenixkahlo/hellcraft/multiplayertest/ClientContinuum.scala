@@ -10,6 +10,7 @@ import com.phoenixkahlo.hellcraft.util.Cache
 import scala.collection.immutable.{TreeMap, TreeSet}
 import scala.collection.{SortedMap, SortedSet, mutable}
 
+//TODO: forget
 class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), getServerTime: => Long) {
 
   val maxHistorySize = 5 * 60
@@ -22,6 +23,8 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), 
     case (startTime, startChunks) => new TreeMap[Long, ClientWorld]()
       .updated(startTime, new ClientWorld(session, startChunks, startTime))
   }
+  private val submissionMonitor = new Object
+  @volatile private var submissions: SortedMap[Long, SortedSet[ChunkEvent]] = SortedMap.empty
 
   private val restartThrowback = new AtomicInteger(20)
 
@@ -31,9 +34,26 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), 
 
   def snapshot(atTime: Long): Option[ClientWorld] = history.get(atTime)
 
-  def update(unpredictable: SortedSet[ChunkEvent] = SortedSet.empty): Unit = mutateMutex.synchronized {
-    val updated = current.update(subscribed, updating, unpredictable)
-    history = history.updated(updated.time, updated)
+  def update(submit: SortedSet[ChunkEvent]): Unit = mutateMutex.synchronized {
+    submissionMonitor.synchronized {
+      submissions = submissions.updated(time, submit)
+      submissionMonitor.notifyAll()
+    }
+    if (time < getServerTime) {
+      val updated = current.update(subscribed, updating, submit)
+      history = history.updated(updated.time, updated)
+    }
+  }
+
+  private def getSubmitted(atTime: Long): SortedSet[ChunkEvent] = {
+    submissions.get(atTime) match {
+      case Some(events) => events
+      case None => submissionMonitor.synchronized {
+        while (submissions.isEmpty || submissions.lastKey < atTime)
+          submissionMonitor.wait()
+        submissions(atTime)
+      }
+    }
   }
 
   sealed trait ServerOperation
@@ -67,7 +87,7 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), 
           }
           // update it back to the current time
           while (newHistory.lastKey < getServerTime) {
-            val newWorld = newHistory.last._2.update(sub, upd, SortedSet.empty)
+            val newWorld = newHistory.last._2.update(sub, upd, getSubmitted(newHistory.lastKey))
             newHistory = newHistory.updated(newWorld.time, newWorld)
           }
           // grab the mutation mutex and implement the changes
@@ -102,7 +122,7 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), 
             }
             // define a function for updating the history with unpredictables
             def upd8(h: SortedMap[Long, ClientWorld], u: SortedSet[ChunkEvent] = SortedSet.empty) = {
-              val n = h.last._2.update(subscribed, updating, u)
+              val n = h.last._2.update(subscribed, updating, u ++ getSubmitted(h.lastKey))
               h.updated(n.time, n)
             }
             // update the history with the accumulated events
@@ -144,79 +164,5 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), 
       event.not.wait()
     }
   }
-
-  /**
-    * A server operation
-    */
-  /*
-  def setServerRelation(atTime: Long, newSubscribed: Set[V3I], newUpdating: Set[V3I], provided: Map[V3I, Chunk]
-                       ): Unit = serverMutex.synchronized {
-    // capture the history
-    var newHistory = history
-    // truncate it (revert)
-    newHistory = newHistory.rangeImpl(None, Some(atTime + 1))
-    // provide the chunks
-    if (newHistory nonEmpty)
-      newHistory = newHistory.updated(newHistory.lastKey, newHistory.last._2.provide(provided))
-    else {
-      println("client continuum: pulling new starter from the server")
-      val t = getServerTime - 20
-      val chunks = session.getSubscribedChunks(t)
-      newHistory = new TreeMap[Long, ClientWorld]()
-        .updated(t, new ClientWorld(session, chunks.map(c => (c.pos, c)).toMap, t))
-    }
-    // update it back to the current time
-    while (newHistory.lastKey < getServerTime) {
-      val newWorld = newHistory.last._2.update(newSubscribed, newUpdating, SortedSet.empty)
-      newHistory = newHistory.updated(newWorld.time, newWorld)
-    }
-    // grab the mutation mutex and implement the changes
-    mutateMutex.synchronized {
-      subscribed = newSubscribed
-      updating = newUpdating
-      history = newHistory
-    }
-  }
-
-  /**
-    * A server operation
-    */
-  def integrate(events: SortedMap[Long, SortedSet[ChunkEvent]]): Unit = {
-    if (events isEmpty) return
-    serverMutex.synchronized {
-      // capture the history
-      var newHistory = history
-      // truncate it (revert)
-      newHistory = newHistory.rangeImpl(None, Some(events.firstKey + 1))
-      if (newHistory isEmpty) {
-        println("client continuum: pulling new starter from server")
-        val t = getServerTime - 20
-        val chunks = session.getSubscribedChunks(t)
-        newHistory = new TreeMap[Long, ClientWorld]()
-          .updated(t, new ClientWorld(session, chunks.map(c => (c.pos, c)).toMap, t))
-      }
-      // define a function for updating the history with unpredictables
-      def upd8(h: SortedMap[Long, ClientWorld], u: SortedSet[ChunkEvent] = SortedSet.empty) = {
-        val n = h.last._2.update(subscribed, updating, u)
-        h.updated(n.time, n)
-      }
-      // update it with the events
-      for ((atTime, eventGroup) <- events) {
-        while (newHistory.lastKey < atTime)
-          newHistory = upd8(newHistory)
-        newHistory = upd8(newHistory, eventGroup)
-      }
-      while (newHistory.lastKey < getServerTime)
-        newHistory = upd8(newHistory)
-      // grab the mutation mutex and implement the changes
-      mutateMutex.synchronized {
-        history = newHistory
-      }
-    }
-  }
-
-  def integrate(event: ChunkEvent, atTime: Long): Unit =
-    integrate(new TreeMap[Long, SortedSet[ChunkEvent]]().updated(atTime, new TreeSet[ChunkEvent] + event))
-  */
 
 }
