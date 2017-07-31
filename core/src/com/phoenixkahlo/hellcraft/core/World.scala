@@ -18,7 +18,7 @@ trait World {
 
   def weakChunkAt(chunkPos: V3I): Option[Chunk] = chunkAt(chunkPos)
 
-  def weakBlockAt(v: V3I): Option[Block] = chunkAt(v / 16 floor).flatMap(_(v % 16))
+  def weakBlockAt(v: V3I): Option[Block] = weakChunkAt(v / 16 floor).flatMap(_(v % 16))
 
   def findEntity(id: UUID): Option[Entity]
 
