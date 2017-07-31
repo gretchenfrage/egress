@@ -76,7 +76,6 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
   private def fetchNewHistory(startT: Long): SortedMap[Long, ClientWorld] = {
     println("client continuum: pulling new starter from server at")
     val chunks = session.getSubscribedChunks(startT)
-    println("got " + chunks.size + " chunks")
     (SortedMap.empty: SortedMap[Long, ClientWorld])
       .updated(startT, new ClientWorld(session, chunks.map(c => (c.pos, c)).toMap, startT))
   }
@@ -85,7 +84,6 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
     while (true) {
       serverTasks.take() match {
         case SetRelation(t, sub, upd, prov, not) =>
-          println("setting relation")
           // capture history
           var newHistory = history
           // truncate it
@@ -94,17 +92,15 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
           if (newHistory nonEmpty) {
             newHistory = newHistory.updated(newHistory.lastKey, newHistory.last._2.provide(prov))
           } else {
-            //newHistory = fetchNewHistory(getServerTime - restartThrowback.getAndUpdate(_ * 2))
             newHistory = fetchNewHistory(t)
           }
-          // update it back to the current time
-          while (newHistory.lastKey < getServerTime) {
+          // update it back to the current time minus one (because of submissions)
+          while (newHistory.lastKey < getServerTime && submissions.contains(newHistory.lastKey)) {
             val newWorld = newHistory.last._2.update(sub, upd, getSubmitted(newHistory.lastKey))
             newHistory = newHistory.updated(newWorld.time, newWorld)
           }
           // grab the mutation mutex and implement the changes
           mutateMutex.synchronized {
-            println("implementing set-relation")
             subscribed = sub
             updating = upd
             history = newHistory
@@ -141,7 +137,7 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
                 newHistory = upd8(newHistory)
               newHistory = upd8(newHistory, eventGroup)
             }
-            while (newHistory.lastKey < getServerTime)
+            while (newHistory.lastKey < getServerTime && submissions.contains(newHistory.lastKey))
               newHistory = upd8(newHistory)
             // grab the mutation mutex and implement the changes
             mutateMutex.synchronized {
