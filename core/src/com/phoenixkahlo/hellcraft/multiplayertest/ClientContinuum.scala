@@ -39,10 +39,8 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), 
       submissions = submissions.updated(time, submit)
       submissionMonitor.notifyAll()
     }
-    if (time < getServerTime) {
-      val updated = current.update(subscribed, updating, submit)
-      history = history.updated(updated.time, updated)
-    }
+    val updated = current.update(subscribed, updating, submit)
+    history = history.updated(updated.time, updated)
   }
 
   private def getSubmitted(atTime: Long): SortedSet[ChunkEvent] = {

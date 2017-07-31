@@ -45,6 +45,7 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
   private var modelBatch: ModelBatch = _
   private var lights: Environment = _
   private var vramGraph: DependencyGraph = _
+  private var interpolator: Interpolator = _
   private var g = 0
 
   override def onEnter(): Unit = {
@@ -102,6 +103,8 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
 
     vramGraph = DependencyGraph()
 
+    interpolator = new Interpolator(clock)
+
     readyMonitor.synchronized {
       ready = true
       readyMonitor.notifyAll()
@@ -124,10 +127,11 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
 
+    // interpolate
+    val interpolation = interpolator.interpolate(world)
+
     // update the camera controller
-    controller.camUpdate(world)
-    //controller.mainUpdate(world)
-    //controller.update(world)
+    controller.camUpdate(world, interpolation)
 
     // get the renderable factories
     val p = V3F(cam.position) / 16 floor
@@ -148,14 +152,6 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
     }
 
     // do the rendering
-    /*
-    val interpolation: Option[(World, Float)] =
-      continuum.snapshot(world.time - 1) match {
-        case Some(previous) => Some((previous, 1 - clock.fractionalTicksSince(previous.time)))
-        case None => None
-      }
-      */
-    val interpolation = Interpolation(world, continuum, clock)
     val provider = new RenderableProvider {
       override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit =
         factories.flatMap(_(interpolation)).foreach(renderables.add)

@@ -136,20 +136,11 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
     }
   }
 
-  def camUpdate(world: World): Unit = {
+  def camUpdate(world: World, interpolation: Option[(World, Float)]): Unit = {
     world.findEntity(avatarID).map(_.asInstanceOf[Avatar]) match {
       case Some(avatar) =>
         this.camDir = V3F(cam.direction)
-
-        /*
-        val interpolation: Option[(World, Float)] =
-          client.getContinuum.snapshot(world.time - 1) match {
-            case Some(previous) => Some((previous, 1 - client.getClock.fractionalTicksSince(previous.time)))
-            case None => None
-          }
-          */
-        val interpolation = Interpolation(world, client.getContinuum, client.getClock)
-
+        
         val pos = interpolation.map({ case (a, b) => avatar.interpolatePos(a, b) }).getOrElse(avatar.pos)
 
         cam.position.set((pos + offset) toGdx)
