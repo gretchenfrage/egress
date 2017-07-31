@@ -35,12 +35,19 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), 
   def snapshot(atTime: Long): Option[ClientWorld] = history.get(atTime)
 
   def update(submit: SortedSet[ChunkEvent]): Unit = mutateMutex.synchronized {
+    // submit the events
     submissionMonitor.synchronized {
       submissions = submissions.updated(time, submit)
       submissionMonitor.notifyAll()
     }
-    val updated = current.update(subscribed, updating, submit)
-    history = history.updated(updated.time, updated)
+    // prune history
+    submissions = submissions.rangeImpl(Some(time - maxHistorySize), None)
+    history = history.rangeImpl(Some(time - maxHistorySize), None)
+    // update
+    if (time < getServerTime) {
+      val updated = current.update(subscribed, updating, submit)
+      history = history.updated(updated.time, updated)
+    }
   }
 
   private def getSubmitted(atTime: Long): SortedSet[ChunkEvent] = {
@@ -65,6 +72,13 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), 
   }
   private val serverTasks = new LinkedBlockingQueue[ServerOperation]
 
+  private def fetchNewHistory(startT: Long): SortedMap[Long, ClientWorld] = {
+    println("client continuum: pulling new starter from server")
+    val chunks = session.getSubscribedChunks(startT)
+    (SortedMap.empty: SortedMap[Long, ClientWorld])
+      .updated(startT, new ClientWorld(session, chunks.map(c => (c.pos, c)).toMap, startT))
+  }
+
   new Thread(() => {
     while (true) {
       serverTasks.take() match {
@@ -77,11 +91,14 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), 
           if (newHistory nonEmpty) {
             newHistory = newHistory.updated(newHistory.lastKey, newHistory.last._2.provide(prov))
           } else {
+            newHistory = fetchNewHistory(getServerTime - restartThrowback.getAndUpdate(_ * 2))
+            /*
             println("client continuum: pulling new starter from server")
             val startT = getServerTime - restartThrowback.getAndUpdate(_ * 2)
             val chunks = session.getSubscribedChunks(startT)
             newHistory = new TreeMap[Long, ClientWorld]()
               .updated(startT, new ClientWorld(session, chunks.map(c => (c.pos, c)).toMap, startT))
+              */
           }
           // update it back to the current time
           while (newHistory.lastKey < getServerTime) {
@@ -112,11 +129,14 @@ class ClientContinuum(session: ServerSession, starter: (Long, Map[V3I, Chunk]), 
             // truncate it
             newHistory = newHistory.rangeImpl(None, Some(events.firstKey + 1))
             if (newHistory isEmpty) {
+              newHistory = fetchNewHistory(getServerTime - restartThrowback.getAndUpdate(_ * 2))
+              /*
               println("client continuum: pulling new starter from server")
               val startT = getServerTime - restartThrowback.getAndUpdate(_ * 2)
               val chunks = session.getSubscribedChunks(startT)
               newHistory = new TreeMap[Long, ClientWorld]()
                 .updated(startT, new ClientWorld(session, chunks.map(c => (c.pos, c)).toMap, startT))
+                */
             }
             // define a function for updating the history with unpredictables
             def upd8(h: SortedMap[Long, ClientWorld], u: SortedSet[ChunkEvent] = SortedSet.empty) = {

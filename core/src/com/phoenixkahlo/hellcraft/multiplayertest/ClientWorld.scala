@@ -21,6 +21,7 @@ class ClientWorld(
     chunks.get(p) match {
       case chunk if chunk isDefined => chunk
       case None =>
+        println("client fetching chunk from server at " + p)
         val chunk = session.chunkAt(time, p).get
         monitor.synchronized { chunks = chunks.updated(p, chunk) }
         Some(chunk)
@@ -65,7 +66,6 @@ class ClientWorld(
   }
 
   def integrate(events: SortedSet[ChunkEvent]): ClientWorld = {
-    //println("client world integrating " + events)
     // sort the events by their target
     val eventsByTarget: Map[V3I, SortedSet[ChunkEvent]] = events.groupBy(_.target)
     // transform the chunks for which events exist
@@ -78,7 +78,6 @@ class ClientWorld(
   }
 
   def update(subscribed: Set[V3I], updating: Set[V3I], unpredictable: SortedSet[ChunkEvent]): ClientWorld = {
-    //println("upgrading with unpredictables " + unpredictable)
     // accumulate all the events from chunks we are updating, and then join them with the unpredictable events
     // filter out events targeted at chunks we are not subscribed to
     val events = updating.flatMap(chunkAt(_).get.update(this)).filter(e => subscribed.contains(e.target))

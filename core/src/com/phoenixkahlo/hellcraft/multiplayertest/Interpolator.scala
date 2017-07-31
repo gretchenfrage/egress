@@ -33,16 +33,6 @@ class Interpolator(clock: GametimeClock, mode: InterpolationMode) {
         if (worlds.size == 2) (worlds.head._2, Some((current, clock.fractionalTicksSince(worlds.firstKey) - 1)))
         else (current, None)
     }
-    /*
-    if (!InterpolationOn) return None
-    // manage the render history so it's the 2 most recent worlds
-    worlds = worlds.updated(current.time, current)
-    if (worlds.size > 2)
-      worlds = worlds.drop(worlds.size - 2)
-    // interpolate those worlds
-    if (worlds.size == 2) Some((worlds.head._2, 1 - clock.fractionalTicksSince(worlds.firstKey)))
-    else None
-    */
   }
 
 }
