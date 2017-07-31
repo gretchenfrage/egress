@@ -15,6 +15,4 @@ package object multiplayertest {
   val FakeLag = 0
   val TimeOut = Int.MaxValue
 
-  val InterpolationOn = true
-
 }

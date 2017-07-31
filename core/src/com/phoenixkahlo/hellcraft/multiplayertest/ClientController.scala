@@ -140,7 +140,7 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
     world.findEntity(avatarID).map(_.asInstanceOf[Avatar]) match {
       case Some(avatar) =>
         this.camDir = V3F(cam.direction)
-        
+
         val pos = interpolation.map({ case (a, b) => avatar.interpolatePos(a, b) }).getOrElse(avatar.pos)
 
         cam.position.set((pos + offset) toGdx)

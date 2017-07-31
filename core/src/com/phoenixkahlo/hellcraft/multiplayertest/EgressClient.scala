@@ -103,7 +103,7 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
 
     vramGraph = DependencyGraph()
 
-    interpolator = new Interpolator(clock)
+    interpolator = new Interpolator(clock, Forward)
 
     readyMonitor.synchronized {
       ready = true
@@ -128,14 +128,14 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
 
     // interpolate
-    val interpolation = interpolator.interpolate(world)
+    val (toRender, interpolation) = interpolator.interpolate(world)
 
     // update the camera controller
-    controller.camUpdate(world, interpolation)
+    controller.camUpdate(toRender, interpolation)
 
     // get the renderable factories
     val p = V3F(cam.position) / 16 floor
-    val chunks = ((p - V3I(3, 3, 3)) to (p + V3I(3, 3, 3))).flatMap(world.weakChunkAt)
+    val chunks = ((p - V3I(3, 3, 3)) to (p + V3I(3, 3, 3))).flatMap(toRender.asInstanceOf[ClientWorld].weakChunkAt)
     val factories = chunks.flatMap(_.renderables(textures, world))
 
     // manage the resource graph
