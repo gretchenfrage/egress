@@ -36,7 +36,6 @@ class ClientWorld(
 
   override def chunkIsDefinedAt(chunkPos: V3I): Boolean = true
 
-  //override def findEntity(id: EntityID): Option[Entity] = chunks.values.flatMap(_.entities.get(id)).headOption
   override def findEntity(id: EntityID): Option[Entity] = {
     entityPosHints.get(id).flatMap(chunkAt(_).get.entities.get(id)) match {
       case entity if entity isDefined => entity
@@ -79,10 +78,22 @@ class ClientWorld(
   }
 
   def update(subscribed: Set[V3I], updating: Set[V3I], unpredictable: SortedSet[ChunkEvent]): ClientWorld = {
+    // scan unpredictable for events that are not subscribed to
+    if (true) {
+      val badUnpredictable = unpredictable.filterNot(e => subscribed.contains(e.target))
+      if (badUnpredictable nonEmpty)
+        System.err.println("inputted unpredictables not subscribed to: " + badUnpredictable)
+    }
     // accumulate all the events from chunks we are updating, and then join them with the unpredictable events
     // filter out events targeted at chunks we are not subscribed to
     val events = updating.flatMap(chunkAt(_).get.update(this)).filter(e => subscribed.contains(e.target))
       .to[SortedSet] ++ unpredictable
+    // scan all events for events that are not subscribed to
+    if (true) {
+      val badEvents = events.filterNot(e => subscribed.contains(e.target))
+      if (badEvents nonEmpty)
+        System.err.println("events contain unsubscribed targets: " + badEvents)
+    }
     // unload chunks that we will not receive the events for
     // then integrate the events into our chunks, which should require 0 chunk-fetches from server
     // and finally, increment the time

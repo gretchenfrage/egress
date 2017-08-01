@@ -27,7 +27,7 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
   private val submissionMonitor = new Object
   @volatile private var submissions: SortedMap[Long, SortedSet[ChunkEvent]] = SortedMap.empty
 
-  private val restartThrowback = new AtomicInteger(20)
+  private val restartThrowback = new AtomicInteger(100)
 
   def time: Long = history.lastKey
 
@@ -73,9 +73,10 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
   }
   private val serverTasks = new LinkedBlockingQueue[ServerOperation]
 
-  private def fetchNewHistory(startT: Long): SortedMap[Long, ClientWorld] = {
+  private def fetchNewHistory(startT: Long, sub: Set[V3I]): SortedMap[Long, ClientWorld] = {
     println("client continuum: pulling new starter from server at")
-    val chunks = session.getSubscribedChunks(startT)
+    //val chunks = session.getSubscribedChunks(startT)
+    val chunks = session.getChunks(startT, sub)
     (SortedMap.empty: SortedMap[Long, ClientWorld])
       .updated(startT, new ClientWorld(session, chunks.map(c => (c.pos, c)).toMap, startT))
   }
@@ -86,16 +87,21 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
         case SetRelation(t, sub, upd, prov, not) =>
           // capture history
           var newHistory = history
+          // ensure that all the necessary chunks are provided
+          if (true) {
+            val has = sub ++ newHistory.last._2.getLoadedChunks.keySet
+            if (!sub.forall(has.contains))
+              System.err.println("insufficient chunks provided")
+          }
           // truncate it
           newHistory = newHistory.rangeImpl(None, Some(t + 1))
           // provide the chunks
           if (newHistory nonEmpty) {
             newHistory = newHistory.updated(newHistory.lastKey, newHistory.last._2.provide(prov))
           } else {
-            newHistory = fetchNewHistory(t)
+            newHistory = fetchNewHistory(t, sub)
           }
-          // update it back to the current time minus one (because of submissions)
-          //while (newHistory.lastKey < getServerTime && submissions.contains(newHistory.lastKey)) {
+          // update it as far as submissions will allow
           while (newHistory.lastKey <= submissions.lastKey) {
             val newWorld = newHistory.last._2.update(sub, upd, getSubmitted(newHistory.lastKey))
             newHistory = newHistory.updated(newWorld.time, newWorld)
@@ -109,6 +115,12 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
             subscribed = sub
             updating = upd
             history = newHistory
+            // ensure that all the necessary chunks are present
+            if (true) {
+              val has = history.last._2.getLoadedChunks.keySet
+              if (!subscribed.forall(has.contains))
+                System.err.println("insufficient chunks present")
+            }
           }
           // notify that we've finished
           not.synchronized {
@@ -123,17 +135,31 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
           val events: SortedMap[Long, SortedSet[ChunkEvent]] = task.events
           // now to integrate them
           if (events nonEmpty) {
-            // capture the history
-            var newHistory = history
+            // capture the history, subscribing, and updating, by first aquiring the mutation mutex
+            var (newHistory, sub, upd) = mutateMutex.synchronized {
+              (history, subscribed, updating)
+            }
             // truncate it
             newHistory = newHistory.rangeImpl(None, Some(events.firstKey + 1))
-            if (newHistory isEmpty) {
-              //newHistory = fetchNewHistory(getServerTime - restartThrowback.getAndUpdate(_ * 2))
-              newHistory = fetchNewHistory(events.firstKey)
+            if (newHistory isEmpty)
+              newHistory = fetchNewHistory(events.firstKey, sub)
+            // if it's been truncated such that it no longer contains all the subscribed chunks, fetch a new history
+            // TODO: avoid this altogether
+            if ({
+              val has = newHistory.last._2.getLoadedChunks.keySet
+              !subscribed.forall(has.contains)
+            }) {
+              newHistory = fetchNewHistory(events.firstKey, sub)
+            }
+            // ensure that all the necessary chunks are present
+            if (true) {
+              val has = newHistory.last._2.getLoadedChunks.keySet
+              if (!subscribed.forall(has.contains))
+                System.err.println("insufficient chunks present in integrate procedure")
             }
             // define a function for updating the history with unpredictables
             def upd8(h: SortedMap[Long, ClientWorld], u: SortedSet[ChunkEvent] = SortedSet.empty) = {
-              val n = h.last._2.update(subscribed, updating, u ++ getSubmitted(h.lastKey))
+              val n = h.last._2.update(sub, upd, u ++ getSubmitted(h.lastKey))
               h.updated(n.time, n)
             }
             // update the history with the accumulated events
@@ -142,10 +168,9 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
                 newHistory = upd8(newHistory)
               newHistory = upd8(newHistory, eventGroup)
             }
-            //while (newHistory.lastKey < getServerTime && submissions.contains(newHistory.lastKey))
             while (newHistory.lastKey <= submissions.lastKey)
               newHistory = upd8(newHistory)
-            // grab the mutation mutex and implement the changes
+            // grab the mutation mutex, catch up completely, and implement the changes
             mutateMutex.synchronized {
               while (newHistory.lastKey <= submissions.lastKey)
                 newHistory = upd8(newHistory)

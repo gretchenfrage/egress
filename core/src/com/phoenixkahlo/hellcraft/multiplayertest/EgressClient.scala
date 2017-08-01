@@ -102,6 +102,8 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
 
     interpolator = new Interpolator(clock, Forward)
 
+    System.out.println("avatarID = [" + controller.avatarID.getMostSignificantBits + ", " + controller.avatarID.getLeastSignificantBits + "]")
+
     readyMonitor.synchronized {
       ready = true
       readyMonitor.notifyAll()

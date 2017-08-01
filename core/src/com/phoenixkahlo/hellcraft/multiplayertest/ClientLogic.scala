@@ -27,10 +27,14 @@ class ClientLogic(server: EgressServer) {
 
   def receive(message: Any): Unit = received.add(message)
 
-  var avatarID: AvatarID = _
+  @volatile var avatarID: AvatarID = _
 
-  var session: ClientSession = _
-  var seqSession: ClientSession = _
+  @volatile var session: ClientSession = _
+  @volatile var seqSession: ClientSession = _
+
+  @volatile var isInitialized = false
+
+  var lastChunkPos: Option[V3I] = None
 
   def initialize(connection: Connection): Unit = {
     // configure the connection
@@ -68,6 +72,8 @@ class ClientLogic(server: EgressServer) {
       seqSession = LaggyNoReplyProxy(seqSession, FakeLag milliseconds, classOf[ClientSession])
     // integrate the avatar into the world
     server.integrateExternNow(AddEntity(avatar, UUID.randomUUID()))
+    // signal that this is intialized
+    isInitialized = true
   }
 
   def route(events: SortedMap[Long, SortedSet[ChunkEvent]]): Unit = {
@@ -76,6 +82,19 @@ class ClientLogic(server: EgressServer) {
 
   def setRelation(atTime: Long, subscribed: Set[V3I], updating: Set[V3I], provide: Seq[Chunk]): Unit = {
     seqSession.setServerRelation(atTime, subscribed, updating, provide)
+  }
+
+  def update(): Unit = {
+    val p = server.continuum.current.findEntity(avatarID).get.asInstanceOf[Avatar].chunkPos
+    if (!lastChunkPos.contains(p)) {
+      lastChunkPos = Some(p)
+
+      server.setClientRelation(
+        clientID,
+        (p - SubscribeDistance) to (p + SubscribeDistance) toSet,
+        (p - UpdateDistance) to (p + UpdateDistance) toSet
+      )
+    }
   }
 
 }

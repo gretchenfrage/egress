@@ -36,6 +36,8 @@ trait ServerSession {
 
   def getSubscribedChunks(atTime: Long): Seq[Chunk]
 
+  def getChunks(atTime: Long, chunks: Set[V3I]): Seq[Chunk]
+
 }
 
 class ServerSessionImpl(server: EgressServer, client: ClientLogic) extends  ServerSession {
@@ -116,6 +118,11 @@ class ServerSessionImpl(server: EgressServer, client: ClientLogic) extends  Serv
 
   override def getSubscribedChunks(atTime: Long): Seq[Chunk] = {
     server.continuum.getSubscribedChunks(client.clientID, atTime)
+  }
+
+  override def getChunks(atTime: Long, chunks: Set[V3I]): Seq[Chunk] = {
+    val world = server.continuum.waitForSnapshot(atTime).get
+    chunks.toSeq.map(world.chunkAt(_).get)
   }
 
 }

@@ -88,21 +88,25 @@ class EgressServer extends Listener with Runnable {
         println("finished saving")
         savingFlag.set(false)
       })
+      // update the client logics
+      clientLogics.values.filter(_ isInitialized).foreach(_.update())
       // possibly sleep until the next tick
       clock.waitUntil(time + 1)
     }
   }
 
   def setClientRelation(client: ClientID, subscribed: Set[V3I], updating: Set[V3I]): Unit = {
-    val (time, provide: Seq[Chunk]) = continuum.synchronized {
-      (continuum.time, continuum.setClientRelation(client, subscribed, updating))
+    continuum.synchronized {
+      val provide = continuum.setClientRelation(client, subscribed, updating)
+      clientLogics(client).setRelation(continuum.time, subscribed, updating, provide)
     }
-    clientLogics(client).setRelation(time, subscribed, updating, provide)
   }
 
   def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Unit = {
-    for ((client, events) <- continuum.integrateExterns(newExterns)) {
-      clientLogics(client).route(events)
+    continuum.synchronized {
+      for ((client, events) <- continuum.integrateExterns(newExterns)) {
+        clientLogics(client).route(events)
+      }
     }
   }
 
@@ -127,11 +131,13 @@ class EgressServer extends Listener with Runnable {
       // initialize the connection
       logic.initialize(connection)
       // subscribe to some chunks
+      /*
       setClientRelation(
         logic.clientID,
         V3I(-5, -5, -5) to V3I(5, 5, 5) toSet,
         V3I(-3, -3, -3) to V3I(3, 3, 3) toSet
       )
+      */
     }
   }
 

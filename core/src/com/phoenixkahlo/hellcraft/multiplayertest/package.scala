@@ -2,6 +2,8 @@ package com.phoenixkahlo.hellcraft
 
 import java.util.UUID
 
+import com.phoenixkahlo.hellcraft.math.V3I
+
 package object multiplayertest {
 
   type ClientID = UUID
@@ -14,5 +16,8 @@ package object multiplayertest {
 
   val FakeLag = 100
   val TimeOut = Int.MaxValue
+
+  val SubscribeDistance = V3I(5, 5, 5)
+  val UpdateDistance = V3I(3, 3, 3)
 
 }
