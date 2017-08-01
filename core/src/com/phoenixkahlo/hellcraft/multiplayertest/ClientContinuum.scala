@@ -95,12 +95,17 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
             newHistory = fetchNewHistory(t)
           }
           // update it back to the current time minus one (because of submissions)
-          while (newHistory.lastKey < getServerTime && submissions.contains(newHistory.lastKey)) {
+          //while (newHistory.lastKey < getServerTime && submissions.contains(newHistory.lastKey)) {
+          while (newHistory.lastKey <= submissions.lastKey) {
             val newWorld = newHistory.last._2.update(sub, upd, getSubmitted(newHistory.lastKey))
             newHistory = newHistory.updated(newWorld.time, newWorld)
           }
-          // grab the mutation mutex and implement the changes
+          // grab the mutation mutex, catch up completely, and implement the changes
           mutateMutex.synchronized {
+            while (newHistory.lastKey <= submissions.lastKey) {
+              val newWorld = newHistory.last._2.update(sub, upd, getSubmitted(newHistory.lastKey))
+              newHistory = newHistory.updated(newWorld.time, newWorld)
+            }
             subscribed = sub
             updating = upd
             history = newHistory
@@ -137,10 +142,13 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
                 newHistory = upd8(newHistory)
               newHistory = upd8(newHistory, eventGroup)
             }
-            while (newHistory.lastKey < getServerTime && submissions.contains(newHistory.lastKey))
+            //while (newHistory.lastKey < getServerTime && submissions.contains(newHistory.lastKey))
+            while (newHistory.lastKey <= submissions.lastKey)
               newHistory = upd8(newHistory)
             // grab the mutation mutex and implement the changes
             mutateMutex.synchronized {
+              while (newHistory.lastKey <= submissions.lastKey)
+                newHistory = upd8(newHistory)
               history = newHistory
             }
           }
