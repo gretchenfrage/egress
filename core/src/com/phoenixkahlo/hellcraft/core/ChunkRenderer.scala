@@ -1,5 +1,7 @@
 package com.phoenixkahlo.hellcraft.core
 
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
 import com.badlogic.gdx.graphics.g3d.attributes.{ColorAttribute, TextureAttribute}
 import com.badlogic.gdx.graphics.g3d.model.MeshPart
@@ -223,21 +225,23 @@ class ChunkRenderer(
     */
   override def apply(interpolate: Option[(World, Float)]): Seq[Renderable] =
     if (meshData.isCompleted) renderable() +: {
-      // get model instance
-      val instance = new ModelInstance(CompiledModel())
-      instance.transform.setTranslation(chunk.pos * 16 toGdx)
-      // extract renderables from model
-      val array = new com.badlogic.gdx.utils.Array[Renderable]()
-      val pool = new Pool[Renderable]() {
-        override def newObject(): Renderable = new Renderable
-      }
-      instance.getRenderables(array, pool)
-      // return renderables
-      JavaConverters.iterableAsScalaIterable(array).toSeq
+      if (Gdx.input.isKeyPressed(Keys.SHIFT_RIGHT)) {
+        // get model instance
+        val instance = new ModelInstance(CompiledModel())
+        instance.transform.setTranslation(chunk.pos * 16 toGdx)
+        // extract renderables from model
+        val array = new com.badlogic.gdx.utils.Array[Renderable]()
+        val pool = new Pool[Renderable]() {
+          override def newObject(): Renderable = new Renderable
+        }
+        instance.getRenderables(array, pool)
+        // return renderables
+        JavaConverters.iterableAsScalaIterable(array).toSeq
+      } else Seq.empty
     }
     else previous match {
       case Some(renderer) => renderer()
-      case None => {
+      case None => if (Gdx.input.isKeyPressed(Keys.SHIFT_RIGHT)) {
         // get model instance
         val instance = new ModelInstance(NotCompiledModel())
         instance.transform.setTranslation(chunk.pos * 16 toGdx)
@@ -249,7 +253,7 @@ class ChunkRenderer(
         instance.getRenderables(array, pool)
         // return renderables
         JavaConverters.iterableAsScalaIterable(array).toSeq
-      }
+      } else Seq.empty
     }
 
   override def resources: Seq[ResourceNode] = Seq(this)

@@ -83,7 +83,9 @@ class Chunk (
   def removeEntity(entity: Entity): Chunk = removeEntity(entity.id)
 
   def update(world: World): Seq[ChunkEvent] = {
-    val idStreams: Stream[Stream[UUID]] = Stream.iterate(Stream.iterate(UUID.randomUUID())(_ => UUID.randomUUID()))(_ => Stream.iterate(UUID.randomUUID())(_ => UUID.randomUUID()))
+    //val idStreams: Stream[Stream[UUID]] = Stream.iterate(Stream.iterate(UUID.randomUUID())(_ => UUID.randomUUID()))(_ => Stream.iterate(UUID.randomUUID())(_ => UUID.randomUUID()))
+    val seed: Long = (world.time.hashCode().toLong << 32) | pos.hashCode().toLong
+    val idStreams: Stream[Stream[UUID]] = RNG.meta(RNG(seed), RNG.uuids)
     entities.values.zip(idStreams).flatMap({ case (entity, ids) => entity.update(world, ids) }).toSeq
   }
 

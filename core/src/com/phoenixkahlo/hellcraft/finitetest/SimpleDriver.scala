@@ -146,23 +146,25 @@ class SimpleDriver extends ApplicationAdapter {
 
     // update the world
     t += 1
-    if (true) {
-      world = world.update
-      world = world.integrate(controller.update(world))
-    } else {
-      if (Gdx.input.isKeyPressed(Keys.P)) {
-        history = history :+ world
+    if (t % 3 == 0) {
+      if (true) {
         world = world.update
         world = world.integrate(controller.update(world))
+      } else {
+        if (Gdx.input.isKeyPressed(Keys.P)) {
+          history = history :+ world
+          world = world.update
+          world = world.integrate(controller.update(world))
+        }
+        if (Gdx.input.isKeyPressed(Keys.L) && history.nonEmpty) {
+          world = history.last
+          history = history.dropRight(1)
+        }
+        if (history.size > 6000)
+          history = history.drop(6000 - history.size)
       }
-      if (Gdx.input.isKeyPressed(Keys.L) && history.nonEmpty) {
-        world = history.last
-        history = history.dropRight(1)
-      }
-      if (history.size > 6000)
-        history = history.drop(6000 - history.size)
+      controller.postUpdate(world)
     }
-    controller.postUpdate(world)
 
     // get the renderable factories
     val factories = world.renderables(texturePack)

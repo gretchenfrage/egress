@@ -6,6 +6,7 @@ import com.esotericsoftware.minlog.Log;
 import com.phoenixkahlo.hellcraft.finitetest.SimpleDriver;
 import com.phoenixkahlo.hellcraft.gamedriver.GameDriver;
 import com.phoenixkahlo.hellcraft.gamedriver.RunnableGameStateDriver;
+import com.phoenixkahlo.hellcraft.infinitetest.InfiniteDriver;
 import com.phoenixkahlo.hellcraft.infinitetest.InfiniteGameState;
 import com.phoenixkahlo.hellcraft.multiplayertest.EgressClient;
 import com.phoenixkahlo.hellcraft.multiplayertest.EgressServer;
@@ -34,7 +35,8 @@ public class DesktopLauncher {
 		if (mul.exists()) Arrays.asList(mul.listFiles()).forEach(File::delete);
 		new Thread(new EgressServer(25565)).start();
 		try { Thread.sleep(5000); } catch (Exception e) { throw new RuntimeException(e); }
-		new LwjglApplication(new RunnableGameStateDriver(new EgressClient(new InetSocketAddress("localhost", 25565))), config);
+		InetSocketAddress address = new InetSocketAddress("localhost", 25565);
+		new LwjglApplication(new RunnableGameStateDriver(new EgressClient(address)), config);
 
 
 		//new LwjglApplication(new GameDriver(new InfiniteGameState()), config);
