@@ -67,7 +67,6 @@ class ServerContinuum(save: WorldSave) {
 
     // sort the events and integrate them into a new snapshot, put in history
     next = next.integrate(events.map(_._1).foldLeft(new TreeSet[ChunkEvent])(_ + _)).incrTime
-    //history.put(next.time, next)
     history = history.updated(next.time, next)
 
     // forget history
@@ -90,7 +89,7 @@ class ServerContinuum(save: WorldSave) {
 
     // return
     val setsToSend: Map[ClientID, SortedSet[ChunkEvent]] =
-      eventsToSend.filter(_._2.nonEmpty).mapValues(_.foldLeft(new TreeSet[ChunkEvent])(_ + _)).filter(_._2.nonEmpty)
+      eventsToSend.mapValues(_.foldLeft(new TreeSet[ChunkEvent])(_ + _))
 
     setsToSend
   }
@@ -100,11 +99,45 @@ class ServerContinuum(save: WorldSave) {
     * While the client could just have the ClientWorld request all these chunks from the server, we send them all at
     * once to improve performance.
     */
-  def setClientRelation(client: ClientID, subscribed: Set[V3I], updatingSet: Set[V3I]): Seq[Chunk] = this.synchronized {
+  @Deprecated
+  def setClientRelationNow(client: ClientID, subscribed: Set[V3I], updatingSet: Set[V3I]): Seq[Chunk] = this.synchronized {
     val oldSubscribed: Set[V3I] = subscriptions.getOrElse(client, Set.empty)
     subscriptions.put(client, subscribed)
     updating.put(client, updatingSet)
     (subscribed -- oldSubscribed).toSeq.map(current.chunkAt(_).get)
+  }
+
+  def setClientRelation(client: ClientID, targetTime: Long, subscribed: Set[V3I], updatingSet: Set[V3I]):
+  (Seq[Chunk], SortedMap[Long, SortedSet[ChunkEvent]]) = this.synchronized {
+    // capture the current time
+    val currTime = time
+    // revert to the target time
+    revert(Math.max(targetTime, history.firstKey))
+    // accumulate the chunks that need to be provided
+    val chunks = (subscribed -- subscriptions.getOrElse(client, Set.empty)).toSeq.map(current.chunkAt(_).get)
+    // set the new subscribe set, we don't set the update set now so that we don't have to worry about the timeline
+    // actually changing, so that this only effects the target client
+    subscriptions.put(client, subscribed)
+    // capture the reverted time
+    val atTime = time
+    // update back to the current time and accumulate the events which need to be routed to that client
+    var accumulator: SortedMap[Long, SortedSet[ChunkEvent]] = SortedMap.empty
+    while (time < currTime) {
+      val events = update()(client)
+      accumulator = accumulator.updated(time - 1, events)
+    }
+    // set the updating relation now
+    updating.put(client, updatingSet)
+    // return
+    (chunks, accumulator)
+    /*
+    val oldSubscribed: Set[V3I] = subscriptions.getOrElse(client, Set.empty)
+    subscriptions.put(client, subscribed)
+    updating.put(client, updatingSet)
+    val world = snapshot(targetTime).getOrElse(history.head._2)
+    var accumulator: SortedMap[Long, SortedSet[ChunkEvent]] = SortedMap.empty
+    (world.time, (subscribed -- oldSubscribed).toSeq.map(world.chunkAt(_).get))
+    */
   }
 
   /**
@@ -134,6 +167,7 @@ class ServerContinuum(save: WorldSave) {
       externs ++= toIntegrate
 
       // update back to the original time and accumulate the events
+      // TODO: should we be doing time - 1
       var accumulator = new HashMap[ClientID, SortedMap[Long, SortedSet[ChunkEvent]]]
       while (time < currTime)
         for ((client, events) <- update())

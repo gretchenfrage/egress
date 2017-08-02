@@ -14,7 +14,7 @@ import scala.collection.{SortedMap, SortedSet, mutable}
 //TODO: forget
 class ClientContinuum(session: ServerSession, getServerTime: => Long) {
 
-  val maxHistorySize = 5 * 60
+  val maxHistorySize = 8 * 60
 
   private val mutateMutex = this
 
@@ -62,20 +62,24 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
     }
   }
 
-  sealed trait ServerOperation
-  case class SetRelation(atTime: Long, sub: Set[V3I], upd: Set[V3I], prov: Map[V3I, Chunk], not: Object) extends ServerOperation
-  case class Integrate(events: SortedMap[Long, SortedSet[ChunkEvent]], not: Seq[Object]) extends ServerOperation {
+  private sealed trait ServerOperation
+  private case class SetRelation(
+                                  sub: Set[V3I],
+                                  upd: Set[V3I],
+                                  prov: Map[V3I, Chunk],
+                                  unpredictables: SortedMap[Long, SortedSet[ChunkEvent]]
+                                ) extends ServerOperation
+  private case class Integrate(
+                                events: SortedMap[Long, SortedSet[ChunkEvent]],
+                              ) extends ServerOperation {
     def +(o: Integrate): Integrate =
-      Integrate(
-        o.events.foldLeft(events)({ case (map, (t, set)) => map.updated(t, map.getOrElse(t, SortedSet.empty: SortedSet[ChunkEvent]) ++ set) }),
-        o.not ++ not
-      )
+      Integrate(o.events.foldLeft(events)(
+        { case (map, (t, set)) => map.updated(t, map.getOrElse(t, SortedSet.empty: SortedSet[ChunkEvent]) ++ set) }))
   }
   private val serverTasks = new LinkedBlockingQueue[ServerOperation]
 
   private def fetchNewHistory(startT: Long, sub: Set[V3I]): SortedMap[Long, ClientWorld] = {
     println("client continuum: pulling new starter from server at")
-    //val chunks = session.getSubscribedChunks(startT)
     val chunks = session.getChunks(startT, sub)
     (SortedMap.empty: SortedMap[Long, ClientWorld])
       .updated(startT, new ClientWorld(session, chunks.map(c => (c.pos, c)).toMap, startT))
@@ -84,13 +88,45 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
   new Thread(() => {
     while (true) {
       serverTasks.take() match {
-        case SetRelation(t, sub, upd, prov, not) =>
+        case SetRelation(newSub, newUpd, prov, unpr) =>
+          // capture history
+          var newHistory = history
+          // truncate it
+          newHistory = newHistory.rangeImpl(None, Some(unpr.firstKey + 1))
+          // provide the chunks
+          if (newHistory nonEmpty) {
+            newHistory = newHistory.updated(newHistory.lastKey, newHistory.last._2.provide(prov))
+          } else {
+            newHistory = fetchNewHistory(unpr.firstKey, newSub)
+          }
+          // define a function to update it
+          def upd8() = {
+            val t = newHistory.lastKey
+            var upd = if (unpr contains t) updating else newUpd
+            val newWorld = newHistory.last._2.update(newSub, upd, getSubmitted(t) ++ unpr.getOrElse(t,
+              SortedSet.empty: SortedSet[ChunkEvent]))
+            newHistory = newHistory.updated(newWorld.time, newWorld)
+          }
+          // update it as far as submissions will allow
+          while (newHistory.lastKey <= submissions.lastKey) {
+            upd8()
+          }
+          // grab the mutation mutex, catch up completely, and implement the changes
+          mutateMutex.synchronized {
+            while (newHistory.lastKey <= submissions.lastKey) {
+              upd8()
+            }
+            subscribed = newSub
+            updating = newUpd
+            history = newHistory
+          }
+          /*
           // capture history
           var newHistory = history
           // ensure that all the necessary chunks are provided
-          if (true) {
-            val has = sub ++ newHistory.last._2.getLoadedChunks.keySet
-            if (!sub.forall(has.contains))
+          if (false) {
+            val has = newSub ++ newHistory.last._2.getLoadedChunks.keySet
+            if (!newSub.forall(has.contains))
               System.err.println("insufficient chunks provided")
           }
           // truncate it
@@ -99,34 +135,33 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
           if (newHistory nonEmpty) {
             newHistory = newHistory.updated(newHistory.lastKey, newHistory.last._2.provide(prov))
           } else {
-            newHistory = fetchNewHistory(t, sub)
+            newHistory = fetchNewHistory(t, newSub)
+          }
+          // define a function to update it
+          def upd8() = {
+            val t = newHistory.lastKey
+            val newWorld = newHistory.last._2.update(newSub, newUpd, getSubmitted(t) ++ unpr.getOrElse(t,
+              SortedSet.empty: SortedSet[ChunkEvent]))
+            newHistory = newHistory.updated(newWorld.time, newWorld)
           }
           // update it as far as submissions will allow
           while (newHistory.lastKey <= submissions.lastKey) {
-            val newWorld = newHistory.last._2.update(sub, upd, getSubmitted(newHistory.lastKey))
-            newHistory = newHistory.updated(newWorld.time, newWorld)
+            upd8()
           }
           // grab the mutation mutex, catch up completely, and implement the changes
           mutateMutex.synchronized {
             while (newHistory.lastKey <= submissions.lastKey) {
+              upd8()
+              /*
               val newWorld = newHistory.last._2.update(sub, upd, getSubmitted(newHistory.lastKey))
               newHistory = newHistory.updated(newWorld.time, newWorld)
+              */
             }
-            subscribed = sub
-            updating = upd
+            subscribed = newSub
+            updating = newUpd
             history = newHistory
-            // ensure that all the necessary chunks are present
-            if (true) {
-              val has = history.last._2.getLoadedChunks.keySet
-              if (!subscribed.forall(has.contains))
-                System.err.println("insufficient chunks present")
-            }
           }
-          // notify that we've finished
-          not.synchronized {
-            not.notify()
-          }
-
+          */
         case integrate: Integrate =>
           // accumulate more events from the queue if possible
           var task = integrate
@@ -152,7 +187,7 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
               newHistory = fetchNewHistory(events.firstKey, sub)
             }
             // ensure that all the necessary chunks are present
-            if (true) {
+            if (false) {
               val has = newHistory.last._2.getLoadedChunks.keySet
               if (!subscribed.forall(has.contains))
                 System.err.println("insufficient chunks present in integrate procedure")
@@ -177,31 +212,20 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
               history = newHistory
             }
           }
-          // notify all that we've finished
-          for (n <- task.not) {
-            n.synchronized {
-              n.notify()
-            }
-          }
+
       }
     }
   }, "client continuum server operation thread").start()
 
   def integrate(events: SortedMap[Long, SortedSet[ChunkEvent]]): Unit = {
-    val event = Integrate(events, Seq(new Object))
+    val event = Integrate(events)
     serverTasks.add(event)
-    event.not.head.synchronized {
-      event.not.head.wait()
-    }
   }
 
-  def setServerRelation(atTime: Long, newSubscribed: Set[V3I], newUpdating: Set[V3I], provided: Map[V3I, Chunk]
-                       ): Unit = {
-    val event = SetRelation(atTime, newSubscribed, newUpdating, provided, new Object)
+  def setServerRelation(newSubscribed: Set[V3I], newUpdating: Set[V3I], provided: Map[V3I, Chunk],
+                        unpredictable: SortedMap[Long, SortedSet[ChunkEvent]]): Unit = {
+    val event = SetRelation(newSubscribed, newUpdating, provided, unpredictable)
     serverTasks.add(event)
-    event.not.synchronized {
-      event.not.wait()
-    }
   }
 
 }

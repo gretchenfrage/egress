@@ -1,12 +1,16 @@
 package com.phoenixkahlo.hellcraft.core
 
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
-import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
-import com.badlogic.gdx.graphics.g3d.{Material, Renderable}
+import com.badlogic.gdx.graphics.g3d.attributes.{ColorAttribute, TextureAttribute}
+import com.badlogic.gdx.graphics.g3d.model.MeshPart
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
+import com.badlogic.gdx.graphics.g3d.{Material, Model, ModelInstance, Renderable}
 import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
+import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util._
 
+import scala.collection.JavaConverters
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Awaitable, Future}
 
@@ -36,23 +40,6 @@ class ChunkRenderer(
         // in all other cases, the face is invisible
         case _ => m
       }
-    /*
-    def surface(m: SurfaceMap, v: V3I, s: Direction): SurfaceMap =
-      (world.blockAt(v), world.blockAt(v + s)) match {
-        // if the target is non-existent, the face is invisible
-        case (None, _) => m
-        // if the target is translucent, the face is invisible
-        case (Some(t), _) if t isTranslucent => m
-        // if the cover is opaque, the face is invisible
-        case (_, Some(c)) if c isOpaque => m
-        // if the cover is translucent (and the target is opaque), the face is visible
-        case (_, Some(c)) if c isTranslucent => m.updated(s, v :: m(s))
-        // if the cover is non-existent (and the target is opaque), the face is visible
-        case (_, None) => m.updated(s, v :: m(s))
-        // in all other cases, the face is invisible
-        case _ => m
-      }
-      */
 
     // compute all surfaces of a block
     def block(m: SurfaceMap, v: V3I): SurfaceMap =
@@ -235,10 +222,34 @@ class ChunkRenderer(
     * Bring this object into an active state, generating resources, and return the renderables.
     */
   override def apply(interpolate: Option[(World, Float)]): Seq[Renderable] =
-    if (meshData.isCompleted) Seq(renderable())
+    if (meshData.isCompleted) renderable() +: {
+      // get model instance
+      val instance = new ModelInstance(CompiledModel())
+      instance.transform.setTranslation(chunk.pos * 16 toGdx)
+      // extract renderables from model
+      val array = new com.badlogic.gdx.utils.Array[Renderable]()
+      val pool = new Pool[Renderable]() {
+        override def newObject(): Renderable = new Renderable
+      }
+      instance.getRenderables(array, pool)
+      // return renderables
+      JavaConverters.iterableAsScalaIterable(array).toSeq
+    }
     else previous match {
       case Some(renderer) => renderer()
-      case None => Nil
+      case None => {
+        // get model instance
+        val instance = new ModelInstance(NotCompiledModel())
+        instance.transform.setTranslation(chunk.pos * 16 toGdx)
+        // extract renderables from model
+        val array = new com.badlogic.gdx.utils.Array[Renderable]()
+        val pool = new Pool[Renderable]() {
+          override def newObject(): Renderable = new Renderable
+        }
+        instance.getRenderables(array, pool)
+        // return renderables
+        JavaConverters.iterableAsScalaIterable(array).toSeq
+      }
     }
 
   override def resources: Seq[ResourceNode] = Seq(this)
@@ -255,3 +266,99 @@ class ChunkRenderer(
   }
 
 }
+
+object CompiledModel extends Cache[Model]({
+  val n = 1e-3f
+  val p = 16 - 1e-3f
+  val c = Color.GREEN.toFloatBits
+  val verts = Array[Float](
+    n, n, n, c,
+    p, n, n, c,
+    p, n, p, c,
+    n, n, p, c,
+    n, p, n, c,
+    p, p, n, c,
+    p, p, p, c,
+    n, p, p, c
+  )
+  val indices: Array[Short] = Array[Short](
+    0, 1,
+    1, 2,
+    2, 3,
+    3, 0,
+    4, 5,
+    5, 6,
+    6, 7,
+    7, 4,
+    0, 4,
+    1, 5,
+    2, 6,
+    3, 7
+  )
+
+  val mesh = new Mesh(true, 8, 24,
+    new VertexAttribute(Usage.Position, 3, "a_position"),
+    new VertexAttribute(Usage.ColorPacked, 4, "a_color")
+  )
+
+  mesh.setVertices(verts)
+  mesh.setIndices(indices)
+
+  val material = new Material()
+  material.set(ColorAttribute.createDiffuse(Color.GREEN))
+
+  val meshPart = new MeshPart("outline", mesh, 0, mesh.getNumIndices, GL20.GL_LINES)
+
+  val builder = new ModelBuilder()
+  builder.begin()
+  builder.part(meshPart, material)
+  builder.end()
+})
+
+object NotCompiledModel extends Cache[Model]({
+  val n = 1e-3f
+  val p = 16 - 1e-3f
+  val c = Color.RED.toFloatBits
+  val verts = Array[Float](
+    n, n, n, c,
+    p, n, n, c,
+    p, n, p, c,
+    n, n, p, c,
+    n, p, n, c,
+    p, p, n, c,
+    p, p, p, c,
+    n, p, p, c
+  )
+  val indices: Array[Short] = Array[Short](
+    0, 1,
+    1, 2,
+    2, 3,
+    3, 0,
+    4, 5,
+    5, 6,
+    6, 7,
+    7, 4,
+    0, 4,
+    1, 5,
+    2, 6,
+    3, 7
+  )
+
+  val mesh = new Mesh(true, 8, 24,
+    new VertexAttribute(Usage.Position, 3, "a_position"),
+    new VertexAttribute(Usage.ColorPacked, 4, "a_color")
+  )
+
+  mesh.setVertices(verts)
+  mesh.setIndices(indices)
+
+  val material = new Material()
+  material.set(ColorAttribute.createDiffuse(Color.RED))
+
+  val meshPart = new MeshPart("outline", mesh, 0, mesh.getNumIndices, GL20.GL_LINES)
+
+  val builder = new ModelBuilder()
+  builder.begin()
+  builder.part(meshPart, material)
+  builder.end()
+})

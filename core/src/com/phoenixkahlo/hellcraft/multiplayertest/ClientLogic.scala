@@ -1,6 +1,7 @@
 package com.phoenixkahlo.hellcraft.multiplayertest
 
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.{Executors, LinkedBlockingQueue, ThreadLocalRandom}
 
 import com.esotericsoftware.kryonet.Connection
@@ -80,8 +81,9 @@ class ClientLogic(server: EgressServer) {
     seqSession.integrate(events)
   }
 
-  def setRelation(atTime: Long, subscribed: Set[V3I], updating: Set[V3I], provide: Seq[Chunk]): Unit = {
-    seqSession.setServerRelation(atTime, subscribed, updating, provide)
+  def setRelation(subscribed: Set[V3I], updating: Set[V3I], provide: Seq[Chunk],
+                  unpredictable: SortedMap[Long, SortedSet[ChunkEvent]]): Unit = {
+    seqSession.setServerRelation(subscribed, updating, provide, unpredictable)
   }
 
   def update(): Unit = {

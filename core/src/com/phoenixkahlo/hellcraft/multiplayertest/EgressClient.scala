@@ -167,6 +167,7 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
         continuum.update(submissions)
         continuum.time
       }
+      //println("t = " + time)
       clock.waitUntil(time + 1)
     }
   }

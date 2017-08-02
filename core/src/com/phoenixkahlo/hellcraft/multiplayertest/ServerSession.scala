@@ -38,6 +38,8 @@ trait ServerSession {
 
   def getChunks(atTime: Long, chunks: Set[V3I]): Seq[Chunk]
 
+  def findEntity(atTime: Long, id: EntityID): Seq[V3I]
+
 }
 
 class ServerSessionImpl(server: EgressServer, client: ClientLogic) extends  ServerSession {
@@ -123,6 +125,11 @@ class ServerSessionImpl(server: EgressServer, client: ClientLogic) extends  Serv
   override def getChunks(atTime: Long, chunks: Set[V3I]): Seq[Chunk] = {
     val world = server.continuum.waitForSnapshot(atTime).get
     chunks.toSeq.map(world.chunkAt(_).get)
+  }
+
+  override def findEntity(atTime: Long, id: EntityID): Seq[V3I] = {
+    val world = server.continuum.waitForSnapshot(atTime).get
+    world.loaded.values.filter(_.entities.contains(id)).map(_.pos).toSeq
   }
 
 }

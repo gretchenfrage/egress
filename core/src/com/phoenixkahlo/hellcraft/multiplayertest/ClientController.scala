@@ -29,12 +29,12 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
   private val pressed = new mutable.HashSet[Int]
   private val clicks = new mutable.ArrayStack[Int]
 
-  val keys = List(W, A, S, D, SHIFT_LEFT, SPACE, CONTROL_LEFT, TAB, H)
+  val keys = List(W, A, S, D, SHIFT_LEFT, SPACE, CONTROL_LEFT, TAB, H, C)
 
-  //private var lastSetMovement: Long = Long.MinValue
   private val toSubmit = new LinkedBlockingQueue[(Long, ChunkEvent)]
 
   @volatile var camDir = V3F(cam.direction)
+  @volatile var movDir: V3F = Origin
 
   new Thread(() => {
     while (true) {
@@ -92,21 +92,47 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
     }
 
   def mainUpdate(world: World): SortedSet[ChunkEvent] = {
+    // compute the movement direction
+    val camDir = this.camDir
+
+    var movDir: V3F = Origin
+    if (pressed(W))
+      movDir += camDir
+    if (pressed(S))
+      movDir -= camDir
+    if (pressed(D))
+      movDir += (camDir cross Up).normalize
+    if (pressed(A))
+      movDir -= (camDir cross Up).normalize
+
+    this.movDir = movDir
+    // press h to check for hashcode discrepencies between chunks in the client and server, for debugging purposes
+    if (pressed(H)) {
+      pressed -= H
+
+      println("hash verifying")
+      val chunks = world.asInstanceOf[ClientWorld].getLoadedChunks.keys.toSeq
+      val hashes = session.hashChunks(world.time, chunks)
+      for (p <- chunks) {
+        (world.chunkAt(p).get.hashCode, hashes.get(p)) match {
+          case (n1, Some(n2)) if n1 != n2 => println("desynchronization at " + p)
+          case (_, None) => println("server failed to hash " + p)
+          case _ =>
+        }
+      }
+      println("finished hash veryifying")
+    }
+    // press C to count avatar occurences on client and server
+    if (pressed(C)) {
+      pressed -= C
+
+      println("client avatars in: " +
+        world.asInstanceOf[ClientWorld].getLoadedChunks.values.filter(_.entities.contains(avatarID)).map(_.pos))
+      println("server avatars in: " + session.findEntity(world.time, avatarID))
+    }
     world.findEntity(avatarID).map(_.asInstanceOf[Avatar]) match {
       case Some(avatar) =>
         var accumulator: SortedSet[ChunkEvent] = SortedSet.empty
-
-        val camDir = this.camDir
-
-        var movDir: V3F = Origin
-        if (pressed(W))
-          movDir += camDir
-        if (pressed(S))
-          movDir -= camDir
-        if (pressed(D))
-          movDir += (camDir cross Up).normalize
-        if (pressed(A))
-          movDir -= (camDir cross Up).normalize
 
         val jumping = pressed(SPACE)
 
@@ -114,38 +140,25 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
         toSubmit.add((world.time, setMovement))
         accumulator += setMovement
 
-        // press h to check for hashcode discrepencies between chunks in the client and server, for debugging purposes
-        if (pressed(H)) {
-          pressed -= H
-
-          println("hash verifying")
-          val chunks = world.asInstanceOf[ClientWorld].getLoadedChunks.keys.toSeq
-          val hashes = session.hashChunks(world.time, chunks)
-          for (p <- chunks) {
-            (world.chunkAt(p).get.hashCode, hashes.get(p)) match {
-              case (n1, Some(n2)) if n1 != n2 => println("desynchronization at " + p)
-              case (_, None) => println("server failed to hash " + p)
-              case _ =>
-            }
-          }
-          println("finished hash veryifying")
-        }
-
         accumulator
-      case None => SortedSet.empty
+      case None =>
+        //println("can't find avatar (main update)")
+        SortedSet.empty
     }
   }
 
   def camUpdate(world: World, interpolation: Option[(World, Float)]): Unit = {
+    this.camDir = V3F(cam.direction)
     world.findEntity(avatarID).map(_.asInstanceOf[Avatar]) match {
       case Some(avatar) =>
-        this.camDir = V3F(cam.direction)
-
         val pos = interpolation.map({ case (a, b) => avatar.interpolatePos(a, b) }).getOrElse(avatar.pos)
-
         cam.position.set((pos + offset) toGdx)
         cam.update()
       case None =>
+        var pos = V3F(cam.position)
+        pos += movDir * 0.1f
+        cam.position.set(pos toGdx)
+        cam.update()
     }
   }
 

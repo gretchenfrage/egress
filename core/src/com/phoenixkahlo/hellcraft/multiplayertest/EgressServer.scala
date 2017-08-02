@@ -77,6 +77,7 @@ class EgressServer extends Listener with Runnable {
       val (time, toRoute) = continuum.synchronized {
         (continuum.time, continuum.update())
       }
+      //println("T = " + time)
       for ((client, events) <- toRoute) {
         clientLogics(client).route(new TreeMap[Long, SortedSet[ChunkEvent]]().updated(time, events))
       }
@@ -97,8 +98,9 @@ class EgressServer extends Listener with Runnable {
 
   def setClientRelation(client: ClientID, subscribed: Set[V3I], updating: Set[V3I]): Unit = {
     continuum.synchronized {
-      val provide = continuum.setClientRelation(client, subscribed, updating)
-      clientLogics(client).setRelation(continuum.time, subscribed, updating, provide)
+      val logic = clientLogics(client)
+      val (provide, unpredictable) = continuum.setClientRelation(client, continuum.time - 50, subscribed, updating)
+      logic.setRelation(subscribed, updating, provide, unpredictable)
     }
   }
 
@@ -130,14 +132,6 @@ class EgressServer extends Listener with Runnable {
     AsyncExecutor run {
       // initialize the connection
       logic.initialize(connection)
-      // subscribe to some chunks
-      /*
-      setClientRelation(
-        logic.clientID,
-        V3I(-5, -5, -5) to V3I(5, 5, 5) toSet,
-        V3I(-3, -3, -3) to V3I(3, 3, 3) toSet
-      )
-      */
     }
   }
 

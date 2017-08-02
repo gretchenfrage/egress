@@ -12,7 +12,8 @@ trait ClientSession {
 
   def integrate(events: SortedMap[Long, SortedSet[ChunkEvent]]): Unit
 
-  def setServerRelation(atTime: Long, newSubscribed: Set[V3I], newUpdating: Set[V3I], provided: Seq[Chunk]): Unit
+  def setServerRelation(newSubscribed: Set[V3I], newUpdating: Set[V3I], provided: Seq[Chunk],
+                        unpredictable: SortedMap[Long, SortedSet[ChunkEvent]]): Unit
 
   def hashChunk(atTime: Long, p: V3I): Option[Int]
 
@@ -27,11 +28,11 @@ class ClientSessionImpl(client: EgressClient) extends ClientSession {
     client.getContinuum.integrate(events)
   }
 
-  override def setServerRelation(atTime: Long, newSubscribed: Set[V3I], newUpdating: Set[V3I],
-                                 provided: Seq[Chunk]): Unit = {
+  override def setServerRelation(newSubscribed: Set[V3I], newUpdating: Set[V3I],
+                                 provided: Seq[Chunk], unpredictable: SortedMap[Long, SortedSet[ChunkEvent]]): Unit = {
     client.waitForReady()
-    client.getContinuum.setServerRelation(atTime, newSubscribed, newUpdating,
-      provided.map(chunk => (chunk.pos, chunk)).toMap)
+    client.getContinuum.setServerRelation(newSubscribed, newUpdating,
+      provided.map(chunk => (chunk.pos, chunk)).toMap, unpredictable)
   }
 
   override def hashChunk(atTime: Long, p: V3I): Option[Int] = {
