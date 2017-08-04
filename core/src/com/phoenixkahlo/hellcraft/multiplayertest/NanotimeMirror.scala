@@ -19,10 +19,11 @@ object NanotimeMirror {
       val sendTime = System.nanoTime()
       val serverTime = queryRemoteTime
       val receiveTime = System.nanoTime()
-      deltas += (receiveTime - serverTime) + ((receiveTime - sendTime) / 2)
+      deltas += -((receiveTime - serverTime) + ((receiveTime - sendTime) / 2))
       Thread.sleep(25)
     }
     val average = deltas.sum / deltas.size
+    println("delta = " + average)
     NanotimeMirror(average)
   }
 
