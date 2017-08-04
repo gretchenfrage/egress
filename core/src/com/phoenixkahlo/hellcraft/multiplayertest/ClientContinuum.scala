@@ -108,60 +108,19 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
             newHistory = newHistory.updated(newWorld.time, newWorld)
           }
           // update it as far as submissions will allow
-          while (newHistory.lastKey <= submissions.lastKey) {
+          while (newHistory.lastKey <= submissions.lastOption.map({ case (t, _) => t }).getOrElse(Long.MinValue)) {
             upd8()
           }
           // grab the mutation mutex, catch up completely, and implement the changes
           mutateMutex.synchronized {
-            while (newHistory.lastKey <= submissions.lastKey) {
+            while (newHistory.lastKey <= submissions.lastOption.map({ case (t, _) => t }).getOrElse(Long.MinValue)) {
               upd8()
             }
             subscribed = newSub
             updating = newUpd
             history = newHistory
           }
-          /*
-          // capture history
-          var newHistory = history
-          // ensure that all the necessary chunks are provided
-          if (false) {
-            val has = newSub ++ newHistory.last._2.getLoadedChunks.keySet
-            if (!newSub.forall(has.contains))
-              System.err.println("insufficient chunks provided")
-          }
-          // truncate it
-          newHistory = newHistory.rangeImpl(None, Some(t + 1))
-          // provide the chunks
-          if (newHistory nonEmpty) {
-            newHistory = newHistory.updated(newHistory.lastKey, newHistory.last._2.provide(prov))
-          } else {
-            newHistory = fetchNewHistory(t, newSub)
-          }
-          // define a function to update it
-          def upd8() = {
-            val t = newHistory.lastKey
-            val newWorld = newHistory.last._2.update(newSub, newUpd, getSubmitted(t) ++ unpr.getOrElse(t,
-              SortedSet.empty: SortedSet[ChunkEvent]))
-            newHistory = newHistory.updated(newWorld.time, newWorld)
-          }
-          // update it as far as submissions will allow
-          while (newHistory.lastKey <= submissions.lastKey) {
-            upd8()
-          }
-          // grab the mutation mutex, catch up completely, and implement the changes
-          mutateMutex.synchronized {
-            while (newHistory.lastKey <= submissions.lastKey) {
-              upd8()
-              /*
-              val newWorld = newHistory.last._2.update(sub, upd, getSubmitted(newHistory.lastKey))
-              newHistory = newHistory.updated(newWorld.time, newWorld)
-              */
-            }
-            subscribed = newSub
-            updating = newUpd
-            history = newHistory
-          }
-          */
+
         case integrate: Integrate =>
           // accumulate more events from the queue if possible
           var task = integrate

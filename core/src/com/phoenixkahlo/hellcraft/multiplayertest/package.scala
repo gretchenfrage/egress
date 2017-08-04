@@ -14,7 +14,7 @@ package object multiplayertest {
   type KryonetClient = com.esotericsoftware.kryonet.Client
   type KryonetServer = com.esotericsoftware.kryonet.Server
 
-  val FakeLag = 100
+  val FakeLag = 0
   val TimeOut = Int.MaxValue
 
   val SubscribeDistance = V3I(5, 5, 5)

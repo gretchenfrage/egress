@@ -225,7 +225,7 @@ class ChunkRenderer(
     */
   override def apply(interpolate: Option[(World, Float)]): Seq[Renderable] =
     if (meshData.isCompleted) renderable() +: {
-      if (Gdx.input.isKeyPressed(Keys.SHIFT_RIGHT)) {
+      if (Gdx.input.isKeyPressed(Keys.ALT_LEFT)) {
         // get model instance
         val instance = new ModelInstance(CompiledModel())
         instance.transform.setTranslation(chunk.pos * 16 toGdx)
@@ -241,7 +241,7 @@ class ChunkRenderer(
     }
     else previous match {
       case Some(renderer) => renderer()
-      case None => if (Gdx.input.isKeyPressed(Keys.SHIFT_RIGHT)) {
+      case None => if (Gdx.input.isKeyPressed(Keys.ALT_LEFT)) {
         // get model instance
         val instance = new ModelInstance(NotCompiledModel())
         instance.transform.setTranslation(chunk.pos * 16 toGdx)
