@@ -10,8 +10,8 @@ import com.phoenixkahlo.hellcraft.util.Cache
 
 import scala.collection.immutable.{TreeMap, TreeSet}
 import scala.collection.{SortedMap, SortedSet, mutable}
+import scala.concurrent.duration._
 
-//TODO: forget
 class ClientContinuum(session: ServerSession, getServerTime: => Long) {
 
   val maxHistorySize = 8 * 60
@@ -87,7 +87,9 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
 
   new Thread(() => {
     while (true) {
-      serverTasks.take() match {
+      val task = serverTasks.take()
+      val startTime = System.nanoTime()
+      task match {
         case SetRelation(newSub, newUpd, prov, unpr) =>
           // capture history
           var newHistory = history
@@ -173,6 +175,10 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
           }
 
       }
+      val endTime = System.nanoTime()
+      val elapsedTime = (endTime - startTime) nanoseconds
+      if (elapsedTime > (1 second))
+        println("server operating thread stalled!")
     }
   }, "client continuum server operation thread").start()
 
