@@ -79,7 +79,8 @@ class EgressServer extends Listener with Runnable {
       }
       //println("T = " + time)
       for ((client, events) <- toRoute) {
-        clientLogics(client).route(new TreeMap[Long, SortedSet[ChunkEvent]]().updated(time, events))
+        clientLogics.get(client).foreach(_.route(SortedMap(time -> events)))
+        //clientLogics(client).route(new TreeMap[Long, SortedSet[ChunkEvent]]().updated(time, events))
       }
       // push the current world to the save, if the time is right
       val current = continuum.current
@@ -98,16 +99,24 @@ class EgressServer extends Listener with Runnable {
 
   def setClientRelation(client: ClientID, subscribed: Set[V3I], updating: Set[V3I]): Unit = {
     continuum.synchronized {
+      /*
       val logic = clientLogics(client)
       val (provide, unpredictable) = continuum.setClientRelation(client, continuum.time - 50, subscribed, updating)
       logic.setRelation(subscribed, updating, provide, unpredictable)
+      */
+      clientLogics.get(client) match {
+        case Some(logic) =>
+          val (provide, unpredictable) = continuum.setClientRelation(client, continuum.time - 50, subscribed, updating)
+          logic.setRelation(subscribed, updating, provide, unpredictable)
+        case None =>
+      }
     }
   }
 
   def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Unit = {
     continuum.synchronized {
       for ((client, events) <- continuum.integrateExterns(newExterns)) {
-        clientLogics(client).route(events)
+        clientLogics.get(client).foreach(_.route(events))
       }
     }
   }

@@ -53,6 +53,11 @@ class ServerContinuum(save: WorldSave) {
     history
   }
 
+  def removeClient(client: ClientID): Unit = this.synchronized {
+    subscriptions -= client
+    updating -= client
+  }
+
   /**
     * Updates the continuum to the next tick, and returns which chunk events need to be routed to which clients.
     */
