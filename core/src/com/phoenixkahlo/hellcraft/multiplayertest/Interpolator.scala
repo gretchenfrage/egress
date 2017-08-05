@@ -8,6 +8,7 @@ sealed trait InterpolationMode
 object Off extends InterpolationMode
 object Backward extends InterpolationMode
 object Forward extends InterpolationMode
+object ForwardBounded extends InterpolationMode
 
 class Interpolator(clock: GametimeClock, mode: InterpolationMode) {
 
@@ -31,6 +32,15 @@ class Interpolator(clock: GametimeClock, mode: InterpolationMode) {
           worlds = worlds.drop(worlds.size - 2)
         // interpolate those worlds
         if (worlds.size == 2) (worlds.head._2, Some((current, clock.fractionalTicksSince(worlds.firstKey) - 1)))
+        else (current, None)
+      case ForwardBounded =>
+        // manage the render history so it's the 2 most recent worlds
+        worlds = worlds.updated(current.time, current)
+        if (worlds.size > 2)
+          worlds = worlds.drop(worlds.size - 2)
+        // interpolate those worlds
+        if (worlds.size == 2) (worlds.head._2, Some((current,
+          Math.min(Math.max(clock.fractionalTicksSince(worlds.firstKey) - 1, 0), 1))))
         else (current, None)
     }
   }
