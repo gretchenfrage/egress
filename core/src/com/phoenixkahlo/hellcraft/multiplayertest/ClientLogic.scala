@@ -87,15 +87,18 @@ class ClientLogic(server: EgressServer) {
   }
 
   def update(): Unit = {
-    val p = server.continuum.current.findEntity(avatarID).get.asInstanceOf[Avatar].chunkPos
-    if (!lastChunkPos.contains(p)) {
-      lastChunkPos = Some(p)
+    server.continuum.current.findEntity(avatarID).map(_.asInstanceOf[Avatar].chunkPos) match {
+      case Some(p) =>
+        if (!lastChunkPos.contains(p)) {
+          lastChunkPos = Some(p)
 
-      server.setClientRelation(
-        clientID,
-        (p - SubscribeDistance) to (p + SubscribeDistance) toSet,
-        (p - UpdateDistance) to (p + UpdateDistance) toSet
-      )
+          server.setClientRelation(
+            clientID,
+            (p - SubscribeDistance) to (p + SubscribeDistance) toSet,
+            (p - UpdateDistance) to (p + UpdateDistance) toSet
+          )
+        }
+      case None => println("can't find avatar!")
     }
   }
 
