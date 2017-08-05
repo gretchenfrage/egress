@@ -78,6 +78,7 @@ class EgressServer extends Listener with Runnable {
         (continuum.time, continuum.update())
       }
       //println("T = " + time)
+      println("nanotime = " + System.nanoTime())
       for ((client, events) <- toRoute) {
         clientLogics(client).route(new TreeMap[Long, SortedSet[ChunkEvent]]().updated(time, events))
       }
