@@ -75,11 +75,11 @@ class ServerSessionImpl(server: EgressServer, client: ClientLogic) extends  Serv
   }
 
   override def hashChunk(atTime: Long, p: V3I): Option[Int] = {
-    server.continuum.snapshot(atTime).flatMap(_.chunkAt(p).map(_.hashCode()))
+    server.continuum.waitForSnapshot(atTime).flatMap(_.chunkAt(p).map(_.hashCode()))
   }
 
   override def hashChunks(atTime: Long, chunks: Seq[V3I]): Map[V3I, Int] = {
-    server.continuum.snapshot(atTime) match {
+    server.continuum.waitForSnapshot(atTime) match {
       case Some(world) => chunks.flatMap(world.chunkAt(_).map(chunk => (chunk.pos, chunk.hashCode))).toMap
       case None => Map.empty
     }
