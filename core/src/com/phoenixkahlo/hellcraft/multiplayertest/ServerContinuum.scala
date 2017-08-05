@@ -164,7 +164,9 @@ class ServerContinuum(save: WorldSave) {
       revert(toIntegrate.firstKey)
 
       // introduce the externs
-      externs ++= toIntegrate
+      externs = newExterns.foldLeft(externs)(
+        { case (map, (t, set)) => map.updated(t, map.getOrElse(t, Set.empty: Set[ChunkEvent]) ++ set) })
+      //externs ++= toIntegrate
 
       // update back to the original time and accumulate the events
       // TODO: should we be doing time - 1
