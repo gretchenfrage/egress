@@ -176,7 +176,7 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
 
       }
       val endTime = System.nanoTime()
-      val elapsedTime = (endTime - startTime) nanoseconds
+      val elapsedTime: Duration = ((endTime - startTime) nanoseconds)
       if (elapsedTime > (1 second))
         println("server operating thread stalled!")
     }
