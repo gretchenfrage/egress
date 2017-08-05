@@ -36,6 +36,8 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
   @volatile var camDir = V3F(cam.direction)
   @volatile var movDir: V3F = Origin
 
+  @volatile var thirdPerson = false
+
   new Thread(() => {
     while (true) {
       var events = new TreeMap[Long, Set[ChunkEvent]]
@@ -53,6 +55,9 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
   override def keyDown(k: Int): Boolean =
     if (k == ESCAPE) {
       Gdx.input.setCursorCatched(false)
+      true
+    } else if (k == F5) {
+      thirdPerson = !thirdPerson
       true
     } else if (keys contains k) {
       pressed += k
@@ -152,7 +157,10 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
     world.findEntity(avatarID).map(_.asInstanceOf[Avatar]) match {
       case Some(avatar) =>
         val pos = interpolation.map({ case (a, b) => avatar.interpolatePos(a, b) }).getOrElse(avatar.pos)
-        cam.position.set((pos + offset) toGdx)
+        if (thirdPerson)
+          cam.position.set((pos - (camDir.normalize * 5)) toGdx)
+        else
+          cam.position.set((pos + offset) toGdx)
         cam.update()
       case None =>
         var pos = V3F(cam.position)
