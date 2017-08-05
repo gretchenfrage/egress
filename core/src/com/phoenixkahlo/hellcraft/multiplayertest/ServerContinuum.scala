@@ -166,15 +166,13 @@ class ServerContinuum(save: WorldSave) {
       // introduce the externs
       externs = newExterns.foldLeft(externs)(
         { case (map, (t, set)) => map.updated(t, map.getOrElse(t, Set.empty: Set[ChunkEvent]) ++ set) })
-      //externs ++= toIntegrate
 
       // update back to the original time and accumulate the events
-      // TODO: should we be doing time - 1
       var accumulator = new HashMap[ClientID, SortedMap[Long, SortedSet[ChunkEvent]]]
       while (time < currTime)
         for ((client, events) <- update())
           accumulator = accumulator.updated(client,
-            accumulator.getOrElse(client, new TreeMap[Long, SortedSet[ChunkEvent]]).updated(time, events))
+            accumulator.getOrElse(client, new TreeMap[Long, SortedSet[ChunkEvent]]).updated(time - 1, events))
 
       accumulator.filter({ case (_, events) => events.nonEmpty })
     }
