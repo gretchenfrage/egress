@@ -59,7 +59,7 @@ class EgressServer extends Listener with Runnable {
 
     continuum = new ServerContinuum(save)
 
-    kryonetServer = new Server(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
+    kryonetServer = new KryonetServer(BufferSize, BufferSize, new KryoSerialization(GlobalKryo.create()))
     kryonetServer.bind(port)
     kryonetServer.addListener(new LagListener(FakeLag, FakeLag, new ThreadedListener(this,
       Executors.newSingleThreadExecutor(runnable => new Thread(runnable, "server listener thread")))))
@@ -78,7 +78,6 @@ class EgressServer extends Listener with Runnable {
         (continuum.time, continuum.update())
       }
       //println("T = " + time)
-      println("nanotime = " + System.nanoTime())
       for ((client, events) <- toRoute) {
         clientLogics(client).route(new TreeMap[Long, SortedSet[ChunkEvent]]().updated(time, events))
       }

@@ -52,7 +52,7 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
     received = new LinkedBlockingDeque
 
     // connect to the server
-    kryonetClient = new Client(1000000, 1000000, new KryoSerialization(GlobalKryo.create()))
+    kryonetClient = new KryonetClient(BufferSize, BufferSize, new KryoSerialization(GlobalKryo.create()))
     kryonetClient.addListener(new LagListener(FakeLag, FakeLag, new ThreadedListener(this, AsyncExecutor("client listener thread"))))
     kryonetClient.start()
     kryonetClient.connect(5000, serverAddress.getAddress, serverAddress.getPort)
@@ -100,7 +100,7 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
 
     vramGraph = DependencyGraph()
 
-    interpolator = new Interpolator(clock, Forward)
+    interpolator = new Interpolator(clock, ForwardBounded)
 
     System.out.println("avatarID = [" + controller.avatarID.getMostSignificantBits + ", " + controller.avatarID.getLeastSignificantBits + "]")
 

@@ -174,7 +174,7 @@ class ServerContinuum(save: WorldSave) {
           accumulator = accumulator.updated(client,
             accumulator.getOrElse(client, new TreeMap[Long, SortedSet[ChunkEvent]]).updated(time - 1, events))
 
-      accumulator.filter({ case (_, events) => events.nonEmpty })
+      accumulator
     }
 
 }
