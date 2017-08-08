@@ -2,11 +2,10 @@ package com.phoenixkahlo.hellcraft.gamedriver
 
 import com.badlogic.gdx.ApplicationAdapter
 
-class RunnableGameStateDriver(state: RunnableGameState) extends ApplicationAdapter {
+class MonostateDriver(state: Monostate) extends ApplicationAdapter {
 
   override def create(): Unit = {
-    state.onEnter()
-    new Thread(state, "client loop thread").start()
+    state.enter()
   }
 
   override def render(): Unit = {
@@ -14,7 +13,7 @@ class RunnableGameStateDriver(state: RunnableGameState) extends ApplicationAdapt
   }
 
   override def dispose(): Unit = {
-    state.onExit()
+    state.exit()
   }
 
 }

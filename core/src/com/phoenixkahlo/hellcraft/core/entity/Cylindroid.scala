@@ -7,7 +7,7 @@ import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.g3d.{Material, ModelInstance}
 import com.phoenixkahlo.hellcraft.core._
-import com.phoenixkahlo.hellcraft.gamedriver.GameDriver
+import com.phoenixkahlo.hellcraft.gamedriver.UpdatingGameDriver
 import com.phoenixkahlo.hellcraft.math._
 
 import scala.collection.immutable.HashSet
@@ -36,7 +36,7 @@ abstract class Cylindroid[C <: Cylindroid[C]](
   def naturalVelocity: V2F = V2F(0, 0)
 
   override protected def transform(world: World): C = {
-    val dt = GameDriver.dt.toMillis / 1000f
+    val dt = UpdatingGameDriver.dt.toMillis / 1000f
 
     def intersecting(c: C, exclude: Set[V3I]): Seq[(V3I, RectangleProxmimity)] =
       ((c.pos - V3F(c.rad, 0, c.rad)).floor to (c.pos + V3F(c.rad, c.height, c.rad)).floor)

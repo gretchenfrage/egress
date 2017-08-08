@@ -3,13 +3,14 @@ package com.phoenixkahlo.hellcraft.desktop;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
 import com.esotericsoftware.minlog.Log;
-import com.phoenixkahlo.hellcraft.finitetest.SimpleDriver;
+import com.phoenixkahlo.hellcraft.core.DefaultTexturePack;
+import com.phoenixkahlo.hellcraft.core.TexturePack;
 import com.phoenixkahlo.hellcraft.gamedriver.GameDriver;
-import com.phoenixkahlo.hellcraft.gamedriver.RunnableGameStateDriver;
-import com.phoenixkahlo.hellcraft.infinitetest.InfiniteDriver;
-import com.phoenixkahlo.hellcraft.infinitetest.InfiniteGameState;
+import com.phoenixkahlo.hellcraft.gamedriver.MonostateDriver;
+import com.phoenixkahlo.hellcraft.menu.MainMenu;
 import com.phoenixkahlo.hellcraft.multiplayertest.EgressClient;
 import com.phoenixkahlo.hellcraft.multiplayertest.EgressServer;
+import com.phoenixkahlo.hellcraft.util.Cache;
 import other.AppDirs;
 
 import java.awt.*;
@@ -27,7 +28,7 @@ public class DesktopLauncher {
 		config.width = (int) (screenSize.width * factor);
 		config.height = (int) (screenSize.height * factor);
 
-
+		/*
 		Path dir = AppDirs.dataDir("egress");
 		System.out.println("using directory " + dir);
 		dir.toFile().mkdir();
@@ -36,7 +37,10 @@ public class DesktopLauncher {
 		new Thread(new EgressServer(25565)).start();
 		try { Thread.sleep(5000); } catch (Exception e) { throw new RuntimeException(e); }
 		InetSocketAddress address = new InetSocketAddress("localhost", 25565);
-		new LwjglApplication(new RunnableGameStateDriver(new EgressClient(address)), config);
+		Cache<TexturePack> textures = new Cache<>(DefaultTexturePack::new);
+		new LwjglApplication(new GameDriver(new EgressClient(address, textures)), config);
+		*/
+		new LwjglApplication(new GameDriver(new MainMenu()), config);
 
 
 		//new LwjglApplication(new GameDriver(new InfiniteGameState()), config);

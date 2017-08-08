@@ -4,7 +4,7 @@ import java.io.{FileOutputStream, PrintStream}
 import java.net.InetSocketAddress
 import java.util.concurrent._
 
-import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.{Gdx, InputAdapter}
 import com.badlogic.gdx.graphics.{GL20, PerspectiveCamera}
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
@@ -17,15 +17,18 @@ import com.esotericsoftware.kryonet.{Client, Connection, KryoSerialization, List
 import com.esotericsoftware.kryonet.rmi.{ObjectSpace, RemoteObject}
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.core.{DefaultTexturePack, ResourceNode, TexturePack, World}
-import com.phoenixkahlo.hellcraft.gamedriver.{GameState, RunnableGameState}
+import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState, Monostate}
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.util._
 import other.AppDirs
-import scala.concurrent.duration._
 
+import scala.concurrent.duration._
 import scala.collection.JavaConverters
 
-class EgressClient(serverAddress: InetSocketAddress) extends Listener with RunnableGameState {
+class EgressClient(
+                    serverAddress: InetSocketAddress,
+                    givenTextures: Cache[TexturePack]
+                  ) extends Listener with GameState with Runnable {
 
   @volatile var ready = false
   val readyMonitor = new Object
@@ -36,6 +39,8 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
   private var clientID: ClientID = _
   private var serverNanotime: NanotimeMirror = _
   private var clock: GametimeClock = _
+
+  private var loopThread: Thread = _
 
   private var deleted: BlockingQueue[ResourceNode] = _
   private var continuum: ClientContinuum = _
@@ -48,7 +53,7 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
   private var interpolator: Interpolator = _
   private var g = 0
 
-  override def onEnter(): Unit = {
+  override def onEnter(driver: GameDriver): Unit = {
     received = new LinkedBlockingDeque
 
     // connect to the server
@@ -83,7 +88,7 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
     deleted = new LinkedBlockingQueue
     continuum = new ClientContinuum(session, clock.gametime)
 
-    textures = new DefaultTexturePack
+    textures = givenTextures()
 
     cam = new PerspectiveCamera(67, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     cam.near = 0.1f
@@ -103,6 +108,9 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
     interpolator = new Interpolator(clock, ForwardBounded)
 
     System.out.println("avatarID = [" + controller.avatarID.getMostSignificantBits + ", " + controller.avatarID.getLeastSignificantBits + "]")
+
+    loopThread = new Thread(this, "client main loop thread")
+    loopThread.start()
 
     readyMonitor.synchronized {
       ready = true
@@ -161,7 +169,7 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
   }
 
   override def run(): Unit = {
-    while (true) {
+    while (!Thread.interrupted()) {
       val time = continuum.synchronized {
         val submissions = controller.mainUpdate(continuum.current)
         continuum.update(submissions)
@@ -173,7 +181,11 @@ class EgressClient(serverAddress: InetSocketAddress) extends Listener with Runna
   }
 
   override def onExit(): Unit = {
+    Gdx.input.setInputProcessor(new InputAdapter)
+    loopThread.interrupt()
+    loopThread.join()
     kryonetClient.close()
+    vramGraph.managing.foreach(_.dispose())
   }
 
   override def disconnected(connection: Connection): Unit = {

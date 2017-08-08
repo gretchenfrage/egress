@@ -1,15 +1,14 @@
 package com.phoenixkahlo.hellcraft.gamedriver
 
+import com.phoenixkahlo.hellcraft.core.TexturePack
+
 trait GameState {
 
-  def onEnter(): Unit
+  def onEnter(driver: GameDriver): Unit
 
   def render(): Unit
 
-  /**
-    * @return whether anything was actually changed
-    */
-  def update(): Boolean
+  def onResize(width: Int, height: Int): Unit = {}
 
   def onExit(): Unit
 

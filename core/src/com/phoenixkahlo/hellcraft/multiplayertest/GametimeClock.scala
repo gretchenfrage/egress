@@ -1,24 +1,25 @@
 package com.phoenixkahlo.hellcraft.multiplayertest
 
-import com.phoenixkahlo.hellcraft.gamedriver.GameDriver
+
+import com.phoenixkahlo.hellcraft.gamedriver.UpdatingGameDriver
 
 import scala.concurrent.duration._
 
 class GametimeClock(getNanotime: => Long, val nanotimeStart: Long) {
 
-  def gametime: Long = (((getNanotime - nanotimeStart) nanoseconds) / GameDriver.dt) toLong
+  def gametime: Long = (((getNanotime - nanotimeStart) nanoseconds) / UpdatingGameDriver.dt) toLong
 
   def waitUntil(time: Long): Unit = {
-    val duration = (time * GameDriver.dt) + (nanotimeStart nanoseconds) - (getNanotime nanoseconds)
+    val duration = (time * UpdatingGameDriver.dt) + (nanotimeStart nanoseconds) - (getNanotime nanoseconds)
     if (duration > Duration.Zero)
       Thread.sleep(duration toMillis)
   }
 
   def timeSince(time: Long): Duration =
-    ((getNanotime - nanotimeStart) nanoseconds) - (time * GameDriver.dt)
+    ((getNanotime - nanotimeStart) nanoseconds) - (time * UpdatingGameDriver.dt)
 
   def fractionalTicksSince(time: Long): Float =
-    (timeSince(time) / GameDriver.dt) toFloat
+    (timeSince(time) / UpdatingGameDriver.dt) toFloat
 
 }
 

@@ -208,7 +208,7 @@ class ChunkRenderer(
 
     // create the material
     val material = new Material
-    material.set(TextureAttribute.createDiffuse(texturePack.texture))
+    material.set(TextureAttribute.createDiffuse(texturePack.sheet))
 
     // create the renderable
     val renderable = new Renderable()

@@ -14,7 +14,7 @@ import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.finitetest.SimpleAvatarController
-import com.phoenixkahlo.hellcraft.gamedriver.GameState
+import com.phoenixkahlo.hellcraft.gamedriver.UpdatingGameState
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.save.{RegionSave, WorldSave}
 import com.phoenixkahlo.hellcraft.util.{BackgroundMeshCompilerExecutor, DependencyGraph, PriorityExecContext}
@@ -24,7 +24,7 @@ import scala.collection.JavaConverters
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
 
-class InfiniteGameState extends GameState {
+class InfiniteGameState extends UpdatingGameState {
 
   val loadDist = V3I(13, 7, 13)
   val updateDist = V3I(6, 6, 6)

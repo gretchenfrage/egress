@@ -1,67 +1,38 @@
 package com.phoenixkahlo.hellcraft.gamedriver
 
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
-
 import com.badlogic.gdx.ApplicationAdapter
+import com.phoenixkahlo.hellcraft.core.TexturePack
 
-import scala.concurrent.duration._
+class GameDriver(startState: GameState) extends ApplicationAdapter {
 
-class GameDriver(state: GameState) extends ApplicationAdapter {
+  private var state: GameState = startState
+  private var toEnter: Option[GameState] = None
 
-  private var lastRenderTime: Long = -1 // nano time
-  private var tickTimeDebt: Duration = Duration.Zero
-  private val updatedFlag = new AtomicBoolean(true)
-  @volatile private var running = true
+  def enter(state: GameState): Unit = {
+    toEnter = Some(state)
+  }
 
   override def create(): Unit = {
-    state.onEnter()
-
-    Thread.currentThread().setPriority(Thread.MAX_PRIORITY)
-
-    val thread = new Thread(() => {
-      lastRenderTime = System.nanoTime()
-      while (running) {
-        val currRenderTime = System.nanoTime()
-        tickTimeDebt += ((currRenderTime - lastRenderTime) nanoseconds)
-        val sleepFor = GameDriver.dt - tickTimeDebt
-        if (sleepFor > Duration.Zero)
-          Thread.sleep(sleepFor toMillis)
-        while (tickTimeDebt >= GameDriver.dt) {
-          if (state.update()) {
-            updatedFlag.set(true)
-            updatedFlag.synchronized {
-              updatedFlag.notifyAll()
-            }
-          }
-          tickTimeDebt -= GameDriver.dt
-        }
-        lastRenderTime = currRenderTime
-      }
-    }, "game updating thread")
-    thread.setPriority(Thread.MAX_PRIORITY)
-    thread.start()
-
+    state.onEnter(this)
   }
 
   override def render(): Unit = {
-    updatedFlag.synchronized {
-      while (!updatedFlag.getAndSet(false))
-        updatedFlag.wait()
+    toEnter match {
+      case Some(nextState) =>
+        state.onExit()
+        state = nextState
+        state.onEnter(this)
+        toEnter = None
+      case None =>
     }
     state.render()
   }
 
+  override def resize(width: Int, height: Int): Unit =
+    state.onResize(width, height)
+
   override def dispose(): Unit = {
-    running = false
     state.onExit()
   }
-
-}
-
-object GameDriver {
-
-  val updatesPerSecond: Int = 20
-  val dt: Duration = (1 second) / updatesPerSecond
 
 }
