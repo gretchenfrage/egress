@@ -16,6 +16,7 @@ import scala.collection.mutable
 case class SimpleAvatarController(
                         cam: Camera,
                         avatarID: UUID,
+                        exitor: Runnable,
                         turnVel: Float = 0.25f,
                         offset: V3F = V3F(0, 1.75f, 0)
                       ) extends InputAdapter {
@@ -23,11 +24,14 @@ case class SimpleAvatarController(
   private val pressed = new mutable.HashSet[Int]()
   private val clicks = new mutable.ArrayStack[Int]()
 
-  val keys = List(Keys.W, Keys.A, Keys.S, Keys.D, Keys.SHIFT_LEFT, Keys.SPACE, Keys.CONTROL_LEFT, Keys.TAB)
+  val keys = List(Keys.W, Keys.A, Keys.S, Keys.D, Keys.SHIFT_LEFT, Keys.SPACE, Keys.CONTROL_LEFT, Keys.TAB, Keys.F1)
 
   override def keyDown(keycode: Int): Boolean =
-    if (keycode == Keys.ESCAPE) {
+    if (keycode == Keys.F1) {
       Gdx.input.setCursorCatched(false)
+      true
+    } else if (keycode == Keys.ESCAPE) {
+      exitor.run()
       true
     } else if (keycode == Keys.C) {
       val dir = V3F(cam.direction)

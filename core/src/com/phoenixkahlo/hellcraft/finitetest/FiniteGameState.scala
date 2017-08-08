@@ -1,26 +1,31 @@
 package com.phoenixkahlo.hellcraft.finitetest
 
 import java.io.File
-import java.nio.file.{Path, Paths}
+import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue}
 
+import com.badlogic.gdx.{Gdx, InputAdapter}
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
-import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch, Renderable, RenderableProvider}
 import com.badlogic.gdx.graphics.{GL20, OrthographicCamera, PerspectiveCamera}
+import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch, Renderable, RenderableProvider}
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.utils.Pool
-import com.badlogic.gdx.{ApplicationAdapter, Gdx}
-import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
-import com.phoenixkahlo.hellcraft.math.{Origin, Up, V3F, V3I}
+import com.phoenixkahlo.hellcraft.core._
+import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
+import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
+import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.save.RegionSave
-import com.phoenixkahlo.hellcraft.util._
+import com.phoenixkahlo.hellcraft.util.{BackgroundMeshCompilerExecutor, Cache, DependencyGraph, PriorityExecContext}
 import other.{AppDirs, PerlinNoiseGenerator}
 
-class SimpleDriver extends ApplicationAdapter {
+import scala.collection.JavaConverters
 
+class FiniteGameState(givenTexturePack: Cache[ResourcePack]) extends GameState {
+
+  private var driver: GameDriver = _
   private var history: Vector[FiniteWorld] = _
   private var world: FiniteWorld = _
   private var texturePack: ResourcePack = _
@@ -31,18 +36,20 @@ class SimpleDriver extends ApplicationAdapter {
   private var spriteBatch: SpriteBatch = _
   private var lights: Environment = _
   private var dependencies: DependencyGraph = _
+  private var deleted: BlockingQueue[ResourceNode] = _
   private var t = 0
 
-  override def create(): Unit = {
+  override def onEnter(driver: GameDriver): Unit = {
+    this.driver = driver
+
     history = Vector()
 
-    texturePack = new DefaultResourcePack
+    texturePack = givenTexturePack()
 
     world = new FiniteWorld(V3I(16, 16, 16), 16)
 
     println("loading / generating")
 
-    //val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\save")
     val saveFolder = AppDirs.dataDir("egress").resolve("fin").toFile
     saveFolder.mkdir()
     val save = new RegionSave(saveFolder.toPath, 8)
@@ -66,47 +73,8 @@ class SimpleDriver extends ApplicationAdapter {
       }
     })
 
-    /*
-    world = world.mapChunks(chunk => {
-      save.load(chunk.pos) match {
-        case Some(loaded) =>
-          println("loading " + chunk.pos)
-          loaded
-        case None =>
-          println("generating" + chunk.pos)
-          chunk.mapBlocks(vLocal => {
-            val v = vLocal + (chunk.pos * 16)
-            val depth = height(v) - v.y
-            if (depth > 20) Stone
-            else if (depth >= 0) Dirt
-            else Air
-          })
-      }
-    })
-    */
-
-
-    /*
-    MathUtils.random.setSeed("phoenix".hashCode)
-    val heights = PerlinNoiseGenerator.generateHeightMap((world.size * 16).xi, (world.size * 16).zi, 0, 128, 9)
-    def height(v: V3I): Byte = heights(v.zi * world.size.zi * 16 + v.xi)
-    world = world.mapBlocks(v => {
-      val depth = height(v) - v.y
-      if (depth > 20) Stone
-      else if (depth >= 0) Dirt
-      else Air
-    })
-    world = world.mapBlocks(v => {
-      if (world.blockAt(v).get == Dirt && world.blockAt(v + Up).forall(_ == Air)) Grass
-      else world.blockAt(v).get
-    })
-    */
     println("generated")
 
-    /*
-    val avatar = new Avatar()
-    world = world.transformChunk(avatar.chunkPos, _.putEntity(avatar))
-    */
     var avatar: Avatar = null
     world.chunks.flatMap(_.entities.values).find(_.isInstanceOf[Avatar]) match {
       case Some(entity) => avatar = entity.asInstanceOf[Avatar]
@@ -124,7 +92,7 @@ class SimpleDriver extends ApplicationAdapter {
     hudCam = new OrthographicCamera(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     hudCam.setToOrtho(false)
 
-    controller = SimpleAvatarController(cam, avatar.id, () => Unit)
+    controller = SimpleAvatarController(cam, avatar.id, () => driver.enter(new MainMenu(new Cache(texturePack))))
     Gdx.input.setInputProcessor(controller)
 
     modelBatch = new ModelBatch
@@ -135,6 +103,7 @@ class SimpleDriver extends ApplicationAdapter {
     lights.add(new DirectionalLight().set(1, 1, 1, 0, -1, 0))
 
     dependencies = DependencyGraph()
+    deleted = new LinkedBlockingQueue
   }
 
   override def render(): Unit = {
@@ -169,17 +138,15 @@ class SimpleDriver extends ApplicationAdapter {
     // get the renderable factories
     val factories = world.renderables(texturePack)
     // do memory management
-    /*
-    dependencies ++= factories
-    println("graph size = " + dependencies.managing.size)
-    if (t % 600 == 0)
-      PriorityExecContext(Thread.MIN_PRIORITY).execute(new Runnable {
-        override def run(): Unit = {
-          val garbage = dependencies.garbage(factories)
-          Gdx.app.postRunnable(new Runnable { override def run(): Unit = garbage.foreach(_.dispose()) })
-        }
+    val nodes = factories.par.flatMap(_.resources).seq
+    dependencies ++= nodes
+    if (t % 600 == 0) {
+      PriorityExecContext(Thread.MIN_PRIORITY).execute(() => {
+        val garbage = dependencies.garbage(nodes)
+        Gdx.app.postRunnable(() => garbage.foreach(_.dispose()))
+        deleted.addAll(JavaConverters.asJavaCollection(garbage))
       })
-      */
+    }
 
     // render 3D stuff
     val provider = new RenderableProvider {
@@ -200,17 +167,11 @@ class SimpleDriver extends ApplicationAdapter {
     spriteBatch.end()
   }
 
-  override def dispose(): Unit = {
-    val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\save")
-    val save = new RegionSave(saveFolder.toPath, 32)
-
-    /*
-    (Origin until world.size).par.foreach(v => {
-      println("saving " + v)
-      save.save(world.chunkAt(v).get)
-    })
-    */
+  override def onExit(): Unit = {
+    Gdx.input.setInputProcessor(new InputAdapter)
+    dependencies.managing.foreach(_.dispose())
+    val saveFolder = AppDirs.dataDir("egress").resolve("fin")
+    val save = new RegionSave(saveFolder, 32)
     save.save((Origin until world.size).map(world.chunkAt(_).get), world)
   }
-
 }

@@ -51,12 +51,12 @@ class InfinityManager(save: WorldSave, generator: V3I => Block) {
     world = world.transformChunk(p, f)
   }
 
-  def renderables(textures: TexturePack, ps: Seq[V3I]): Seq[RenderableFactory] = {
+  def renderables(textures: ResourcePack, ps: Seq[V3I]): Seq[RenderableFactory] = {
     ps.map(world.chunkAt).filter(_ isDefined).map(_.get).flatMap(_.renderables(textures, world))
     //erode(world.loaded.keys.toSet, 1).toSeq.map(world.chunkAt).map(_.get).flatMap(_.renderables(textures, world))
   }
 
-  def resources(textures: TexturePack): Seq[ResourceNode] = {
+  def resources(textures: ResourcePack): Seq[ResourceNode] = {
     world.loaded.values.flatMap(_.renderables(textures, world)).flatMap(_.resources).toSeq ++
       buffer.resources(textures, world)
   }

@@ -3,21 +3,16 @@ package com.phoenixkahlo.hellcraft.desktop;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
 import com.esotericsoftware.minlog.Log;
-import com.phoenixkahlo.hellcraft.core.DefaultTexturePack;
-import com.phoenixkahlo.hellcraft.core.TexturePack;
+import com.phoenixkahlo.hellcraft.core.DefaultResourcePack;
+import com.phoenixkahlo.hellcraft.core.ResourcePack;
+import com.phoenixkahlo.hellcraft.finitetest.FiniteGameState;
 import com.phoenixkahlo.hellcraft.gamedriver.GameDriver;
-import com.phoenixkahlo.hellcraft.gamedriver.MonostateDriver;
+import com.phoenixkahlo.hellcraft.infinitetest.InfiniteGameState;
 import com.phoenixkahlo.hellcraft.menu.MainMenu;
-import com.phoenixkahlo.hellcraft.multiplayertest.EgressClient;
-import com.phoenixkahlo.hellcraft.multiplayertest.EgressServer;
+import com.phoenixkahlo.hellcraft.multiplayertest.ClientServerState;
 import com.phoenixkahlo.hellcraft.util.Cache;
-import other.AppDirs;
 
 import java.awt.*;
-import java.io.File;
-import java.net.InetSocketAddress;
-import java.nio.file.Path;
-import java.util.Arrays;
 
 public class DesktopLauncher {
 	public static void main (String[] arg) {
@@ -40,6 +35,8 @@ public class DesktopLauncher {
 		Cache<TexturePack> textures = new Cache<>(DefaultTexturePack::new);
 		new LwjglApplication(new GameDriver(new EgressClient(address, textures)), config);
 		*/
+		Cache<ResourcePack> resources = new Cache<>(DefaultResourcePack::new);
+		//new LwjglApplication(new GameDriver(new ClientServerState(resources)), config);
 		new LwjglApplication(new GameDriver(new MainMenu()), config);
 
 

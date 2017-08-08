@@ -27,7 +27,7 @@ case class HashCacheWorld(time: Long, loaded: Map[V3I, Chunk] = new HashMap) ext
 
   override def findEntity(id: UUID): Option[Entity] = loaded.values.flatMap(_.entities).toMap.get(id)
 
-  def renderables(texturePack: TexturePack): Seq[RenderableFactory] =
+  def renderables(texturePack: ResourcePack): Seq[RenderableFactory] =
     loaded.values.flatMap(_.renderables(texturePack, this)).toSeq
 
   def +(chunk: Chunk): HashCacheWorld = HashCacheWorld(time, loaded.updated(chunk.pos, chunk))

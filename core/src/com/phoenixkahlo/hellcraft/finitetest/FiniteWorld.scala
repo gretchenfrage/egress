@@ -108,7 +108,7 @@ class FiniteWorld(
   def mapBlocks(f: V3I => Block): FiniteWorld =
     mapChunks(chunk => chunk.mapBlocks(v => f(v + (chunk.pos * chunkSize))))
 
-  def renderables(texturePack: TexturePack): Seq[RenderableFactory] =
+  def renderables(texturePack: ResourcePack): Seq[RenderableFactory] =
     chunks.flatMap(_.renderables(texturePack, this))
 
 

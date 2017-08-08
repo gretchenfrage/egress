@@ -108,12 +108,12 @@ abstract class Cylindroid[C <: Cylindroid[C]](
 
   override def modelOffset: V3F = V3F(0, height / 2, 0)
 
-  override def modelFactory(texturePack: TexturePack): ModelInstanceFactory =
+  override def modelFactory(texturePack: ResourcePack): ModelInstanceFactory =
     CylindroidModelFactory[C](this, texturePack)
 
 }
 
-case class CylindroidModelFactory[C <: Cylindroid[C]](c: Cylindroid[C], texturePack: TexturePack) extends ModelInstanceFactory {
+case class CylindroidModelFactory[C <: Cylindroid[C]](c: Cylindroid[C], texturePack: ResourcePack) extends ModelInstanceFactory {
   override def apply(): ModelInstance = {
     val builder = new ModelBuilder
     val template = builder.createCylinder(

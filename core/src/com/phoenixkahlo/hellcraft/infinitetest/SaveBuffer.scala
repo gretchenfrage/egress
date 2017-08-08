@@ -106,7 +106,7 @@ class SaveBuffer(val save: WorldSave, generator: V3I => Block) {
     buffer --= toSave
   }
 
-  def resources(textures: TexturePack, world: World): Seq[ResourceNode] = this.synchronized {
+  def resources(textures: ResourcePack, world: World): Seq[ResourceNode] = this.synchronized {
     //buffer.values.filter(_ isLeft).map({ case Left(chunk) => chunk })
     buffer.values.flatMap({
       case Left(chunk) => Some(chunk)

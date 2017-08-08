@@ -15,12 +15,12 @@ import scala.collection.immutable.HashMap
   */
 @DefaultSerializer(classOf[ChunkSerializer])
 class Chunk (
-                     val pos: V3I, // coordinates in chunks, not blocks
-                     val size: Int,
-                     val blocks: Vector[Byte],
-                     val entities: Map[UUID,Entity],
-                     @transient val lastRenderer: ParamCache[(TexturePack, World), ChunkRenderer],
-                     val lastRendererDirty: Boolean
+              val pos: V3I, // coordinates in chunks, not blocks
+              val size: Int,
+              val blocks: Vector[Byte],
+              val entities: Map[UUID,Entity],
+              @transient val lastRenderer: ParamCache[(ResourcePack, World), ChunkRenderer],
+              val lastRendererDirty: Boolean
                    ) {
 
   def this(pos: V3I, size: Int = 16) = this(
@@ -36,7 +36,7 @@ class Chunk (
             size: Int = this.size,
             blocks: Vector[Byte] = this.blocks,
             entities: Map[UUID,Entity] = this.entities,
-            lastRenderer: ParamCache[(TexturePack, World), ChunkRenderer] = this.renderer,
+            lastRenderer: ParamCache[(ResourcePack, World), ChunkRenderer] = this.renderer,
             lastRendererDirty: Boolean = false
           ): Chunk = new Chunk(
     pos,
@@ -89,7 +89,7 @@ class Chunk (
     entities.values.zip(idStreams).flatMap({ case (entity, ids) => entity.update(world, ids) }).toSeq
   }
 
-  @transient private lazy val renderer: ParamCache[(TexturePack, World), ChunkRenderer] =
+  @transient private lazy val renderer: ParamCache[(ResourcePack, World), ChunkRenderer] =
     if (lastRenderer == null)
       new ParamCache({ case (textures, world) => new ChunkRenderer(this, textures, world, None) })
     else {
@@ -99,7 +99,7 @@ class Chunk (
         lastRenderer
     }
 
-  def renderables(texturePack: TexturePack, world: World): Seq[RenderableFactory] =
+  def renderables(texturePack: ResourcePack, world: World): Seq[RenderableFactory] =
     entities.values.flatMap(_.renderables(texturePack)).toSeq :+ renderer((texturePack, world))
 
   def mapBlocks(f: V3I => Block): Chunk =

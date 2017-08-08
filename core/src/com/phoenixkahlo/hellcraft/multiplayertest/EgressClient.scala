@@ -16,9 +16,10 @@ import com.esotericsoftware.kryonet.Listener.{LagListener, ThreadedListener}
 import com.esotericsoftware.kryonet.{Client, Connection, KryoSerialization, Listener}
 import com.esotericsoftware.kryonet.rmi.{ObjectSpace, RemoteObject}
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
-import com.phoenixkahlo.hellcraft.core.{DefaultTexturePack, ResourceNode, TexturePack, World}
+import com.phoenixkahlo.hellcraft.core.{DefaultResourcePack, ResourceNode, ResourcePack, World}
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState, Monostate}
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
+import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.util._
 import other.AppDirs
 
@@ -27,12 +28,13 @@ import scala.collection.JavaConverters
 
 class EgressClient(
                     serverAddress: InetSocketAddress,
-                    givenTextures: Cache[TexturePack]
+                    givenTextures: Cache[ResourcePack]
                   ) extends Listener with GameState with Runnable {
 
   @volatile var ready = false
   val readyMonitor = new Object
 
+  private var driver: GameDriver = _
   private var received: BlockingQueue[Any] = _
   private var kryonetClient: KryonetClient = _
   private var session: ServerSession = _
@@ -44,7 +46,7 @@ class EgressClient(
 
   private var deleted: BlockingQueue[ResourceNode] = _
   private var continuum: ClientContinuum = _
-  private var textures: TexturePack = _
+  private var resources: ResourcePack = _
   private var cam: PerspectiveCamera = _
   private var controller: ClientController = _
   private var modelBatch: ModelBatch = _
@@ -54,6 +56,8 @@ class EgressClient(
   private var g = 0
 
   override def onEnter(driver: GameDriver): Unit = {
+    this.driver = driver
+
     received = new LinkedBlockingDeque
 
     // connect to the server
@@ -88,7 +92,7 @@ class EgressClient(
     deleted = new LinkedBlockingQueue
     continuum = new ClientContinuum(session, clock.gametime)
 
-    textures = givenTextures()
+    resources = givenTextures()
 
     cam = new PerspectiveCamera(67, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     cam.near = 0.1f
@@ -143,7 +147,7 @@ class EgressClient(
     // get the renderable factories
     val p = V3F(cam.position) / 16 floor
     val chunks = ((p - V3I(3, 3, 3)) to (p + V3I(3, 3, 3))).flatMap(toRender.asInstanceOf[ClientWorld].weakChunkAt)
-    val factories = chunks.flatMap(_.renderables(textures, world))
+    val factories = chunks.flatMap(_.renderables(resources, world))
 
     // manage the resource graph
     val nodes = factories.flatMap(_.resources)
@@ -189,7 +193,7 @@ class EgressClient(
   }
 
   override def disconnected(connection: Connection): Unit = {
-    Gdx.app.exit()
+    driver.enter(new MainMenu(new Cache(resources)))
   }
 
   override def received(connection: Connection, obj: Any): Unit = {
@@ -203,5 +207,9 @@ class EgressClient(
   def getClock: GametimeClock = clock
 
   def getKryonetClient: KryonetClient = kryonetClient
+
+  def getDriver: GameDriver = driver
+
+  def getResources: ResourcePack = resources
 
 }

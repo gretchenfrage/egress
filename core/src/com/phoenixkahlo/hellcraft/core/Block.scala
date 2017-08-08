@@ -6,10 +6,10 @@ import scala.collection.immutable.Map
   * The block singletons.
   */
 sealed abstract class Block(
-                      val id: Byte,
-                      val tid: TextureID,
-                      val isOpaque: Boolean = true,
-                      val isCorporeal: Boolean = true
+                             val id: Byte,
+                             val tid: SheetTextureID,
+                             val isOpaque: Boolean = true,
+                             val isCorporeal: Boolean = true
                     ) {
 
   def isTranslucent = !isOpaque

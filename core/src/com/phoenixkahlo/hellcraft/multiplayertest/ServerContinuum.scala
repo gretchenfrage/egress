@@ -135,14 +135,6 @@ class ServerContinuum(save: WorldSave) {
     updating.put(client, updatingSet)
     // return
     (chunks, accumulator)
-    /*
-    val oldSubscribed: Set[V3I] = subscriptions.getOrElse(client, Set.empty)
-    subscriptions.put(client, subscribed)
-    updating.put(client, updatingSet)
-    val world = snapshot(targetTime).getOrElse(history.head._2)
-    var accumulator: SortedMap[Long, SortedSet[ChunkEvent]] = SortedMap.empty
-    (world.time, (subscribed -- oldSubscribed).toSeq.map(world.chunkAt(_).get))
-    */
   }
 
   /**

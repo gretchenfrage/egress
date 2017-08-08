@@ -18,10 +18,10 @@ import scala.concurrent.{Await, Awaitable, Future}
 
 // TODO: ensure meshes will be or will not be computed when last renderer is or isn't dirty
 class ChunkRenderer(
-                          chunk: Chunk,
-                          texturePack: TexturePack,
-                          world: World,
-                          previous: Option[ChunkRenderer]
+                     chunk: Chunk,
+                     texturePack: ResourcePack,
+                     world: World,
+                     previous: Option[ChunkRenderer]
                         ) extends RenderableFactory with ResourceNode {
 
   def compileProcedure: () => (Array[Float], Array[Short]) = () => {

@@ -1,41 +1,77 @@
 package com.phoenixkahlo.hellcraft.menu
 
-import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.{Gdx, InputAdapter}
-import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.graphics.{Color, GL20}
+import com.badlogic.gdx.scenes.scene2d.{Actor, InputEvent, Stage}
+import com.badlogic.gdx.scenes.scene2d.ui.Button.ButtonStyle
+import com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle
 import com.badlogic.gdx.scenes.scene2d.ui._
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
+import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.viewport.ScreenViewport
-import com.phoenixkahlo.hellcraft.core.{DefaultTexturePack, HeaderTID, TexturePack}
+import com.badlogic.gdx.{Gdx, InputAdapter}
+import com.phoenixkahlo.hellcraft.core._
+import com.phoenixkahlo.hellcraft.finitetest.FiniteGameState
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
+import com.phoenixkahlo.hellcraft.infinitetest.InfiniteGameState
+import com.phoenixkahlo.hellcraft.menu.util.{EButtonStyle, EButton}
+import com.phoenixkahlo.hellcraft.util.Cache
 
-class MainMenu extends GameState {
+class MainMenu(givenResources: Cache[ResourcePack]) extends AbstractMenu(givenResources) {
 
-  private var textures: TexturePack = _
+  def this() =
+    this(new Cache(new DefaultResourcePack))
 
-  private var stage: Stage = _
+  override protected def compile(): Unit = {
+    var y: Float = Gdx.graphics.getHeight - 70
+    def position(widget: Actor): Unit = {
+      widget.setPosition((Gdx.graphics.getWidth - widget.getWidth) / 2, y - widget.getHeight)
+      y -= (widget.getHeight + 20)
+      stage.addActor(widget)
+    }
 
+    val header = new Label("EGRESS", new LabelStyle(resources.font(HeaderFID), new Color(0x22313FFF)))
+    position(header)
 
-  override def onEnter(driver: GameDriver): Unit = {
-    textures = new DefaultTexturePack
+    y -= 50
 
-    stage = new Stage(new ScreenViewport)
-    Gdx.input.setInputProcessor(stage)
+    val buttonStyle = EButtonStyle(
+      resources.pixmap(MenuPatchPID),
+      resources.pixmap(MenuPatchActivePID),
+      4,
+      resources.font(ButtonFID),
+      Color.BLACK,
+      Color.BLACK,
+      header.getWidth toInt,
+      35
+    )
 
-    val header = new Image(textures.solo(HeaderTID))
-    stage.addActor(header)
-  }
+    val finiteButton = new EButton("finite", buttonStyle)
+    finiteButton.addListener(new ClickListener() {
+      override def clicked(event: InputEvent, x: Float, y: Float): Unit = {
+        driver.enter(new FiniteGameState(new Cache(resources)))
+      }
+    })
+    position(finiteButton)
+    toDispose += finiteButton
 
-  override def render(): Unit = {
-    Gdx.gl.glClearColor(0.9f, 0.9f, 0.9f, 1)
-    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
-  }
+    val infiniteButton = new EButton("infinite", buttonStyle)
+    infiniteButton.addListener(new ClickListener() {
+      override def clicked(event: InputEvent, x: Float, y: Float): Unit = {
+        driver.enter(new InfiniteGameState(new Cache(resources)))
+      }
+    })
+    position(infiniteButton)
+    toDispose += infiniteButton
 
-  override def onResize(width: Int, height: Int): Unit = {
-    stage.getViewport.update(width, height, true)
-  }
-
-  override def onExit(): Unit = {
-    Gdx.input.setInputProcessor(new InputAdapter)
+    val multiplayerButton = new EButton("multiplayer", buttonStyle)
+    multiplayerButton.addListener(new ClickListener() {
+      override def clicked(event: InputEvent, x: Float, y: Float): Unit = {
+        driver.enter(new ServerMenu(new Cache(resources)))
+      }
+    })
+    position(multiplayerButton)
+    toDispose += multiplayerButton
   }
 
 }

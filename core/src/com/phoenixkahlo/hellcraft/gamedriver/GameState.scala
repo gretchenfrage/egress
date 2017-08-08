@@ -1,6 +1,6 @@
 package com.phoenixkahlo.hellcraft.gamedriver
 
-import com.phoenixkahlo.hellcraft.core.TexturePack
+import com.phoenixkahlo.hellcraft.core.ResourcePack
 
 trait GameState {
 

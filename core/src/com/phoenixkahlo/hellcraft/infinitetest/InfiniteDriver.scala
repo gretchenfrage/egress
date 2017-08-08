@@ -33,7 +33,7 @@ class InfiniteDriver extends ApplicationAdapter {
   private var deleted: BlockingQueue[ResourceNode] = _
   private var save: WorldSave = _
   private var world: InfinityManager = _
-  private var textures: TexturePack = _
+  private var textures: ResourcePack = _
   private var cam: PerspectiveCamera = _
   private var hudCam: OrthographicCamera = _
   private var controller: SimpleAvatarController = _
@@ -51,7 +51,7 @@ class InfiniteDriver extends ApplicationAdapter {
     saveFolder.mkdir()
     save = new RegionSave(saveFolder.toPath, 8)
 
-    textures = new DefaultTexturePack
+    textures = new DefaultResourcePack
 
     println("instantiating world")
     world = new InfinityManager(save, v => {
@@ -78,7 +78,7 @@ class InfiniteDriver extends ApplicationAdapter {
     hudCam = new OrthographicCamera(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     hudCam.setToOrtho(false)
 
-    controller = SimpleAvatarController(cam, avatar.id)
+    controller = SimpleAvatarController(cam, avatar.id, () => Unit)
     Gdx.input.setInputProcessor(controller)
 
     modelBatch = new ModelBatch

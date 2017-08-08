@@ -32,7 +32,7 @@ abstract class Corpus(
 
   def modelOffset: V3F
 
-  def modelFactory(texturePack: TexturePack): ModelInstanceFactory
+  def modelFactory(texturePack: ResourcePack): ModelInstanceFactory
 
   override lazy val chunkPos: V3I = pos / chunkSize floor
 
@@ -49,7 +49,7 @@ abstract class Corpus(
       )
   }
 
-  override def renderables(texturePack: TexturePack): Seq[RenderableFactory] =
+  override def renderables(texturePack: ResourcePack): Seq[RenderableFactory] =
     Seq(PooledInstanceRenderer(this, texturePack))
 
   def interpolatePos(world: World, fraction: Float): V3F =
@@ -60,7 +60,7 @@ abstract class Corpus(
 
 }
 
-case class PooledInstanceRenderer(corpus: Corpus, texturePack: TexturePack) extends RenderableFactory {
+case class PooledInstanceRenderer(corpus: Corpus, texturePack: ResourcePack) extends RenderableFactory {
 
   /**
     * Bring this object into an active state, generating resources, and return the renderables.

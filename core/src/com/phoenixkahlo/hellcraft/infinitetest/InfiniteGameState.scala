@@ -4,7 +4,7 @@ import java.io.File
 import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue}
 import javax.print.DocFlavor.BYTE_ARRAY
 
-import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.{Gdx, InputAdapter}
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
@@ -14,17 +14,18 @@ import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.finitetest.SimpleAvatarController
-import com.phoenixkahlo.hellcraft.gamedriver.UpdatingGameState
+import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState, UpdatingGameDriver, UpdatingGameState}
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
+import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.save.{RegionSave, WorldSave}
-import com.phoenixkahlo.hellcraft.util.{BackgroundMeshCompilerExecutor, DependencyGraph, PriorityExecContext}
+import com.phoenixkahlo.hellcraft.util.{BackgroundMeshCompilerExecutor, Cache, DependencyGraph, PriorityExecContext}
 import other.AppDirs
 
 import scala.collection.JavaConverters
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
 
-class InfiniteGameState extends UpdatingGameState {
+class InfiniteGameState(providedTextures: Cache[ResourcePack]) extends GameState {
 
   val loadDist = V3I(13, 7, 13)
   val updateDist = V3I(6, 6, 6)
@@ -35,7 +36,7 @@ class InfiniteGameState extends UpdatingGameState {
   private var deleted: BlockingQueue[ResourceNode] = _
   private var save: WorldSave = _
   private var infinitum: InfinityManager = _
-  private var textures: TexturePack = _
+  private var textures: ResourcePack = _
   private var cam: PerspectiveCamera = _
   private var hudCam: OrthographicCamera = _
   private var controller: SimpleAvatarController = _
@@ -45,15 +46,15 @@ class InfiniteGameState extends UpdatingGameState {
   private var vramGraph: DependencyGraph = _
   private var t = 0
   private var g = 0
+  private var updatingThread: Thread = _
 
-  override def onEnter(): Unit = {
+  override def onEnter(driver: GameDriver): Unit = {
     deleted = new LinkedBlockingQueue
 
-    //val saveFolder = new File("C:\\Users\\kahlo\\Desktop\\inf")
     val saveFolder = AppDirs.dataDir("egress").resolve("inf").toFile
     saveFolder.mkdir()
     save = new RegionSave(saveFolder.toPath, 8)
-    textures = new DefaultTexturePack
+    textures = providedTextures()
 
     println("instantiating world")
     infinitum = new InfinityManager(save, v => {
@@ -79,7 +80,7 @@ class InfiniteGameState extends UpdatingGameState {
     hudCam = new OrthographicCamera(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     hudCam.setToOrtho(false)
 
-    controller = SimpleAvatarController(cam, avatar.id)
+    controller = SimpleAvatarController(cam, avatar.id, () => driver.enter(new MainMenu(new Cache(textures))))
     Gdx.input.setInputProcessor(controller)
 
     modelBatch = new ModelBatch
@@ -90,6 +91,27 @@ class InfiniteGameState extends UpdatingGameState {
     lights.add(new DirectionalLight().set(1, 1, 1, 0, -1, 0))
 
     vramGraph = DependencyGraph()
+
+    Thread.currentThread().setPriority(Thread.MAX_PRIORITY)
+
+    updatingThread = new Thread(() => {
+      var lastRenderTime = System.nanoTime()
+      var tickTimeDebt: Duration = Duration.Zero
+      while (!Thread.interrupted()) {
+        val currRenderTime = System.nanoTime()
+        tickTimeDebt += ((currRenderTime - lastRenderTime) nanoseconds)
+        val sleepFor = UpdatingGameDriver.dt - tickTimeDebt
+        if (sleepFor > Duration.Zero)
+          Thread.sleep(sleepFor toMillis)
+        while (tickTimeDebt >= UpdatingGameDriver.dt) {
+          update()
+          tickTimeDebt -= UpdatingGameDriver.dt
+        }
+        lastRenderTime = currRenderTime
+      }
+    }, "game updating thread")
+    updatingThread.setPriority(Thread.MAX_PRIORITY)
+    updatingThread.start()
   }
 
   override def render(): Unit = {
@@ -136,7 +158,7 @@ class InfiniteGameState extends UpdatingGameState {
     spriteBatch.end()
   }
 
-  override def update(): Boolean = {
+  def update(): Unit = {
     // increment time
     t += 1
 
@@ -157,12 +179,14 @@ class InfiniteGameState extends UpdatingGameState {
 
     // update mesh compiler priority
     BackgroundMeshCompilerExecutor.setPlayerPos(avatar.pos)
-
-    true
   }
 
   override def onExit(): Unit = {
+    Gdx.input.setInputProcessor(new InputAdapter)
+    updatingThread.interrupt()
+    updatingThread.join()
     infinitum.close()
+    vramGraph.managing.foreach(_.dispose())
   }
 
 }

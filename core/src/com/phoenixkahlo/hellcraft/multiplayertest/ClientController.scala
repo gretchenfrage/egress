@@ -14,7 +14,8 @@ import com.badlogic.gdx.Input.Keys._
 import com.badlogic.gdx.math.Vector3
 import com.phoenixkahlo.hellcraft.core.entity.{Avatar, Entity}
 import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent, SetAvatarMovement, World}
-import com.phoenixkahlo.hellcraft.util.AsyncExecutor
+import com.phoenixkahlo.hellcraft.menu.MainMenu
+import com.phoenixkahlo.hellcraft.util.{AsyncExecutor, Cache}
 
 import scala.collection.immutable.TreeMap
 
@@ -29,7 +30,7 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
   private val pressed = new mutable.HashSet[Int]
   private val clicks = new mutable.ArrayStack[Int]
 
-  val keys = List(W, A, S, D, SHIFT_LEFT, SPACE, CONTROL_LEFT, TAB, H, C)
+  val keys = List(W, A, S, D, SHIFT_LEFT, SPACE, CONTROL_LEFT, TAB, H, C, F1)
 
   private val toSubmit = new LinkedBlockingQueue[(Long, ChunkEvent)]
 
@@ -53,8 +54,11 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
   }, "controller event submission thread").start()
 
   override def keyDown(k: Int): Boolean =
-    if (k == ESCAPE) {
+    if (k == F1) {
       Gdx.input.setCursorCatched(false)
+      true
+    } else if (k == ESCAPE) {
+      client.getDriver.enter(new MainMenu(new Cache(client.getResources)))
       true
     } else if (k == F5) {
       thirdPerson = !thirdPerson

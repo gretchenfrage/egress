@@ -38,6 +38,10 @@
       <property name="caretWidth" class="java.lang.Integer" />
     </properties>
   </component>
+  <component name="LibGDXSkins">
+    <file url="file://$PROJECT_DIR$/core/assets/flatearthui/flat-earth-ui.json" />
+    <file url="file://$PROJECT_DIR$/core/assets/vis_skin/uiskin.json" />
+  </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_1_8" default="true" project-jdk-name="1.8" project-jdk-type="JavaSDK" />
   <component name="masterDetails">
     <states>

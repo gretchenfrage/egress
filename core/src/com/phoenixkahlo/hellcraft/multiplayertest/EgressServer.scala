@@ -28,7 +28,7 @@ import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
-class EgressServer extends Listener with Runnable {
+class EgressServer private() extends Listener with Runnable {
 
   var save: WorldSave = _
   var continuum: ServerContinuum = _
@@ -42,6 +42,21 @@ class EgressServer extends Listener with Runnable {
   var clientLogics: parallel.mutable.ParMap[ClientID, ClientLogic] = _
 
   val savingFlag = new AtomicBoolean(false)
+
+  var thread: Thread = _
+
+  def start(): Unit = {
+    thread = new Thread(this, "server loop thread")
+    thread.setPriority(Thread.MAX_PRIORITY)
+    thread.start()
+  }
+
+  def close(): Unit = {
+    kryonetServer.close()
+    thread.interrupt()
+    thread.join()
+    continuum.current.pushToSave()
+  }
 
   def this(port: Int) = {
     this()
@@ -72,7 +87,7 @@ class EgressServer extends Listener with Runnable {
   }
 
   override def run(): Unit = {
-    while (true) {
+    while (!Thread.interrupted()) {
       // update and route events to clients as needed
       val (time, toRoute) = continuum.synchronized {
         (continuum.time, continuum.update())
@@ -99,11 +114,6 @@ class EgressServer extends Listener with Runnable {
 
   def setClientRelation(client: ClientID, subscribed: Set[V3I], updating: Set[V3I]): Unit = {
     continuum.synchronized {
-      /*
-      val logic = clientLogics(client)
-      val (provide, unpredictable) = continuum.setClientRelation(client, continuum.time - 50, subscribed, updating)
-      logic.setRelation(subscribed, updating, provide, unpredictable)
-      */
       clientLogics.get(client) match {
         case Some(logic) =>
           val (provide, unpredictable) = continuum.setClientRelation(client, continuum.time - 50, subscribed, updating)
