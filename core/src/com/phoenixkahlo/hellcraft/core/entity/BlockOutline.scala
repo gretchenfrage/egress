@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g3d.{Material, Model, ModelInstance, Renderable
 import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core._
+import com.phoenixkahlo.hellcraft.graphics.{RenderableFactory, ResourceNode, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.util.KeyParamPool
 

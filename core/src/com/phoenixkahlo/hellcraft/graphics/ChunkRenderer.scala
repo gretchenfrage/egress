@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.core
+package com.phoenixkahlo.hellcraft.graphics
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input.Keys
@@ -9,14 +9,12 @@ import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.g3d.{Material, Model, ModelInstance, Renderable}
 import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.utils.Pool
+import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util._
 
 import scala.collection.JavaConverters
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Awaitable, Future}
 
-// TODO: ensure meshes will be or will not be computed when last renderer is or isn't dirty
 class ChunkRenderer(
                      chunk: Chunk,
                      texturePack: ResourcePack,

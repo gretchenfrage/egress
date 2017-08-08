@@ -1,10 +1,10 @@
-package com.phoenixkahlo.hellcraft.core
+package com.phoenixkahlo.hellcraft.graphics
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.{Pixmap, Texture}
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter
 import com.badlogic.gdx.graphics.g2d.{BitmapFont, TextureRegion}
+import com.badlogic.gdx.graphics.{Pixmap, Texture}
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 
 sealed trait SheetTextureID

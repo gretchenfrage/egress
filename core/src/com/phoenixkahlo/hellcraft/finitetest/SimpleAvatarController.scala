@@ -8,6 +8,7 @@ import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.{Gdx, InputAdapter}
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.{Avatar, BlockOutline}
+import com.phoenixkahlo.hellcraft.graphics.DefaultHUD
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.RNG
 

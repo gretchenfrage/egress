@@ -1,6 +1,7 @@
 package com.phoenixkahlo.hellcraft.util
 
-import com.phoenixkahlo.hellcraft.core.{RenderableFactory, ResourceNode}
+import com.phoenixkahlo.hellcraft.core.ResourceNode
+import com.phoenixkahlo.hellcraft.graphics.ResourceNode
 
 import scala.collection.immutable.HashSet
 

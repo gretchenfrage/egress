@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.core
+package com.phoenixkahlo.hellcraft.graphics
 
 import com.badlogic.gdx.Gdx
 import com.phoenixkahlo.hellcraft.math.V2F

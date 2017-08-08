@@ -13,8 +13,9 @@ import com.badlogic.gdx.{Gdx, InputAdapter}
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.finitetest.FiniteGameState
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
+import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.infinitetest.InfiniteGameState
-import com.phoenixkahlo.hellcraft.menu.util.{EButtonStyle, EButton}
+import com.phoenixkahlo.hellcraft.menu.util.{EButton, EButtonStyle}
 import com.phoenixkahlo.hellcraft.util.Cache
 
 class MainMenu(givenResources: Cache[ResourcePack]) extends AbstractMenu(givenResources) {

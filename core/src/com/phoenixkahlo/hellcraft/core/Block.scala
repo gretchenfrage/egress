@@ -1,5 +1,7 @@
 package com.phoenixkahlo.hellcraft.core
 
+import com.phoenixkahlo.hellcraft.graphics._
+
 import scala.collection.immutable.Map
 
 /**

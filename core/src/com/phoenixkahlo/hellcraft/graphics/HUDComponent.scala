@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.core
+package com.phoenixkahlo.hellcraft.graphics
 
 import com.badlogic.gdx.graphics.g2d.{SpriteBatch, TextureRegion}
 import com.phoenixkahlo.hellcraft.math.V2F

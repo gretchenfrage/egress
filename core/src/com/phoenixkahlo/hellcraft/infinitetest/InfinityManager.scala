@@ -4,6 +4,7 @@ import java.util.UUID
 
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.core._
+import com.phoenixkahlo.hellcraft.graphics.{RenderableFactory, ResourceNode, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Directions, V3I}
 import com.phoenixkahlo.hellcraft.save.WorldSave
 

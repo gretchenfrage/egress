@@ -3,13 +3,10 @@ package com.phoenixkahlo.hellcraft.desktop;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
 import com.esotericsoftware.minlog.Log;
-import com.phoenixkahlo.hellcraft.core.DefaultResourcePack;
-import com.phoenixkahlo.hellcraft.core.ResourcePack;
-import com.phoenixkahlo.hellcraft.finitetest.FiniteGameState;
+import com.phoenixkahlo.hellcraft.graphics.DefaultResourcePack;
+import com.phoenixkahlo.hellcraft.graphics.ResourcePack;
 import com.phoenixkahlo.hellcraft.gamedriver.GameDriver;
-import com.phoenixkahlo.hellcraft.infinitetest.InfiniteGameState;
 import com.phoenixkahlo.hellcraft.menu.MainMenu;
-import com.phoenixkahlo.hellcraft.multiplayertest.ClientServerState;
 import com.phoenixkahlo.hellcraft.util.Cache;
 
 import java.awt.*;

@@ -8,8 +8,8 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.viewport.ScreenViewport
-import com.phoenixkahlo.hellcraft.core.ResourcePack
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
+import com.phoenixkahlo.hellcraft.graphics.ResourcePack
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 import com.phoenixkahlo.hellcraft.util.Cache
 
