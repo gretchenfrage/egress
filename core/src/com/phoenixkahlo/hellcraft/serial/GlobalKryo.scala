@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.serial
 
 import com.esotericsoftware.kryo.serializers.FieldSerializer
 import com.esotericsoftware.kryonet.rmi.ObjectSpace
-import com.phoenixkahlo.hellcraft.core.Chunk
+import com.phoenixkahlo.hellcraft.core.{BlockGrid, Chunk}
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.multiplayertest._
 import com.phoenixkahlo.hellcraft.util.KryoFailer
@@ -19,7 +19,8 @@ object GlobalKryo {
     kryo.setRegistrationRequired(false)
 
     // core registration
-    kryo.register(classOf[Chunk], new ChunkSerializer)
+    //kryo.register(classOf[Chunk], new ChunkSerializer)
+    kryo.register(classOf[BlockGrid], new BlockGridSerializer)
 
     // session registration
     kryo.register(classOf[ServerSession])

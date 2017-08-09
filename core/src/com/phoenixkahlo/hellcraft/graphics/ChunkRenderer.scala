@@ -190,7 +190,7 @@ class ChunkRenderer(
 
   val renderable = new DisposableCache[Renderable]({
     // create a mesh
-    val mesh = new Mesh(true, 4 * 6 * chunk.blocks.length, 6 * 6 * chunk.blocks.length,
+    val mesh = new Mesh(true, 4 * 6 * 4096, 6 * 6 * 4096,
       new VertexAttribute(Usage.Position, 3, "a_position"),
       new VertexAttribute(Usage.ColorPacked, 4, "a_color"),
       new VertexAttribute(Usage.TextureCoordinates, 2, "a_texCoord0")

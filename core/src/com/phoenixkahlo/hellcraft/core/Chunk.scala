@@ -6,7 +6,6 @@ import com.esotericsoftware.kryo.DefaultSerializer
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.graphics.{ChunkRenderer, RenderableFactory, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Origin, Repeated, V3I}
-import com.phoenixkahlo.hellcraft.serial.ChunkSerializer
 import com.phoenixkahlo.hellcraft.util.{ParamCache, RNG}
 
 import scala.collection.immutable.HashMap
@@ -14,11 +13,11 @@ import scala.collection.immutable.HashMap
 /**
   * A unit of world.
   */
-@DefaultSerializer(classOf[ChunkSerializer])
 class Chunk (
               val pos: V3I, // coordinates in chunks, not blocks
               val size: Int,
-              val blocks: Vector[Byte],
+              val blocks: BlockGrid,
+              //val blocks: Vector[Byte],
               val entities: Map[UUID,Entity],
               @transient val lastRenderer: ParamCache[(ResourcePack, World), ChunkRenderer],
               val lastRendererDirty: Boolean
@@ -26,7 +25,8 @@ class Chunk (
 
   def this(pos: V3I, size: Int = 16) = this(
     pos, size,
-    (1 to size * size * size).foldLeft(Vector[Byte]())((v, _) => v :+ 0.toByte),
+    BlockGrid(Air),
+    //(1 to size * size * size).foldLeft(Vector[Byte]())((v, _) => v :+ 0.toByte),
     new HashMap,
     null,
     true
@@ -35,7 +35,7 @@ class Chunk (
   def copy(
             pos: V3I = this.pos,
             size: Int = this.size,
-            blocks: Vector[Byte] = this.blocks,
+            blocks: BlockGrid = this.blocks,
             entities: Map[UUID,Entity] = this.entities,
             lastRenderer: ParamCache[(ResourcePack, World), ChunkRenderer] = this.renderer,
             lastRendererDirty: Boolean = false
@@ -58,8 +58,7 @@ class Chunk (
   }
 
   def apply(v: V3I): Option[Block] =
-    if (v >= Origin && v < Repeated(size)) Some(BlockDirectory.lookup(blocks(compress(v))))
-    else None
+    blocks(v)
 
   /**
     * warning: this will not cause adjacent chunks to recompile their meshes
@@ -67,7 +66,7 @@ class Chunk (
     * you should probably use World.putBlock instead
     */
   def putBlock(v: V3I, b: Block): Chunk = copy(
-    blocks = blocks.updated(compress(v), b.id),
+    blocks = blocks.updated(v, b),
     lastRendererDirty = true
   )
 
@@ -84,7 +83,6 @@ class Chunk (
   def removeEntity(entity: Entity): Chunk = removeEntity(entity.id)
 
   def update(world: World): Seq[ChunkEvent] = {
-    //val idStreams: Stream[Stream[UUID]] = Stream.iterate(Stream.iterate(UUID.randomUUID())(_ => UUID.randomUUID()))(_ => Stream.iterate(UUID.randomUUID())(_ => UUID.randomUUID()))
     val seed: Long = (world.time.hashCode().toLong << 32) | pos.hashCode().toLong
     val idStreams: Stream[Stream[UUID]] = RNG.meta(RNG(seed), RNG.uuids)
     entities.values.zip(idStreams).flatMap({ case (entity, ids) => entity.update(world, ids) }).toSeq
@@ -105,7 +103,7 @@ class Chunk (
 
   def mapBlocks(f: V3I => Block): Chunk =
     copy(
-      blocks = blocks.indices.par.map(decompress).map(f).map(_.id).seq.to[Vector],
+      blocks = BlockGrid(f),
       lastRenderer = null
     )
 

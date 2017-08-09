@@ -1,5 +1,7 @@
 package com.phoenixkahlo.hellcraft.menu
 
+import java.awt.Desktop
+
 import com.badlogic.gdx.graphics.{Color, GL20}
 import com.badlogic.gdx.scenes.scene2d.{Actor, InputEvent, Stage}
 import com.badlogic.gdx.scenes.scene2d.ui.Button.ButtonStyle
@@ -17,6 +19,7 @@ import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.infinitetest.InfiniteGameState
 import com.phoenixkahlo.hellcraft.menu.util.{EButton, EButtonStyle}
 import com.phoenixkahlo.hellcraft.util.Cache
+import other.AppDirs
 
 class MainMenu(givenResources: Cache[ResourcePack]) extends AbstractMenu(givenResources) {
 
@@ -73,6 +76,15 @@ class MainMenu(givenResources: Cache[ResourcePack]) extends AbstractMenu(givenRe
     })
     position(multiplayerButton)
     toDispose += multiplayerButton
+
+    val openDirButton = new EButton("open directory", buttonStyle)
+    openDirButton.addListener(new ClickListener() {
+      override def clicked(event: InputEvent, x: Float, y: Float): Unit = {
+        Desktop.getDesktop.open(AppDirs.dataDir("egress").toFile)
+      }
+    })
+    position(openDirButton)
+    toDispose += openDirButton
   }
 
 }
