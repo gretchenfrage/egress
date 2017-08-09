@@ -19,7 +19,10 @@ import com.phoenixkahlo.hellcraft.util.{AsyncExecutor, Cache}
 
 import scala.collection.immutable.TreeMap
 
-class ClientController(session: ServerSession, cam: Camera, val client: EgressClient) extends InputAdapter {
+class ClientController(cam: Camera, client: EgressClient) extends InputAdapter {
+
+  val session = client.session
+  val sessionNoReply = client.sessionNoReply
 
   val sensitivity = 0.25f
   val offset = V3F(0, 1.75f, 0)
@@ -32,13 +35,15 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
 
   val keys = List(W, A, S, D, SHIFT_LEFT, SPACE, CONTROL_LEFT, TAB, H, C, F1)
 
-  private val toSubmit = new LinkedBlockingQueue[(Long, ChunkEvent)]
+
 
   @volatile var camDir = V3F(cam.direction)
   @volatile var movDir: V3F = Origin
 
   @volatile var thirdPerson = false
 
+  /*
+  private val toSubmit = new LinkedBlockingQueue[(Long, ChunkEvent)]
   new Thread(() => {
     while (true) {
       var events = new TreeMap[Long, Set[ChunkEvent]]
@@ -48,10 +53,16 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
       add(toSubmit.take())
       while (toSubmit.size > 0)
         add(toSubmit.remove())
-      for (failed <- session.submitExterns(events))
-        System.err.println("server rejected " + failed)
+      //for (failed <- session.submitExterns(events))
+      //  System.err.println("server rejected " + failed)
     }
   }, "controller event submission thread").start()
+  */
+
+  def submit(atTime: Long, event: ChunkEvent): Unit = {
+    sessionNoReply.submitExtern(event, atTime)
+    sessionNoReply.printReceiveDelta(client.serverNanotime.nanotime)
+  }
 
   override def keyDown(k: Int): Boolean =
     if (k == F1) {
@@ -146,7 +157,7 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
         val jumping = pressed(SPACE)
 
         val setMovement = SetAvatarMovement(avatar.id, movDir, jumping, avatar.chunkPos, UUID.randomUUID())
-        toSubmit.add((world.time, setMovement))
+        submit(world.time, setMovement)
         accumulator += setMovement
 
         if (PredictionEnabled) accumulator

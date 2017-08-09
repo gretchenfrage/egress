@@ -20,9 +20,9 @@ trait ServerSession {
 
   def setMovement(atTime: Long, movDir: V3F, jumping: Boolean): Boolean
 
-  def submitExtern(event: ChunkEvent, atTime: Long): Boolean
+  def submitExtern(event: ChunkEvent, atTime: Long): Unit
 
-  def submitExterns(events: SortedMap[Long, Set[ChunkEvent]]): Seq[(Long, ChunkEvent)]
+  def submitExterns(events: SortedMap[Long, Set[ChunkEvent]]): Unit
 
   def avatarCount: Int
 
@@ -39,6 +39,8 @@ trait ServerSession {
   def getChunks(atTime: Long, chunks: Set[V3I]): Seq[Chunk]
 
   def findEntity(atTime: Long, id: EntityID): Seq[V3I]
+
+  def printReceiveDelta(sendDelta: Long): Unit
 
 }
 
@@ -98,16 +100,22 @@ class ServerSessionImpl(server: EgressServer, client: ClientLogic) extends  Serv
     case _ => false
   }
 
-  override def submitExtern(event: ChunkEvent, atTime: Long): Boolean = {
-    val accept = atTime >= (server.clock.gametime - ValidRetroTicks) && isLegit(event)
+  override def submitExtern(event: ChunkEvent, atTime: Long): Unit = {
+    //val accept = atTime >= (server.clock.gametime - ValidRetroTicks) && isLegit(event)
+    val time = server.clock.gametime
+    val minTime = time - ValidRetroTicks
+    val acceptTime = atTime >= minTime
+    val acceptEvent = isLegit(event)
+    val accept = acceptTime && acceptEvent
     if (accept) {
       server.integrateExtern(atTime, event)
+    } else {
+      System.err.println("server rejected: " + event)
     }
-    accept
   }
 
 
-  override def submitExterns(events: SortedMap[Long, Set[ChunkEvent]]): Seq[(Long, ChunkEvent)] = {
+  override def submitExterns(events: SortedMap[Long, Set[ChunkEvent]]): Unit = {
     // filter which ones to accept
     val minTime = server.clock.gametime - ValidRetroTicks
     val accepted = events.filterKeys(_ >= minTime).mapValues(_.filter(isLegit)).filterNot({ case (_, set) => set isEmpty })
@@ -115,8 +123,11 @@ class ServerSessionImpl(server: EgressServer, client: ClientLogic) extends  Serv
     if (accepted nonEmpty)
       server.integrateExterns(accepted)
     // compute which ones were rejected and send back
-    events.toSeq.flatMap({ case (time, set) => set.map((time, _)) })
+    val rejected = events.toSeq.flatMap({ case (time, set) => set.map((time, _)) })
       .filterNot({ case (time, event) => accepted.getOrElse(time, Set.empty).contains(event) })
+    if (rejected nonEmpty) {
+      System.err.println("server rejected: " + rejected)
+    }
   }
 
   override def getSubscribedChunks(atTime: Long): Seq[Chunk] = {
@@ -131,6 +142,10 @@ class ServerSessionImpl(server: EgressServer, client: ClientLogic) extends  Serv
   override def findEntity(atTime: Long, id: EntityID): Seq[V3I] = {
     val world = server.continuum.waitForSnapshot(atTime).get
     world.loaded.values.filter(_.entities.contains(id)).map(_.pos).toSeq
+  }
+
+  override def printReceiveDelta(sendDelta: Long): Unit = {
+    println("receive delta = " + (System.nanoTime() - sendDelta) / 1000000 + " ms")
   }
 
 }

@@ -19,7 +19,7 @@ package object multiplayertest {
 
   val BufferSize: Int = 1E7 toInt
 
-  val FakeLag = 0
+  val FakeLag = 200
   val TimeOut = Int.MaxValue
 
   val SubscribeDistance = V3I(5, 5, 5)

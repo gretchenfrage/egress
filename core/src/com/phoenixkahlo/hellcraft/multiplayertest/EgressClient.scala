@@ -36,26 +36,27 @@ class EgressClient(
   @volatile var ready = false
   val readyMonitor = new Object
 
-  private var driver: GameDriver = _
-  private var received: BlockingQueue[Any] = _
-  private var kryonetClient: KryonetClient = _
-  private var session: ServerSession = _
-  private var clientID: ClientID = _
-  private var serverNanotime: NanotimeMirror = _
-  private var clock: GametimeClock = _
+  var driver: GameDriver = _
+  var received: BlockingQueue[Any] = _
+  var kryonetClient: KryonetClient = _
+  var session: ServerSession = _
+  var sessionNoReply: ServerSession = _
+  var clientID: ClientID = _
+  var serverNanotime: NanotimeMirror = _
+  var clock: GametimeClock = _
 
-  private var loopThread: Thread = _
+  var loopThread: Thread = _
 
-  private var deleted: BlockingQueue[ResourceNode] = _
-  private var continuum: ClientContinuum = _
-  private var resources: ResourcePack = _
-  private var cam: PerspectiveCamera = _
-  private var controller: ClientController = _
-  private var modelBatch: ModelBatch = _
-  private var lights: Environment = _
-  private var vramGraph: DependencyGraph = _
-  private var interpolator: Interpolator = _
-  private var g = 0
+  var deleted: BlockingQueue[ResourceNode] = _
+  var continuum: ClientContinuum = _
+  var resources: ResourcePack = _
+  var cam: PerspectiveCamera = _
+  var controller: ClientController = _
+  var modelBatch: ModelBatch = _
+  var lights: Environment = _
+  var vramGraph: DependencyGraph = _
+  var interpolator: Interpolator = _
+  var g = 0
 
   override def onEnter(driver: GameDriver): Unit = {
     this.driver = driver
@@ -85,6 +86,11 @@ class EgressClient(
     session = ObjectSpace.getRemoteObject(kryonetClient, serverSessionReady.sessionID, classOf[ServerSession])
     session.asInstanceOf[RemoteObject].setResponseTimeout(TimeOut)
     session = LaggyProxy(session, FakeLag milliseconds, classOf[ServerSession])
+    // create the session no reply
+    sessionNoReply = ObjectSpace.getRemoteObject(kryonetClient, serverSessionReady.sessionID, classOf[ServerSession])
+    sessionNoReply.asInstanceOf[RemoteObject].setResponseTimeout(TimeOut)
+    sessionNoReply.asInstanceOf[RemoteObject].setNonBlocking(true)
+    sessionNoReply = LaggyNoReplyProxy(sessionNoReply, FakeLag milliseconds, classOf[ServerSession])
 
     // synchronize the times
     serverNanotime = NanotimeMirror.mirrorServer(session)
@@ -100,7 +106,7 @@ class EgressClient(
     cam.near = 0.1f
     cam.far = 1000
 
-    controller = new ClientController(session, cam, this)
+    controller = new ClientController(cam, this)
     Gdx.input.setInputProcessor(controller)
 
     modelBatch = new ModelBatch
