@@ -23,7 +23,7 @@ class FiniteWorld(
   def this(size: V3I, chunkSize: Int = 16) =
     this(
       size, chunkSize,
-      (0 until size.fold(_ * _)).map(n => new Chunk(size.decompress(n), chunkSize)).to[Vector],
+      (0 until size.fold(_ * _)).map(n => new Chunk(size.decompress(n), BlockGrid(Air))).to[Vector],
       0
     )
 
@@ -107,7 +107,8 @@ class FiniteWorld(
     )
 
   def mapBlocks(f: V3I => Block): FiniteWorld =
-    mapChunks(chunk => chunk.mapBlocks(v => f(v + (chunk.pos * chunkSize))))
+    mapChunks(c => new Chunk(c.pos, BlockGrid(f)))
+    //mapChunks(chunk => chunk.mapBlocks(v => f(v + (chunk.pos * chunkSize))))
 
   def renderables(texturePack: ResourcePack): Seq[RenderableFactory] =
     chunks.flatMap(_.renderables(texturePack, this))

@@ -63,7 +63,15 @@ class FiniteGameState(givenTexturePack: Cache[ResourcePack]) extends GameState {
     world = world.mapChunks(chunk => {
       loaded.get(chunk.pos) match {
         case Some(loadedChunk) => loadedChunk
+
         case None =>
+          new Chunk(chunk.pos, v => {
+            val depth = height(v) - v.y
+            if (depth > 20) Stone
+            else if (depth >= 0) Dirt
+            else Air
+          })
+          /*
           chunk.mapBlocks(vLocal => {
             val v = vLocal + (chunk.pos * 16)
             val depth = height(v) - v.y
@@ -71,6 +79,7 @@ class FiniteGameState(givenTexturePack: Cache[ResourcePack]) extends GameState {
             else if (depth >= 0) Dirt
             else Air
           })
+          */
       }
     })
 

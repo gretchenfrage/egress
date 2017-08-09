@@ -3,7 +3,7 @@ package com.phoenixkahlo.hellcraft.serial.save
 import java.io.{FileInputStream, FileOutputStream}
 import java.nio.file.Path
 
-import com.phoenixkahlo.hellcraft.core.{Block, Chunk, World}
+import com.phoenixkahlo.hellcraft.core.{Block, BlockGrid, Chunk, World}
 import com.phoenixkahlo.hellcraft.math.{Ones, V3I}
 import com.phoenixkahlo.hellcraft.serial.GlobalKryo
 import com.twitter.chill.{Input, Output}
@@ -84,7 +84,8 @@ class GeneratingRegionSave(path: Path, regionSize: Int, generator: V3I => Block)
           accumulator.put(chunk.pos, chunk)
       }
     }
-    chunksPoss.map(p => (p, accumulator.getOrElse(p, new Chunk(p).mapBlocks(v => generator(p * 16 + v))))).toMap
+    chunksPoss.map(p => (p, accumulator.getOrElse(p, new Chunk(p, generator)))).toMap
+    //chunksPoss.map(p => (p, accumulator.getOrElse(p, new Chunk(p).mapBlocks(v => generator(p * 16 + v))))).toMap
   }
 
   override def load(chunkPos: V3I): Option[Chunk] = this.synchronized {

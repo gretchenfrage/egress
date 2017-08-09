@@ -1,6 +1,6 @@
 package com.phoenixkahlo.hellcraft.serial.save
 
-import com.phoenixkahlo.hellcraft.core.{Block, Chunk, World}
+import com.phoenixkahlo.hellcraft.core.{Block, BlockGrid, Chunk, World}
 import com.phoenixkahlo.hellcraft.math.V3I
 
 /**
@@ -17,7 +17,8 @@ class GeneratingSave(wraps: WorldSave, generator: V3I => Block) extends WorldSav
 
   override def load(chunkPoss: Seq[V3I]): Map[V3I, Chunk] = {
     val loaded = wraps.load(chunkPoss)
-    chunkPoss.map(p => (p, loaded.getOrElse(p, new Chunk(p).mapBlocks(v => generator(p * 16 + v))))).toMap
+    chunkPoss.map(p => (p, loaded.getOrElse(p, new Chunk(p, generator)))).toMap
+    //chunkPoss.map(p => (p, loaded.getOrElse(p, new Chunk(p).mapBlocks(v => generator(p * 16 + v))))).toMap
   }
 
   override def load(chunkPos: V3I): Option[Chunk] =

@@ -17,20 +17,17 @@ class Chunk (
               val pos: V3I, // coordinates in chunks, not blocks
               val size: Int,
               val blocks: BlockGrid,
-              //val blocks: Vector[Byte],
               val entities: Map[UUID,Entity],
               @transient val lastRenderer: ParamCache[(ResourcePack, World), ChunkRenderer],
               val lastRendererDirty: Boolean
                    ) {
 
-  def this(pos: V3I, size: Int = 16) = this(
-    pos, size,
-    BlockGrid(Air),
-    //(1 to size * size * size).foldLeft(Vector[Byte]())((v, _) => v :+ 0.toByte),
-    new HashMap,
-    null,
-    true
-  )
+
+  def this(pos: V3I, blocks: BlockGrid) =
+    this(pos, 16, blocks, Map.empty, null, true)
+
+  def this(pos: V3I, generator: V3I => Block) =
+    this(pos, 16, BlockGrid(v => generator(v + (pos * 16))), Map.empty, null, true)
 
   def copy(
             pos: V3I = this.pos,
@@ -100,12 +97,6 @@ class Chunk (
 
   def renderables(texturePack: ResourcePack, world: World): Seq[RenderableFactory] =
     entities.values.flatMap(_.renderables(texturePack)).toSeq :+ renderer((texturePack, world))
-
-  def mapBlocks(f: V3I => Block): Chunk =
-    copy(
-      blocks = BlockGrid(f),
-      lastRenderer = null
-    )
 
   override def hashCode(): Int =
     Objects.hash(pos, new Integer(size), blocks, entities)

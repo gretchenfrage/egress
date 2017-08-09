@@ -56,7 +56,7 @@ class SaveBuffer(val save: WorldSave, generator: V3I => Block) {
     val loadFuture: Future[Map[V3I, Chunk]] = Future { save.load(toLoad) } (enqueueFirst)
     val futureMap: Map[V3I, Future[Chunk]] = toLoad.map(v => (v, loadFuture.transform(_.get(v) match {
       case Some(chunk) => chunk
-      case None => new Chunk(v).mapBlocks(lv => generator(v * 16 + lv))
+      case None => new Chunk(v, generator)//new Chunk(v).mapBlocks(lv => generator(v * 16 + lv))
     }, identity)(PriorityExecContext(2)))).toMap
     buffer = futureMap.foldLeft(buffer)({ case (buff, (v, future)) => buff.updated(v, Right(future)) })
 
@@ -87,7 +87,7 @@ class SaveBuffer(val save: WorldSave, generator: V3I => Block) {
     val loadFuture: Future[Map[V3I, Chunk]] = Future { save.load(toLoad) } (enqueueLast)
     val loadFutureMap: Map[V3I, Future[Chunk]] = toLoad.map(v => (v, loadFuture.transform(_.get(v) match {
       case Some(chunk) => chunk
-      case None => new Chunk(v).mapBlocks(lv => generator(v * 16 + lv))
+      case None => new Chunk(v, generator)//new Chunk(v).mapBlocks(lv => generator(v * 16 + lv))
     }, identity)(PriorityExecContext(1)))).toMap
     buffer = loadFutureMap.foldLeft(buffer)({ case (buff, (v, future)) => buff.updated(v, Right(future)) })
 
