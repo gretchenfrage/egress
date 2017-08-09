@@ -9,12 +9,14 @@ object Off extends InterpolationMode
 object Backward extends InterpolationMode
 object Forward extends InterpolationMode
 object ForwardBounded extends InterpolationMode
+object Penultimate extends InterpolationMode
 
 class Interpolator(clock: GametimeClock, mode: InterpolationMode) {
 
   private var worlds: SortedMap[Long, World] = SortedMap.empty
 
-  def interpolate(current: World): (World, Option[(World, Float)]) = {
+  def interpolate(continuum: ClientContinuum): (World, Option[(World, Float)]) = {
+    lazy val current = continuum.current
     mode match {
       case Off => (current, None)
       case Backward =>
@@ -42,6 +44,13 @@ class Interpolator(clock: GametimeClock, mode: InterpolationMode) {
         if (worlds.size == 2) (worlds.head._2, Some((current,
           Math.min(Math.max(clock.fractionalTicksSince(worlds.firstKey) - 1, 0), 1))))
         else (current, None)
+      case Penultimate =>
+        val t = clock.gametime - 1
+        val f = clock.fractionalTicksSince(t) - 1
+        (continuum.snapshot(t), continuum.snapshot(t + 1)) match {
+          case (Some(old), Some(neu)) => (old, Some((neu, f)))
+          case _ => (continuum.current, None)
+        }
     }
   }
 

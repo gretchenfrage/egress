@@ -111,7 +111,7 @@ class EgressClient(
 
     vramGraph = DependencyGraph()
 
-    interpolator = new Interpolator(clock, ForwardBounded)
+    interpolator = new Interpolator(clock, Penultimate)
 
     System.out.println("avatarID = [" + controller.avatarID.getMostSignificantBits + ", " + controller.avatarID.getLeastSignificantBits + "]")
 
@@ -134,14 +134,13 @@ class EgressClient(
   override def render(): Unit = {
     // prepare
     g += 1
-    val world = continuum.current
 
     Gdx.gl.glClearColor(0.5089f, 0.6941f, 1f, 1f)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
 
     // interpolate
-    val (toRender, interpolation) = interpolator.interpolate(world)
+    val (toRender, interpolation) = interpolator.interpolate(continuum)
 
     // update the camera controller
     controller.camUpdate(toRender, interpolation)
@@ -149,7 +148,7 @@ class EgressClient(
     // get the renderable factories
     val p = V3F(cam.position) / 16 floor
     val chunks = ((p - V3I(3, 3, 3)) to (p + V3I(3, 3, 3))).flatMap(toRender.asInstanceOf[ClientWorld].weakChunkAt)
-    val factories = chunks.flatMap(_.renderables(resources, world))
+    val factories = chunks.flatMap(_.renderables(resources, toRender))
 
     // manage the resource graph
     val nodes = factories.flatMap(_.resources)
