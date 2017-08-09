@@ -3,7 +3,7 @@ package com.phoenixkahlo.hellcraft.multiplayertest
 import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent, World}
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.math.V3I
-import com.phoenixkahlo.hellcraft.save.WorldSave
+import com.phoenixkahlo.hellcraft.serial.save.WorldSave
 
 import scala.collection.{SortedSet, mutable}
 
@@ -51,7 +51,10 @@ class ServerWorld(
 
   override def chunkIsDefinedAt(chunkPos: V3I): Boolean = true
 
-  override def chunkAt(p: V3I): Option[Chunk] = {
+  override def chunkAt(p: V3I): Option[Chunk] =
+    chunkAt(p, save.load(p).get)
+
+  def chunkAt(p: V3I, getFromSave: => Chunk): Option[Chunk] = {
     val cached = cache.get().filter(_.pos == p)
     if (cached isDefined) cached
 
@@ -59,7 +62,7 @@ class ServerWorld(
     val chunk: Chunk = chunks.get(p) match {
       case Some(chunk) => chunk
       case None =>
-        val loaded = save.load(p).get
+        val loaded = getFromSave
         chunks.get(p) match {
           case Some(chunk) => chunk
           case None => loaded

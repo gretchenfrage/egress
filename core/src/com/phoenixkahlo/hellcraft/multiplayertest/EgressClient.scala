@@ -16,11 +16,12 @@ import com.esotericsoftware.kryonet.Listener.{LagListener, ThreadedListener}
 import com.esotericsoftware.kryonet.{Client, Connection, KryoSerialization, Listener}
 import com.esotericsoftware.kryonet.rmi.{ObjectSpace, RemoteObject}
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
-import com.phoenixkahlo.hellcraft.core.{DefaultResourcePack, ResourceNode, World}
+import com.phoenixkahlo.hellcraft.core.World
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState, Monostate}
 import com.phoenixkahlo.hellcraft.graphics.{ResourceNode, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.menu.MainMenu
+import com.phoenixkahlo.hellcraft.serial.GlobalKryo
 import com.phoenixkahlo.hellcraft.util._
 import other.AppDirs
 

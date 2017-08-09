@@ -92,8 +92,11 @@ class DefaultResourcePack extends ResourcePack {
   override def font(fontID: FontID): BitmapFont =
     fonts(fontID)
 
+  /*
   val skin: Skin =
     new Skin(Gdx.files.internal("flatearthui/flat-earth-ui.json"))
+  */
+  override def skin: Skin = ???
 
   val pixmaps: Map[PixmapID, Pixmap] = Seq(
     MenuPatchPID -> "button.png",

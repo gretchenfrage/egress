@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.save
+package com.phoenixkahlo.hellcraft.serial.save
 
 import com.phoenixkahlo.hellcraft.core.{Block, Chunk, World}
 import com.phoenixkahlo.hellcraft.math.V3I

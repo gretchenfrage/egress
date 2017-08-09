@@ -6,7 +6,7 @@ import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.graphics.{RenderableFactory, ResourceNode, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Directions, V3I}
-import com.phoenixkahlo.hellcraft.save.WorldSave
+import com.phoenixkahlo.hellcraft.serial.save.WorldSave
 
 import scala.collection.immutable.TreeSet
 import scala.collection.mutable.ArrayBuffer

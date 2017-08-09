@@ -1,6 +1,5 @@
-package com.phoenixkahlo.hellcraft.save
+package com.phoenixkahlo.hellcraft.serial
 
-import java.io.ByteArrayOutputStream
 import java.util.UUID
 import java.util.zip.{Deflater, Inflater}
 
@@ -15,7 +14,7 @@ class ChunkSerializer extends Serializer[Chunk] {
   override def write(kryo: Kryo, output: Output, chunk: Chunk): Unit = {
     // compress the block grid
     val blocks = chunk.blocks.toArray
-    val buffer = SerialBuffers.get()
+    val buffer = ChunkBuffers.get()
     val compressor = new Deflater
     compressor.setInput(blocks)
     compressor.finish()
@@ -37,7 +36,7 @@ class ChunkSerializer extends Serializer[Chunk] {
     // decompress
     val decompressor = new Inflater
     decompressor.setInput(compressed, 0, compressed.length)
-    val buffer = SerialBuffers.get()
+    val buffer = ChunkBuffers.get()
     val length = decompressor.inflate(buffer)
     decompressor.end()
     val decompressed = buffer.slice(0, length)
@@ -48,6 +47,6 @@ class ChunkSerializer extends Serializer[Chunk] {
 
 }
 
-object SerialBuffers extends ThreadLocal[Array[Byte]] {
+private object ChunkBuffers extends ThreadLocal[Array[Byte]] {
   override def initialValue(): Array[Byte] = new Array[Byte](4096)
 }

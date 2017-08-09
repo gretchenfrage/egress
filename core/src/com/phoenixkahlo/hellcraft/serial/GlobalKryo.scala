@@ -1,16 +1,14 @@
-package com.phoenixkahlo.hellcraft.util
+package com.phoenixkahlo.hellcraft.serial
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
-
-import com.esotericsoftware.kryo.io.{Input, Output}
+import com.esotericsoftware.kryo.serializers.FieldSerializer
 import com.esotericsoftware.kryonet.rmi.ObjectSpace
 import com.phoenixkahlo.hellcraft.core.Chunk
+import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.multiplayertest._
-import com.phoenixkahlo.hellcraft.save.ChunkSerializer
+import com.phoenixkahlo.hellcraft.util.KryoFailer
 import com.twitter.chill.{Kryo, ScalaKryoInstantiator}
 
-import scala.collection.{SortedMap, mutable}
-import scala.collection.immutable.TreeMap
+import scala.collection.mutable
 
 /**
   * Global configuration for kryo, and a thread-local kryo.

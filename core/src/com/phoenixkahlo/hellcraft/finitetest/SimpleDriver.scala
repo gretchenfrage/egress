@@ -16,7 +16,7 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.graphics.{DefaultResourcePack, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Origin, Up, V3F, V3I}
-import com.phoenixkahlo.hellcraft.save.RegionSave
+import com.phoenixkahlo.hellcraft.serial.save.RegionSave
 import com.phoenixkahlo.hellcraft.util._
 import other.{AppDirs, PerlinNoiseGenerator}
 

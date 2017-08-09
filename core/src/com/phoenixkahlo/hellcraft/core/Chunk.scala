@@ -6,7 +6,7 @@ import com.esotericsoftware.kryo.DefaultSerializer
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.graphics.{ChunkRenderer, RenderableFactory, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Origin, Repeated, V3I}
-import com.phoenixkahlo.hellcraft.save.ChunkSerializer
+import com.phoenixkahlo.hellcraft.serial.ChunkSerializer
 import com.phoenixkahlo.hellcraft.util.{ParamCache, RNG}
 
 import scala.collection.immutable.HashMap

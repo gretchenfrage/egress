@@ -15,7 +15,8 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.gamedriver.LoopingApp
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
-import com.phoenixkahlo.hellcraft.save.{GeneratingRegionSave, GeneratingSave, RegionSave, WorldSave}
+import com.phoenixkahlo.hellcraft.serial.GlobalKryo
+import com.phoenixkahlo.hellcraft.serial.save.{GeneratingRegionSave, GeneratingSave, RegionSave, WorldSave}
 import com.phoenixkahlo.hellcraft.util._
 import com.twitter.chill.{Input, Output}
 import other.AppDirs
@@ -116,11 +117,21 @@ class EgressServer private() extends Listener with Runnable {
     continuum.synchronized {
       clientLogics.get(client) match {
         case Some(logic) =>
+          val provide = continuum.setClientRelation(client, subscribed, updating)
+          logic.setRelation(subscribed, updating, provide)
+        case None =>
+      }
+    }
+    /*
+    continuum.synchronized {
+      clientLogics.get(client) match {
+        case Some(logic) =>
           val (provide, unpredictable) = continuum.setClientRelation(client, continuum.time - 50, subscribed, updating)
           logic.setRelation(subscribed, updating, provide, unpredictable)
         case None =>
       }
     }
+    */
   }
 
   def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Unit = {

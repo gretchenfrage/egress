@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.multiplayertest
 
 import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent}
 import com.phoenixkahlo.hellcraft.math.V3I
-import com.phoenixkahlo.hellcraft.save.WorldSave
+import com.phoenixkahlo.hellcraft.serial.save.WorldSave
 import com.phoenixkahlo.hellcraft.util.Cache
 
 import scala.collection.immutable.{HashMap, HashSet, TreeMap, TreeSet}
@@ -112,6 +112,7 @@ class ServerContinuum(save: WorldSave) {
     (subscribed -- oldSubscribed).toSeq.map(current.chunkAt(_).get)
   }
 
+  /*
   def setClientRelation(client: ClientID, targetTime: Long, subscribed: Set[V3I], updatingSet: Set[V3I]):
   (Seq[Chunk], SortedMap[Long, SortedSet[ChunkEvent]]) = this.synchronized {
     // capture the current time
@@ -136,6 +137,36 @@ class ServerContinuum(save: WorldSave) {
     // return
     (chunks, accumulator)
   }
+  */
+  def setClientRelation(client: ClientID, subscribed: Set[V3I], updatingSet: Set[V3I]): SortedMap[Long, Seq[Chunk]] =
+    this.synchronized {
+      println("server continuum: setting client relation")
+      // find which chunks are newly subscribed to
+      val chunks = subscribed -- subscriptions.getOrElse(client, Set.empty)
+      // set the relation
+      subscriptions.put(client, subscribed)
+      updating.put(client, updatingSet)
+      // accumulate the chunks to return
+      val fromSave = new mutable.HashMap[V3I, Chunk]
+      var provide: SortedMap[Long, Seq[Chunk]] = SortedMap.empty
+      var chunkSeq = chunks.toSeq
+      println("current time = " + time)
+      for (t <- (time - 50) to time) {
+        println("providing for world at time " + t)
+        val world = snapshot(t).get
+        provide = provide.updated(t, chunkSeq.map(p => world.chunkAt(p, {
+          fromSave.get(p) match {
+            case Some(chunk) => chunk
+            case None =>
+              val chunk = save.load(p).get
+              fromSave.put(p, chunk)
+              chunk
+          }
+        }).get))
+      }
+      println("server continuum: set client relation complete")
+      provide
+    }
 
   /**
     * Revert to that point in time.

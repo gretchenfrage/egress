@@ -18,7 +18,7 @@ import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState, UpdatingGam
 import com.phoenixkahlo.hellcraft.graphics.{ResourceNode, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.menu.MainMenu
-import com.phoenixkahlo.hellcraft.save.{RegionSave, WorldSave}
+import com.phoenixkahlo.hellcraft.serial.save.{RegionSave, WorldSave}
 import com.phoenixkahlo.hellcraft.util.{BackgroundMeshCompilerExecutor, Cache, DependencyGraph, PriorityExecContext}
 import other.AppDirs
 

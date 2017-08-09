@@ -7,6 +7,8 @@ import com.phoenixkahlo.hellcraft.graphics.DefaultResourcePack;
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack;
 import com.phoenixkahlo.hellcraft.gamedriver.GameDriver;
 import com.phoenixkahlo.hellcraft.menu.MainMenu;
+import com.phoenixkahlo.hellcraft.multiplayertest.ClientServerState;
+import com.phoenixkahlo.hellcraft.serial.InterframeChunkCompressionTest;
 import com.phoenixkahlo.hellcraft.util.Cache;
 
 import java.awt.*;
@@ -33,9 +35,10 @@ public class DesktopLauncher {
 		new LwjglApplication(new GameDriver(new EgressClient(address, textures)), config);
 		*/
 		Cache<ResourcePack> resources = new Cache<>(DefaultResourcePack::new);
-		//new LwjglApplication(new GameDriver(new ClientServerState(resources)), config);
-		new LwjglApplication(new GameDriver(new MainMenu()), config);
+		new LwjglApplication(new GameDriver(new ClientServerState(resources)), config);
+		//new LwjglApplication(new GameDriver(new MainMenu()), config);
 
+		//InterframeChunkCompressionTest.test();
 
 		//new LwjglApplication(new GameDriver(new InfiniteGameState()), config);
 		//new LwjglApplication(new InfiniteDriver(), config);

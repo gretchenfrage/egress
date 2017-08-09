@@ -63,11 +63,18 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
   }
 
   private sealed trait ServerOperation
+  /*
   private case class SetRelation(
                                   sub: Set[V3I],
                                   upd: Set[V3I],
                                   prov: Map[V3I, Chunk],
                                   unpredictables: SortedMap[Long, SortedSet[ChunkEvent]]
+                                ) extends ServerOperation
+                                */
+  private case class SetRelation(
+                                sub: Set[V3I],
+                                upd: Set[V3I],
+                                prov: SortedMap[Long, Map[V3I, Chunk]]
                                 ) extends ServerOperation
   private case class Integrate(
                                 events: SortedMap[Long, SortedSet[ChunkEvent]],
@@ -90,6 +97,42 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
       val task = serverTasks.take()
       val startTime = System.nanoTime()
       task match {
+
+        case SetRelation(newSub, newUpd, prov) =>
+          // capture history
+          var newHistory = history
+          // find the target time
+          val atTime = prov.lastKey
+          // get history to the right end point
+          newHistory = newHistory.rangeImpl(None, Some(atTime + 1))
+          if (newHistory isEmpty) {
+            newHistory = fetchNewHistory(atTime, newSub)
+          }
+          while (newHistory.lastKey < atTime) {
+            val newWorld = newHistory.last._2.update(subscribed, updating, getSubmitted(newHistory.lastKey))
+            newHistory = newHistory.updated(newWorld.time, newWorld)
+          }
+          // provide the chunks
+          for ((t, chunks) <- prov) {
+            if (newHistory contains t)
+              newHistory = newHistory.updated(t, newHistory(t).provide(chunks).setLoaded(newSub))
+          }
+          // update it as far as submissions will allow
+          def catchup() = {
+            while (newHistory.lastKey <= submissions.lastOption.map({ case (t, _) => t }).getOrElse(Long.MinValue)) {
+              val newWorld = newHistory.last._2.update(newSub, newUpd, getSubmitted(newHistory.lastKey))
+              newHistory = newHistory.updated(newWorld.time, newWorld)
+            }
+          }
+          catchup()
+          // grab the mutation mutex, catch up completely, and implement the changes
+          mutateMutex.synchronized {
+            catchup()
+            subscribed = newSub
+            updating = newUpd
+            history = newHistory
+          }
+          /*
         case SetRelation(newSub, newUpd, prov, unpr) =>
           // capture history
           var newHistory = history
@@ -122,6 +165,7 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
             updating = newUpd
             history = newHistory
           }
+        */
 
         case integrate: Integrate =>
           // accumulate more events from the queue if possible
@@ -187,9 +231,15 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
     serverTasks.add(event)
   }
 
+  /*
   def setServerRelation(newSubscribed: Set[V3I], newUpdating: Set[V3I], provided: Map[V3I, Chunk],
                         unpredictable: SortedMap[Long, SortedSet[ChunkEvent]]): Unit = {
     val event = SetRelation(newSubscribed, newUpdating, provided, unpredictable)
+    serverTasks.add(event)
+  }
+  */
+  def setServerRelation(newSub: Set[V3I], newUpd: Set[V3I], provided: SortedMap[Long, Map[V3I, Chunk]]) = {
+    val event = SetRelation(newSub, newUpd, provided)
     serverTasks.add(event)
   }
 

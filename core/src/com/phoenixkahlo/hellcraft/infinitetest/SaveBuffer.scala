@@ -5,7 +5,7 @@ import java.util.concurrent.LinkedBlockingDeque
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.graphics.{ResourceNode, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Directions, V3I}
-import com.phoenixkahlo.hellcraft.save.WorldSave
+import com.phoenixkahlo.hellcraft.serial.save.WorldSave
 import com.phoenixkahlo.hellcraft.util.PriorityExecContext
 
 import scala.collection.immutable.HashMap

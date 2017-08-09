@@ -1,18 +1,18 @@
-package com.phoenixkahlo.hellcraft.save
+package com.phoenixkahlo.hellcraft.serial.save
 
 import java.io.{FileInputStream, FileOutputStream}
 import java.nio.file.Path
 
-import com.phoenixkahlo.hellcraft.core.{Block, Chunk, World}
+import com.phoenixkahlo.hellcraft.core.{Chunk, World}
 import com.phoenixkahlo.hellcraft.math.{Ones, V3I}
-import com.phoenixkahlo.hellcraft.util.GlobalKryo
+import com.phoenixkahlo.hellcraft.serial.GlobalKryo
 import com.twitter.chill.{Input, Output}
 
 import scala.collection.immutable.{HashMap, HashSet}
 import scala.collection.mutable
 import scala.ref.WeakReference
 
-class GeneratingRegionSave(path: Path, regionSize: Int, generator: V3I => Block) extends WorldSave {
+class RegionSave(path: Path, regionSize: Int) extends WorldSave {
 
   private var listeners = Vector[WeakReference[(Chunk, Chunk) => Unit]]()
 
@@ -74,7 +74,9 @@ class GeneratingRegionSave(path: Path, regionSize: Int, generator: V3I => Block)
     for ((regionPos, pos) <- chunksPoss.groupBy(regionOf(_))) {
       val file = path.resolve(fileName(regionPos)).toFile
       if (file.exists) {
-        val input = new Input(bufferSize)
+        //val input = new Input(new FileInputStream(file))
+        //input.setBuffer(new Array[Byte](4096))
+        val input = new Input(100000)
         input.setBuffer(buffers.get())
         input.setInputStream(new FileInputStream(file))
 
@@ -84,7 +86,7 @@ class GeneratingRegionSave(path: Path, regionSize: Int, generator: V3I => Block)
           accumulator.put(chunk.pos, chunk)
       }
     }
-    chunksPoss.map(p => (p, accumulator.getOrElse(p, new Chunk(p).mapBlocks(v => generator(p * 16 + v))))).toMap
+    accumulator.toMap
   }
 
   override def load(chunkPos: V3I): Option[Chunk] = this.synchronized {

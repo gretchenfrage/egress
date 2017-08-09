@@ -18,7 +18,7 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.finitetest.SimpleAvatarController
 import com.phoenixkahlo.hellcraft.graphics.{ChunkRenderer, DefaultResourcePack, ResourceNode, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Origin, Repeated, V3F, V3I}
-import com.phoenixkahlo.hellcraft.save.{RegionSave, WorldSave}
+import com.phoenixkahlo.hellcraft.serial.save.{RegionSave, WorldSave}
 import com.phoenixkahlo.hellcraft.util.{BackgroundMeshCompilerExecutor, DependencyGraph, PriorityExecContext}
 import other.{AppDirs, PerlinNoiseGenerator}
 
