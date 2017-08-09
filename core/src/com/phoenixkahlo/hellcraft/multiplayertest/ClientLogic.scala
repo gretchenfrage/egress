@@ -81,19 +81,11 @@ class ClientLogic(server: EgressServer) {
     seqSession.integrate(events)
   }
 
-  /*
-  def setRelation(subscribed: Set[V3I], updating: Set[V3I], provide: Seq[Chunk],
-                  unpredictable: SortedMap[Long, SortedSet[ChunkEvent]]): Unit = {
-    seqSession.setServerRelation(subscribed, updating, provide, unpredictable)
-  }
-  */
   def setRelation(sub: Set[V3I], upd: Set[V3I], provide: SortedMap[Long, Seq[Chunk]]): Unit = {
-    println("client logic sending setrelation to client")
     seqSession.setServerRelation(sub, upd, provide)
   }
 
   def update(): Unit = {
-    println("client logic updating")
     server.continuum.current.findEntity(avatarID).map(_.asInstanceOf[Avatar].chunkPos) match {
       case Some(p) =>
         if (!lastChunkPos.contains(p)) {

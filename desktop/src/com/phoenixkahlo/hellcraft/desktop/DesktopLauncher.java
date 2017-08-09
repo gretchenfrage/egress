@@ -34,9 +34,9 @@ public class DesktopLauncher {
 		Cache<TexturePack> textures = new Cache<>(DefaultTexturePack::new);
 		new LwjglApplication(new GameDriver(new EgressClient(address, textures)), config);
 		*/
-		Cache<ResourcePack> resources = new Cache<>(DefaultResourcePack::new);
-		new LwjglApplication(new GameDriver(new ClientServerState(resources)), config);
-		//new LwjglApplication(new GameDriver(new MainMenu()), config);
+		//Cache<ResourcePack> resources = new Cache<>(DefaultResourcePack::new);
+		//new LwjglApplication(new GameDriver(new ClientServerState(resources)), config);
+		new LwjglApplication(new GameDriver(new MainMenu()), config);
 
 		//InterframeChunkCompressionTest.test();
 

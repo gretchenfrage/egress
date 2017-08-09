@@ -132,40 +132,6 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
             updating = newUpd
             history = newHistory
           }
-          /*
-        case SetRelation(newSub, newUpd, prov, unpr) =>
-          // capture history
-          var newHistory = history
-          // truncate it
-          newHistory = newHistory.rangeImpl(None, Some(unpr.firstKey + 1))
-          // provide the chunks
-          if (newHistory nonEmpty) {
-            newHistory = newHistory.updated(newHistory.lastKey, newHistory.last._2.provide(prov))
-          } else {
-            newHistory = fetchNewHistory(unpr.firstKey, newSub)
-          }
-          // define a function to update it
-          def upd8() = {
-            val t = newHistory.lastKey
-            var upd = if (unpr contains t) updating else newUpd
-            val newWorld = newHistory.last._2.update(newSub, upd, getSubmitted(t) ++ unpr.getOrElse(t,
-              SortedSet.empty: SortedSet[ChunkEvent]))
-            newHistory = newHistory.updated(newWorld.time, newWorld)
-          }
-          // update it as far as submissions will allow
-          while (newHistory.lastKey <= submissions.lastOption.map({ case (t, _) => t }).getOrElse(Long.MinValue)) {
-            upd8()
-          }
-          // grab the mutation mutex, catch up completely, and implement the changes
-          mutateMutex.synchronized {
-            while (newHistory.lastKey <= submissions.lastOption.map({ case (t, _) => t }).getOrElse(Long.MinValue)) {
-              upd8()
-            }
-            subscribed = newSub
-            updating = newUpd
-            history = newHistory
-          }
-        */
 
         case integrate: Integrate =>
           // accumulate more events from the queue if possible
@@ -231,13 +197,6 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
     serverTasks.add(event)
   }
 
-  /*
-  def setServerRelation(newSubscribed: Set[V3I], newUpdating: Set[V3I], provided: Map[V3I, Chunk],
-                        unpredictable: SortedMap[Long, SortedSet[ChunkEvent]]): Unit = {
-    val event = SetRelation(newSubscribed, newUpdating, provided, unpredictable)
-    serverTasks.add(event)
-  }
-  */
   def setServerRelation(newSub: Set[V3I], newUpd: Set[V3I], provided: SortedMap[Long, Map[V3I, Chunk]]) = {
     val event = SetRelation(newSub, newUpd, provided)
     serverTasks.add(event)

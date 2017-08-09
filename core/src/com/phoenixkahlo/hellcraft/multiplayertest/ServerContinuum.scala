@@ -99,48 +99,8 @@ class ServerContinuum(save: WorldSave) {
     setsToSend
   }
 
-  /**
-    * Sets the subscriptions for that client at the current tick, and return which chunks need to be sent to that client.
-    * While the client could just have the ClientWorld request all these chunks from the server, we send them all at
-    * once to improve performance.
-    */
-  @Deprecated
-  def setClientRelationNow(client: ClientID, subscribed: Set[V3I], updatingSet: Set[V3I]): Seq[Chunk] = this.synchronized {
-    val oldSubscribed: Set[V3I] = subscriptions.getOrElse(client, Set.empty)
-    subscriptions.put(client, subscribed)
-    updating.put(client, updatingSet)
-    (subscribed -- oldSubscribed).toSeq.map(current.chunkAt(_).get)
-  }
-
-  /*
-  def setClientRelation(client: ClientID, targetTime: Long, subscribed: Set[V3I], updatingSet: Set[V3I]):
-  (Seq[Chunk], SortedMap[Long, SortedSet[ChunkEvent]]) = this.synchronized {
-    // capture the current time
-    val currTime = time
-    // revert to the target time
-    revert(Math.max(targetTime, history.firstKey))
-    // accumulate the chunks that need to be provided
-    val chunks = (subscribed -- subscriptions.getOrElse(client, Set.empty)).toSeq.map(current.chunkAt(_).get)
-    // set the new subscribe set, we don't set the update set now so that we don't have to worry about the timeline
-    // actually changing, so that this only effects the target client
-    subscriptions.put(client, subscribed)
-    // capture the reverted time
-    val atTime = time
-    // update back to the current time and accumulate the events which need to be routed to that client
-    var accumulator: SortedMap[Long, SortedSet[ChunkEvent]] = SortedMap.empty
-    while (time < currTime) {
-      val events = update()(client)
-      accumulator = accumulator.updated(time - 1, events)
-    }
-    // set the updating relation now
-    updating.put(client, updatingSet)
-    // return
-    (chunks, accumulator)
-  }
-  */
   def setClientRelation(client: ClientID, subscribed: Set[V3I], updatingSet: Set[V3I]): SortedMap[Long, Seq[Chunk]] =
     this.synchronized {
-      println("server continuum: setting client relation")
       // find which chunks are newly subscribed to
       val chunks = subscribed -- subscriptions.getOrElse(client, Set.empty)
       // set the relation
@@ -150,21 +110,22 @@ class ServerContinuum(save: WorldSave) {
       val fromSave = new mutable.HashMap[V3I, Chunk]
       var provide: SortedMap[Long, Seq[Chunk]] = SortedMap.empty
       var chunkSeq = chunks.toSeq
-      println("current time = " + time)
       for (t <- (time - 50) to time) {
-        println("providing for world at time " + t)
-        val world = snapshot(t).get
-        provide = provide.updated(t, chunkSeq.map(p => world.chunkAt(p, {
-          fromSave.get(p) match {
-            case Some(chunk) => chunk
-            case None =>
-              val chunk = save.load(p).get
-              fromSave.put(p, chunk)
-              chunk
-          }
-        }).get))
+        snapshot(t) match {
+          case Some(world) =>
+            provide = provide.updated(t, chunkSeq.map(p => world.chunkAt(p, {
+              fromSave.get(p) match {
+                case Some(chunk) => chunk
+                case None =>
+                  val chunk = save.load(p).get
+                  fromSave.put(p, chunk)
+                  chunk
+              }
+            }).get))
+          case None =>
+        }
+
       }
-      println("server continuum: set client relation complete")
       provide
     }
 

@@ -122,16 +122,6 @@ class EgressServer private() extends Listener with Runnable {
         case None =>
       }
     }
-    /*
-    continuum.synchronized {
-      clientLogics.get(client) match {
-        case Some(logic) =>
-          val (provide, unpredictable) = continuum.setClientRelation(client, continuum.time - 50, subscribed, updating)
-          logic.setRelation(subscribed, updating, provide, unpredictable)
-        case None =>
-      }
-    }
-    */
   }
 
   def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Unit = {
