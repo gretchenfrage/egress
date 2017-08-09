@@ -41,7 +41,7 @@ class ServerMenu(givenResources: Cache[ResourcePack]) extends AbstractMenu(given
     val buttonStyle = EButtonStyle(
       resources.pixmap(MenuPatchPID),
       resources.pixmap(MenuPatchActivePID),
-      8,
+      9,
       resources.font(ButtonFID),
       Color.BLACK,
       Color.BLACK,
@@ -74,7 +74,7 @@ class ServerMenu(givenResources: Cache[ResourcePack]) extends AbstractMenu(given
 
     vertGroup.pack()
     val scrollerStyle = EScrollerStyle(
-      resources.pixmap(MenuPatchPID), 4,
+      resources.pixmap(MenuPatchPID), 9,
       buttonStyle.width + 20 toInt, Gdx.graphics.getHeight - 160
     )
     val scroller = new EScroller(vertGroup, scrollerStyle)
@@ -83,7 +83,7 @@ class ServerMenu(givenResources: Cache[ResourcePack]) extends AbstractMenu(given
     val secondButtonStyle = EButtonStyle(
       resources.pixmap(MenuPatchPID),
       resources.pixmap(MenuPatchActivePID),
-      8,
+      9,
       resources.font(ButtonFID),
       Color.BLACK,
       Color.BLACK,

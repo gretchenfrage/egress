@@ -8,7 +8,6 @@ import com.phoenixkahlo.hellcraft.graphics.ResourcePack;
 import com.phoenixkahlo.hellcraft.gamedriver.GameDriver;
 import com.phoenixkahlo.hellcraft.menu.MainMenu;
 import com.phoenixkahlo.hellcraft.multiplayertest.ClientServerState;
-import com.phoenixkahlo.hellcraft.serial.InterframeChunkCompressionTest;
 import com.phoenixkahlo.hellcraft.util.Cache;
 
 import java.awt.*;

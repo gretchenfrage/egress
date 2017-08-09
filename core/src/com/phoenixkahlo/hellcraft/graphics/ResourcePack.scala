@@ -17,7 +17,6 @@ case object CrosshairTID extends SheetTextureID
 case object CursorTID extends SheetTextureID
 
 sealed trait SoloTextureID
-case object HeaderTID extends SoloTextureID
 case object ButtonTID extends SoloTextureID
 case object ButtonActiveTID extends SoloTextureID
 
@@ -43,8 +42,6 @@ trait ResourcePack {
 
   def font(fontID: FontID): BitmapFont
 
-  def skin: Skin
-
   def pixmap(pixmapID: PixmapID): Pixmap
 
 }
@@ -60,14 +57,13 @@ class DefaultResourcePack extends ResourcePack {
     BrickTID -> 3,
     GrassTID -> 4,
     CrosshairTID -> 5,
-    CursorTID -> 7
+    CursorTID -> 6
   ) map { case (tid, n) => (tid, new TextureRegion(sheet, (n % 16) * 16, (n - (n % 16)) * 16, 16, 16)) } toMap
 
   override def apply(texID: SheetTextureID): TextureRegion =
     regions(texID)
 
   val solos: Map[SoloTextureID, Texture] = Seq(
-    HeaderTID -> "header.png",
     ButtonTID -> "button.png",
     ButtonActiveTID -> "button_active.png"
   ) map { case (tid, path) => (tid, new Texture(Gdx.files.internal(path))) } toMap
@@ -91,12 +87,6 @@ class DefaultResourcePack extends ResourcePack {
 
   override def font(fontID: FontID): BitmapFont =
     fonts(fontID)
-
-  /*
-  val skin: Skin =
-    new Skin(Gdx.files.internal("flatearthui/flat-earth-ui.json"))
-  */
-  override def skin: Skin = ???
 
   val pixmaps: Map[PixmapID, Pixmap] = Seq(
     MenuPatchPID -> "button.png",

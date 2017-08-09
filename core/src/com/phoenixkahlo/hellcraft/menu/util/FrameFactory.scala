@@ -1,5 +1,6 @@
 package com.phoenixkahlo.hellcraft.menu.util
 
+import com.badlogic.gdx.graphics.Pixmap.Blending
 import com.badlogic.gdx.graphics.{Pixmap, Texture}
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 
@@ -7,6 +8,7 @@ class FrameFactory(patch: Pixmap, depth: Int) {
 
   def apply(width: Int, height: Int, hollow: Boolean = false): Texture = {
     val canvas = new Pixmap(width, height, Pixmap.Format.RGBA8888)
+    canvas.setBlending(Blending.None)
 
     // draw the center
     val centerWidth = patch.getWidth - depth * 2

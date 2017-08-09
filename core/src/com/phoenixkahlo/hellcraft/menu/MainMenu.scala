@@ -39,7 +39,7 @@ class MainMenu(givenResources: Cache[ResourcePack]) extends AbstractMenu(givenRe
     val buttonStyle = EButtonStyle(
       resources.pixmap(MenuPatchPID),
       resources.pixmap(MenuPatchActivePID),
-      4,
+      9,
       resources.font(ButtonFID),
       Color.BLACK,
       Color.BLACK,
