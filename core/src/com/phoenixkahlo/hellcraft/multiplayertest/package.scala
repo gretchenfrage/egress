@@ -2,6 +2,9 @@ package com.phoenixkahlo.hellcraft
 
 import java.util.UUID
 
+import com.phoenixkahlo.hellcraft.gamedriver.UpdatingGameDriver
+
+import scala.concurrent.duration._
 import com.phoenixkahlo.hellcraft.math.V3I
 
 package object multiplayertest {
@@ -21,5 +24,10 @@ package object multiplayertest {
 
   val SubscribeDistance = V3I(5, 5, 5)
   val UpdateDistance = V3I(3, 3, 3)
+
+  val ValidRetroTime = 2 seconds
+  val ValidRetroTicks = ValidRetroTime / UpdatingGameDriver.dt toInt
+
+  val PredictionEnabled = false
 
 }

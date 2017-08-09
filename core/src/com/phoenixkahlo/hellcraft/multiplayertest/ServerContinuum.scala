@@ -14,11 +14,11 @@ import scala.collection.{SortedMap, SortedSet, mutable}
   */
 class ServerContinuum(save: WorldSave) {
 
-  val maxHistorySize: Int = 5 * 60
+  val maxHistorySize: Int = ValidRetroTicks * 8
 
   private val subscriptions = new mutable.HashMap[ClientID, Set[V3I]].withDefaultValue(Set.empty)
   private val updating = new mutable.HashMap[ClientID, Set[V3I]].withDefaultValue(Set.empty)
-  private var externs = new TreeMap[Long, Set[ChunkEvent]] // TODO: forget externs
+  private var externs = new TreeMap[Long, Set[ChunkEvent]]
   @volatile private var history =
     new TreeMap[Long, ServerWorld].updated(0, new ServerWorld(save, Set.empty, Map.empty, 0)) // notify on modification
 
@@ -77,6 +77,8 @@ class ServerContinuum(save: WorldSave) {
     // forget history
     if (history.size > maxHistorySize)
       history = history.drop(history.size - maxHistorySize)
+    if (externs.size > maxHistorySize)
+      externs = externs.drop(externs.size - maxHistorySize)
 
     // notify
     notifyAll()

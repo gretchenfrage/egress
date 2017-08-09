@@ -14,7 +14,7 @@ import scala.concurrent.duration._
 
 class ClientContinuum(session: ServerSession, getServerTime: => Long) {
 
-  val maxHistorySize = 8 * 60
+  val maxHistorySize = ValidRetroTicks * 2
 
   private val mutateMutex = this
 
@@ -106,7 +106,10 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
           // get history to the right end point
           newHistory = newHistory.rangeImpl(None, Some(atTime + 1))
           if (newHistory isEmpty) {
-            newHistory = fetchNewHistory(atTime, newSub)
+            if (subscribed isEmpty)
+              newHistory = SortedMap(prov.firstKey -> new ClientWorld(session, Map.empty, prov.firstKey))
+            else
+              newHistory = fetchNewHistory(atTime, subscribed)
           }
           while (newHistory.lastKey < atTime) {
             val newWorld = newHistory.last._2.update(subscribed, updating, getSubmitted(newHistory.lastKey))

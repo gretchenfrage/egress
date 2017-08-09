@@ -99,7 +99,7 @@ class ServerSessionImpl(server: EgressServer, client: ClientLogic) extends  Serv
   }
 
   override def submitExtern(event: ChunkEvent, atTime: Long): Boolean = {
-    val accept = isLegit(event)
+    val accept = atTime >= (server.clock.gametime - ValidRetroTicks) && isLegit(event)
     if (accept) {
       server.integrateExtern(atTime, event)
     }
@@ -109,8 +109,9 @@ class ServerSessionImpl(server: EgressServer, client: ClientLogic) extends  Serv
 
   override def submitExterns(events: SortedMap[Long, Set[ChunkEvent]]): Seq[(Long, ChunkEvent)] = {
     // filter which ones to accept
-    val accepted = events.mapValues(_.filter(isLegit)).filterNot({ case (_, set) => set isEmpty })
-    // integrate then
+    val minTime = server.clock.gametime - ValidRetroTicks
+    val accepted = events.filterKeys(_ >= minTime).mapValues(_.filter(isLegit)).filterNot({ case (_, set) => set isEmpty })
+    // integrate them
     if (accepted nonEmpty)
       server.integrateExterns(accepted)
     // compute which ones were rejected and send back

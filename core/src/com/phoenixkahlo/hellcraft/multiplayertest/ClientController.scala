@@ -149,7 +149,8 @@ class ClientController(session: ServerSession, cam: Camera, val client: EgressCl
         toSubmit.add((world.time, setMovement))
         accumulator += setMovement
 
-        accumulator
+        if (PredictionEnabled) accumulator
+        else SortedSet.empty
       case None =>
         //println("can't find avatar (main update)")
         SortedSet.empty
