@@ -8,7 +8,7 @@ import java.util.concurrent.{ScheduledThreadPoolExecutor, TimeUnit}
 
 object LaggyNoReplyProxy {
 
-  val scheduler = new ScheduledThreadPoolExecutor(1, runnable => new Thread(runnable, "LaggyNoReplyProxy executor thread"))
+  val scheduler = new ScheduledThreadPoolExecutor(10, runnable => new Thread(runnable, "LaggyNoReplyProxy executor thread"))
 
   def apply[T](source: T, lag: Duration, primaryType: Class[T], additionalTypes: Class[_]*): T = {
     reflect.Proxy.newProxyInstance(ClassLoader.getSystemClassLoader, (primaryType +: additionalTypes).toArray,

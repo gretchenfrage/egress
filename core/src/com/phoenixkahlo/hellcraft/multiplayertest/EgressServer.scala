@@ -76,7 +76,7 @@ class EgressServer private() extends Listener with Runnable {
     continuum = new ServerContinuum(save)
 
     kryonetServer = new KryonetServer(BufferSize, BufferSize, new KryoSerialization(GlobalKryo.create()))
-    kryonetServer.bind(port)
+    kryonetServer.bind(port, port + 1)
     kryonetServer.addListener(new LagListener(FakeLag, FakeLag, new ThreadedListener(this,
       Executors.newSingleThreadExecutor(runnable => new Thread(runnable, "server listener thread")))))
 

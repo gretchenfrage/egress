@@ -23,6 +23,7 @@ class ClientController(cam: Camera, client: EgressClient) extends InputAdapter {
 
   val session = client.session
   val sessionNoReply = client.sessionNoReply
+  val udpSession = client.sessionUDP
 
   val sensitivity = 0.25f
   val offset = V3F(0, 1.75f, 0)
@@ -42,26 +43,12 @@ class ClientController(cam: Camera, client: EgressClient) extends InputAdapter {
 
   @volatile var thirdPerson = false
 
-  /*
-  private val toSubmit = new LinkedBlockingQueue[(Long, ChunkEvent)]
-  new Thread(() => {
-    while (true) {
-      var events = new TreeMap[Long, Set[ChunkEvent]]
-      def add(submission: (Long, ChunkEvent)): Unit = submission match {
-        case (time, event) => events = events.updated(time, events.getOrElse(time, Set.empty) + event)
-      }
-      add(toSubmit.take())
-      while (toSubmit.size > 0)
-        add(toSubmit.remove())
-      //for (failed <- session.submitExterns(events))
-      //  System.err.println("server rejected " + failed)
-    }
-  }, "controller event submission thread").start()
-  */
-
   def submit(atTime: Long, event: ChunkEvent): Unit = {
+    //sessionNoReply.submitExtern(event, atTime)
+    //udpSession.submitExtern(event, atTime)
     sessionNoReply.submitExtern(event, atTime)
-    sessionNoReply.printReceiveDelta(client.serverNanotime.nanotime)
+    //sessionNoReply.printReceiveDelta(System.nanoTime())
+    //sessionNoReply.printReceiveDelta(client.serverNanotime.nanotime)
   }
 
   override def keyDown(k: Int): Boolean =

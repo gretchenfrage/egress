@@ -1,10 +1,13 @@
 package com.phoenixkahlo.hellcraft.multiplayertest
 
+import java.io.PrintStream
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicInteger
 
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
+import other.AppDirs
 
 import scala.collection.immutable.SortedMap
 
@@ -40,7 +43,7 @@ trait ServerSession {
 
   def findEntity(atTime: Long, id: EntityID): Seq[V3I]
 
-  def printReceiveDelta(sendDelta: Long): Unit
+  def printReceiveDelta(sendTime: Long): Unit
 
 }
 
@@ -144,8 +147,14 @@ class ServerSessionImpl(server: EgressServer, client: ClientLogic) extends  Serv
     world.loaded.values.filter(_.entities.contains(id)).map(_.pos).toSeq
   }
 
-  override def printReceiveDelta(sendDelta: Long): Unit = {
-    println("receive delta = " + (System.nanoTime() - sendDelta) / 1000000 + " ms")
+  lazy val deltaOut = new PrintStream(AppDirs.dataDir("egress").resolve("server_delta.csv").toFile)
+
+  override def printReceiveDelta(sendTime: Long): Unit = {
+    val receiveTime = System.nanoTime()
+    val delta = (receiveTime - sendTime) / 1000000
+    System.out.println("server receive delta = " + delta + " ms")
+    deltaOut.println(receiveTime + ", " + delta)
+    deltaOut.flush()
   }
 
 }

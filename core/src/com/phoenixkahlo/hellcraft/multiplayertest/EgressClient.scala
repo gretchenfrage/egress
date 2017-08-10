@@ -41,6 +41,7 @@ class EgressClient(
   var kryonetClient: KryonetClient = _
   var session: ServerSession = _
   var sessionNoReply: ServerSession = _
+  var sessionUDP: ServerSession = _
   var clientID: ClientID = _
   var serverNanotime: NanotimeMirror = _
   var clock: GametimeClock = _
@@ -67,7 +68,7 @@ class EgressClient(
     kryonetClient = new KryonetClient(BufferSize, BufferSize, new KryoSerialization(GlobalKryo.create()))
     kryonetClient.addListener(new LagListener(FakeLag, FakeLag, new ThreadedListener(this, AsyncExecutor("client listener thread"))))
     kryonetClient.start()
-    kryonetClient.connect(5000, serverAddress.getAddress, serverAddress.getPort)
+    kryonetClient.connect(5000, serverAddress.getAddress, serverAddress.getPort, serverAddress.getPort + 1)
     kryonetClient.setTimeout(TimeOut)
     // send the initial data
     kryonetClient.sendTCP(InitialClientData())
@@ -91,6 +92,11 @@ class EgressClient(
     sessionNoReply.asInstanceOf[RemoteObject].setResponseTimeout(TimeOut)
     sessionNoReply.asInstanceOf[RemoteObject].setNonBlocking(true)
     sessionNoReply = LaggyNoReplyProxy(sessionNoReply, FakeLag milliseconds, classOf[ServerSession])
+    // create the UDP session
+    sessionUDP = ObjectSpace.getRemoteObject(kryonetClient, serverSessionReady.sessionID, classOf[ServerSession])
+    sessionUDP.asInstanceOf[RemoteObject].setResponseTimeout(TimeOut)
+    sessionUDP.asInstanceOf[RemoteObject].setUDP(true)
+    sessionUDP = LaggyNoReplyProxy(sessionUDP, FakeLag milliseconds, classOf[ServerSession])
 
     // synchronize the times
     serverNanotime = NanotimeMirror.mirrorServer(session)

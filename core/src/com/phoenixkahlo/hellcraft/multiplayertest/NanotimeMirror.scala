@@ -25,7 +25,7 @@ object NanotimeMirror {
       Thread.sleep(25)
     }
     val average = deltas.sum / deltas.size
-    println("delta = " + average)
+    println("delta = " + average / 100000 + " ms")
     NanotimeMirror(average)
   }
 
@@ -37,6 +37,8 @@ object NanotimeMirror {
 object MirrorTest {
 
   def main(args: Array[String]): Unit = {
+
+    /*
     val delta = ThreadLocalRandom.current.nextInt()
     println("real delta = " + delta)
 
@@ -56,6 +58,7 @@ object MirrorTest {
       println("times = [" + t1 + ", " + t2 + "], diff = " + (t1 - t2) / 1000000 + " ms")
       Thread.sleep(1000)
     }
+    */
   }
 
 }

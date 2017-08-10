@@ -14,7 +14,6 @@ import java.awt.*;
 
 public class DesktopLauncher {
 	public static void main (String[] arg) {
-		Log.set(Log.LEVEL_ERROR);
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 		double factor = 0.5;

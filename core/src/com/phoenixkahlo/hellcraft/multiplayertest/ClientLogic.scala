@@ -31,6 +31,7 @@ class ClientLogic(server: EgressServer) {
   @volatile var avatarID: AvatarID = _
 
   @volatile var session: ClientSession = _
+  @volatile var sessionNoReply: ClientSession = _
   @volatile var seqSession: ClientSession = _
 
   @volatile var isInitialized = false
@@ -64,6 +65,11 @@ class ClientLogic(server: EgressServer) {
     session.asInstanceOf[RemoteObject].setResponseTimeout(TimeOut)
     if (FakeLag > 0)
       session = LaggyProxy(session, FakeLag milliseconds, classOf[ClientSession])
+    // create the no reply session proxy
+    sessionNoReply = ObjectSpace.getRemoteObject(connection, clientSessionReady.sessionID, classOf[ClientSession])
+    sessionNoReply.asInstanceOf[RemoteObject].setResponseTimeout(TimeOut)
+    sessionNoReply.asInstanceOf[RemoteObject].setNonBlocking(true)
+    sessionNoReply = LaggyNoReplyProxy(sessionNoReply, FakeLag milliseconds, classOf[ClientSession])
     // create the seq client session proxy
     seqSession = ObjectSpace.getRemoteObject(connection, session.createSingleThreadSession("seq session"),
       classOf[ClientSession])
@@ -86,6 +92,8 @@ class ClientLogic(server: EgressServer) {
   }
 
   def update(): Unit = {
+    //sessionNoReply.printReceiveDelta(System.nanoTime())
+
     server.continuum.current.findEntity(avatarID).map(_.asInstanceOf[Avatar].chunkPos) match {
       case Some(p) =>
         if (!lastChunkPos.contains(p)) {

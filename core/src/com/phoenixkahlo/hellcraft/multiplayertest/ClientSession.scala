@@ -1,10 +1,12 @@
 package com.phoenixkahlo.hellcraft.multiplayertest
 
+import java.io.PrintStream
 import java.util.concurrent.{Executors, ThreadLocalRandom}
 
 import com.esotericsoftware.kryonet.rmi.ObjectSpace
 import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent}
 import com.phoenixkahlo.hellcraft.math.V3I
+import other.AppDirs
 
 import scala.collection.{SortedMap, SortedSet}
 
@@ -17,6 +19,8 @@ trait ClientSession {
   def hashChunk(atTime: Long, p: V3I): Option[Int]
 
   def createSingleThreadSession(threadName: String): Int
+
+  def printReceiveDelta(sendTime: Long): Unit
 
 }
 
@@ -45,4 +49,15 @@ class ClientSessionImpl(client: EgressClient) extends ClientSession {
     rmiSpace.register(sessionID, new ClientSessionImpl(client))
     sessionID
   }
+
+  lazy val deltaOut = new PrintStream(AppDirs.dataDir("egress").resolve("client_delta.csv").toFile)
+
+  override def printReceiveDelta(sendTime: Long): Unit = {
+    val receiveTime = client.serverNanotime.nanotime
+    val delta = (receiveTime - sendTime) / 1000000
+    System.out.println("client receive delta = " + delta + " ms")
+    deltaOut.println(receiveTime + ", " + delta)
+    deltaOut.flush()
+  }
+
 }
