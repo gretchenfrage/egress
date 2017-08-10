@@ -23,7 +23,6 @@ class ClientController(cam: Camera, client: EgressClient) extends InputAdapter {
 
   val session = client.session
   val sessionNoReply = client.sessionNoReply
-  val udpSession = client.sessionUDP
 
   val sensitivity = 0.25f
   val offset = V3F(0, 1.75f, 0)
