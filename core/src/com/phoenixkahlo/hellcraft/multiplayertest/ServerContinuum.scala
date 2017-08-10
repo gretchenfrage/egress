@@ -1,5 +1,7 @@
 package com.phoenixkahlo.hellcraft.multiplayertest
 
+import java.util.concurrent.LinkedBlockingQueue
+
 import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent}
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.serial.save.WorldSave
@@ -12,7 +14,7 @@ import scala.collection.{SortedMap, SortedSet, mutable}
 /**
   * All methods are thread safe
   */
-class ServerContinuum(save: WorldSave) {
+class ServerContinuum(save: WorldSave, server: EgressServer) {
 
   val maxHistorySize: Int = ValidRetroTicks * 8
 
@@ -143,6 +145,74 @@ class ServerContinuum(save: WorldSave) {
     * Retroactively integrate the events into the continuum, and return similar integration maps that need to be
     * sent to each client.
     */
+  private val externQueue = new LinkedBlockingQueue[(Long, ChunkEvent)]
+
+  /*
+  def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Unit = {
+    val task = ()
+  }
+  */
+  def integrateExtern(atTime: Long, event: ChunkEvent): Unit = {
+    externQueue.add(atTime, event)
+  }
+
+  new Thread(() => {
+    while (true) {
+      // accumulate
+      val monitors = new ArrayBuffer[Object]
+      var newExterns: SortedMap[Long, Set[ChunkEvent]] = SortedMap.empty
+      def accumulate(task: (Long, ChunkEvent)) = task match {
+        case (atTime, event) =>
+          newExterns = newExterns.updated(atTime, newExterns.getOrElse(atTime, Set.empty) + event)
+      }
+      accumulate(externQueue.take())
+      while (externQueue.size > 0)
+        accumulate(externQueue.remove())
+      // synchronize
+      this.synchronized {
+        // accumulate further
+        while (externQueue.size > 0)
+          accumulate(externQueue.remove())
+
+        // we'll need this later
+        val currTime = time
+
+        // discard externs that are impossible to integrate
+        val toIntegrate = newExterns.rangeImpl(Some(history.firstKey), None)
+        val toNotIntegrate = newExterns.rangeImpl(None, Some(history.firstKey))
+        if (toNotIntegrate nonEmpty)
+          System.err.println("server continuum rejecting old events: " + toNotIntegrate)
+
+        // revert
+        revert(toIntegrate.firstKey)
+
+        // introduce the externs
+        externs = newExterns.foldLeft(externs){ case (map, (t, set)) => map.updated(t, map.getOrElse(t, Set.empty) ++ set) }
+
+        // update back to original time and accumulate the events
+        // externs applied in the future will be integrated naturally when the continuum updates to that time
+        var toRoute: Map[ClientID, SortedMap[Long, SortedSet[ChunkEvent]]] = Map.empty
+        while (time < currTime) {
+          for ((client, events) <- update()) {
+            toRoute = toRoute.updated(client,
+              toRoute.getOrElse(client, SortedMap.empty: SortedMap[Long, SortedSet[ChunkEvent]]).updated(time - 1, events))
+          }
+        }
+
+        // route the events through the client logics
+        for ((client, events) <- toRoute) {
+          server.clientLogics.get(client) match {
+            case Some(logic) => logic.route(events)
+            case None =>
+          }
+        }
+      }
+    }
+  }).start()
+
+
+
+  /*
   def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Map[ClientID, SortedMap[Long, SortedSet[ChunkEvent]]] =
     this.synchronized {
       // we'll need this later
@@ -167,5 +237,6 @@ class ServerContinuum(save: WorldSave) {
 
       accumulator
     }
+    */
 
 }

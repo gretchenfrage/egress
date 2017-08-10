@@ -4,7 +4,8 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
 import java.net.InetAddress
 import java.util.UUID
 import java.util.concurrent._
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicReference}
+import java.util.function.UnaryOperator
 import javax.print.DocFlavor.BYTE_ARRAY
 
 import com.esotericsoftware.kryonet.FrameworkMessage.KeepAlive
@@ -34,28 +35,24 @@ class EgressServer private() extends Listener with Runnable {
   var save: WorldSave = _
   var continuum: ServerContinuum = _
   var clock: GametimeClock = _
-
   var kryonetServer: KryonetServer = _
-
   var clientIDByConnection: parallel.mutable.ParMap[Connection, ClientID] = _
   var clientConnectionByID: parallel.mutable.ParMap[ClientID, Connection] = _
-
   var clientLogics: parallel.mutable.ParMap[ClientID, ClientLogic] = _
-
   val savingFlag = new AtomicBoolean(false)
-
-  var thread: Thread = _
+  val toIntegrate = new AtomicReference[SortedMap[Long, Set[ChunkEvent]]](SortedMap.empty)
+  var mainLoopThread: Thread = _
 
   def start(): Unit = {
-    thread = new Thread(this, "server loop thread")
-    thread.setPriority(Thread.MAX_PRIORITY)
-    thread.start()
+    mainLoopThread = new Thread(this, "server loop thread")
+    mainLoopThread.setPriority(Thread.MAX_PRIORITY)
+    mainLoopThread.start()
   }
 
   def close(): Unit = {
     kryonetServer.close()
-    thread.interrupt()
-    thread.join()
+    mainLoopThread.interrupt()
+    mainLoopThread.join()
     continuum.current.pushToSave()
   }
 
@@ -73,7 +70,7 @@ class EgressServer private() extends Listener with Runnable {
 
     clock = GametimeClock.serverClock()
 
-    continuum = new ServerContinuum(save)
+    continuum = new ServerContinuum(save, this)
 
     kryonetServer = new KryonetServer(BufferSize, BufferSize, new KryoSerialization(GlobalKryo.create()))
     kryonetServer.bind(port, port + 1)
@@ -124,6 +121,7 @@ class EgressServer private() extends Listener with Runnable {
     }
   }
 
+  /*
   def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Unit = {
     continuum.synchronized {
       for ((client, events) <- continuum.integrateExterns(newExterns)) {
@@ -131,6 +129,7 @@ class EgressServer private() extends Listener with Runnable {
       }
     }
   }
+
 
   def integrateExterns(atTime: Long, newExterns: Set[ChunkEvent]): Unit =
     integrateExterns(new TreeMap[Long, Set[ChunkEvent]]().updated(atTime, newExterns))
@@ -143,6 +142,25 @@ class EgressServer private() extends Listener with Runnable {
 
   def integrateExternNow(extern: ChunkEvent): Unit =
     integrateExternsNow(new HashSet[ChunkEvent] + extern)
+    */
+
+  def integrateExtern(atTime: Long, event: ChunkEvent): Unit =
+    continuum.integrateExtern(atTime, event)
+
+  def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Unit =
+    for {
+      time <- newExterns.keys
+      event <- newExterns(time)
+    } yield integrateExtern(time, event)
+
+  def integrateExterns(atTime: Long, events: Set[ChunkEvent]): Unit =
+    for (event <- events) integrateExtern(atTime, event)
+
+  def integrateExternsNow(events: Set[ChunkEvent]): Unit =
+    integrateExterns(continuum.time, events)
+
+  def integrateExternNow(event: ChunkEvent): Unit =
+    integrateExtern(continuum.time, event)
 
   override def connected(connection: Connection): Unit = {
     val logic = new ClientLogic(this)

@@ -19,7 +19,7 @@ package object multiplayertest {
 
   val BufferSize: Int = 1E7 toInt
 
-  val FakeLag = 200
+  val FakeLag = 0
   val TimeOut = Int.MaxValue
 
   val SubscribeDistance = V3I(5, 5, 5)
@@ -28,6 +28,6 @@ package object multiplayertest {
   val ValidRetroTime = 2 seconds
   val ValidRetroTicks = ValidRetroTime / UpdatingGameDriver.dt toInt
 
-  val PredictionEnabled = false
+  val PredictionEnabled = true
 
 }
