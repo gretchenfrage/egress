@@ -121,29 +121,6 @@ class EgressServer private() extends Listener with Runnable {
     }
   }
 
-  /*
-  def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Unit = {
-    continuum.synchronized {
-      for ((client, events) <- continuum.integrateExterns(newExterns)) {
-        clientLogics.get(client).foreach(_.route(events))
-      }
-    }
-  }
-
-
-  def integrateExterns(atTime: Long, newExterns: Set[ChunkEvent]): Unit =
-    integrateExterns(new TreeMap[Long, Set[ChunkEvent]]().updated(atTime, newExterns))
-
-  def integrateExtern(atTime: Long, extern: ChunkEvent): Unit =
-    integrateExterns(atTime, new HashSet[ChunkEvent] + extern)
-
-  def integrateExternsNow(newExterns: Set[ChunkEvent]): Unit =
-    integrateExterns(continuum.time, newExterns)
-
-  def integrateExternNow(extern: ChunkEvent): Unit =
-    integrateExternsNow(new HashSet[ChunkEvent] + extern)
-    */
-
   def integrateExtern(atTime: Long, event: ChunkEvent): Unit =
     continuum.integrateExtern(atTime, event)
 

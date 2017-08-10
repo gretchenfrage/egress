@@ -211,32 +211,4 @@ class ServerContinuum(save: WorldSave, server: EgressServer) {
   }).start()
 
 
-
-  /*
-  def integrateExterns(newExterns: SortedMap[Long, Set[ChunkEvent]]): Map[ClientID, SortedMap[Long, SortedSet[ChunkEvent]]] =
-    this.synchronized {
-      // we'll need this later
-      val currTime = time
-
-      // discard externs that are impossible to integrate
-      val toIntegrate = newExterns.rangeImpl(Some(history.firstKey), None)
-
-      // revert
-      revert(toIntegrate.firstKey)
-
-      // introduce the externs
-      externs = newExterns.foldLeft(externs)(
-        { case (map, (t, set)) => map.updated(t, map.getOrElse(t, Set.empty: Set[ChunkEvent]) ++ set) })
-
-      // update back to the original time and accumulate the events
-      var accumulator = new HashMap[ClientID, SortedMap[Long, SortedSet[ChunkEvent]]]
-      while (time < currTime)
-        for ((client, events) <- update())
-          accumulator = accumulator.updated(client,
-            accumulator.getOrElse(client, new TreeMap[Long, SortedSet[ChunkEvent]]).updated(time - 1, events))
-
-      accumulator
-    }
-    */
-
 }
