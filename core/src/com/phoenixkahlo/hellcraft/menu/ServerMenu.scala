@@ -46,7 +46,8 @@ class ServerMenu(givenResources: Cache[ResourcePack]) extends AbstractMenu(given
       Color.BLACK,
       Color.BLACK,
       Math.min(Math.max(Gdx.graphics.getWidth * 0.4f, 400), Gdx.graphics.getWidth - 40).toInt,
-      35
+      35,
+      selectable = true
     )
 
     val header = new Label("SERVERS", new LabelStyle(resources.font(TitleFID), Color.BLACK))

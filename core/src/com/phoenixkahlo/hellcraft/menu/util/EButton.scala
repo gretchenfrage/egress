@@ -14,11 +14,12 @@ case class EButtonStyle(
                          textColor: Color,
                          activeTextColor: Color,
                          width: Int,
-                         height: Int
+                         height: Int,
+                         selectable: Boolean = false
                        ) {
 
   val asTextButtonStyle = new TextButtonStyle
-  asTextButtonStyle.checkedFontColor = activeTextColor
+  asTextButtonStyle.checkedFontColor = if (selectable) activeTextColor else textColor
   asTextButtonStyle.checkedOverFontColor = activeTextColor
   asTextButtonStyle.downFontColor = activeTextColor
   asTextButtonStyle.overFontColor = activeTextColor
@@ -37,7 +38,7 @@ class EButton(text: String, style: EButtonStyle)
 
   override def draw(batch: Batch, parentAlpha: Float): Unit = {
     val toDraw =
-      if (isPressed || isChecked || isOver) activePatch
+      if (isPressed || isOver || (style.selectable && isChecked)) activePatch
       else patch
     batch.draw(toDraw, getX, getY, getWidth, getHeight)
     super.draw(batch, parentAlpha)
