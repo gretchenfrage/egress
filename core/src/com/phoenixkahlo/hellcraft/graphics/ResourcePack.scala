@@ -28,6 +28,7 @@ sealed trait FontID
 case object HeaderFID extends FontID
 case object TitleFID extends FontID
 case object ButtonFID extends FontID
+case object XFID extends FontID
 
 
 trait ResourcePack {
@@ -74,7 +75,8 @@ class DefaultResourcePack extends ResourcePack {
   val fonts: Map[FontID, BitmapFont] = Seq(
     HeaderFID -> ("raleway.ttf", 75),
     ButtonFID -> ("raleway.ttf", 24),
-    TitleFID -> ("raleway.ttf", 32)
+    TitleFID -> ("raleway.ttf", 32),
+    XFID -> ("raleway.ttf", 32)
   ) map {
     case (fid, (path, size)) =>
       val generator = new FreeTypeFontGenerator(Gdx.files.internal(path))

@@ -31,6 +31,8 @@ class ServerMenu(givenResources: Cache[ResourcePack]) extends AbstractMenu(given
   }
 
   override protected def compile(): Unit = {
+    addBackButton()
+
     var y: Float = Gdx.graphics.getHeight - 20
     def position(widget: Actor): Unit = {
       widget.setPosition((Gdx.graphics.getWidth - widget.getWidth) / 2, y - widget.getHeight)

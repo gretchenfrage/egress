@@ -1,16 +1,17 @@
 package com.phoenixkahlo.hellcraft.menu
 
-import java.awt.Color
 
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.{Gdx, InputAdapter, InputMultiplexer, InputProcessor}
-import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.graphics.{Color, GL20}
+import com.badlogic.gdx.scenes.scene2d.{InputEvent, Stage}
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
-import com.phoenixkahlo.hellcraft.graphics.ResourcePack
+import com.phoenixkahlo.hellcraft.graphics.{MenuPatchActivePID, MenuPatchPID, ResourcePack, XFID}
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
+import com.phoenixkahlo.hellcraft.menu.util.{EButton, EButtonStyle}
 import com.phoenixkahlo.hellcraft.util.Cache
 
 import scala.collection.mutable.ArrayBuffer
@@ -29,6 +30,26 @@ abstract class AbstractMenu(givenResources: Cache[ResourcePack]) extends GameSta
 
   protected def enterMainMenu(): Unit = {
     driver.enter(new MainMenu(new Cache(resources)))
+  }
+
+  protected def addBackButton(action: Runnable = () => driver.enter(escapeState)): Unit = {
+    val style = EButtonStyle(
+      resources.pixmap(MenuPatchPID),
+      resources.pixmap(MenuPatchActivePID),
+      18,
+      resources.font(XFID),
+      Color.BLACK, Color.BLACK,
+      40, 40
+    )
+    val xButton = new EButton("X", style)
+    xButton.setPosition(10, Gdx.graphics.getHeight - xButton.getHeight - 10)
+    xButton.addListener(new ClickListener() {
+      override def clicked(event: InputEvent, x: Float, y: Float): Unit = {
+        action.run()
+      }
+    })
+    stage.addActor(xButton)
+    toDispose += xButton
   }
 
   override def onEnter(driver: GameDriver): Unit = {

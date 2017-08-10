@@ -27,6 +27,8 @@ class MainMenu(givenResources: Cache[ResourcePack]) extends AbstractMenu(givenRe
     this(new Cache(new DefaultResourcePack))
 
   override protected def compile(): Unit = {
+    addBackButton(() => Gdx.app.exit())
+
     var y: Float = Gdx.graphics.getHeight - 70
     def position(widget: Actor): Unit = {
       widget.setPosition((Gdx.graphics.getWidth - widget.getWidth) / 2, y - widget.getHeight)
