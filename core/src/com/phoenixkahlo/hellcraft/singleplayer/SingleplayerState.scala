@@ -50,8 +50,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     clock = new GametimeClock
 
-    val avatar = Avatar(pos = V3F(0, 20, 0))
-    val world = new LazyInfWorld(save, 0, Map.empty)
+    val avatar = Avatar(pos = V3F(5, 1, 5))
+    val world = new LazyInfWorld(save, 0, Map.empty, Map.empty, Set.empty, Map.empty)
       .updateLoaded(LoadDist.neg to LoadDist)
       .integrate(Seq(AddEntity(avatar, UUID.randomUUID())))
     history = SortedMap(0L -> world)
