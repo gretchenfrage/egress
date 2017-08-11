@@ -100,7 +100,7 @@ class SingleplayerController(cam: Camera, val avatarID: AvatarID, exitor: Runnab
       true
     }
 
-  def mainUpdate(world: LazyInfWorld): SortedSet[ChunkEvent] = {
+  def mainUpdate(world: LazyInfWorld): Seq[ChunkEvent] = {
     val camDir = this.camDir
 
     var movDir: V3F = Origin
@@ -116,17 +116,17 @@ class SingleplayerController(cam: Camera, val avatarID: AvatarID, exitor: Runnab
     this.movDir = movDir
 
     val avatar = world.findEntity(avatarID).get.asInstanceOf[Avatar]
-    var accumulator: SortedSet[ChunkEvent] = SortedSet.empty
+    var accumulator: Seq[ChunkEvent] = Seq.empty
 
     val jumping = pressed(SPACE)
 
-    accumulator += SetAvatarMovement(avatarID, movDir, jumping, avatar.chunkPos, UUID.randomUUID())
+    accumulator +:= SetAvatarMovement(avatarID, movDir, jumping, avatar.chunkPos, UUID.randomUUID())
 
     Raytrace.hit(avatar.pos + Offset, camDir, world).foreach(v => {
-      accumulator += AddEntity(BlockOutline(v, Color.BLACK), UUID.randomUUID())
+      accumulator +:= AddEntity(BlockOutline(v, Color.BLACK), UUID.randomUUID())
     })
     if (pressed(TAB)) Raytrace.place(avatar.pos + Offset, camDir, world).foreach(v => {
-      accumulator += AddEntity(BlockOutline(v, Color.RED), UUID.randomUUID())
+      accumulator +:= AddEntity(BlockOutline(v, Color.RED), UUID.randomUUID())
     })
 
     accumulator

@@ -53,7 +53,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     val avatar = Avatar(pos = V3F(0, 20, 0))
     val world = new LazyInfWorld(save, 0, Map.empty)
       .updateLoaded(LoadDist.neg to LoadDist)
-      .integrate(SortedSet(AddEntity(avatar, UUID.randomUUID())))
+      .integrate(Seq(AddEntity(avatar, UUID.randomUUID())))
     history = SortedMap(0L -> world)
     println("instantiated history")
 
@@ -127,10 +127,11 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     // interpolation
     val t = clock.gametime
     val f = clock.fractionalTicksSince(t) - 1
-    val (toRender, interpolation) = (history.get(t), history.get(t + 1)) match {
-      case (Some(old), Some(neu)) => (old, Some((neu, f)))
-      case _ => (history.last._2, None)
-    }
+    val (toRender, interpolation) =
+      (history.get(t), history.get(t + 1)) match {
+        case (Some(old), Some(neu)) => (old, Some((neu, f)))
+        case _ => (history.last._2, None)
+      }
 
     // update controller
     controller.camUpdate(toRender, interpolation)
