@@ -37,15 +37,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
   override def onEnter(driver: GameDriver): Unit = {
     println("loading")
-    /*
-    val blockGen: V3I => Block = v => {
-      if (v.yi > 0) Air
-      else if (v.yi == 0) Grass
-      else if (v.yi > -20) Dirt
-      else Stone
-    }
-    val chunkGen: V3I => Chunk = p => new Chunk(p, blockGen)
-    */
     val surface = BlockGrid(v => if (v.yi == 15) Grass else Dirt)
     val air = BlockGrid(Air)
     val stone = BlockGrid(Stone)
@@ -134,12 +125,12 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
 
     // interpolation
-    val t = clock.gametime
-    val f = clock.fractionalTicksSince(t) - 1
     val (toRender, interpolation) =
-      (history.get(t), history.get(t + 1)) match {
-        case (Some(old), Some(neu)) => (old, Some((neu, f)))
-        case _ => (history.last._2, None)
+      (history.last._2, history.dropRight(1).lastOption.map(_._2)) match {
+        case (ultimate, Some(penultimate)) =>
+          (penultimate, Some((ultimate, clock.fractionalTicksSince(penultimate.time) - 1)))
+        case (ultimate, None) =>
+          (ultimate, None)
       }
 
     // update controller
@@ -160,7 +151,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     // render 3D stuff
     val provider = new RenderableProvider {
       override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit =
-        factories.flatMap(_()).foreach(renderables.add)
+        factories.flatMap(_(interpolation)).foreach(renderables.add)
     }
     modelBatch.begin(cam)
     modelBatch.render(provider, lights)
