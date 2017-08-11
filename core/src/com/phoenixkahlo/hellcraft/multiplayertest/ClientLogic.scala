@@ -69,7 +69,8 @@ class ClientLogic(server: EgressServer) {
     sessionNoReply = ObjectSpace.getRemoteObject(connection, clientSessionReady.sessionID, classOf[ClientSession])
     sessionNoReply.asInstanceOf[RemoteObject].setResponseTimeout(TimeOut)
     sessionNoReply.asInstanceOf[RemoteObject].setNonBlocking(true)
-    sessionNoReply = LaggyNoReplyProxy(sessionNoReply, FakeLag milliseconds, classOf[ClientSession])
+    if (FakeLag > 0)
+      sessionNoReply = LaggyNoReplyProxy(sessionNoReply, FakeLag milliseconds, classOf[ClientSession])
     // create the seq client session proxy
     seqSession = ObjectSpace.getRemoteObject(connection, session.createSingleThreadSession("seq session"),
       classOf[ClientSession])
@@ -92,7 +93,6 @@ class ClientLogic(server: EgressServer) {
   }
 
   def update(): Unit = {
-    //sessionNoReply.printReceiveDelta(System.nanoTime())
 
     server.continuum.current.findEntity(avatarID).map(_.asInstanceOf[Avatar].chunkPos) match {
       case Some(p) =>

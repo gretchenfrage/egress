@@ -92,6 +92,7 @@ class EgressClient(
     sessionNoReply.asInstanceOf[RemoteObject].setNonBlocking(true)
     sessionNoReply = LaggyNoReplyProxy(sessionNoReply, FakeLag milliseconds, classOf[ServerSession])
 
+
     // synchronize the times
     serverNanotime = NanotimeMirror.mirrorServer(session)
     clock = GametimeClock.clientClock(session, serverNanotime)
@@ -180,14 +181,20 @@ class EgressClient(
   }
 
   override def run(): Unit = {
-    while (!Thread.interrupted()) {
-      val time = continuum.synchronized {
-        val submissions = controller.mainUpdate(continuum.current)
-        continuum.update(submissions)
-        continuum.time
+    try {
+      while (!Thread.interrupted()) {
+        val time = continuum.synchronized {
+          val submissions = controller.mainUpdate(continuum.current)
+          continuum.update(submissions)
+          continuum.time
+        }
+        if (clock.timeSince(time) > (1 second))
+          System.err.println("client can't keep up")
+        //println("t = " + time)
+        clock.waitUntil(time + 1)
       }
-      //println("t = " + time)
-      clock.waitUntil(time + 1)
+    } catch {
+      case e: InterruptedException => println("client closing")
     }
   }
 

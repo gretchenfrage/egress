@@ -66,6 +66,9 @@ class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
     V3I(x, y, z)
   }
 
+  def touching: Seq[V3I] =
+    Directions().map(this + _)
+
 }
 
 object Origin extends V3I(0, 0, 0)

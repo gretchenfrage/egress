@@ -10,7 +10,7 @@ import com.phoenixkahlo.hellcraft.math.V3I
 import scala.collection.{Map, SortedSet}
 import scala.collection.immutable.{HashMap, TreeSet}
 
-case class HashCacheWorld(time: Long, loaded: Map[V3I, Chunk] = new HashMap) extends World {
+case class HashCacheWorld(time: Long, loaded: Map[V3I, Chunk] = Map.empty) extends World {
 
   val cache = new ThreadLocal[Chunk]
 

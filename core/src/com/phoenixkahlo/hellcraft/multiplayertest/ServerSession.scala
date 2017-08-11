@@ -139,7 +139,10 @@ class ServerSessionImpl(server: EgressServer, client: ClientLogic) extends  Serv
 
   override def getChunks(atTime: Long, chunks: Set[V3I]): Seq[Chunk] = {
     val world = server.continuum.waitForSnapshot(atTime).get
-    chunks.toSeq.map(world.chunkAt(_).get)
+    val gotten = chunks.toSeq.map(world.chunkAt(_).get)
+    if (gotten == null)
+      System.err.println("gotten chunks is null!")
+    gotten
   }
 
   override def findEntity(atTime: Long, id: EntityID): Seq[V3I] = {

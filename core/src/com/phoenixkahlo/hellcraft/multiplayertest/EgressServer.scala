@@ -85,28 +85,34 @@ class EgressServer private() extends Listener with Runnable {
   }
 
   override def run(): Unit = {
-    while (!Thread.interrupted()) {
-      // update and route events to clients as needed
-      val (time, toRoute) = continuum.synchronized {
-        (continuum.time, continuum.update())
+    try {
+      while (!Thread.interrupted()) {
+        // update and route events to clients as needed
+        val (time, toRoute) = continuum.synchronized {
+          (continuum.time, continuum.update())
+        }
+        //println("T = " + time)
+        for ((client, events) <- toRoute) {
+          clientLogics.get(client).foreach(_.route(SortedMap(time -> events)))
+        }
+        // push the current world to the save, if the time is right
+        val current = continuum.current
+        if (time % 600 == 0 && !savingFlag.getAndSet(true)) PriorityExecContext(1).execute(() => {
+          println("saving")
+          current.pushToSave()
+          println("finished saving")
+          savingFlag.set(false)
+        })
+        // update the client logics
+        clientLogics.values.filter(_ isInitialized).foreach(_.update())
+        // warn
+        if (clock.timeSince(time) > (1 second))
+          System.err.println("server can't keep up!")
+        // possibly sleep until the next tick
+        clock.waitUntil(time + 1)
       }
-      //println("T = " + time)
-      for ((client, events) <- toRoute) {
-        clientLogics.get(client).foreach(_.route(SortedMap(time -> events)))
-        //clientLogics(client).route(new TreeMap[Long, SortedSet[ChunkEvent]]().updated(time, events))
-      }
-      // push the current world to the save, if the time is right
-      val current = continuum.current
-      if (time % 600 == 0 && !savingFlag.getAndSet(true)) PriorityExecContext(1).execute(() => {
-        println("saving")
-        current.pushToSave()
-        println("finished saving")
-        savingFlag.set(false)
-      })
-      // update the client logics
-      clientLogics.values.filter(_ isInitialized).foreach(_.update())
-      // possibly sleep until the next tick
-      clock.waitUntil(time + 1)
+    } catch {
+      case e: InterruptedException => println("server closing")
     }
   }
 

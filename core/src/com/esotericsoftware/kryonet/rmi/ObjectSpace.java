@@ -245,6 +245,9 @@ public class ObjectSpace {
 				+ cachedMethod.method.getName(), ex);
 		}
 
+		if (result == null && !cachedMethod.method.getReturnType().equals(void.class))
+			System.err.println("proxy returned null");
+
 		if (responseID == 0) return;
 
 		InvokeMethodResult invokeMethodResult = new InvokeMethodResult();

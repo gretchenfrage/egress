@@ -20,6 +20,8 @@ class AddServerMenu(givenResources: Cache[ResourcePack]) extends AbstractMenu(gi
   override protected def escapeState = new ServerMenu(givenResources)
 
   override protected def compile(): Unit = {
+    addBackButton()
+
 
     var y: Float = Gdx.graphics.getHeight / 2 + 200
     def position(widget: Actor): Unit = {
