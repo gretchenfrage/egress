@@ -130,6 +130,9 @@ class SingleplayerController(cam: PerspectiveCamera, val avatarID: AvatarID, exi
 
     accumulator +:= SetAvatarMovement(avatarID, movDir, jumping, sprinting, UUID.randomUUID(), avatar.chunkPos)
 
+    if (jumping && sprinting)
+      accumulator +:= ThrustCylindroid(avatarID, V3F(0, 0.6f, 0), avatar.chunkPos, UUID.randomUUID())
+
     Raytrace.hit(avatar.pos + Offset, camDir, world).foreach(v => {
       accumulator +:= AddEntity(BlockOutline(v, Color.BLACK), UUID.randomUUID())
     })

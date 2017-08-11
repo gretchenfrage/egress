@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.core
 
 import java.util.UUID
 
-import com.phoenixkahlo.hellcraft.core.entity.{Avatar, Entity, PositionHaver}
+import com.phoenixkahlo.hellcraft.core.entity.{Avatar, Cylindroid, Entity, PositionHaver}
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 import com.phoenixkahlo.hellcraft.multiplayertest.EntityID
 
@@ -76,4 +76,16 @@ case class SetAvatarMovement(
                             ) extends TransformEntity(avatarID, target, id) {
   override def transform(entity: Entity): Entity =
     entity.asInstanceOf[Avatar].updateDirection(movDir).updateJumping(jumping).updateSprinting(sprinting)
+}
+
+case class ThrustCylindroid(
+                       entityID: EntityID,
+                       deltaV: V3F,
+                       override val target: V3I,
+                       override val id: UUID
+                       ) extends TransformEntity(entityID, target, id) {
+  override def transform(entity: Entity): Entity = {
+    val c = entity.asInstanceOf[Cylindroid[_ <: Cylindroid[_]]]
+    c.updateVel(c.vel + deltaV)
+  }
 }
