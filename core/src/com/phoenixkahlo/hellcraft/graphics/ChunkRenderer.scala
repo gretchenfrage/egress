@@ -47,7 +47,7 @@ class ChunkRenderer(
 
     // do the computation
     val empty: SurfaceMap = Directions() zip Stream.iterate(Nil)(identity) toMap
-    val blocks: Seq[V3I] = (Origin until V3I(chunk.size, chunk.size, chunk.size)) map (_ + (chunk.pos * chunk.size))
+    val blocks: Seq[V3I] = (Origin until V3I(16, 16, 16)) map (_ + (chunk.pos * 16))
     val exposed: SurfaceMap = blocks.foldLeft(empty)(block)
 
     // fold the exposure sets into vertex data and indices
@@ -56,7 +56,7 @@ class ChunkRenderer(
     // convert from size in bytes to size in floats
     val p = 1
     val n = 0
-    val offset = chunk.pos * chunk.size
+    val offset = chunk.pos * 16
 
     def addSquareIndices(verts: List[VertDatum], indices: List[Short]): List[Short] =
       indices
