@@ -56,10 +56,11 @@ class RegionGenAsyncSave(path: Path, generator: V3I => Chunk) extends AsyncSave 
   }
 
   override def push(chunks: Map[V3I, Chunk]): Seq[Future[Unit]] = {
-    if (chunks isEmpty) return Seq.empty
+    val toSave = chunks.filter({ case (_, c) => !c.freshlyLoaded })
+    if (toSave isEmpty) return Seq.empty
 
     var accumulator: Seq[Future[Unit]] = Seq.empty
-    for ((region, group) <- chunks.values.toSeq.groupBy(_.pos / RegionSize floor)) {
+    for ((region, group) <- toSave.values.toSeq.groupBy(_.pos / RegionSize floor)) {
       accumulator +:= Future {
         val regionFile = file(region)
         var map: Map[V3I, Chunk] =
@@ -99,7 +100,7 @@ class RegionGenAsyncSave(path: Path, generator: V3I => Chunk) extends AsyncSave 
       } (context(region))
       for (p <- group) {
         accumulator = accumulator.updated(p,
-          future.transform(_.getOrElse(p, generator(p)), identity)(ExecutionContext.global))
+          future.transform(_.getOrElse(p, generator(p).copy(freshlyLoaded = true)), identity)(ExecutionContext.global))
       }
     }
     accumulator

@@ -18,7 +18,8 @@ class Chunk (
               val blocks: BlockGrid,
               val entities: Map[UUID,Entity],
               @transient val lastRenderer: ParamCache[(ResourcePack, World), ChunkRenderer],
-              val lastRendererDirty: Boolean
+              val lastRendererDirty: Boolean,
+              val freshlyLoaded: Boolean = true
                    ) {
 
 
@@ -33,13 +34,15 @@ class Chunk (
             blocks: BlockGrid = this.blocks,
             entities: Map[UUID,Entity] = this.entities,
             lastRenderer: ParamCache[(ResourcePack, World), ChunkRenderer] = this.renderer,
-            lastRendererDirty: Boolean = false
+            lastRendererDirty: Boolean = false,
+            freshlyLoaded: Boolean = false
           ): Chunk = new Chunk(
     pos,
     blocks,
     entities,
     lastRenderer,
-    lastRendererDirty
+    lastRendererDirty,
+    freshlyLoaded
   )
 
   def compress(v: V3I): Int = v.xi + v.zi * 16 + v.yi * 256
