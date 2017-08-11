@@ -4,11 +4,23 @@ import java.util.zip.{Deflater, Inflater}
 
 import com.esotericsoftware.kryo.io.{Input, Output}
 import com.esotericsoftware.kryo.{Kryo, Serializer}
-import com.phoenixkahlo.hellcraft.core.BlockGrid
+import com.phoenixkahlo.hellcraft.core.{Air, Block, BlockGrid, Stone}
 
 class BlockGridSerializer extends Serializer[BlockGrid] {
 
   override def write(kryo: Kryo, output: Output, obj: BlockGrid): Unit = {
+    // write heuristic
+    if (obj eq BlockGrid.AirGrid) {
+      output.writeBoolean(true)
+      kryo.writeObject(output, Air)
+      return
+    } else if (obj eq BlockGrid.StoneGrid) {
+      output.writeBoolean(true)
+      kryo.writeObject(output, Stone)
+      return
+    } else {
+      output.writeBoolean(false)
+    }
     // compress
     val blocks = obj.blocks.toArray
     val buffer = GridCompressBuffers.get
@@ -22,6 +34,13 @@ class BlockGridSerializer extends Serializer[BlockGrid] {
   }
 
   override def read(kryo: Kryo, input: Input, t: Class[BlockGrid]): BlockGrid = {
+    // read heuristic
+    if (input.readBoolean()) {
+      kryo.readObject(input, classOf[Block]) match {
+        case Air => BlockGrid.AirGrid
+        case Stone => BlockGrid.StoneGrid
+      }
+    }
     // read
     val length = input.readShort()
     val readBuffer = GridReadBuffers.get

@@ -23,6 +23,13 @@ class ChunkRenderer(
                         ) extends RenderableFactory with ResourceNode {
 
   def compileProcedure: () => (Array[Float], Array[Short]) = () => {
+    // first, check for heuristics
+    if (chunk.blocks eq BlockGrid.AirGrid) (new Array[Float](0), new Array[Short](0))
+    if ((chunk.blocks eq BlockGrid.StoneGrid) && {
+      val adjacent = chunk.pos.touching.flatMap(world.weakChunkAt)
+      adjacent.size == 6 && adjacent.forall(_.blocks eq BlockGrid.StoneGrid)
+    }) (new Array[Float](0), new Array[Short](0))
+
     // first, compute the exposed surfaces
     type SurfaceMap = Map[Direction, List[V3I]]
 

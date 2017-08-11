@@ -34,4 +34,7 @@ object BlockGrid {
       (i % 256) / 16
     )
 
+  val AirGrid = BlockGrid(Air)
+  val StoneGrid = BlockGrid(Stone)
+
 }

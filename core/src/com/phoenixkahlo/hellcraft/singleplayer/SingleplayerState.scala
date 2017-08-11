@@ -38,12 +38,10 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   override def onEnter(driver: GameDriver): Unit = {
     println("loading")
     val surface = BlockGrid(v => if (v.yi == 15) Grass else Dirt)
-    val air = BlockGrid(Air)
-    val stone = BlockGrid(Stone)
     val chunkGen: V3I => Chunk = p =>
       if (p.yi == -1) new Chunk(p, surface)
-      else if (p.yi >= 0) new Chunk(p, air)
-      else new Chunk(p, stone)
+      else if (p.yi >= 0) new Chunk(p, BlockGrid.AirGrid)
+      else new Chunk(p, BlockGrid.StoneGrid)
 
     save = new RegionGenAsyncSave(AppDirs.dataDir("egress").resolve("single"), chunkGen)
     println("instantiated save")
