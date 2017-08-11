@@ -142,7 +142,7 @@ class ClientController(cam: Camera, client: EgressClient) extends InputAdapter {
 
         val jumping = pressed(SPACE)
 
-        val setMovement = SetAvatarMovement(avatar.id, movDir, jumping, avatar.chunkPos, UUID.randomUUID())
+        val setMovement = SetAvatarMovement(avatar.id, movDir, jumping, false, UUID.randomUUID(), avatar.chunkPos)
         submit(world.time, setMovement)
         accumulator += setMovement
 

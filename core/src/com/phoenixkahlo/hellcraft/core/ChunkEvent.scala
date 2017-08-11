@@ -66,8 +66,14 @@ abstract class TransformEntity(entityID: UUID, override val target: V3I, overrid
 
 }
 
-case class SetAvatarMovement(avatarID: UUID, movDir: V3F, jumping: Boolean, override val target: V3I,
-                             override val id: UUID) extends TransformEntity(avatarID, target, id) {
+case class SetAvatarMovement(
+                              avatarID: EntityID,
+                              movDir: V3F,
+                              jumping: Boolean,
+                              sprinting: Boolean,
+                              override val id: EntityID,
+                              override val target: V3I
+                            ) extends TransformEntity(avatarID, target, id) {
   override def transform(entity: Entity): Entity =
-    entity.asInstanceOf[Avatar].updateDirection(movDir).updateJumping(jumping)
+    entity.asInstanceOf[Avatar].updateDirection(movDir).updateJumping(jumping).updateSprinting(sprinting)
 }

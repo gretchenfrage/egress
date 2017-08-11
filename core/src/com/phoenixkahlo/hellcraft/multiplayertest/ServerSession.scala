@@ -69,7 +69,7 @@ class ServerSessionImpl(server: EgressServer, client: ClientLogic) extends  Serv
     server.continuum.waitForSnapshot(atTime).flatMap(_.findEntity(avatarID).map(_.asInstanceOf[Avatar])) match {
       case Some(avatar) =>
         server.integrateExtern(atTime,
-          SetAvatarMovement(avatar.id, movDir, jumping, avatar.chunkPos, UUID.randomUUID()))
+          SetAvatarMovement(avatar.id, movDir, jumping, false, UUID.randomUUID(), avatar.chunkPos))
         true
       case None => false
     }
@@ -99,7 +99,7 @@ class ServerSessionImpl(server: EgressServer, client: ClientLogic) extends  Serv
   }
 
   private def isLegit(extern: ChunkEvent): Boolean = extern match {
-    case SetAvatarMovement(aID, _, _, _, _) if aID == avatarID => true
+    case SetAvatarMovement(aID, _, _, _, _, _) if aID == avatarID => true
     case _ => false
   }
 

@@ -46,7 +46,7 @@ class ClientLogic(server: EgressServer) {
     rmiSpace.setExecutor(AsyncExecutor("server RMI thread"))
     rmiSpace.addConnection(connection)
     // create the avatar, we will integrate it at the end
-    val avatar = Avatar(pos = V3F(0, 10, 0))
+    val avatar = Avatar(sprinting = false, pos = V3F(0, 10, 0))
     avatarID = avatar.id
     // send our initial data
     connection.sendTCP(InitialServerData(clientID))

@@ -8,7 +8,9 @@ import com.phoenixkahlo.hellcraft.math.{Origin, V2F, V3F}
 abstract class Walker[C <: Walker[C]](
                                        val direction: V3F,
                                        val jumping: Boolean,
+                                       val sprinting: Boolean,
                                        val maxVel: Float,
+                                       val sprintVel: Float,
                                        val jumpHeight: Float,
                                        override val pos: V3F,
                                        override val id: UUID,
@@ -27,7 +29,7 @@ abstract class Walker[C <: Walker[C]](
 
   override def naturalVelocity: V2F =
     if (direction.magnitude == 0) V2F(0, 0)
-    else direction.flatten.normalize * maxVel
+    else direction.flatten.normalize * (if (sprinting) sprintVel else maxVel)
 
   override protected def transform(world: World): C = {
     val f = super.transform(world)

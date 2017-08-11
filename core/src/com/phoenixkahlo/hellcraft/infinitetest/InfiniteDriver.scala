@@ -64,7 +64,7 @@ class InfiniteDriver extends ApplicationAdapter {
     })
     world.makeLoaded(V3I(-8, -8, -8) until V3I(8, 8, 8))
 
-    val avatar = Avatar(pos = V3F(0, 20, 0))
+    val avatar = Avatar(sprinting = false, pos = V3F(0, 20, 0))
     world.transformChunk(avatar.chunkPos, _.putEntity(avatar))
     println("world instantiated")
 

@@ -66,7 +66,7 @@ class InfiniteGameState(providedTextures: Cache[ResourcePack]) extends GameState
     })
     infinitum.makeLoaded(loadDist.neg until loadDist)
 
-    val avatar = Avatar(pos = V3F(0, 20, 0))
+    val avatar = Avatar(sprinting = false, pos = V3F(0, 20, 0))
     infinitum.transformChunk(avatar.chunkPos, _.putEntity(avatar))
     println("world instantiated")
 

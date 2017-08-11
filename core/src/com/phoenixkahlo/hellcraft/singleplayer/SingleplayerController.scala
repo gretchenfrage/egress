@@ -5,7 +5,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.badlogic.gdx.Input.{Buttons, Keys}
 import com.badlogic.gdx.{Gdx, InputAdapter}
-import com.badlogic.gdx.graphics.{Camera, Color}
+import com.badlogic.gdx.graphics.{Camera, Color, PerspectiveCamera}
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.math._
 import com.badlogic.gdx.Input.Keys._
@@ -14,7 +14,7 @@ import com.phoenixkahlo.hellcraft.util.RNG
 
 import scala.collection.{SortedSet, mutable}
 
-class SingleplayerController(cam: Camera, val avatarID: AvatarID, exitor: Runnable) extends InputAdapter {
+class SingleplayerController(cam: PerspectiveCamera, val avatarID: AvatarID, exitor: Runnable) extends InputAdapter {
 
   val TurnVel = 0.25f
   val Offset = V3F(0, 1.75f, 0)
@@ -126,8 +126,9 @@ class SingleplayerController(cam: Camera, val avatarID: AvatarID, exitor: Runnab
     var accumulator: Seq[ChunkEvent] = Seq.empty
 
     val jumping = pressed(SPACE)
+    val sprinting = pressed(SHIFT_LEFT)
 
-    accumulator +:= SetAvatarMovement(avatarID, movDir, jumping, avatar.chunkPos, UUID.randomUUID())
+    accumulator +:= SetAvatarMovement(avatarID, movDir, jumping, sprinting, UUID.randomUUID(), avatar.chunkPos)
 
     Raytrace.hit(avatar.pos + Offset, camDir, world).foreach(v => {
       accumulator +:= AddEntity(BlockOutline(v, Color.BLACK), UUID.randomUUID())
@@ -158,9 +159,18 @@ class SingleplayerController(cam: Camera, val avatarID: AvatarID, exitor: Runnab
   def camUpdate(world: LazyInfWorld, interpolation: Option[(World, Float)]): Unit = {
     this.camDir = V3F(cam.direction)
     val avatar = world.findEntity(avatarID).get.asInstanceOf[Avatar]
+
     val pos = interpolation.map({ case (a, b) => avatar.interpolatePos(a, b) }).getOrElse(avatar.pos)
     if (!thirdPerson) cam.position.set((pos + Offset) toGdx)
     else cam.position.set((pos + Offset - (camDir.normalize * 5)) toGdx)
+
+    def keyFov(w: World): Float =
+      if (world.findEntity(avatarID).get.asInstanceOf[Avatar].sprinting) 92
+      else 90
+    val fov: Float =
+      interpolation.map({ case (w, f) => (keyFov(w) - keyFov(world)) * f + keyFov(world) }).getOrElse(keyFov(world))
+    cam.fieldOfView = fov
+
     cam.update()
   }
 

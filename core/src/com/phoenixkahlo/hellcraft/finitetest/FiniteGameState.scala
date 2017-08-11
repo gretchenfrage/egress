@@ -89,7 +89,7 @@ class FiniteGameState(givenTexturePack: Cache[ResourcePack]) extends GameState {
     world.chunks.flatMap(_.entities.values).find(_.isInstanceOf[Avatar]) match {
       case Some(entity) => avatar = entity.asInstanceOf[Avatar]
       case None =>
-        avatar = Avatar()
+        avatar = Avatar(sprinting = false)
         world = world.transformChunk(avatar.chunkPos, _.putEntity(avatar))
     }
 
