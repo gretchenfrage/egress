@@ -37,21 +37,25 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
   override def onEnter(driver: GameDriver): Unit = {
     println("loading")
+    /*
     val surface = BlockGrid(v => if (v.yi == 15) Grass else Dirt)
     val chunkGen: V3I => Chunk = p =>
       if (p.yi == -1) new Chunk(p, surface)
       else if (p.yi >= 0) new Chunk(p, BlockGrid.AirGrid)
       else new Chunk(p, BlockGrid.StoneGrid)
+    */
+    val generator = new Generator
 
-    save = new RegionGenAsyncSave(AppDirs.dataDir("egress").resolve("single"), chunkGen)
+    save = new RegionGenAsyncSave(AppDirs.dataDir("egress").resolve("single"), generator.genChunk)
     println("instantiated save")
 
     clock = new GametimeClock
 
-    val avatar = Avatar(pos = V3F(5, 1, 5))
+    val avatar = Avatar(pos = V3F(0, 32, 0))
     val world = new LazyInfWorld(save, 0, Map.empty, Map.empty, Set.empty, Set.empty, Set.empty, Map.empty)
-      .updateLoaded(LoadDist.neg to LoadDist)
+      .updateLoaded(Seq(avatar.chunkPos))
       .integrate(Seq(AddEntity(avatar, UUID.randomUUID())))
+      .updateLoaded(LoadDist.neg to LoadDist)
     history = SortedMap(0L -> world)
     println("instantiated history")
 
@@ -99,6 +103,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         val avatar = world.findEntity(controller.avatarID).get.asInstanceOf[Avatar]
         BackgroundMeshCompilerExecutor.setPlayerPos(avatar.pos)
         world = world.updateLoaded((avatar.chunkPos - LoadDist) to (avatar.chunkPos + LoadDist))
+
+        println("t = " + world.time)
 
         // manage history
         history = history.updated(world.time, world)

@@ -28,7 +28,7 @@ abstract class Cylindroid[C <: Cylindroid[C]](
   val g = 9.8f
   val u = 10f
   val d = 10f
-  val vt = 25f
+  val vt = 18f
 
   def updatePos(newPos: V3F): C
   def updateVel(newVel: V3F): C

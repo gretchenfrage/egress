@@ -24,7 +24,7 @@ trait AsyncSave extends AutoCloseable {
 
 }
 
-class RegionGenAsyncSave(path: Path, generator: V3I => Chunk) extends AsyncSave {
+class RegionGenAsyncSave(path: Path, generator: V3I => Future[Chunk]) extends AsyncSave {
 
   if (!path.toFile.exists)
     path.toFile.mkdir()
@@ -35,10 +35,18 @@ class RegionGenAsyncSave(path: Path, generator: V3I => Chunk) extends AsyncSave 
     path.resolve("x" + region.xi + "y" + region.yi + "z" + region.zi + ".region").toFile
 
   private val executors = new mutable.HashMap[V3I, ExecutionContext]
-  private val lock = new Object
+  private val executorLock = new Object
+  private implicit val miscExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(
+    Runtime.getRuntime.availableProcessors,
+    runnable => {
+      val thread = new Thread(runnable, "generator thread")
+      thread.setPriority(3)
+      thread
+    }
+  ))
 
-  private def context(region: V3I): ExecutionContext = {
-    lock.synchronized {
+  private def contextFor(region: V3I): ExecutionContext = {
+    executorLock.synchronized {
       executors.get(region) match {
         case Some(executor) => executor
         case None =>
@@ -79,7 +87,7 @@ class RegionGenAsyncSave(path: Path, generator: V3I => Chunk) extends AsyncSave 
         val out = new FileOutputStream(regionFile)
         GlobalKryo().writeObject(new Output(out), map)
         out.close()
-      } (context(region))
+      } (contextFor(region))
     }
     accumulator
   }
@@ -89,22 +97,26 @@ class RegionGenAsyncSave(path: Path, generator: V3I => Chunk) extends AsyncSave 
 
     var accumulator: Map[V3I, Future[Chunk]] = Map.empty
     for ((region, group) <- chunks.groupBy(_ / RegionSize floor)) {
-      val future: Future[Map[V3I, Chunk]] = Future {
+      val future: Future[Map[V3I, Future[Chunk]]] = Future {
         val regionFile = file(region)
-        if (regionFile exists) {
-          val in = new FileInputStream(file(region))
-          val map = GlobalKryo().readObject(new Input(in), classOf[Map[V3I, Chunk]])
-          in.close()
-          map
-        } else chunks.map(p => (p, generator(p))).toMap
-      } (context(region))
-      for (p <- group) {
-        accumulator = accumulator.updated(p,
-          future.transform(_.getOrElse(p, generator(p).copy(freshlyLoaded = true)), identity)(ExecutionContext.global))
+        val pulled: Map[V3I, Chunk] =
+          if (regionFile exists) {
+            val in = new FileInputStream(regionFile)
+            val pulled = GlobalKryo().readObject(new Input(in), classOf[Map[V3I, Chunk]])
+            in.close()
+            pulled
+          } else Map.empty
+        group.map(p => pulled.get(p) match {
+          case Some(chunk) => p -> Future { chunk }
+          case None => p -> generator(p)
+        }).toMap
       }
+      for (p <- group)
+        accumulator = accumulator.updated(p, future.flatMap(_(p)))
     }
     accumulator
   }
+
 
   override def close(): Unit = {
     for (executor <- executors.values) {

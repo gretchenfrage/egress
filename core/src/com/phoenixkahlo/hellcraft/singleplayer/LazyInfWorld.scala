@@ -140,7 +140,6 @@ class LazyInfWorld(
   def update: LazyInfWorld = {
     val loadified = loadify
     val events = loadified.active.toSeq.par.map(loadified.chunks(_)).flatMap(_.update(loadified)).seq
-    //val events = loadified.chunks.keys.toSeq.par.flatMap(loadified.chunkAt).flatMap(_.update(loadified)).seq
     loadified.integrate(events).incrTime
   }
 
