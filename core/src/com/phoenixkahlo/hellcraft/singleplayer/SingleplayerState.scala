@@ -104,8 +104,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         BackgroundMeshCompilerExecutor.setPlayerPos(avatar.pos)
         world = world.updateLoaded((avatar.chunkPos - LoadDist) to (avatar.chunkPos + LoadDist))
 
-        println("t = " + world.time)
-
         // manage history
         history = history.updated(world.time, world)
         history = history.rangeImpl(Some(world.time - 5), None)

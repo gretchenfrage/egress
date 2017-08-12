@@ -22,8 +22,8 @@ class Generator {
     }))
   val noise = new OpenSimplexNoise
 
-  val amp = 1f
-  val scale = 1f
+  val amp = 10f
+  val scale = 8f
 
   class HeightPatch {
     val heights = new Array[Double](256)
@@ -78,60 +78,5 @@ class Generator {
       }))
     })
   }
-  /*
-
-  def generate(p: V3I): BlockGrid = {
-    val heights = heightsAt(p.xi, p.zi)
-    if (heights.min > p.yi * 16 + 16) BlockGrid.StoneGrid
-    if (heights.max < p.yi * 16) BlockGrid.AirGrid
-    BlockGrid(v => {
-      val depth = (p.yi * 16 + v.yi) - heights(v.xi, v.zi)
-      if (depth >= 0) Air
-      else Stone
-    })
-  }
-
-  def genChunk(p: V3I): Future[Chunk] =
-    Future { new Chunk(p, generate(p)) }
-
-  val heightsMap = new mutable.ParHashMap[(Int, Int), Either[HeightPatch, Future[HeightPatch]]]
-  val heightsLock = new ReentrantReadWriteLock
-
-  def heightsAt(x: Int, z: Int): HeightPatch = {
-    heightsLock.readLock().lock()
-    heightsMap.get((x, z)) match {
-      case Some(Left(patch)) => return patch
-      case Some(Right(future)) => return Await.result(future, Duration.Inf)
-      case None =>
-    }
-    heightsLock.readLock().unlock()
-    heightsLock.writeLock().lock()
-    heightsMap.get((x, z)) match {
-      case Some(Left(patch)) => return patch
-      case Some(Right(future)) => return Await.result(future, Duration.Inf)
-      case None =>
-    }
-    val future = Future[HeightPatch] {
-      val patch = new HeightPatch
-      for {
-        xx <- 0 until 16
-        zz <- 0 until 16
-      } yield patch(xx, zz) = noise.eval((x * 16 + xx) / scale, (z * 16 + zz) / scale) * amp
-      patch.min = patch.heights.min
-      patch.max = patch.heights.max
-      patch
-    } (workContext)
-    heightsMap.put((x, z), Right(future))
-    heightsLock.writeLock().unlock()
-    val patch = Await.result(future, Duration.Inf)
-    heightsLock.writeLock().lock()
-    heightsMap.put((x, z), Left(patch))
-    heightsLock.writeLock().unlock()
-    patch
-  }
-
-
-
-    */
 
 }
