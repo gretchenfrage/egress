@@ -91,7 +91,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
   override def run(): Unit = {
     try {
-      while (true) {
+      while (!Thread.interrupted()) {
         // update world
         var world = history.last._2
         world = world.update

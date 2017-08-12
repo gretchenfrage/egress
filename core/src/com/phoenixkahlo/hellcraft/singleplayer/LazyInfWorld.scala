@@ -125,9 +125,11 @@ class LazyInfWorld(
     val newBorder: Set[V3I] = borderGrouped.getOrElse(false, Set.empty)
     val updatedNotBorder: Set[V3I] = updated.keySet ++ borderGrouped.getOrElse(true, Set.empty)
     // compute the new active set
-    val newActive = active ++ updatedNotBorder.toSeq.filter(newChunks(_).entities.nonEmpty)
+    val byActivity = updatedNotBorder.toSeq.groupBy(newChunks(_).entities.nonEmpty)
+    val newActive = active -- byActivity.getOrElse(false, Seq.empty) ++ byActivity.getOrElse(true, Seq.empty)
     // compute the new meshable set
-    val newMeshable = meshable ++ updatedNotBorder.toSeq.filter(newChunks(_).isMeshable(newChunks.get))
+    val byMeshability = updatedNotBorder.toSeq.groupBy(newChunks(_).isMeshable(newChunks.get))
+    val newMeshable = meshable -- byMeshability.getOrElse(false, Seq.empty) ++ byMeshability.getOrElse(true, Seq.empty)
     // construct
     new LazyInfWorld(save, time, newChunks, newFutures, newBorder, newActive, newMeshable, entityPosHints)
   }
@@ -137,7 +139,8 @@ class LazyInfWorld(
 
   def update: LazyInfWorld = {
     val loadified = loadify
-    val events = loadified.chunks.keys.toSeq.par.flatMap(loadified.chunkAt).flatMap(_.update(loadified)).seq
+    val events = loadified.active.toSeq.par.map(loadified.chunks(_)).flatMap(_.update(loadified)).seq
+    //val events = loadified.chunks.keys.toSeq.par.flatMap(loadified.chunkAt).flatMap(_.update(loadified)).seq
     loadified.integrate(events).incrTime
   }
 
