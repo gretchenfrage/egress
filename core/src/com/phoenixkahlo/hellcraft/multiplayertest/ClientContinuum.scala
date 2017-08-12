@@ -77,7 +77,7 @@ class ClientContinuum(session: ServerSession, getServerTime: => Long) {
                                 prov: SortedMap[Long, Map[V3I, Chunk]]
                                 ) extends ServerOperation
   private case class Integrate(
-                                events: SortedMap[Long, SortedSet[ChunkEvent]],
+                                events: SortedMap[Long, SortedSet[ChunkEvent]]
                               ) extends ServerOperation {
     def +(o: Integrate): Integrate =
       Integrate(o.events.foldLeft(events)(

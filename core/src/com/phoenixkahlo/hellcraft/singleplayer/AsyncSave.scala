@@ -29,7 +29,7 @@ class RegionGenAsyncSave(path: Path, generator: V3I => Chunk) extends AsyncSave 
   if (!path.toFile.exists)
     path.toFile.mkdir()
 
-  val RegionSize = 16
+  val RegionSize = 8
 
   private def file(region: V3I): File =
     path.resolve("x" + region.xi + "y" + region.yi + "z" + region.zi + ".region").toFile

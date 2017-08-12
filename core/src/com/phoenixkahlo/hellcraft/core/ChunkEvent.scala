@@ -32,7 +32,7 @@ case class PutBlock(at: V3I, block: Block, override val id: UUID) extends ChunkE
 }
 
 case class UncacheMesh(override val target: V3I, override val id: UUID) extends ChunkEvent(target, id) {
-  override def apply(chunk: Chunk): Chunk = chunk.renderUncached
+  override def apply(chunk: Chunk): Chunk = chunk.invalidateGraphics
 }
 
 case class AddEntity(entity: PositionHaver, override val id: UUID) extends ChunkEvent(entity.chunkPos, id) {

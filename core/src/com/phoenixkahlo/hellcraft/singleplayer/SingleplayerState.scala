@@ -48,8 +48,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     clock = new GametimeClock
 
-    val avatar = Avatar(sprinting = false, pos = V3F(5, 1, 5))
-    val world = new LazyInfWorld(save, 0, Map.empty, Map.empty, Set.empty, Map.empty)
+    val avatar = Avatar(pos = V3F(5, 1, 5))
+    val world = new LazyInfWorld(save, 0, Map.empty, Map.empty, Set.empty, Set.empty, Set.empty, Map.empty)
       .updateLoaded(LoadDist.neg to LoadDist)
       .integrate(Seq(AddEntity(avatar, UUID.randomUUID())))
     history = SortedMap(0L -> world)
@@ -105,8 +105,10 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         history = history.rangeImpl(Some(world.time - 5), None)
 
         // manage time
-        if (clock.timeSince(world.time) > (500 milliseconds))
+        if (clock.timeSince(world.time) > (500 milliseconds)) {
+          println("can't keep up!")
           clock.forgive(clock.timeSince(world.time) - (500 milliseconds))
+        }
         clock.waitUntil(world.time + 1)
       }
     } catch {
@@ -115,6 +117,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   }
 
   override def render(): Unit = {
+    Gdx.graphics.setTitle(Gdx.graphics.getFramesPerSecond.toString)
+
     // setup
     g += 1
 
@@ -126,7 +130,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     val (toRender, interpolation) =
       (history.last._2, history.dropRight(1).lastOption.map(_._2)) match {
         case (ultimate, Some(penultimate)) =>
-          (penultimate, Some((ultimate, clock.fractionalTicksSince(penultimate.time) - 1)))
+          (penultimate, Some((ultimate, Math.min(clock.fractionalTicksSince(penultimate.time) - 1, 1))))
         case (ultimate, None) =>
           (ultimate, None)
       }

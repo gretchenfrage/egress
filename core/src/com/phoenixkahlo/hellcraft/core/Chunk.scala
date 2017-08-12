@@ -18,30 +18,33 @@ class Chunk (
               val blocks: BlockGrid,
               val entities: Map[UUID,Entity],
               @transient val lastRenderer: ParamCache[(ResourcePack, World), ChunkRenderer],
-              val lastRendererDirty: Boolean,
+              @transient val lastMeshableFlag: ParamCache[V3I => Option[Chunk], Boolean],
+              val lastGraphicsDirty: Boolean,
               val freshlyLoaded: Boolean = true
-                   ) {
+            ) {
 
 
   def this(pos: V3I, blocks: BlockGrid) =
-    this(pos, blocks, Map.empty, null, true)
+    this(pos, blocks, Map.empty, null, null, true)
 
   def this(pos: V3I, generator: V3I => Block) =
-    this(pos, BlockGrid(v => generator(v + (pos * 16))), Map.empty, null, true)
+    this(pos, BlockGrid(v => generator(v + (pos * 16))), Map.empty, null, null, true)
 
   def copy(
             pos: V3I = this.pos,
             blocks: BlockGrid = this.blocks,
             entities: Map[UUID,Entity] = this.entities,
             lastRenderer: ParamCache[(ResourcePack, World), ChunkRenderer] = this.renderer,
-            lastRendererDirty: Boolean = false,
+            lastMeshableFlag: ParamCache[V3I => Option[Chunk], Boolean] = this.lastMeshableFlag,
+            lastGraphicsDirty: Boolean = false,
             freshlyLoaded: Boolean = false
           ): Chunk = new Chunk(
     pos,
     blocks,
     entities,
     lastRenderer,
-    lastRendererDirty,
+    lastMeshableFlag,
+    lastGraphicsDirty,
     freshlyLoaded
   )
 
@@ -64,10 +67,10 @@ class Chunk (
     */
   def putBlock(v: V3I, b: Block): Chunk = copy(
     blocks = blocks.updated(v, b),
-    lastRendererDirty = true
+    lastGraphicsDirty = true
   )
 
-  def renderUncached: Chunk = copy(lastRendererDirty = true)
+  def invalidateGraphics: Chunk = copy(lastGraphicsDirty = true)
 
   def putEntity(entity: Entity): Chunk = copy(
     entities = entities.updated(entity.id, entity)
@@ -89,11 +92,26 @@ class Chunk (
     if (lastRenderer == null)
       new ParamCache({ case (textures, world) => new ChunkRenderer(this, textures, world, None) })
     else {
-      if (lastRendererDirty)
+      if (lastGraphicsDirty)
         new ParamCache({ case params@(textures, world) => new ChunkRenderer(this, textures, world, Some(lastRenderer(params)))})
       else
         lastRenderer
     }
+
+  @transient private lazy val meshableFlag: ParamCache[V3I => Option[Chunk], Boolean] =
+    if (lastMeshableFlag != null && !lastGraphicsDirty) lastMeshableFlag
+    else new ParamCache((getChunk: V3I => Option[Chunk]) => {
+      if (blocks isAllTranslucent) false
+      else if (blocks.isAllOpaque && {
+        val adj = pos.touching.flatMap(getChunk(_))
+        if (adj.size != 6) println("warn: chunk meshable flag computed without all neighbors loaded")
+        (adj.size == 6) && adj.forall(_.blocks.isAllOpaque)
+      }) false
+      else true
+    })
+
+  def isMeshable(getChunk: V3I => Option[Chunk]): Boolean =
+    meshableFlag(getChunk)
 
   def renderables(texturePack: ResourcePack, world: World): Seq[RenderableFactory] =
     entities.values.flatMap(_.renderables(texturePack)).toSeq :+ renderer((texturePack, world))

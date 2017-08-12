@@ -4,6 +4,9 @@ import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
 case class BlockGrid(blocks: Vector[Byte]) {
 
+  lazy val isAllOpaque: Boolean = blocks.map(BlockDirectory.lookup).forall(_ isOpaque)
+  lazy val isAllTranslucent: Boolean = !isAllOpaque && blocks.map(BlockDirectory.lookup).forall(_ isTranslucent)
+
   def updated(v: V3I, b: Block): BlockGrid = {
     new BlockGrid(blocks.updated(BlockGrid.compress(v), b.id))
   }

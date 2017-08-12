@@ -20,7 +20,7 @@ public class DesktopLauncher {
 		double factor = 0.5;
 		config.width = (int) (screenSize.width * factor);
 		config.height = (int) (screenSize.height * factor);
-
+		config.title = "egress";
 		/*
 		Path dir = AppDirs.dataDir("egress");
 		System.out.println("using directory " + dir);
