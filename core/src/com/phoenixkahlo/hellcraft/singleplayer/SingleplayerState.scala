@@ -37,21 +37,14 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
   override def onEnter(driver: GameDriver): Unit = {
     println("loading")
-    /*
-    val surface = BlockGrid(v => if (v.yi == 15) Grass else Dirt)
-    val chunkGen: V3I => Chunk = p =>
-      if (p.yi == -1) new Chunk(p, surface)
-      else if (p.yi >= 0) new Chunk(p, BlockGrid.AirGrid)
-      else new Chunk(p, BlockGrid.StoneGrid)
-    */
     val generator = new Generator
 
-    save = new RegionGenAsyncSave(AppDirs.dataDir("egress").resolve("single"), generator.genChunk)
+    save = new RegionGenAsyncSave(AppDirs.dataDir("egress").resolve("single"), new KryoSerialService, generator.genChunk)
     println("instantiated save")
 
     clock = new GametimeClock
 
-    val avatar = Avatar(pos = V3F(0, 32, 0))
+    val avatar = Avatar(pos = V3F(0, Await.result(generator.heightsAt(0, 0), Duration.Inf)(0, 0).toInt, 0))
     val world = new LazyInfWorld(save, 0, Map.empty, Map.empty, Set.empty, Set.empty, Set.empty, Map.empty)
       .updateLoaded(Seq(avatar.chunkPos))
       .integrate(Seq(AddEntity(avatar, UUID.randomUUID())))
