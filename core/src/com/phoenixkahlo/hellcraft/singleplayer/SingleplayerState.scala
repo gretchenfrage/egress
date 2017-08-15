@@ -39,7 +39,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     println("loading")
     val generator = new Generator
 
-    save = new RegionGenAsyncSave(AppDirs.dataDir("egress").resolve("single"), new KryoSerialService, generator.genChunk)
+    save = new RegionGenAsyncSave(AppDirs.dataDir("egress").resolve("single"), new HybridSerialService,
+      generator.genChunk)
     println("instantiated save")
 
     clock = new GametimeClock

@@ -12,7 +12,7 @@ sealed abstract class Block(
                              val tid: SheetTextureID,
                              val isOpaque: Boolean = true,
                              val isCorporeal: Boolean = true
-                    ) {
+                    ) extends Serializable {
 
   def isTranslucent = !isOpaque
 

@@ -9,7 +9,7 @@ import com.phoenixkahlo.hellcraft.multiplayertest.EntityID
 /**
   * A transformation that is applied to a particular chunk.
   */
-abstract class ChunkEvent(val target: V3I, val id: UUID) extends Comparable[ChunkEvent] {
+abstract class ChunkEvent(val target: V3I, val id: UUID) extends Comparable[ChunkEvent] with Serializable {
 
   def apply(chunk: Chunk): Chunk
 

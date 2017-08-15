@@ -5,7 +5,7 @@ import com.badlogic.gdx.math.Vector3
 /**
   * A vector of 3 floats
   */
-class V3F(val x: Float, val y: Float, val z: Float) {
+class V3F(val x: Float, val y: Float, val z: Float) extends Serializable {
 
   if (x != x || y != y || z != z)
     throw new AssertionError("vector component is NaN")

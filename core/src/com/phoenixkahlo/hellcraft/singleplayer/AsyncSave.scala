@@ -1,6 +1,6 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
-import java.io.{File, FileInputStream, FileOutputStream}
+import java.io._
 import java.nio.file.Path
 import java.util.concurrent.Executors
 
@@ -10,6 +10,7 @@ import com.phoenixkahlo.hellcraft.core.Chunk
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.serial.GlobalKryo
 
+import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -25,40 +26,118 @@ trait AsyncSave extends AutoCloseable {
 
 }
 
-trait SerialService {
+trait SaveSerialService {
 
-  def write(path: Path, obj: Any): Unit
+  def write(path: Path, obj: Map[V3I, Chunk]): Unit
 
-  def read(path: Path): Option[Any]
+  def read(path: Path): Map[V3I, Chunk]
 
 }
 
-class KryoSerialService extends SerialService {
+class KryoSerialService extends SaveSerialService {
   val bufferSize = 1000000
 
-  override def write(path: Path, obj: Any): Unit = {
+  override def write(path: Path, obj: Map[V3I, Chunk]): Unit = {
     val file = path.toFile
     if (!file.exists) file.createNewFile()
     val out = new FileOutputStream(file)
     val output = new io.Output(out, bufferSize)
     val kryo = GlobalKryo()
-    kryo.writeClassAndObject(output, obj)
+    kryo.writeObject(output, obj)
     out.close()
   }
 
-  override def read(path: Path): Option[Any] = {
+  override def read(path: Path): Map[V3I, Chunk] = {
     val file = path.toFile
     if (file exists) {
       val in = new FileInputStream(file)
       val input = new io.Input(in, bufferSize)
       val kryo = GlobalKryo()
-      try Some(kryo.readClassAndObject(input))
+      try kryo.readObject(input, classOf[Map[V3I, Chunk]])
       finally in.close()
-    } else None
+    } else Map.empty
   }
 }
 
-class RegionGenAsyncSave(path: Path, serial: SerialService, generator: V3I => Future[Chunk]) extends AsyncSave {
+class JavaSerialService extends SaveSerialService {
+  override def write(path: Path, obj: Map[V3I, Chunk]): Unit = {
+    val out = new ObjectOutputStream(new FileOutputStream(path.toFile))
+    out.writeObject(obj)
+    out.close()
+  }
+
+  override def read(path: Path): Map[V3I, Chunk] = {
+    if (path.toFile.exists) {
+      val in = new ObjectInputStream(new FileInputStream(path.toFile))
+      try in.readObject().asInstanceOf[Map[V3I, Chunk]]
+      finally in.close()
+    } else Map.empty
+  }
+}
+
+object ObjectOutputAsStream {
+  def apply(oo: ObjectOutput): OutputStream = {
+    oo match {
+      case stream: OutputStream => stream
+      case _ => b => oo.writeByte(b)
+    }
+  }
+}
+
+object ObjectInputAsStream {
+  def apply(oi: ObjectInput): InputStream = {
+    oi match {
+      case stream: InputStream => stream
+      case _ => () => oi.readByte()
+    }
+  }
+}
+
+class HybridChunkWrapper extends Externalizable {
+
+  var chunk: Chunk = _
+
+  def this(chunk: Chunk) = {
+    this()
+    this.chunk = chunk
+  }
+
+  override def writeExternal(out: ObjectOutput): Unit = {
+    val kryo = GlobalKryo()
+    val output = new io.Output(ObjectOutputAsStream(out), 8000)
+    kryo.writeObject(output, chunk)
+  }
+
+  override def readExternal(in: ObjectInput): Unit = {
+    val kryo = GlobalKryo()
+    val input = new io.Input(ObjectInputAsStream(in), 8000)
+    input.setLimit(8000)
+    chunk = kryo.readObject(input, classOf[Chunk])
+  }
+}
+
+class HybridSerialService extends SaveSerialService {
+
+  override def write(path: Path, obj: Map[V3I, Chunk]): Unit = {
+    val out = new ObjectOutputStream(new FileOutputStream(path.toFile))
+    val toWrite = obj
+      .mapValues(new HybridChunkWrapper(_))
+      .foldLeft(new HashMap[V3I, HybridChunkWrapper])({ case (map, (key, value)) => map.updated(key, value) })
+    out.writeObject(toWrite)
+    out.close()
+  }
+
+  override def read(path: Path): Map[V3I, Chunk] = {
+    if (path.toFile.exists) {
+      val in = new ObjectInputStream(new FileInputStream(path.toFile))
+      val read = in.readObject().asInstanceOf[Map[V3I, HybridChunkWrapper]]
+      in.close()
+      read.mapValues(_.chunk)
+    } else Map.empty
+  }
+}
+
+class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I => Future[Chunk]) extends AsyncSave {
 
   if (!path.toFile.exists)
     path.toFile.mkdir()
@@ -104,31 +183,11 @@ class RegionGenAsyncSave(path: Path, serial: SerialService, generator: V3I => Fu
     var accumulator: Seq[Future[Unit]] = Seq.empty
     for ((region, group) <- toSave.values.toSeq.groupBy(_.pos / RegionSize floor)) {
       accumulator +:= Future {
-        /*
-        val regionFile = fileFor(region)
-        var map: Map[V3I, Chunk] =
-          if (regionFile exists) {
-            val in = new FileInputStream(fileFor(region))
-            val map = GlobalKryo().readObject(new Input(in), classOf[Map[V3I, Chunk]])
-            in.close()
-            map
-          } else {
-            regionFile.createNewFile()
-            Map.empty
-          }
-          */
         val path = pathFor(region)
-        var map: Map[V3I, Chunk] = serial.read(path).map(_.asInstanceOf[Map[V3I, Chunk]]).getOrElse(Map.empty)
-
+        var map = serial.read(path)
+        //var map: Map[V3I, Chunk] = serial.read(path).map(_.asInstanceOf[Map[V3I, Chunk]]).getOrElse(Map.empty)
         map ++= group.map(c => (c.pos, c)).toMap
-
         serial.write(path, map)
-
-        /*
-        val out = new FileOutputStream(regionFile)
-        GlobalKryo().writeObject(new Output(out), map)
-        out.close()
-        */
       } (contextFor(region))
     }
     accumulator
@@ -140,18 +199,9 @@ class RegionGenAsyncSave(path: Path, serial: SerialService, generator: V3I => Fu
     var accumulator: Map[V3I, Future[Chunk]] = Map.empty
     for ((region, group) <- chunks.groupBy(_ / RegionSize floor)) {
       val future: Future[Map[V3I, Future[Chunk]]] = Future {
-        /*
-        val regionFile = fileFor(region)
-        val pulled: Map[V3I, Chunk] =
-          if (regionFile exists) {
-            val in = new FileInputStream(regionFile)
-            val pulled = GlobalKryo().readObject(new Input(in), classOf[Map[V3I, Chunk]])
-            in.close()
-            pulled
-          } else Map.empty
-          */
-        val pulled: Map[V3I, Chunk] =
-          serial.read(pathFor(region)).map(_.asInstanceOf[Map[V3I, Chunk]]).getOrElse(Map.empty)
+        //val pulled: Map[V3I, Chunk] =
+        //  serial.read(pathFor(region)).map(_.asInstanceOf[Map[V3I, Chunk]]).getOrElse(Map.empty)
+        val pulled = serial.read(pathFor(region))
         group.map(p => pulled.get(p) match {
           case Some(chunk) => p -> Future { chunk }
           case None => p -> generator(p)

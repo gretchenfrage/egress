@@ -1,5 +1,7 @@
 package com.phoenixkahlo.hellcraft.math
 
+import com.badlogic.gdx.graphics.Color
+
 /**
   * A vector of 3 ints, that is also a vector of 3 floats
   */
@@ -66,6 +68,8 @@ class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
     V3I(x, y, z)
   }
 
+  @transient lazy val toColor: Color = this / 256 match { case V3F(r, g, b) => new Color(r, g, b, 1) }
+
   def touching: Seq[V3I] =
     Directions().map(this + _)
 
@@ -79,6 +83,9 @@ object V3I {
 
   def apply(x: Int, y: Int, z: Int) =
     new V3I(x, y, z)
+
+  def apply(color: Color) =
+    new V3I(color.r * 256 toInt, color.g * 256 toInt, color.b * 256 toInt)
 
   def unapply(v: V3I): Option[(Int, Int, Int)] =
     Some((v.xi, v.yi, v.zi))

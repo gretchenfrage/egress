@@ -21,7 +21,7 @@ class Chunk (
               @transient val lastMeshableFlag: ParamCache[V3I => Option[Chunk], Boolean],
               val lastGraphicsDirty: Boolean,
               val freshlyLoaded: Boolean = true
-            ) {
+            ) extends Serializable {
 
 
   def this(pos: V3I, blocks: BlockGrid) =

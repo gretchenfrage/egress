@@ -1,6 +1,6 @@
 package com.phoenixkahlo.hellcraft.math
 
-case class V2F(x: Float, y: Float) {
+case class V2F(x: Float, y: Float) extends Serializable {
 
   if (x != x || y != y)
     throw new AssertionError("vector component is NaN")

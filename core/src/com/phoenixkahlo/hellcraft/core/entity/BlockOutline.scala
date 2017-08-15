@@ -16,7 +16,7 @@ import com.phoenixkahlo.hellcraft.util.KeyParamPool
 
 import scala.collection.JavaConverters
 
-case class BlockOutline(override val pos: V3I, color: Color, chunkSize: Int = 16) extends PositionHaver {
+case class BlockOutline(override val pos: V3I, color: V3I, chunkSize: Int = 16) extends PositionHaver {
 
   override val id: UUID = UUID.randomUUID()
 
@@ -24,7 +24,14 @@ case class BlockOutline(override val pos: V3I, color: Color, chunkSize: Int = 16
     Seq(RemoveEntity(chunkPos, id, ids.head))
 
   override def renderables(texturePack: ResourcePack): Seq[RenderableFactory] =
-    Seq(BlockOutlineRenderer(pos, color))
+    Seq(BlockOutlineRenderer(pos, color.toColor))
+
+}
+
+object BlockOutline {
+
+  def apply(pos: V3I, color: Color): BlockOutline =
+    BlockOutline(pos, V3I(color))
 
 }
 
