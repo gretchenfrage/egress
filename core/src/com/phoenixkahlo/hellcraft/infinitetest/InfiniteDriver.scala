@@ -19,7 +19,7 @@ import com.phoenixkahlo.hellcraft.finitetest.SimpleAvatarController
 import com.phoenixkahlo.hellcraft.graphics.{ChunkRenderer, DefaultResourcePack, ResourceNode, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Origin, Repeated, V3F, V3I}
 import com.phoenixkahlo.hellcraft.serial.save.{RegionSave, WorldSave}
-import com.phoenixkahlo.hellcraft.util.{BackgroundMeshCompilerExecutor, DependencyGraph, PriorityExecContext}
+import com.phoenixkahlo.hellcraft.util.{DependencyGraph, PriorityExecContext, SpatialExecutor}
 import other.{AppDirs, PerlinNoiseGenerator}
 
 import scala.collection.JavaConverters
@@ -68,7 +68,8 @@ class InfiniteDriver extends ApplicationAdapter {
     world.transformChunk(avatar.chunkPos, _.putEntity(avatar))
     println("world instantiated")
 
-    BackgroundMeshCompilerExecutor.setPlayerPos(avatar.pos)
+    //BackgroundMeshCompilerExecutor.setPlayerPos(avatar.pos)
+    SpatialExecutor.global.priorityPoint = avatar.pos
 
     cam = new PerspectiveCamera(67, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     cam.near = 0.1f
@@ -129,7 +130,8 @@ class InfiniteDriver extends ApplicationAdapter {
     log()
 
     // update chunk compiler priority
-    BackgroundMeshCompilerExecutor.setPlayerPos(pos)
+    //BackgroundMeshCompilerExecutor.setPlayerPos(pos)
+    SpatialExecutor.global.priorityPoint = V3F(controller.cam.position)
 
     log()
 

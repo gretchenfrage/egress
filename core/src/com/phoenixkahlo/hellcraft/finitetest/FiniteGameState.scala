@@ -19,7 +19,7 @@ import com.phoenixkahlo.hellcraft.graphics.{ResourceNode, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.serial.save.RegionSave
-import com.phoenixkahlo.hellcraft.util.{BackgroundMeshCompilerExecutor, Cache, DependencyGraph, PriorityExecContext}
+import com.phoenixkahlo.hellcraft.util.{Cache, DependencyGraph, PriorityExecContext, SpatialExecutor}
 import other.{AppDirs, PerlinNoiseGenerator}
 
 import scala.collection.JavaConverters
@@ -121,7 +121,8 @@ class FiniteGameState(givenTexturePack: Cache[ResourcePack]) extends GameState {
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
 
-    BackgroundMeshCompilerExecutor.setPlayerPos(V3F(controller.cam.position))
+    //BackgroundMeshCompilerExecutor.setPlayerPos(V3F(controller.cam.position))
+    SpatialExecutor.global.priorityPoint = V3F(controller.cam.position)
 
     // update the world
     t += 1
