@@ -69,14 +69,13 @@ trait CarboniteInput extends ObjectInput {
       node.read(this)
       refs.put(ref, node)
     }
-    val refsMap: Map[Int, Any] = refs.mapValues(_.get).toMap
     val refLookup: Int => Any = n =>
       if (n == -1) null
-      else refsMap(n)
+      else refs(n).get
     for (node <- refs.values) {
       node.finish(refLookup)
     }
-    refsMap(0).asInstanceOf[AnyRef]
+    refs(0).get.asInstanceOf[AnyRef]
   }
 
 }

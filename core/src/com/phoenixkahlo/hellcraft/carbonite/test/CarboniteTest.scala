@@ -6,9 +6,17 @@ import java.util
 import com.phoenixkahlo.hellcraft.carbonite._
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes._
 
+import scala.collection.{SortedMap, SortedSet}
+
 object TestConfig extends AbstractCarboniteConfig {
   override protected def resolveType(clazz: Class[_]): NodeType = {
     if (clazz == classOf[String]) StringNode
+
+    else if (clazz == classOf[Seq[_]]) SeqNode
+    else if (clazz == classOf[Map[_, _]]) MapNode
+    else if (clazz == classOf[Set[_]]) SetNode
+    else if (clazz == classOf[SortedMap[_, _]]) SortedMapNode
+    else if (clazz == classOf[SortedSet[_]]) SortedSetNode
 
     else if (ReflectUtil.isSingleton(clazz)) SingletonNode
 
@@ -59,6 +67,8 @@ object TestConfig extends AbstractCarboniteConfig {
     else if (clazz == classOf[Float] || clazz == classOf[java.lang.Float]) FloatNode
     else if (clazz == classOf[Double] || clazz == classOf[java.lang.Double]) DoubleNode
 
+    else if (clazz == classOf[Ordering[_]]) new JavaSerialNode(classOf[Ordering[_]])
+
     else ???
   }
 
@@ -68,6 +78,12 @@ object TestConfig extends AbstractCarboniteConfig {
 
   register[Array[Int]]()
   register[Array[String]]()
+
+  register[Seq[_]]()
+  register[Map[_, _]]()
+  register[Set[_]]()
+  register[SortedMap[_, _]]()
+  register[SortedSet[_]]()
 
   register[String]()
 
@@ -103,6 +119,8 @@ object TestConfig extends AbstractCarboniteConfig {
   register[Float]()
   register[Double]()
 
+  register[Ordering[_]]()
+
 }
 
 @CarboniteWith(classOf[FieldNode])
@@ -120,7 +138,12 @@ object SingletonObject
 
 object CarboniteTest extends App {
 
-  val obj = SingletonObject
+  val obj = SortedMap(
+    4 -> "4",
+    3 -> "3",
+    1 -> "1",
+    2 -> "2"
+  )
 
   val out = new CarboniteOutputDebugger(TestConfig)
   out.writeObject(obj)

@@ -4,19 +4,20 @@ import com.phoenixkahlo.hellcraft.carbonite._
 
 import scala.collection.mutable.ArrayBuffer
 
-object SeqNode extends NodeType {
+object SetNode extends NodeType {
 
   override def serial(obj: Any): Option[SerialNode] = {
     obj match {
-      case seq: Seq[_] =>
-        val boxed = seq.map(_.asInstanceOf[AnyRef])
+      case set: Set[_] =>
+        val boxed = set.toSeq.map(_.asInstanceOf[AnyRef])
         Some(new SerialNode {
           override def dependencies: Seq[Object] =
             boxed
 
           override def write(out: CarboniteOutput, refs: (Any) => Int): Unit = {
-            out.writeInt(seq.size)
-            boxed.foreach(o => out.writeRef(refs(o)))
+            out.writeInt(set.size)
+            for (o <- boxed)
+              out.writeRef(refs(o))
           }
         })
       case _ => None
@@ -26,7 +27,7 @@ object SeqNode extends NodeType {
   override def deserial(): DeserialNode = {
     new DeserialNode {
       val contentRefs = new ArrayBuffer[Int]
-      var content: Seq[_] = _
+      var content: Set[_] = _
 
       override def read(in: CarboniteInput): Unit = {
         for (_ <- 1 to in.readInt())
@@ -39,7 +40,7 @@ object SeqNode extends NodeType {
       }
 
       override def finish(refs: (Int) => Any): Unit = {
-        content = contentRefs.foldLeft(Vector[Any]())((v, r) => v :+ refs(r))
+        content = contentRefs.map(refs).toSet
       }
     }
   }

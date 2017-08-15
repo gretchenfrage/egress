@@ -2,21 +2,24 @@ package com.phoenixkahlo.hellcraft.carbonite.nodetypes
 
 import com.phoenixkahlo.hellcraft.carbonite._
 
+import scala.collection.SortedSet
 import scala.collection.mutable.ArrayBuffer
 
-object SeqNode extends NodeType {
+object SortedSetNode extends NodeType {
 
   override def serial(obj: Any): Option[SerialNode] = {
     obj match {
-      case seq: Seq[_] =>
-        val boxed = seq.map(_.asInstanceOf[AnyRef])
+      case set: SortedSet[_] =>
+        val boxed = set.toSeq.map(_.asInstanceOf[AnyRef])
         Some(new SerialNode {
           override def dependencies: Seq[Object] =
-            boxed
+            boxed :+ set.ordering
 
           override def write(out: CarboniteOutput, refs: (Any) => Int): Unit = {
-            out.writeInt(seq.size)
-            boxed.foreach(o => out.writeRef(refs(o)))
+            out.writeInt(set.size)
+            out.writeRef(refs(set.ordering))
+            for (o <- boxed)
+              out.writeRef(refs(o))
           }
         })
       case _ => None
@@ -25,12 +28,15 @@ object SeqNode extends NodeType {
 
   override def deserial(): DeserialNode = {
     new DeserialNode {
+      var orderingRef: Int = _
       val contentRefs = new ArrayBuffer[Int]
-      var content: Seq[_] = _
+      var content: SortedSet[_] = _
 
       override def read(in: CarboniteInput): Unit = {
-        for (_ <- 1 to in.readInt())
-          contentRefs += in.readRef()
+        val size = in.readInt()
+        orderingRef = in.readRef()
+        for (_ <- 1 to size)
+          contentRefs += in.readInt()
       }
 
       override def get: Any = {
@@ -39,7 +45,8 @@ object SeqNode extends NodeType {
       }
 
       override def finish(refs: (Int) => Any): Unit = {
-        content = contentRefs.foldLeft(Vector[Any]())((v, r) => v :+ refs(r))
+        val ord = refs(orderingRef).asInstanceOf[Ordering[Any]]
+        content = contentRefs.foldLeft(SortedSet.empty[Any](ord))(_ + _)
       }
     }
   }
