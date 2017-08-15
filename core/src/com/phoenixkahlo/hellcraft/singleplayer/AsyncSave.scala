@@ -7,7 +7,7 @@ import java.util.concurrent.Executors
 import com.esotericsoftware.kryo.io
 import com.esotericsoftware.kryo.io.{Input, Output}
 import com.phoenixkahlo.hellcraft.carbonite.egress.EgressCarboniteConfig
-import com.phoenixkahlo.hellcraft.carbonite.{CarboniteInputStream, CarboniteOutputStream, DefaultCarboniteConfig}
+import com.phoenixkahlo.hellcraft.carbonite.{CarboniteInputStream, CarboniteOutputStream, DefaultCarboniteConfig, LazyDeserial}
 import com.phoenixkahlo.hellcraft.core.Chunk
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.serial.GlobalKryo
@@ -32,23 +32,38 @@ trait SaveSerialService {
 
   def write(path: Path, obj: Map[V3I, Chunk]): Unit
 
-  def read(path: Path): Map[V3I, Chunk]
+  def read(path: Path)(implicit executor: ExecutionContext): Map[V3I, Future[Chunk]]
 
 }
 
 class CarboniteSerialService extends SaveSerialService {
-  implicit val config = EgressCarboniteConfig
+  private implicit val config = EgressCarboniteConfig
 
+  /*
   override def write(path: Path, obj: Map[V3I, Chunk]): Unit = {
     val out = new CarboniteOutputStream(new FileOutputStream(path.toFile))
     out.writeObject(obj)
     out.close()
   }
 
-  override def read(path: Path): Map[V3I, Chunk] = {
+  override def read(path: Path): Map[V3I, Future[Chunk]] = {
     if (path.toFile.exists) {
       val in = new CarboniteInputStream(new FileInputStream(path.toFile))
-      try in.readObject().asInstanceOf[Map[V3I, Chunk]]
+      try in.readObject().asInstanceOf[Map[V3I, Chunk]].mapValues(c => Future { c } (ExecutionContext.global))
+      finally in.close()
+    } else Map.empty
+  }
+  */
+  override def write(path: Path, obj: Map[V3I, Chunk]): Unit = {
+    val out = new CarboniteOutputStream(new FileOutputStream(path.toFile))
+    out.writeObject(obj.mapValues(LazyDeserial(_)))
+    out.close()
+  }
+
+  override def read(path: Path)(implicit executor: ExecutionContext): Map[V3I, Future[Chunk]] = {
+    if (path.toFile.exists) {
+      val in = new CarboniteInputStream(new FileInputStream(path.toFile))
+      try in.readObject().asInstanceOf[Map[V3I, LazyDeserial[Chunk]]].mapValues(_.future)
       finally in.close()
     } else Map.empty
   }
@@ -101,8 +116,7 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
     for ((region, group) <- toSave.values.toSeq.groupBy(_.pos / RegionSize floor)) {
       accumulator +:= Future {
         val path = pathFor(region)
-        var map = serial.read(path)
-        //var map: Map[V3I, Chunk] = serial.read(path).map(_.asInstanceOf[Map[V3I, Chunk]]).getOrElse(Map.empty)
+        var map = serial.read(path).mapValues(Await.result(_, Duration.Inf))
         map ++= group.map(c => (c.pos, c)).toMap
         serial.write(path, map)
       } (contextFor(region))
@@ -116,11 +130,9 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
     var accumulator: Map[V3I, Future[Chunk]] = Map.empty
     for ((region, group) <- chunks.groupBy(_ / RegionSize floor)) {
       val future: Future[Map[V3I, Future[Chunk]]] = Future {
-        //val pulled: Map[V3I, Chunk] =
-        //  serial.read(pathFor(region)).map(_.asInstanceOf[Map[V3I, Chunk]]).getOrElse(Map.empty)
         val pulled = serial.read(pathFor(region))
         group.map(p => pulled.get(p) match {
-          case Some(chunk) => p -> Future { chunk }
+          case Some(chunkFuture) => p -> chunkFuture
           case None => p -> generator(p)
         }).toMap
       }

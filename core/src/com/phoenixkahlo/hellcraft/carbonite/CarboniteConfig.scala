@@ -136,6 +136,8 @@ class DefaultCarboniteConfig extends CarboniteConfig {
   register[SortedMap[_, _]]()
   register[SortedSet[_]]()
 
+  register[LazyDeserial[_]]()
+
   register[String]()
 
   register[Tuple1[_]]()

@@ -14,7 +14,7 @@ trait CarboniteOutput extends ObjectOutput {
 
   def writeClass(clazz: Class[_]): Unit
 
-  protected def config: CarboniteConfig
+  def config: CarboniteConfig
 
   override def writeObject(obj: Any): Unit = {
     case class Datum(node: SerialNode, ref: Int, nodeTypeID: NodeTypeID)
@@ -58,7 +58,7 @@ trait CarboniteInput extends ObjectInput {
 
   def readClass(): Class[_]
 
-  protected def config: CarboniteConfig
+  def config: CarboniteConfig
 
   override def readObject(): AnyRef = {
     val refCount = readRefCount()
