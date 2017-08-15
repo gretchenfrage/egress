@@ -30,5 +30,8 @@ object ReflectUtil {
     }
   }
 
+  def isSingleton(clazz: Class[_]): Boolean = {
+    clazz.getFields.exists(_.getName == "MODULE$")
+  }
 
 }

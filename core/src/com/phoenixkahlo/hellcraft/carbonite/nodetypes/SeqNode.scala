@@ -2,15 +2,21 @@ package com.phoenixkahlo.hellcraft.carbonite.nodetypes
 
 import com.phoenixkahlo.hellcraft.carbonite._
 
-object StringNode extends NodeType {
+import scala.collection.mutable.ArrayBuffer
+
+object SeqNode extends NodeType {
+
   override def serial(obj: Any): Option[SerialNode] = {
     obj match {
-      case str: String =>
+      case seq: Seq[_] =>
+        val boxed = seq.map(_.asInstanceOf[AnyRef])
         Some(new SerialNode {
-          override def dependencies: Seq[Object] = Seq.empty
+          override def dependencies: Seq[Object] =
+            boxed
 
           override def write(out: CarboniteOutput, refs: (Any) => Int): Unit = {
-            out.writeUTF(str)
+            out.writeInt(seq.size)
+            boxed.foreach(o => out.writeRef(refs(o)))
           }
         })
       case _ => None
@@ -19,15 +25,17 @@ object StringNode extends NodeType {
 
   override def deserial(): DeserialNode = {
     new DeserialNode {
-      var str: String = _
+      val contentRefs = new ArrayBuffer[Int]
+      val n = ???
 
       override def read(in: CarboniteInput): Unit = {
-        str = in.readUTF()
+
       }
 
-      override def get: Any = str
+      override def get: Any = ???
 
-      override def finish(refs: (Int) => Any): Unit = ()
+      override def finish(refs: (Int) => Any): Unit = ???
     }
   }
+
 }

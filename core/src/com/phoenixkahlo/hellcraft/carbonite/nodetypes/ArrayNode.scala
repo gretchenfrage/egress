@@ -10,7 +10,7 @@ class RefArrayNode(clazz: Class[Array[_ <: AnyRef]]) extends NodeType {
   override def serial(obj: Any): Option[SerialNode] = {
     if (obj.getClass == clazz) {
       val length = reflect.Array.getLength(obj)
-      val contents = (0 until length).toSeq.map(reflect.Array.get(obj, _))
+      val contents = (0 until length).map(reflect.Array.get(obj, _))
       Some(new SerialNode {
         override def dependencies: Seq[Object] =
           contents
@@ -46,7 +46,7 @@ class RefArrayNode(clazz: Class[Array[_ <: AnyRef]]) extends NodeType {
 
 }
 
-class DoubleArrayNode extends NodeType {
+object DoubleArrayNode extends NodeType {
   override def serial(obj: Any): Option[SerialNode] = {
     obj match {
       case arr: Array[Double] =>
@@ -81,7 +81,7 @@ class DoubleArrayNode extends NodeType {
   }
 }
 
-class FloatArrayNode extends NodeType {
+object FloatArrayNode extends NodeType {
   override def serial(obj: Any): Option[SerialNode] = {
     obj match {
       case arr: Array[Float] =>
@@ -116,7 +116,7 @@ class FloatArrayNode extends NodeType {
   }
 }
 
-class IntArrayNode extends NodeType {
+object IntArrayNode extends NodeType {
   override def serial(obj: Any): Option[SerialNode] = {
     obj match {
       case arr: Array[Int] =>
@@ -151,7 +151,7 @@ class IntArrayNode extends NodeType {
   }
 }
 
-class LongArrayNode extends NodeType {
+object LongArrayNode extends NodeType {
   override def serial(obj: Any): Option[SerialNode] = {
     obj match {
       case arr: Array[Long] =>
@@ -186,7 +186,7 @@ class LongArrayNode extends NodeType {
   }
 }
 
-class ShortArrayNode extends NodeType {
+object ShortArrayNode extends NodeType {
   override def serial(obj: Any): Option[SerialNode] = {
     obj match {
       case arr: Array[Short] =>
@@ -221,7 +221,7 @@ class ShortArrayNode extends NodeType {
   }
 }
 
-class ByteArrayNode extends NodeType {
+object ByteArrayNode extends NodeType {
   override def serial(obj: Any): Option[SerialNode] = {
     obj match {
       case arr: Array[Byte] =>
@@ -256,7 +256,7 @@ class ByteArrayNode extends NodeType {
   }
 }
 
-class CharArrayNode extends NodeType {
+object CharArrayNode extends NodeType {
   override def serial(obj: Any): Option[SerialNode] = {
     obj match {
       case arr: Array[Char] =>
@@ -291,7 +291,7 @@ class CharArrayNode extends NodeType {
   }
 }
 
-class BooleanArrayNode extends NodeType {
+object BooleanArrayNode extends NodeType {
   override def serial(obj: Any): Option[SerialNode] = {
     obj match {
       case arr: Array[Boolean] =>

@@ -21,9 +21,7 @@ abstract class AbstractCarboniteConfig extends CarboniteConfig {
 
   protected def resolveType(clazz: Class[_]): NodeType
 
-  def register[T]()(implicit tag: ClassTag[T]): Unit = {
-    val clazz = tag.runtimeClass
-
+  def register(clazz: Class[_]): Unit = {
     classes += clazz
 
     val nodeType = Option(clazz.getAnnotation(classOf[CarboniteWith])) match {
@@ -31,7 +29,12 @@ abstract class AbstractCarboniteConfig extends CarboniteConfig {
         .getConstructor(classOf[Class[_]]).newInstance(clazz)
       case None => resolveType(clazz)
     }
-    types += nodeType
+    if (!types.contains(nodeType))
+      types += nodeType
+  }
+
+  def register[T]()(implicit tag: ClassTag[T]): Unit = {
+    register(tag.runtimeClass)
   }
 
   override def serial(obj: Any): (SerialNode, NodeTypeID) = {

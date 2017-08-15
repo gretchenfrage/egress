@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.carbonite.nodetypes
 
 import com.phoenixkahlo.hellcraft.carbonite._
 
-class IntNode extends NodeType {
+object IntNode extends NodeType {
 
   override def serial(obj: Any): Option[SerialNode] = {
     obj match {
@@ -30,7 +30,7 @@ class IntNode extends NodeType {
 
 }
 
-class LongNode extends NodeType {
+object LongNode extends NodeType {
 
   override def serial(obj: Any): Option[SerialNode] = {
     obj match {
@@ -58,7 +58,7 @@ class LongNode extends NodeType {
 
 }
 
-class DoubleNode extends NodeType {
+object DoubleNode extends NodeType {
 
   override def serial(obj: Any): Option[SerialNode] = {
     obj match {
@@ -86,7 +86,7 @@ class DoubleNode extends NodeType {
 
 }
 
-class FloatNode extends NodeType {
+object FloatNode extends NodeType {
 
   override def serial(obj: Any): Option[SerialNode] = {
     obj match {
@@ -114,7 +114,7 @@ class FloatNode extends NodeType {
 
 }
 
-class ByteNode extends NodeType {
+object ByteNode extends NodeType {
 
   override def serial(obj: Any): Option[SerialNode] = {
     obj match {
@@ -142,7 +142,7 @@ class ByteNode extends NodeType {
 
 }
 
-class ShortNode extends NodeType {
+object ShortNode extends NodeType {
 
   override def serial(obj: Any): Option[SerialNode] = {
     obj match {
@@ -170,7 +170,7 @@ class ShortNode extends NodeType {
 
 }
 
-class BooleanNode extends NodeType {
+object BooleanNode extends NodeType {
 
   override def serial(obj: Any): Option[SerialNode] = {
     obj match {
@@ -198,7 +198,7 @@ class BooleanNode extends NodeType {
 
 }
 
-class CharNode extends NodeType {
+object CharNode extends NodeType {
 
   override def serial(obj: Any): Option[SerialNode] = {
     obj match {

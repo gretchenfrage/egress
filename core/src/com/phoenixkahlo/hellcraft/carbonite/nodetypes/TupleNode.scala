@@ -18,7 +18,7 @@ object TupleNodeSourceFactory extends App {
   for (n <- 3 to 22) {
 
     val className = "Tuple" + n + "[" + (1 to n).foldLeft("")((str, _) => str + "_, ").substring(0, n * 3 - 2) + "]"
-    println("class Tuple" + n + "Node extends NodeType {")
+    println("object Tuple" + n + "Node extends NodeType {")
     println()
     println("  private val clazz = classOf[" + className + "]")
     println("  private val fields = (1 to " + n + ").map(n => clazz.getDeclaredField(\"_\" + n)).map(ReflectUtil.makeSettable)")
@@ -59,7 +59,7 @@ object TupleNodeSourceFactory extends App {
 
   for (n <- 1 to 22) {
     val className = "Tuple" + n + "[" + (1 to n).foldLeft("")((str, _) => str + "_, ").substring(0, n * 3 - 2) + "]"
-    println("else if (clazz == classOf[" + className + "]) new Tuple" + n + "Node")
+    println("else if (clazz == classOf[" + className + "]) Tuple" + n + "Node")
   }
 
   println()
@@ -71,7 +71,7 @@ object TupleNodeSourceFactory extends App {
 
 }
 
-class Tuple1Node extends NodeType {
+object Tuple1Node extends NodeType {
 
   private val clazz = classOf[Tuple1[_]]
   private val fields = (1 to 1).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -109,7 +109,7 @@ class Tuple1Node extends NodeType {
 
 }
 
-class Tuple2Node extends NodeType {
+object Tuple2Node extends NodeType {
 
   private val clazz = classOf[Tuple2[_, _]]
   private val fields = (1 to 2).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -147,7 +147,7 @@ class Tuple2Node extends NodeType {
 
 }
 
-class Tuple3Node extends NodeType {
+object Tuple3Node extends NodeType {
 
   private val clazz = classOf[Tuple3[_, _, _]]
   private val fields = (1 to 3).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -184,7 +184,7 @@ class Tuple3Node extends NodeType {
     }
 
 }
-class Tuple4Node extends NodeType {
+object Tuple4Node extends NodeType {
 
   private val clazz = classOf[Tuple4[_, _, _, _]]
   private val fields = (1 to 4).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -221,7 +221,7 @@ class Tuple4Node extends NodeType {
     }
 
 }
-class Tuple5Node extends NodeType {
+object Tuple5Node extends NodeType {
 
   private val clazz = classOf[Tuple5[_, _, _, _, _]]
   private val fields = (1 to 5).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -258,7 +258,7 @@ class Tuple5Node extends NodeType {
     }
 
 }
-class Tuple6Node extends NodeType {
+object Tuple6Node extends NodeType {
 
   private val clazz = classOf[Tuple6[_, _, _, _, _, _]]
   private val fields = (1 to 6).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -295,7 +295,7 @@ class Tuple6Node extends NodeType {
     }
 
 }
-class Tuple7Node extends NodeType {
+object Tuple7Node extends NodeType {
 
   private val clazz = classOf[Tuple7[_, _, _, _, _, _, _]]
   private val fields = (1 to 7).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -332,7 +332,7 @@ class Tuple7Node extends NodeType {
     }
 
 }
-class Tuple8Node extends NodeType {
+object Tuple8Node extends NodeType {
 
   private val clazz = classOf[Tuple8[_, _, _, _, _, _, _, _]]
   private val fields = (1 to 8).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -369,7 +369,7 @@ class Tuple8Node extends NodeType {
     }
 
 }
-class Tuple9Node extends NodeType {
+object Tuple9Node extends NodeType {
 
   private val clazz = classOf[Tuple9[_, _, _, _, _, _, _, _, _]]
   private val fields = (1 to 9).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -406,7 +406,7 @@ class Tuple9Node extends NodeType {
     }
 
 }
-class Tuple10Node extends NodeType {
+object Tuple10Node extends NodeType {
 
   private val clazz = classOf[Tuple10[_, _, _, _, _, _, _, _, _, _]]
   private val fields = (1 to 10).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -443,7 +443,7 @@ class Tuple10Node extends NodeType {
     }
 
 }
-class Tuple11Node extends NodeType {
+object Tuple11Node extends NodeType {
 
   private val clazz = classOf[Tuple11[_, _, _, _, _, _, _, _, _, _, _]]
   private val fields = (1 to 11).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -480,7 +480,7 @@ class Tuple11Node extends NodeType {
     }
 
 }
-class Tuple12Node extends NodeType {
+object Tuple12Node extends NodeType {
 
   private val clazz = classOf[Tuple12[_, _, _, _, _, _, _, _, _, _, _, _]]
   private val fields = (1 to 12).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -517,7 +517,7 @@ class Tuple12Node extends NodeType {
     }
 
 }
-class Tuple13Node extends NodeType {
+object Tuple13Node extends NodeType {
 
   private val clazz = classOf[Tuple13[_, _, _, _, _, _, _, _, _, _, _, _, _]]
   private val fields = (1 to 13).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -554,7 +554,7 @@ class Tuple13Node extends NodeType {
     }
 
 }
-class Tuple14Node extends NodeType {
+object Tuple14Node extends NodeType {
 
   private val clazz = classOf[Tuple14[_, _, _, _, _, _, _, _, _, _, _, _, _, _]]
   private val fields = (1 to 14).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -591,7 +591,7 @@ class Tuple14Node extends NodeType {
     }
 
 }
-class Tuple15Node extends NodeType {
+object Tuple15Node extends NodeType {
 
   private val clazz = classOf[Tuple15[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _]]
   private val fields = (1 to 15).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -628,7 +628,7 @@ class Tuple15Node extends NodeType {
     }
 
 }
-class Tuple16Node extends NodeType {
+object Tuple16Node extends NodeType {
 
   private val clazz = classOf[Tuple16[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]]
   private val fields = (1 to 16).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -665,7 +665,7 @@ class Tuple16Node extends NodeType {
     }
 
 }
-class Tuple17Node extends NodeType {
+object Tuple17Node extends NodeType {
 
   private val clazz = classOf[Tuple17[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]]
   private val fields = (1 to 17).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -702,7 +702,7 @@ class Tuple17Node extends NodeType {
     }
 
 }
-class Tuple18Node extends NodeType {
+object Tuple18Node extends NodeType {
 
   private val clazz = classOf[Tuple18[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]]
   private val fields = (1 to 18).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -739,7 +739,7 @@ class Tuple18Node extends NodeType {
     }
 
 }
-class Tuple19Node extends NodeType {
+object Tuple19Node extends NodeType {
 
   private val clazz = classOf[Tuple19[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]]
   private val fields = (1 to 19).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -776,7 +776,7 @@ class Tuple19Node extends NodeType {
     }
 
 }
-class Tuple20Node extends NodeType {
+object Tuple20Node extends NodeType {
 
   private val clazz = classOf[Tuple20[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]]
   private val fields = (1 to 20).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -813,7 +813,7 @@ class Tuple20Node extends NodeType {
     }
 
 }
-class Tuple21Node extends NodeType {
+object Tuple21Node extends NodeType {
 
   private val clazz = classOf[Tuple21[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]]
   private val fields = (1 to 21).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
@@ -850,7 +850,7 @@ class Tuple21Node extends NodeType {
     }
 
 }
-class Tuple22Node extends NodeType {
+object Tuple22Node extends NodeType {
 
   private val clazz = classOf[Tuple22[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]]
   private val fields = (1 to 22).map(n => clazz.getDeclaredField("_" + n)).map(ReflectUtil.makeSettable)
