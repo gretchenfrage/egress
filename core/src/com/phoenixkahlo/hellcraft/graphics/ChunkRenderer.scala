@@ -12,6 +12,7 @@ import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util._
+import com.phoenixkahlo.hellcraft.util.SpatialExecutor._
 
 import scala.collection.JavaConverters
 
@@ -191,9 +192,14 @@ class ChunkRenderer(
     (vertArr, indexArr)
   }
 
+  /*
   val meshData: MeshCompiler =
     if (previous isDefined) InstantMeshCompiler(compileProcedure)
     else BackgroundMeshCompiler(chunk.pos * 16 + Repeated(8), compileProcedure)
+    */
+  val meshData: Fut[(Array[Float], Array[Short])] =
+    if (previous isDefined) new ImmediateFut(compileProcedure())
+    else new SpatialFut(chunk.pos * 16 + V3I(8, 8, 8), compileProcedure())
 
   val renderable = new DisposableCache[Renderable]({
     // create a mesh
@@ -229,10 +235,10 @@ class ChunkRenderer(
     * Bring this object into an active state, generating resources, and return the renderables.
     */
   override def apply(interpolate: Option[(World, Float)]): Seq[Renderable] =
-    if (meshData.isCompleted) renderable() +: {
+    if (meshData.query.isDefined) renderable() +: {
       if (Gdx.input.isKeyPressed(Keys.ALT_LEFT)) {
         // get model instance
-        val instance = new ModelInstance(CompiledModel())
+        val instance = new ModelInstance(ChunkOutlineModel(Color.GREEN, Color.GREEN))
         instance.transform.setTranslation(chunk.pos * 16 toGdx)
         // extract renderables from model
         val array = new com.badlogic.gdx.utils.Array[Renderable]()
@@ -248,7 +254,7 @@ class ChunkRenderer(
       case Some(renderer) => renderer()
       case None => if (Gdx.input.isKeyPressed(Keys.ALT_LEFT)) {
         // get model instance
-        val instance = new ModelInstance(NotCompiledModel())
+        val instance = new ModelInstance(ChunkOutlineModel(Color.RED, Color.RED))
         instance.transform.setTranslation(chunk.pos * 16 toGdx)
         // extract renderables from model
         val array = new com.badlogic.gdx.utils.Array[Renderable]()
@@ -264,7 +270,7 @@ class ChunkRenderer(
   override def resources: Seq[ResourceNode] = Seq(this)
 
   override def dependencies: Seq[ResourceNode] =
-    if (meshData.isCompleted) Nil
+    if (meshData.query.isDefined) Nil
     else previous match {
       case Some(previous) => Seq(previous)
       case None => Nil
@@ -276,6 +282,8 @@ class ChunkRenderer(
 
 }
 
+
+/*
 object CompiledModel extends Cache[Model]({
   val n = 1e-3f
   val p = 16 - 1e-3f
@@ -371,3 +379,4 @@ object NotCompiledModel extends Cache[Model]({
   builder.part(meshPart, material)
   builder.end()
 })
+*/

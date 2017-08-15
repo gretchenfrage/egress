@@ -2,8 +2,9 @@ package com.phoenixkahlo.hellcraft.singleplayer
 
 import java.util.UUID
 
+import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.{Gdx, InputAdapter}
-import com.badlogic.gdx.graphics.{GL20, PerspectiveCamera}
+import com.badlogic.gdx.graphics.{Color, GL20, PerspectiveCamera}
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch, Renderable, RenderableProvider}
@@ -11,7 +12,7 @@ import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
-import com.phoenixkahlo.hellcraft.graphics.ResourcePack
+import com.phoenixkahlo.hellcraft.graphics.{ChunkOutlineRenderer, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.util.{BackgroundMeshCompilerExecutor, Cache, DependencyGraph, PriorityExecContext}
@@ -137,7 +138,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     controller.camUpdate(toRender, interpolation)
 
     // memory management
-    val factories = toRender.renderables(resources)
+    var factories = toRender.renderables(resources)
     val nodes = factories.par.flatMap(_.resources).seq
     vramGraph ++= nodes
     if (g % 600 == 0) PriorityExecContext(1).execute(() => {
@@ -147,6 +148,12 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         vramGraph --= garbage.toSeq
       })
     })
+
+    // add debug renderables
+    if (Gdx.input.isKeyPressed(Keys.F)) {
+      factories ++= toRender.border.toSeq.map(new ChunkOutlineRenderer(_, Color.YELLOW))
+      factories ++= toRender.futures.keySet.toSeq.map(new ChunkOutlineRenderer(_, Color.PURPLE))
+    }
 
     // render 3D stuff
     val provider = new RenderableProvider {

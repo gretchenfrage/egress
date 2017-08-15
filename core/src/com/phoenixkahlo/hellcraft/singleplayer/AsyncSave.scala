@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.singleplayer
 
 import java.io._
 import java.nio.file.Path
-import java.util.concurrent.Executors
+import java.util.concurrent.{Executors, LinkedBlockingQueue, ThreadPoolExecutor, TimeUnit}
 
 import com.esotericsoftware.kryo.io
 import com.esotericsoftware.kryo.io.{Input, Output}
@@ -39,21 +39,6 @@ trait SaveSerialService {
 class CarboniteSerialService extends SaveSerialService {
   private implicit val config = EgressCarboniteConfig
 
-  /*
-  override def write(path: Path, obj: Map[V3I, Chunk]): Unit = {
-    val out = new CarboniteOutputStream(new FileOutputStream(path.toFile))
-    out.writeObject(obj)
-    out.close()
-  }
-
-  override def read(path: Path): Map[V3I, Future[Chunk]] = {
-    if (path.toFile.exists) {
-      val in = new CarboniteInputStream(new FileInputStream(path.toFile))
-      try in.readObject().asInstanceOf[Map[V3I, Chunk]].mapValues(c => Future { c } (ExecutionContext.global))
-      finally in.close()
-    } else Map.empty
-  }
-  */
   override def write(path: Path, obj: Map[V3I, Chunk]): Unit = {
     val out = new CarboniteOutputStream(new FileOutputStream(path.toFile))
     out.writeObject(obj.mapValues(LazyDeserial(_)))
@@ -79,20 +64,26 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
   private def pathFor(region: V3I): Path =
     path.resolve("x" + region.xi + "y" + region.yi + "z" + region.zi + ".region")
 
-  private val executors = new mutable.HashMap[V3I, ExecutionContext]
-  private val executorLock = new Object
-  private implicit val miscExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(
-    Runtime.getRuntime.availableProcessors,
-    runnable => {
-      val thread = new Thread(runnable, "generator thread")
-      thread.setPriority(3)
-      thread
+  private val threads = new mutable.HashMap[V3I, ExecutionContext]
+  private val threadsLock = new Object
+  private implicit val workPool = {
+    val size = Runtime.getRuntime.availableProcessors
+    val executor = new ThreadPoolExecutor(size, size, 0, TimeUnit.NANOSECONDS, new LinkedBlockingQueue,
+      runnable => {
+        val thread = new Thread(runnable, "save thread")
+        thread.setPriority(3)
+        thread
+      }
+    ) {
+      override def afterExecute(r: Runnable, t: Throwable): Unit = {
+      }
     }
-  ))
+    ExecutionContext.fromExecutor(executor)
+  }
 
   private def contextFor(region: V3I): ExecutionContext = {
-    executorLock.synchronized {
-      executors.get(region) match {
+    threadsLock.synchronized {
+      threads.get(region) match {
         case Some(executor) => executor
         case None =>
           val executor = ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor(
@@ -102,7 +93,7 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
               thread
             }
           ))
-          executors.put(region, executor)
+          threads.put(region, executor)
           executor
       }
     }
@@ -144,7 +135,7 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
 
 
   override def close(): Unit = {
-    for (executor <- executors.values) {
+    for (executor <- threads.values) {
       Await.result(Future { "done!" } (executor), Duration.Inf)
     }
   }
