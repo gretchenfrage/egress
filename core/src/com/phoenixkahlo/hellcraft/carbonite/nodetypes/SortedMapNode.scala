@@ -31,7 +31,7 @@ object SortedMapNode extends NodeType {
     new DeserialNode {
       var orderingRef: Int = _
       val contentRefs = new ArrayBuffer[(Int, Int)]
-      var content: SortedMap[_, _] = _
+      val content = new SortedMapDelegate[Any, Any]
 
       override def read(in: CarboniteInput): Unit = {
         val size = in.readInt()
@@ -40,14 +40,13 @@ object SortedMapNode extends NodeType {
           contentRefs += ((in.readRef(), in.readRef()))
       }
 
-      override def get: Any = {
-        if (content == null) throw new IllegalStateException
+      override def get: Any =
         content
-      }
 
       override def finish(refs: (Int) => Any): Unit = {
         val ord = refs(orderingRef).asInstanceOf[Ordering[Any]]
-        content = contentRefs.foldLeft(SortedMap.empty[Any, Any](ord))({ case (map, (key, value)) => map.updated(key, value)})
+        content.source =
+          contentRefs.foldLeft(SortedMap.empty[Any, Any](ord))({ case (map, (key, value)) => map.updated(key, value)})
       }
     }
   }

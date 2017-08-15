@@ -8,7 +8,7 @@ import com.phoenixkahlo.hellcraft.graphics.{RenderableFactory, ResourcePack}
 /**
   * A unit of graphics, logic, or both.
   */
-trait Entity extends Serializable {
+trait Entity {
 
   def id: UUID
 

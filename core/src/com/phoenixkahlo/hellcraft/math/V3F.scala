@@ -1,11 +1,14 @@
 package com.phoenixkahlo.hellcraft.math
 
 import com.badlogic.gdx.math.Vector3
+import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
+import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 
 /**
   * A vector of 3 floats
   */
-class V3F(val x: Float, val y: Float, val z: Float) extends Serializable {
+@CarboniteWith(classOf[FieldNode])
+class V3F(val x: Float, val y: Float, val z: Float) {
 
   if (x != x || y != y || z != z)
     throw new AssertionError("vector component is NaN")

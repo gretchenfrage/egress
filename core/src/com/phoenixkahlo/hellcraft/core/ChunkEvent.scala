@@ -2,6 +2,8 @@ package com.phoenixkahlo.hellcraft.core
 
 import java.util.UUID
 
+import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
+import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.{Avatar, Cylindroid, Entity, PositionHaver}
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 import com.phoenixkahlo.hellcraft.multiplayertest.EntityID
@@ -9,7 +11,7 @@ import com.phoenixkahlo.hellcraft.multiplayertest.EntityID
 /**
   * A transformation that is applied to a particular chunk.
   */
-abstract class ChunkEvent(val target: V3I, val id: UUID) extends Comparable[ChunkEvent] with Serializable {
+abstract class ChunkEvent(val target: V3I, val id: UUID) extends Comparable[ChunkEvent] {
 
   def apply(chunk: Chunk): Chunk
 
@@ -27,18 +29,22 @@ abstract class ChunkEvent(val target: V3I, val id: UUID) extends Comparable[Chun
 
 }
 
+@CarboniteWith(classOf[FieldNode])
 case class PutBlock(at: V3I, block: Block, override val id: UUID) extends ChunkEvent(at / 16 floor, id) {
   override def apply(chunk: Chunk): Chunk = chunk.putBlock(at % 16, block)
 }
 
+@CarboniteWith(classOf[FieldNode])
 case class UncacheMesh(override val target: V3I, override val id: UUID) extends ChunkEvent(target, id) {
   override def apply(chunk: Chunk): Chunk = chunk.invalidateGraphics
 }
 
+@CarboniteWith(classOf[FieldNode])
 case class AddEntity(entity: PositionHaver, override val id: UUID) extends ChunkEvent(entity.chunkPos, id) {
   override def apply(chunk: Chunk): Chunk = chunk.putEntity(entity)
 }
 
+@CarboniteWith(classOf[FieldNode])
 case class RemoveEntity(override val target: V3I, entity: UUID, override val id: UUID) extends ChunkEvent(target, id) {
   override def apply(chunk: Chunk): Chunk = chunk.removeEntity(entity)
 }
@@ -47,6 +53,7 @@ object RemoveEntity {
   def apply(entity: PositionHaver, id: UUID): RemoveEntity = RemoveEntity(entity.chunkPos, entity.id, id)
 }
 
+@CarboniteWith(classOf[FieldNode])
 case class ReplaceEntity(replacer: PositionHaver, override val id: UUID) extends ChunkEvent(replacer.chunkPos, id) {
   override def apply(chunk: Chunk): Chunk =
     if (chunk.entities.contains(replacer.id)) chunk.putEntity(replacer)
@@ -66,6 +73,7 @@ abstract class TransformEntity(entityID: UUID, override val target: V3I, overrid
 
 }
 
+@CarboniteWith(classOf[FieldNode])
 case class SetAvatarMovement(
                               avatarID: EntityID,
                               movDir: V3F,
@@ -78,6 +86,7 @@ case class SetAvatarMovement(
     entity.asInstanceOf[Avatar].updateDirection(movDir).updateJumping(jumping).updateSprinting(sprinting)
 }
 
+@CarboniteWith(classOf[FieldNode])
 case class ThrustCylindroid(
                        entityID: EntityID,
                        deltaV: V3F,

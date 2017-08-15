@@ -19,7 +19,6 @@ import scala.collection.immutable.TreeSet
   * chunks. The corpus can produce a modelID and a modelFactory, and if it produces the same modelID on multiple tics,
   * the generated model will be reused, after settings the translation to the position plus a model offset.
   */
-//TODO: allow for dynamic model disposal
 abstract class Corpus(
                           val pos: V3F,
                           val id: UUID,

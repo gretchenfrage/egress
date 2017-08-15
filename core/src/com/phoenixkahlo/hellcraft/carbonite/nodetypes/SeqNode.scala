@@ -26,20 +26,18 @@ object SeqNode extends NodeType {
   override def deserial(): DeserialNode = {
     new DeserialNode {
       val contentRefs = new ArrayBuffer[Int]
-      var content: Seq[_] = _
+      val content = new SeqDelegate[Any]
 
       override def read(in: CarboniteInput): Unit = {
         for (_ <- 1 to in.readInt())
           contentRefs += in.readRef()
       }
 
-      override def get: Any = {
-        if (content == null) throw new IllegalStateException
+      override def get: Any =
         content
-      }
 
       override def finish(refs: (Int) => Any): Unit = {
-        content = contentRefs.foldLeft(Vector[Any]())((v, r) => v :+ refs(r))
+        content.source = contentRefs.foldLeft(Vector[Any]())((v, r) => v :+ refs(r))
       }
     }
   }

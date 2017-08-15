@@ -6,6 +6,8 @@ import java.util.concurrent.Executors
 
 import com.esotericsoftware.kryo.io
 import com.esotericsoftware.kryo.io.{Input, Output}
+import com.phoenixkahlo.hellcraft.carbonite.egress.EgressCarboniteConfig
+import com.phoenixkahlo.hellcraft.carbonite.{CarboniteInputStream, CarboniteOutputStream, DefaultCarboniteConfig}
 import com.phoenixkahlo.hellcraft.core.Chunk
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.serial.GlobalKryo
@@ -133,6 +135,24 @@ class HybridSerialService extends SaveSerialService {
       val read = in.readObject().asInstanceOf[Map[V3I, HybridChunkWrapper]]
       in.close()
       read.mapValues(_.chunk)
+    } else Map.empty
+  }
+}
+
+class CarboniteSerialService extends SaveSerialService {
+  implicit val config = EgressCarboniteConfig
+
+  override def write(path: Path, obj: Map[V3I, Chunk]): Unit = {
+    val out = new CarboniteOutputStream(new FileOutputStream(path.toFile))
+    out.writeObject(obj)
+    out.close()
+  }
+
+  override def read(path: Path): Map[V3I, Chunk] = {
+    if (path.toFile.exists) {
+      val in = new CarboniteInputStream(new FileInputStream(path.toFile))
+      try in.readObject().asInstanceOf[Map[V3I, Chunk]]
+      finally in.close()
     } else Map.empty
   }
 }

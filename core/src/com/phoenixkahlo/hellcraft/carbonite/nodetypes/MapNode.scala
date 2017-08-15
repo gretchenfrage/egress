@@ -29,20 +29,18 @@ object MapNode extends NodeType {
   override def deserial(): DeserialNode = {
     new DeserialNode {
       val contentRefs = new ArrayBuffer[(Int, Int)]
-      var content: Map[_, _] = _
+      var content = new MapDelegate[Any, Any]
 
       override def read(in: CarboniteInput): Unit = {
         for (_ <- 1 to in.readInt())
           contentRefs += ((in.readRef(), in.readRef()))
       }
 
-      override def get: Any = {
-        if (content == null) throw new IllegalStateException
+      override def get: Any =
         content
-      }
 
       override def finish(refs: (Int) => Any): Unit = {
-        content = contentRefs.map({ case (key, value) => (refs(key), refs(value)) }).toMap
+        content.source = contentRefs.map({ case (key, value) => (refs(key), refs(value)) }).toMap
       }
     }
   }

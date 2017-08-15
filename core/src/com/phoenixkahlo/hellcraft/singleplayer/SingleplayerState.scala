@@ -39,7 +39,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     println("loading")
     val generator = new Generator
 
-    save = new RegionGenAsyncSave(AppDirs.dataDir("egress").resolve("single"), new HybridSerialService,
+    save = new RegionGenAsyncSave(AppDirs.dataDir("egress").resolve("single"), new CarboniteSerialService,
       generator.genChunk)
     println("instantiated save")
 

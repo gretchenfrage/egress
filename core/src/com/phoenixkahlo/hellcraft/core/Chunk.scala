@@ -3,6 +3,8 @@ package com.phoenixkahlo.hellcraft.core
 import java.util.{Objects, UUID}
 
 import com.esotericsoftware.kryo.DefaultSerializer
+import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
+import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.graphics.{ChunkRenderer, RenderableFactory, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Origin, Repeated, V3I}
@@ -13,6 +15,7 @@ import scala.collection.immutable.HashMap
 /**
   * A unit of world.
   */
+@CarboniteWith(classOf[FieldNode])
 class Chunk (
               val pos: V3I,
               val blocks: BlockGrid,
@@ -21,7 +24,7 @@ class Chunk (
               @transient val lastMeshableFlag: ParamCache[V3I => Option[Chunk], Boolean],
               val lastGraphicsDirty: Boolean,
               val freshlyLoaded: Boolean = true
-            ) extends Serializable {
+            ) {
 
 
   def this(pos: V3I, blocks: BlockGrid) =
@@ -123,5 +126,8 @@ class Chunk (
     case chunk: Chunk => pos == chunk.pos && blocks == chunk.blocks && entities == chunk.entities
     case _ => false
   }
+
+  override def toString: String =
+    "(pos=" + pos + ", entities=" + entities + ", blocks=" + blocks + ")"
 
 }

@@ -30,7 +30,7 @@ object SortedSetNode extends NodeType {
     new DeserialNode {
       var orderingRef: Int = _
       val contentRefs = new ArrayBuffer[Int]
-      var content: SortedSet[_] = _
+      val content = new SortedSetDelegate[Any]
 
       override def read(in: CarboniteInput): Unit = {
         val size = in.readInt()
@@ -39,14 +39,12 @@ object SortedSetNode extends NodeType {
           contentRefs += in.readInt()
       }
 
-      override def get: Any = {
-        if (content == null) throw new IllegalStateException
+      override def get: Any =
         content
-      }
 
       override def finish(refs: (Int) => Any): Unit = {
         val ord = refs(orderingRef).asInstanceOf[Ordering[Any]]
-        content = contentRefs.foldLeft(SortedSet.empty[Any](ord))(_ + _)
+        content.source = contentRefs.foldLeft(SortedSet.empty[Any](ord))(_ + _)
       }
     }
   }

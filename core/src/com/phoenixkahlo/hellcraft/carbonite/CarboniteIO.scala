@@ -85,7 +85,7 @@ object ByteDatum extends DatumType
 object ShortDatum extends DatumType
 object IntDatum extends DatumType
 
-class CarboniteOutputStream(out: OutputStream, override val config: CarboniteConfig)
+class CarboniteOutputStream(out: OutputStream)(implicit override val config: CarboniteConfig)
   extends DataOutputStream(out) with CarboniteOutput {
 
   private var refType: DatumType = _
@@ -122,7 +122,7 @@ class CarboniteOutputStream(out: OutputStream, override val config: CarboniteCon
 
 }
 
-class CarboniteInputStream(in: InputStream, override val config: CarboniteConfig)
+class CarboniteInputStream(in: InputStream)(implicit override val config: CarboniteConfig)
   extends DataInputStream(in) with CarboniteInput {
 
   private var refType: DatumType = _
@@ -163,10 +163,14 @@ class CarboniteInputStream(in: InputStream, override val config: CarboniteConfig
 class CarboniteOutputDebugger(override val config: CarboniteConfig) extends CarboniteOutput {
 
   private val baos = new ByteArrayOutputStream
-  val out = new CarboniteOutputStream(baos, config)
+  val out = new CarboniteOutputStream(baos)(config)
+
+  def toArray: Array[Byte] = {
+    baos.toByteArray
+  }
 
   def asInput: CarboniteInput = {
-    new CarboniteInputStream(new ByteArrayInputStream(baos.toByteArray), config)
+    new CarboniteInputStream(new ByteArrayInputStream(baos.toByteArray))(config)
   }
 
   override def writeRefCount(count: Int): Unit = {

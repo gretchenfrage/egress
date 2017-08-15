@@ -2,9 +2,12 @@ package com.phoenixkahlo.hellcraft.core.entity
 
 import java.util.UUID
 
+import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
+import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.{ChunkEvent, World}
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F}
 
+@CarboniteWith(classOf[FieldNode])
 case class Avatar(
                    override val direction: V3F = Origin,
                    override val jumping: Boolean = false,

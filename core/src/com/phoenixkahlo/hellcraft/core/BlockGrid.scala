@@ -1,12 +1,11 @@
 package com.phoenixkahlo.hellcraft.core
 
-import java.io.{Externalizable, ObjectInput, ObjectOutput}
+import java.io._
 import java.lang.reflect.{Field, Modifier}
 import java.util.zip.{Deflater, Inflater}
 
 import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
-@SerialVersionUID(2384654234L)
 case class BlockGrid(blocks: Vector[Byte]) extends Externalizable {
 
   def this() = this(null)
@@ -43,6 +42,19 @@ case class BlockGrid(blocks: Vector[Byte]) extends Externalizable {
     decompressor.inflate(decompressBuffer)
     val blocks = (0 until 4096).foldLeft(Vector[Byte]())((v, i) => v :+ decompressBuffer(i))
     BlocksFieldSetter.set(this, blocks)
+  }
+
+  override def toString: String = {
+    trait PrintMode
+    object PrintAllBlocks extends PrintMode
+    object PrintHashCode extends PrintMode
+    object PrintIdentity extends PrintMode
+    val mode: PrintMode = PrintHashCode
+    mode match {
+      case PrintAllBlocks => super.toString
+      case PrintIdentity => System.identityHashCode(this).toString
+      case PrintHashCode => hashCode().toString
+    }
   }
 
 }

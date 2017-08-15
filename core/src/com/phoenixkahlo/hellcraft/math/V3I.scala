@@ -1,10 +1,13 @@
 package com.phoenixkahlo.hellcraft.math
 
 import com.badlogic.gdx.graphics.Color
+import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
+import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 
 /**
   * A vector of 3 ints, that is also a vector of 3 floats
   */
+@CarboniteWith(classOf[FieldNode])
 class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
 
   def +(o: V3I): V3I =

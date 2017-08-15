@@ -8,12 +8,17 @@ object ReflectUtil {
     Modifier.isTransient(field.getModifiers)
   }
 
-  def serializableFields(clazz: Class[_]): Seq[Field] = {
-    if (clazz == classOf[Object]) Seq.empty
-    else clazz.getDeclaredFields.toSeq.filterNot(isTransient) ++ serializableFields(clazz.getSuperclass)
+  def isStatic(field: Field): Boolean = {
+    Modifier.isStatic(field.getModifiers)
   }
 
-  val modsField = classOf[Field].getDeclaredField("modifiers")
+  def serializableFields(clazz: Class[_]): Seq[Field] = {
+    if (clazz == classOf[Object]) Seq.empty
+    else clazz.getDeclaredFields.toSeq.filterNot(isTransient).filterNot(isStatic) ++
+      serializableFields(clazz.getSuperclass)
+  }
+
+  val modsField: Field = classOf[Field].getDeclaredField("modifiers")
   modsField.setAccessible(true)
 
   def makeSettable(field: Field): Field = {
@@ -23,7 +28,7 @@ object ReflectUtil {
   }
 
   def getMethodByName(clazz: Class[_], name: String): Method = {
-    if (clazz == classOf[Object]) ???
+    if (clazz == classOf[Object]) throw new NoSuchElementException
     else clazz.getDeclaredMethods.toSeq.find(_.getName == name) match {
       case Some(method) => method
       case None => getMethodByName(clazz.getSuperclass, name)

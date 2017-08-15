@@ -9,6 +9,8 @@ import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.g3d.{Material, Model, ModelInstance, Renderable}
 import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.utils.Pool
+import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
+import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.graphics.{RenderableFactory, ResourceNode, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.V3I
@@ -16,6 +18,7 @@ import com.phoenixkahlo.hellcraft.util.KeyParamPool
 
 import scala.collection.JavaConverters
 
+@CarboniteWith(classOf[FieldNode])
 case class BlockOutline(override val pos: V3I, color: V3I, chunkSize: Int = 16) extends PositionHaver {
 
   override val id: UUID = UUID.randomUUID()

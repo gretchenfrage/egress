@@ -27,20 +27,18 @@ object SetNode extends NodeType {
   override def deserial(): DeserialNode = {
     new DeserialNode {
       val contentRefs = new ArrayBuffer[Int]
-      var content: Set[_] = _
+      val content = new SetDelegate[Any]
 
       override def read(in: CarboniteInput): Unit = {
         for (_ <- 1 to in.readInt())
           contentRefs += in.readRef()
       }
 
-      override def get: Any = {
-        if (content == null) throw new IllegalStateException
+      override def get: Any =
         content
-      }
 
       override def finish(refs: (Int) => Any): Unit = {
-        content = contentRefs.map(refs).toSet
+        content.source = contentRefs.map(refs).toSet
       }
     }
   }
