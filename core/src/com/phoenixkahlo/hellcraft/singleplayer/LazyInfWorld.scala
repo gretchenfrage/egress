@@ -8,6 +8,7 @@ import com.phoenixkahlo.hellcraft.graphics.{RenderableFactory, ResourcePack}
 import com.phoenixkahlo.hellcraft.infinitetest.HashCacheWorld
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.serial.save.WorldSave
+import com.phoenixkahlo.hellcraft.util.{Fut, ImmediateFut}
 
 import scala.collection.SortedSet
 import scala.collection.mutable.ArrayBuffer
@@ -27,7 +28,7 @@ class LazyInfWorld(
                     val save: AsyncSave,
                     override val time: Long,
                     val chunks: Map[V3I, Chunk],
-                    val futures: Map[V3I, Future[Chunk]],
+                    val futures: Map[V3I, Fut[Chunk]],
                     val border: Set[V3I],
                     val active: Set[V3I],
                     val meshable: Set[V3I],
@@ -50,7 +51,7 @@ class LazyInfWorld(
   def strongChunkAt(p: V3I): Chunk = {
     val cached = cache.get
     if (cached != null && cached.pos == p) cached
-    chunks.getOrElse(p, Await.result(futures.getOrElse(p, save.pull(Seq(p))(p)), Duration.Inf))
+    else chunks.getOrElse(p, futures.getOrElse(p, save.pull(Seq(p))(p)).await)
   }
 
   override def findEntity(id: EntityID): Option[Entity] = {
@@ -69,7 +70,7 @@ class LazyInfWorld(
   def loadify: LazyInfWorld = {
     // extract the completed futures
     val added: Map[V3I, Chunk] =
-      futures.values.filter(_.isCompleted).map(Await.result(_, Duration.Zero)).map(c => (c.pos, c)).toMap
+      futures.values.flatMap(_.query).map(c => (c.pos, c)).toMap
     // compute the new map of chunks
     val newChunks: Map[V3I, Chunk] = chunks ++ added
     // compute the new map of futures
@@ -93,18 +94,18 @@ class LazyInfWorld(
     save.push(unload)
     val unloaded = unload.map(_.pos)
     // load chunks
-    val load: Map[V3I, Future[Chunk]] = save.pull((target.toSet -- chunks.keys).toSeq)
+    val load: Map[V3I, Fut[Chunk]] = save.pull((target.toSet -- chunks.keys).toSeq)
     // construct
     new LazyInfWorld(save, time, chunks -- unloaded, futures ++ load, border -- unloaded, active -- unloaded,
       meshable -- unloaded, entityPosHints)
   }
 
-  def pushToSave(): Future[Unit] = {
-    Future {
-      for (future <- save.push(chunks))
-        Await.result(future, Duration.Inf)
+  def pushToSave(): Fut[Unit] = {
+    new ImmediateFut[Unit]({
+      for (fut <- save.push(chunks))
+        fut.await
       ()
-    }(ExecutionContext.global)
+    })
   }
 
   def integrate(events: Seq[ChunkEvent]): LazyInfWorld = {

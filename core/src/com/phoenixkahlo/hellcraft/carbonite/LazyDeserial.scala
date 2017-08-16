@@ -2,6 +2,9 @@ package com.phoenixkahlo.hellcraft.carbonite
 
 import java.io._
 
+import com.phoenixkahlo.hellcraft.math.V3F
+import com.phoenixkahlo.hellcraft.util.{ExecutorFut, Fut, SpatialExecutor, SpatialFut}
+
 import scala.concurrent.{ExecutionContext, Future}
 
 class LazyDeserial[E](private var element: E)(implicit private var config: CarboniteConfig) extends Externalizable {
@@ -35,6 +38,13 @@ class LazyDeserial[E](private var element: E)(implicit private var config: Carbo
 
   def future(implicit executor: ExecutionContext, config: CarboniteConfig): Future[E] =
     Future { get(config) }
+
+  def fut(implicit executor: ExecutionContext, config: CarboniteConfig): Fut[E] =
+    new ExecutorFut(get(config))(executor)
+
+  def spatialFut(pos: V3F)(implicit executor: SpatialExecutor, config: CarboniteConfig): Fut[E] =
+    new SpatialFut(pos, get(config))(executor)
+
 
 }
 

@@ -172,7 +172,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     updateThread.join()
     val saveFuture = history.last._2.pushToSave()
     vramGraph.managing.foreach(_.dispose())
-    Await.result(saveFuture, Duration.Inf)
+    saveFuture.await
   }
 
 }

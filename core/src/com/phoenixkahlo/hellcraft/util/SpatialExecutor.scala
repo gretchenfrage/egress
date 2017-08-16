@@ -5,7 +5,8 @@ import java.util.concurrent.ThreadFactory
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F}
 import com.thesamet.spatial.KDTreeMap
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 class SpatialExecutor(threads: Int, threadFactory: ThreadFactory) {
 
@@ -60,9 +61,17 @@ trait Fut[T] {
 
   def query: Option[T]
 
-  def map[E](func: T => E): Fut[E]
+  def cheapMap[E](func: T => E): Fut[E] = new CheapFutMap(this, func)
 
-  def flatMap[E](func: T => Fut[E]): Fut[E]
+  def cheapFlatMap[E](func: T => Fut[E]): Fut[E] = new CheapFutFlatMap(this, func)
+}
+
+class FutureFut[T](future: Future[T]) extends Fut[T] {
+  override def await: T = Await.result(future, Duration.Inf)
+
+  override def query: Option[T] =
+    if (future.isCompleted) Some(Await.result(future, Duration.Zero))
+    else None
 }
 
 class ExecutorFut[T](factory: => T)(implicit context: ExecutionContext) extends Fut[T] {
@@ -88,12 +97,6 @@ class ExecutorFut[T](factory: => T)(implicit context: ExecutionContext) extends 
 
   override def query: Option[T] =
     status
-
-  override def map[E](func: (T) => E): Fut[E] =
-    new CheapFutMap(this, func)
-
-  override def flatMap[E](func: (T) => Fut[E]): Fut[E] =
-    new CheapFutFlatMap(this, func)
 }
 
 class SpatialFut[T](pos: V3F, factory: => T)(implicit executor: SpatialExecutor) extends Fut[T] {
@@ -120,39 +123,24 @@ class SpatialFut[T](pos: V3F, factory: => T)(implicit executor: SpatialExecutor)
   override def query: Option[T] =
     status
 
-  override def map[E](func: (T) => E): Fut[E] =
-    new CheapFutMap(this, func)
-
-  override def flatMap[E](func: (T) => Fut[E]): Fut[E] =
-    new CheapFutFlatMap(this, func)
 }
 
 class ImmediateFut[T](source: => T) extends Fut[T] {
-  override val await: T = source
+  override lazy val await: T = source
 
   override def query: Option[T] = Some(await)
 
-  override def map[E](func: (T) => E): Fut[E] = new ImmediateFut(func(await))
-
-  override def flatMap[E](func: (T) => Fut[E]): Fut[E] = new CheapFutFlatMap(this, func)
+  override def cheapMap[E](func: (T) => E): Fut[E] = new ImmediateFut(func(await))
 }
 
 class CheapFutMap[S, R](source: Fut[S], func: S => R) extends Fut[R] {
   override def await: R = func(source.await)
 
   override def query: Option[R] = source.query.map(func)
-
-  override def map[E](func: (R) => E): Fut[E] = new CheapFutMap(this, func)
-
-  override def flatMap[E](func: (R) => Fut[E]): Fut[E] = new CheapFutFlatMap(this, func)
 }
 
 class CheapFutFlatMap[S, R](source: Fut[S], func: S => Fut[R]) extends Fut[R] {
   override def await: R = func(source.await).await
 
   override def query: Option[R] = source.query.flatMap(func(_).query)
-
-  override def map[E](func: (R) => E): Fut[E] = new CheapFutMap(this, func)
-
-  override def flatMap[E](func: (R) => Fut[E]): Fut[E] = new CheapFutFlatMap(this, func)
 }
