@@ -16,6 +16,9 @@ class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
   def -(o: V3I): V3I =
     V3I(xi - o.xi, yi - o.yi, zi - o.zi)
 
+  def **(o: V3I): V3I =
+    V3I(xi * o.xi, yi * o.yi, zi * o.zi)
+
   override def neg: V3I =
     V3I(-xi, -yi, -zi)
 

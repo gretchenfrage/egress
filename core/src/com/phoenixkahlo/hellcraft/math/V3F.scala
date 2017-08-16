@@ -38,6 +38,9 @@ class V3F(val x: Float, val y: Float, val z: Float) {
   def *(s: Float): V3F =
     V3F(x * s, y * s, z * s)
 
+  def **(v: V3F): V3F =
+    V3F(x * v.x, y * v.y, z * v.z)
+
   def /(s: Float): V3F =
     V3F(x / s, y / s, z / s)
 
@@ -110,6 +113,9 @@ class V3F(val x: Float, val y: Float, val z: Float) {
 
   def angleWith(v: V3F) =
     Trig.acos(this.normalize dot v.normalize)
+
+  def map(func: Float => Float) =
+    V3F(func(x), func(y), func(z))
 
 }
 
