@@ -33,7 +33,7 @@ object OctreeExecutor {
     Runtime.getRuntime.availableProcessors,
     runnable => {
       val thread = new Thread(runnable, "global octree exec thread")
-      thread.setPriority(3)
+      thread.setPriority(2)
       thread
     }
   )
@@ -73,7 +73,7 @@ object Octree2DExecutor {
     Runtime.getRuntime.availableProcessors,
     runnable => {
       val thread = new Thread(runnable, "global octree exec thread")
-      thread.setPriority(3)
+      thread.setPriority(2)
       thread
     }
   )
