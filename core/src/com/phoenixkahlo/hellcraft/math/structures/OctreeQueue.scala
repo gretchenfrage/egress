@@ -11,12 +11,12 @@ import scala.collection.immutable.Queue
 
 /**
   * Uses an octree to create a priority queue based of vector/generic pairs based on their proximity to an adjustable
-  * point. This is not thread safe.
+  * point. This is not thread safe, although internal variables are declared volatile.
   */
 class OctreePriorityQueue[E] extends util.AbstractQueue[(V3F, E)] {
 
-  var point: V3F = Origin
-  var tree: Octree[E] = EmptyOctree(Origin, Float.MaxValue)
+  @volatile var point: V3F = Origin
+  @volatile var tree: Octree[E] = EmptyOctree(Origin, Float.MaxValue)
 
   override def poll(): (V3F, E) = {
     tree.closest(point) match {
@@ -103,6 +103,20 @@ class OctreeBlockingQueue[E] extends util.AbstractQueue[(V3F, E)] with util.conc
   private object Ticket
   private val tickets = new LinkedBlockingQueue[Object]
 
+  def point = {
+    try {
+      readLock.lock()
+      queue.point
+    } finally readLock.unlock()
+  }
+
+  def point_=(p: V3F) = {
+    try {
+      writeLock.lock()
+      queue.point = p
+    } finally writeLock.unlock()
+  }
+
   override def poll(): (V3F, E) = {
     if (tickets.poll() == null) null
     else try {
@@ -182,6 +196,7 @@ class OctreeBlockingQueue[E] extends util.AbstractQueue[(V3F, E)] with util.conc
 object OctreeQueueTest extends App {
 
   val queue = new OctreeBlockingQueue[Int]
+  queue.point = V3F(101, 101, 101)
 
   new Thread(() => {
     while (true) {
