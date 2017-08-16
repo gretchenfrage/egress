@@ -36,7 +36,7 @@ class ChunkOutlineRenderer(p: V3I, color: Color) extends RenderableFactory {
 }
 
 object ChunkOutlineModel extends KeyParamPool[Color, Color, Model](color => {
-  val n = 1e-3f
+  val n = 0.5f
   val p = 16 - 1e-3f
   val c = color.toFloatBits
   val verts = Array[Float](

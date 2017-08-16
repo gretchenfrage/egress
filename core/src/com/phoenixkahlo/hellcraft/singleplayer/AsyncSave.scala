@@ -11,7 +11,7 @@ import com.phoenixkahlo.hellcraft.carbonite.{CarboniteInputStream, CarboniteOutp
 import com.phoenixkahlo.hellcraft.core.Chunk
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.serial.GlobalKryo
-import com.phoenixkahlo.hellcraft.util.{ExecutorFut, Fut}
+import com.phoenixkahlo.hellcraft.util.{Fut, SpatialExecutor}
 
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
@@ -51,7 +51,7 @@ class CarboniteSerialService extends SaveSerialService {
     if (path.toFile.exists) {
       val in = new CarboniteInputStream(new FileInputStream(path.toFile))
       try in.readObject().asInstanceOf[Map[V3I, LazyDeserial[Chunk]]]
-        .map({ case (p, laz) => (p, laz.spatialFut(p * 16 + V3I(8, 8, 8))) })
+        .map({ case (p, laz) => (p, laz.fut(SpatialExecutor.global.execute(p * 16 + V3I(8, 8, 8)))) })
       finally in.close()
     } else Map.empty
   }
@@ -108,12 +108,12 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
 
     var accumulator: Seq[Fut[Unit]] = Seq.empty
     for ((region, group) <- toSave.values.toSeq.groupBy(_.pos / RegionSize floor)) {
-      accumulator +:= new ExecutorFut[Unit]({
+      accumulator +:= Fut[Unit]({
         val path = pathFor(region)
         var map = serial.read(path).mapValues(_.await)
         map ++= group.map(c => (c.pos, c)).toMap
         serial.write(path, map)
-      })(contextFor(region))
+      }, contextFor(region).execute)
     }
     accumulator
   }
@@ -123,15 +123,15 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
 
     var accumulator: Map[V3I, Fut[Chunk]] = Map.empty
     for ((region, group) <- chunks.groupBy(_ / RegionSize floor)) {
-      val future: Fut[Map[V3I, Fut[Chunk]]] = new ExecutorFut({
+      val future: Fut[Map[V3I, Fut[Chunk]]] = Fut({
         val pulled = serial.read(pathFor(region))
         group.map(p => pulled.get(p) match {
           case Some(chunkFuture) => p -> chunkFuture
           case None => p -> generator(p)
         }).toMap
-      })(contextFor(region))
+      }, contextFor(region).execute)
       for (p <- group)
-        accumulator = accumulator.updated(p, future.cheapFlatMap(_(p)))
+        accumulator = accumulator.updated(p, future.flatMap(_(p)))
     }
     accumulator
   }

@@ -5,7 +5,7 @@ import java.util.concurrent.{Executors, ThreadPoolExecutor, TimeUnit}
 
 import com.phoenixkahlo.hellcraft.core.{Air, BlockGrid, Chunk, Stone}
 import com.phoenixkahlo.hellcraft.math.V3I
-import com.phoenixkahlo.hellcraft.util.{Fut, FutureFut}
+import com.phoenixkahlo.hellcraft.util.Fut
 import other.OpenSimplexNoise
 
 import scala.collection.mutable
@@ -69,7 +69,7 @@ class Generator {
   }
 
   def genChunk(p: V3I): Fut[Chunk] = {
-    new FutureFut(heightsAt(p.xi, p.zi).map(heights => {
+    Fut.fromFuture(heightsAt(p.xi, p.zi).map(heights => {
       if (heights.min > p.yi * 16 + 16) BlockGrid.StoneGrid
       if (heights.max < p.yi * 16) BlockGrid.AirGrid
       new Chunk(p, BlockGrid(v => {

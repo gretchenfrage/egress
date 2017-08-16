@@ -46,7 +46,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     clock = new GametimeClock
 
-    val avatar = Avatar(pos = V3F(0, Await.result(generator.heightsAt(0, 0), Duration.Inf)(0, 0).toInt, 0))
+    val avatar = Avatar(pos = V3F(0.5f, Await.result(generator.heightsAt(0, 0), Duration.Inf)(0, 0).toInt, 0.5f))
     val world = new LazyInfWorld(save, 0, Map.empty, Map.empty, Set.empty, Set.empty, Set.empty, Map.empty)
       .updateLoaded(Seq(avatar.chunkPos))
       .integrate(Seq(AddEntity(avatar, UUID.randomUUID())))
@@ -154,6 +154,10 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     if (Gdx.input.isKeyPressed(Keys.F)) {
       factories ++= toRender.border.toSeq.map(new ChunkOutlineRenderer(_, Color.YELLOW))
       factories ++= toRender.futures.keySet.toSeq.map(new ChunkOutlineRenderer(_, Color.PURPLE))
+    } else if (Gdx.input.isKeyPressed(Keys.R)) {
+      val (complete, notComplete) = toRender.futures.partition(_._2.query.isDefined)
+      factories ++= complete.keySet.toSeq.map(new ChunkOutlineRenderer(_, Color.YELLOW))
+      factories ++= notComplete.keySet.toSeq.map(new ChunkOutlineRenderer(_, Color.PURPLE))
     }
 
     // render 3D stuff

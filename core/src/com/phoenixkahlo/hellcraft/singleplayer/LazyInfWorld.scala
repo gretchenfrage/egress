@@ -8,7 +8,7 @@ import com.phoenixkahlo.hellcraft.graphics.{RenderableFactory, ResourcePack}
 import com.phoenixkahlo.hellcraft.infinitetest.HashCacheWorld
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.serial.save.WorldSave
-import com.phoenixkahlo.hellcraft.util.{Fut, ImmediateFut}
+import com.phoenixkahlo.hellcraft.util.Fut
 
 import scala.collection.SortedSet
 import scala.collection.mutable.ArrayBuffer
@@ -101,11 +101,11 @@ class LazyInfWorld(
   }
 
   def pushToSave(): Fut[Unit] = {
-    new ImmediateFut[Unit]({
+    Fut[Unit]({
       for (fut <- save.push(chunks))
         fut.await
       ()
-    })
+    }, _.run())
   }
 
   def integrate(events: Seq[ChunkEvent]): LazyInfWorld = {

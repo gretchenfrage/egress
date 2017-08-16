@@ -198,8 +198,8 @@ class ChunkRenderer(
     else BackgroundMeshCompiler(chunk.pos * 16 + Repeated(8), compileProcedure)
     */
   val meshData: Fut[(Array[Float], Array[Short])] =
-    if (previous isDefined) new ImmediateFut(compileProcedure())
-    else new SpatialFut(chunk.pos * 16 + V3I(8, 8, 8), compileProcedure())
+    if (previous isDefined) Fut(compileProcedure(), _.run())
+    else Fut(compileProcedure(), SpatialExecutor.global.execute(chunk.pos * 16 + V3I(8, 8, 8)))
 
   val renderable = new DisposableCache[Renderable]({
     // create a mesh
