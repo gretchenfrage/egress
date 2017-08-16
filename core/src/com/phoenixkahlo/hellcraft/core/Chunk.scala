@@ -6,7 +6,7 @@ import com.esotericsoftware.kryo.DefaultSerializer
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.Entity
-import com.phoenixkahlo.hellcraft.gamedriver.UpdatingGameDriver
+import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.graphics.{ChunkRenderer, RenderableFactory, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Origin, Repeated, V3I}
 import com.phoenixkahlo.hellcraft.util.{ParamCache, Profiler, RNG}

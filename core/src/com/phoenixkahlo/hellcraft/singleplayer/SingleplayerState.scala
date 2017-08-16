@@ -11,7 +11,7 @@ import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch, Renderable, Rende
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
-import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState, UpdatingGameDriver}
+import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState, Delta}
 import com.phoenixkahlo.hellcraft.graphics.{ChunkOutlineRenderer, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.structures.{Octree2DExecutor, OctreeExecutor}
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
@@ -95,7 +95,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       while (!Thread.interrupted()) {
         // update world
         var world = history.last._2
-        world = world.update(UpdatingGameDriver.dt.toNanos.toFloat / 1000000000f)
+        world = world.update(Delta.dt.toNanos.toFloat / 1000000000f)
         world = world.integrate(controller.mainUpdate(world))
         val avatar = world.findEntity(controller.avatarID).get.asInstanceOf[Avatar]
         OctreeExecutor.global.point = V3F(cam.position)

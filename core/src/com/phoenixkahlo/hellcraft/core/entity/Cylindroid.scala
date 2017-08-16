@@ -7,7 +7,7 @@ import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.g3d.{Material, ModelInstance}
 import com.phoenixkahlo.hellcraft.core._
-import com.phoenixkahlo.hellcraft.gamedriver.UpdatingGameDriver
+import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.graphics.{ResourcePack, SandTID}
 import com.phoenixkahlo.hellcraft.math._
 

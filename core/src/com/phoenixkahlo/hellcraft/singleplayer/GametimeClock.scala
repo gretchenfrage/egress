@@ -1,6 +1,6 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
-import com.phoenixkahlo.hellcraft.gamedriver.UpdatingGameDriver
+import com.phoenixkahlo.hellcraft.gamedriver.Delta
 
 import scala.concurrent.duration._
 
@@ -16,18 +16,18 @@ class GametimeClock() {
     nanotimeStart += amount.toNanos
   }
 
-  def gametime: Long = (((System.nanoTime() - nanotimeStart) nanoseconds) / UpdatingGameDriver.dt) toLong
+  def gametime: Long = (((System.nanoTime() - nanotimeStart) nanoseconds) / Delta.dt) toLong
 
   def waitUntil(time: Long): Unit = {
-    val duration = (time * UpdatingGameDriver.dt) + (nanotimeStart nanoseconds) - (System.nanoTime() nanoseconds)
+    val duration = (time * Delta.dt) + (nanotimeStart nanoseconds) - (System.nanoTime() nanoseconds)
     if (duration > Duration.Zero)
       Thread.sleep(duration toMillis)
   }
 
   def timeSince(time: Long): Duration =
-    ((System.nanoTime() - nanotimeStart) nanoseconds) - (time * UpdatingGameDriver.dt)
+    ((System.nanoTime() - nanotimeStart) nanoseconds) - (time * Delta.dt)
 
   def fractionalTicksSince(time: Long): Float =
-    (timeSince(time) / UpdatingGameDriver.dt) toFloat
+    (timeSince(time) / Delta.dt) toFloat
 
 }
