@@ -10,7 +10,8 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.math._
 import com.badlogic.gdx.Input.Keys._
 import com.phoenixkahlo.hellcraft.core.entity.{Avatar, BlockOutline}
-import com.phoenixkahlo.hellcraft.util.{RNG, SpatialExecutor, SpatialExecutor2D}
+import com.phoenixkahlo.hellcraft.math.structures.{Octree2DExecutor, OctreeExecutor}
+import com.phoenixkahlo.hellcraft.util.RNG
 
 import scala.collection.{SortedSet, mutable}
 
@@ -157,10 +158,10 @@ class SingleplayerController(cam: PerspectiveCamera, val avatarID: AvatarID, exi
     } while (click.isDefined)
 
     if (Gdx.input.isKeyJustPressed(Keys.P)) {
-      println(SpatialExecutor.global)
+      println(OctreeExecutor.global)
     }
     if (Gdx.input.isKeyJustPressed(Keys.L)) {
-      println(SpatialExecutor2D.global)
+      println(Octree2DExecutor.global)
     }
 
     accumulator

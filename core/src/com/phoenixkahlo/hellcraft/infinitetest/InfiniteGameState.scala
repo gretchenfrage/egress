@@ -16,10 +16,11 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.finitetest.SimpleAvatarController
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState, UpdatingGameDriver, UpdatingGameState}
 import com.phoenixkahlo.hellcraft.graphics.{ResourceNode, ResourcePack}
+import com.phoenixkahlo.hellcraft.math.structures.OctreeExecutor
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.serial.save.{RegionSave, WorldSave}
-import com.phoenixkahlo.hellcraft.util.{Cache, DependencyGraph, PriorityExecContext, SpatialExecutor}
+import com.phoenixkahlo.hellcraft.util.{Cache, DependencyGraph, PriorityExecContext}
 import other.AppDirs
 
 import scala.collection.JavaConverters
@@ -71,7 +72,8 @@ class InfiniteGameState(providedTextures: Cache[ResourcePack]) extends GameState
     println("world instantiated")
 
     //BackgroundMeshCompilerExecutor.setPlayerPos(avatar.pos)
-    SpatialExecutor.global.priorityPoint = V3F(controller.cam.position)
+    //SpatialExecutor.global.priorityPoint = V3F(controller.cam.position)
+    OctreeExecutor.global.point = V3F(controller.cam.position)
 
     cam = new PerspectiveCamera(90, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     cam.near = 0.1f
@@ -181,7 +183,8 @@ class InfiniteGameState(providedTextures: Cache[ResourcePack]) extends GameState
 
     // update mesh compiler priority
     //BackgroundMeshCompilerExecutor.setPlayerPos(avatar.pos)
-    SpatialExecutor.global.priorityPoint = V3F(controller.cam.position)
+    //SpatialExecutor.global.priorityPoint = V3F(controller.cam.position)
+    OctreeExecutor.global.point = V3F(controller.cam.position)
   }
 
   override def onExit(): Unit = {

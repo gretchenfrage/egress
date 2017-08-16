@@ -11,8 +11,8 @@ import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.math._
+import com.phoenixkahlo.hellcraft.math.structures.OctreeExecutor
 import com.phoenixkahlo.hellcraft.util._
-import com.phoenixkahlo.hellcraft.util.SpatialExecutor._
 
 import scala.collection.JavaConverters
 
@@ -192,14 +192,9 @@ class ChunkRenderer(
     (vertArr, indexArr)
   }
 
-  /*
-  val meshData: MeshCompiler =
-    if (previous isDefined) InstantMeshCompiler(compileProcedure)
-    else BackgroundMeshCompiler(chunk.pos * 16 + Repeated(8), compileProcedure)
-    */
   val meshData: Fut[(Array[Float], Array[Short])] =
     if (previous isDefined) Fut(compileProcedure(), _.run())
-    else Fut(compileProcedure(), SpatialExecutor.global.execute(chunk.pos * 16 + V3I(8, 8, 8)))
+    else Fut(compileProcedure(), OctreeExecutor(chunk.pos * 16 + V3I(8, 8, 8)))
 
   val renderable = new DisposableCache[Renderable]({
     // create a mesh

@@ -13,6 +13,7 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics.{ChunkOutlineRenderer, ResourcePack}
+import com.phoenixkahlo.hellcraft.math.structures.{Octree2DExecutor, OctreeExecutor}
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.util._
@@ -96,8 +97,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         world = world.update
         world = world.integrate(controller.mainUpdate(world))
         val avatar = world.findEntity(controller.avatarID).get.asInstanceOf[Avatar]
-        SpatialExecutor.global.priorityPoint = V3F(cam.position)
-        SpatialExecutor2D.global.priorityPoint = V3F(cam.position).flatten
+        OctreeExecutor.global.point = V3F(cam.position)
+        Octree2DExecutor.global.point = V3F(cam.position).flatten
         world = world.updateLoaded((avatar.chunkPos - LoadDist) to (avatar.chunkPos + LoadDist))
 
         // manage history

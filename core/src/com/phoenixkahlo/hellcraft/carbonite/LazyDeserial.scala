@@ -3,7 +3,7 @@ package com.phoenixkahlo.hellcraft.carbonite
 import java.io._
 
 import com.phoenixkahlo.hellcraft.math.V3F
-import com.phoenixkahlo.hellcraft.util.{Fut, SpatialExecutor}
+import com.phoenixkahlo.hellcraft.util.{Fut}
 
 import scala.concurrent.{ExecutionContext, Future}
 

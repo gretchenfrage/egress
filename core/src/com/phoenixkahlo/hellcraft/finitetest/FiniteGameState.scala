@@ -16,10 +16,11 @@ import com.phoenixkahlo.hellcraft.core.entity.Avatar
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics.{ResourceNode, ResourcePack}
+import com.phoenixkahlo.hellcraft.math.structures.OctreeExecutor
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.serial.save.RegionSave
-import com.phoenixkahlo.hellcraft.util.{Cache, DependencyGraph, PriorityExecContext, SpatialExecutor}
+import com.phoenixkahlo.hellcraft.util.{Cache, DependencyGraph, PriorityExecContext}
 import other.{AppDirs, PerlinNoiseGenerator}
 
 import scala.collection.JavaConverters
@@ -122,7 +123,8 @@ class FiniteGameState(givenTexturePack: Cache[ResourcePack]) extends GameState {
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
 
     //BackgroundMeshCompilerExecutor.setPlayerPos(V3F(controller.cam.position))
-    SpatialExecutor.global.priorityPoint = V3F(controller.cam.position)
+    //SpatialExecutor.global.priorityPoint = V3F(controller.cam.position)
+    OctreeExecutor.global.point = V3F(controller.cam.position)
 
     // update the world
     t += 1

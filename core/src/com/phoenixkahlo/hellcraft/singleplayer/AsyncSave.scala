@@ -10,14 +10,14 @@ import com.phoenixkahlo.hellcraft.carbonite.egress.EgressCarboniteConfig
 import com.phoenixkahlo.hellcraft.carbonite.{CarboniteInputStream, CarboniteOutputStream, DefaultCarboniteConfig, LazyDeserial}
 import com.phoenixkahlo.hellcraft.core.Chunk
 import com.phoenixkahlo.hellcraft.math.V3I
+import com.phoenixkahlo.hellcraft.math.structures.OctreeExecutor
 import com.phoenixkahlo.hellcraft.serial.GlobalKryo
-import com.phoenixkahlo.hellcraft.util.{Fut, SpatialExecutor}
+import com.phoenixkahlo.hellcraft.util.{Fut}
 
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
-import com.phoenixkahlo.hellcraft.util.SpatialExecutor._
 
 trait AsyncSave extends AutoCloseable {
 
@@ -51,7 +51,7 @@ class CarboniteSerialService extends SaveSerialService {
     if (path.toFile.exists) {
       val in = new CarboniteInputStream(new FileInputStream(path.toFile))
       try in.readObject().asInstanceOf[Map[V3I, LazyDeserial[Chunk]]]
-        .map({ case (p, laz) => (p, laz.fut(SpatialExecutor.global.execute(p * 16 + V3I(8, 8, 8)))) })
+        .map({ case (p, laz) => (p, laz.fut(OctreeExecutor(p * 16 + V3I(8, 8, 8)))) })
       finally in.close()
     } else Map.empty
   }

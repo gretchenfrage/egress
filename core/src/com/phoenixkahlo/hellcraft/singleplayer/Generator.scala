@@ -4,8 +4,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 import java.util.concurrent.{Executors, ThreadPoolExecutor, TimeUnit}
 
 import com.phoenixkahlo.hellcraft.core.{Air, BlockGrid, Chunk, Stone}
+import com.phoenixkahlo.hellcraft.math.structures.{Octree2DExecutor, OctreeExecutor}
 import com.phoenixkahlo.hellcraft.math.{V2F, V3I}
-import com.phoenixkahlo.hellcraft.util.{Fut, SpatialExecutor, SpatialExecutor2D}
+import com.phoenixkahlo.hellcraft.util.{Fut}
 import other.OpenSimplexNoise
 
 import scala.collection.mutable
@@ -62,7 +63,7 @@ class Generator {
           patch.min = patch.heights.min
           patch.max = patch.heights.max
           patch
-        }, SpatialExecutor2D.global.execute(V2F(x, z) * 16 + V2F(8, 8)))
+        }, Octree2DExecutor(V2F(x, z) * 16 + V2F(8, 8)))
         heightsMap.put((x, z), future)
         future
     }
@@ -79,7 +80,7 @@ class Generator {
         if (depth >= 0) Air
         else Stone
       }))
-    }, SpatialExecutor.global.execute(p * 16 + V3I(8, 8, 8)))
+    }, OctreeExecutor(p * 16 + V3I(8, 8, 8)))
   }
 
 }
