@@ -20,11 +20,8 @@ trait Fut[T] {
   def map[E](func: T => E): Fut[E] =
     new MapFut(this, func, _.run())
 
-  def flatMap[E](func: T => Fut[E], executor: Runnable => Unit): Fut[E] =
-    new FlatMapFut(this, func, executor)
-
   def flatMap[E](func: T => Fut[E]): Fut[E] =
-    new FlatMapFut(this, func, _.run())
+    new FlatMapFut(this, func)
 
   def onComplete(runnable: Runnable): Unit
 }
@@ -47,7 +44,7 @@ object Fut {
 
 }
 
-class EvalFut[T](factory: => T, executor: Runnable => Unit) extends Fut[T] {
+private class EvalFut[T](factory: => T, executor: Runnable => Unit) extends Fut[T] {
   @volatile private var status: Option[T] = None
   private val listeners = new ArrayBuffer[Runnable]
   private val monitor = new Object
@@ -81,7 +78,7 @@ class EvalFut[T](factory: => T, executor: Runnable => Unit) extends Fut[T] {
   }
 }
 
-class MapFut[S, R](source: Fut[S], func: S => R, executor: Runnable => Unit) extends Fut[R] {
+private class MapFut[S, R](source: Fut[S], func: S => R, executor: Runnable => Unit) extends Fut[R] {
   @volatile private var status: Option[R] = None
   private val listeners = new ArrayBuffer[Runnable]
   private val monitor = new Object
@@ -117,24 +114,20 @@ class MapFut[S, R](source: Fut[S], func: S => R, executor: Runnable => Unit) ext
   }
 }
 
-class FlatMapFut[S, R](source: Fut[S], func: S => Fut[R], executor: Runnable => Unit) extends Fut[R] {
+private class FlatMapFut[S, R](source: Fut[S], func: S => Fut[R]) extends Fut[R] {
   @volatile private var status: Option[R] = None
   private val listeners = new ArrayBuffer[Runnable]
   private val monitor = new Object
 
   source.onComplete(() => {
-    executor(() => {
-      val resultFuture = func(source.query.get)
-      resultFuture.onComplete(() => {
-        executor(() => {
-          val result = resultFuture.query.get
-          monitor.synchronized {
-            status = Some(result)
-            monitor.notifyAll()
-          }
-          listeners.foreach(_.run())
-        })
-      })
+    val resultFuture = func(source.query.get)
+    resultFuture.onComplete(() => {
+      val result = resultFuture.query.get
+      monitor.synchronized {
+        status = Some(result)
+        monitor.notifyAll()
+      }
+      listeners.foreach(_.run())
     })
   })
 
@@ -157,75 +150,3 @@ class FlatMapFut[S, R](source: Fut[S], func: S => Fut[R], executor: Runnable => 
     }
   }
 }
-/*
-class ExecutorFut[T](factory: => T)(implicit context: ExecutionContext) extends Fut[T] {
-  @volatile private var status: Option[T] = None
-  private val monitor = new Object
-
-  context.execute(() => {
-    val result = factory
-    monitor.synchronized {
-      status = Some(result)
-      monitor.notifyAll()
-    }
-  })
-
-  override def await: T = {
-    if (status isDefined) status.get
-    else monitor.synchronized {
-      while (status isEmpty)
-        monitor.wait()
-      status.get
-    }
-  }
-
-  override def query: Option[T] =
-    status
-}
-
-class SpatialFut[T](pos: V3F, factory: => T)(implicit executor: SpatialExecutor) extends Fut[T] {
-  @volatile private var status: Option[T] = None
-  private val monitor = new Object
-
-  executor.execute(pos)(() => {
-      val result = factory
-      monitor.synchronized {
-        status = Some(result)
-        monitor.notifyAll()
-      }
-    })
-
-  override def await: T = {
-    if (status isDefined) status.get
-    else monitor.synchronized {
-      while (status isEmpty)
-        monitor.wait()
-      status.get
-    }
-  }
-
-  override def query: Option[T] =
-    status
-
-}
-
-class ImmediateFut[T](source: => T) extends Fut[T] {
-  override lazy val await: T = source
-
-  override def query: Option[T] = Some(await)
-
-  override def map[E](func: (T) => E): Fut[E] = new ImmediateFut(func(await))
-}
-
-class CheapFutMap[S, R](source: Fut[S], func: S => R) extends Fut[R] {
-  override lazy val await: R = func(source.await)
-
-  override def query: Option[R] = source.query.map(func)
-}
-
-class CheapFutFlatMap[S, R](source: Fut[S], func: S => Fut[R]) extends Fut[R] {
-  override lazy val await: R = func(source.await).await
-
-  override def query: Option[R] = source.query.flatMap(func(_).query)
-}
-*/

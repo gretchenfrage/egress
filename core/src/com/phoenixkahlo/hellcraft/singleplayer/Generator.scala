@@ -4,8 +4,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 import java.util.concurrent.{Executors, ThreadPoolExecutor, TimeUnit}
 
 import com.phoenixkahlo.hellcraft.core.{Air, BlockGrid, Chunk, Stone}
-import com.phoenixkahlo.hellcraft.math.V3I
-import com.phoenixkahlo.hellcraft.util.Fut
+import com.phoenixkahlo.hellcraft.math.{V2F, V3I}
+import com.phoenixkahlo.hellcraft.util.{Fut, SpatialExecutor, SpatialExecutor2D}
 import other.OpenSimplexNoise
 
 import scala.collection.mutable
@@ -14,6 +14,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 
 class Generator {
 
+  /*
   implicit val workContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(
     Runtime.getRuntime.availableProcessors,
     runnable => {
@@ -21,6 +22,7 @@ class Generator {
       thread.setPriority(3)
       thread
     }))
+    */
   val noise = new OpenSimplexNoise
 
   val amp = 10f
@@ -37,10 +39,10 @@ class Generator {
     var max: Double = Double.NaN
   }
 
-  val heightsMap = new mutable.HashMap[(Int, Int), Future[HeightPatch]]
+  val heightsMap = new mutable.HashMap[(Int, Int), Fut[HeightPatch]]
   val heightsLock = new ReentrantReadWriteLock
 
-  def heightsAt(x: Int, z: Int): Future[HeightPatch] = {
+  def heightsAt(x: Int, z: Int): Fut[HeightPatch] = {
     heightsLock.readLock().lock()
     if (heightsMap.contains((x, z))) {
       heightsLock.readLock().unlock()
@@ -51,7 +53,7 @@ class Generator {
     val future = heightsMap.get((x, z)) match {
       case Some(future) => future
       case None =>
-        val future = Future[HeightPatch] {
+        val future = Fut[HeightPatch]({
           val patch = new HeightPatch
           for {
             xx <- 0 until 16
@@ -60,7 +62,7 @@ class Generator {
           patch.min = patch.heights.min
           patch.max = patch.heights.max
           patch
-        }(workContext)
+        }, SpatialExecutor2D.global.execute(V2F(x, z) * 16 + V2F(8, 8)))
         heightsMap.put((x, z), future)
         future
     }
@@ -69,7 +71,7 @@ class Generator {
   }
 
   def genChunk(p: V3I): Fut[Chunk] = {
-    Fut.fromFuture(heightsAt(p.xi, p.zi).map(heights => {
+    heightsAt(p.xi, p.zi).map(heights => {
       if (heights.min > p.yi * 16 + 16) BlockGrid.StoneGrid
       if (heights.max < p.yi * 16) BlockGrid.AirGrid
       new Chunk(p, BlockGrid(v => {
@@ -77,7 +79,7 @@ class Generator {
         if (depth >= 0) Air
         else Stone
       }))
-    }))
+    }, SpatialExecutor.global.execute(p * 16 + V3I(8, 8, 8)))
   }
 
 }

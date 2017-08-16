@@ -94,7 +94,7 @@ class LazyInfWorld(
     save.push(unload)
     val unloaded = unload.map(_.pos)
     // load chunks
-    val load: Map[V3I, Fut[Chunk]] = save.pull((target.toSet -- chunks.keys).toSeq)
+    val load: Map[V3I, Fut[Chunk]] = save.pull((target.toSet -- (chunks.keySet ++ futures.keySet)).toSeq)
     // construct
     new LazyInfWorld(save, time, chunks -- unloaded, futures ++ load, border -- unloaded, active -- unloaded,
       meshable -- unloaded, entityPosHints)

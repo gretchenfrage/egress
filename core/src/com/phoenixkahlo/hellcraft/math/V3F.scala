@@ -3,7 +3,7 @@ package com.phoenixkahlo.hellcraft.math
 import com.badlogic.gdx.math.Vector3
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
-import com.thesamet.spatial.{DimensionalOrdering, Metric}
+import com.thesamet.spatial.{DimensionalOrdering, KDTree, Metric}
 
 /**
   * A vector of 3 floats

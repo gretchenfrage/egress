@@ -15,7 +15,7 @@ import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics.{ChunkOutlineRenderer, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 import com.phoenixkahlo.hellcraft.menu.MainMenu
-import com.phoenixkahlo.hellcraft.util.{Cache, DependencyGraph, PriorityExecContext, SpatialExecutor}
+import com.phoenixkahlo.hellcraft.util._
 import other.AppDirs
 
 import scala.collection.{SortedMap, SortedSet}
@@ -46,7 +46,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     clock = new GametimeClock
 
-    val avatar = Avatar(pos = V3F(0.5f, Await.result(generator.heightsAt(0, 0), Duration.Inf)(0, 0).toInt, 0.5f))
+    val avatar = Avatar(pos = V3F(0.5f, generator.heightsAt(0, 0).await(0, 0).toInt, 0.5f))
     val world = new LazyInfWorld(save, 0, Map.empty, Map.empty, Set.empty, Set.empty, Set.empty, Map.empty)
       .updateLoaded(Seq(avatar.chunkPos))
       .integrate(Seq(AddEntity(avatar, UUID.randomUUID())))
@@ -96,8 +96,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         world = world.update
         world = world.integrate(controller.mainUpdate(world))
         val avatar = world.findEntity(controller.avatarID).get.asInstanceOf[Avatar]
-        //BackgroundMeshCompilerExecutor.setPlayerPos(avatar.pos)
         SpatialExecutor.global.priorityPoint = V3F(cam.position)
+        SpatialExecutor2D.global.priorityPoint = V3F(cam.position).flatten
         world = world.updateLoaded((avatar.chunkPos - LoadDist) to (avatar.chunkPos + LoadDist))
 
         // manage history
