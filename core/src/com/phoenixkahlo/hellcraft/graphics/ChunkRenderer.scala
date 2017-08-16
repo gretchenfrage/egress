@@ -23,6 +23,8 @@ class ChunkRenderer(
                      previous: Option[ChunkRenderer]
                         ) extends RenderableFactory with ResourceNode {
 
+  var p = Profiler("chunk renderer construction")
+
   def compileProcedure: () => (Array[Float], Array[Short]) = () => {
     // first, check for heuristics
     if (chunk.blocks eq BlockGrid.AirGrid) (new Array[Float](0), new Array[Short](0))
@@ -192,9 +194,15 @@ class ChunkRenderer(
     (vertArr, indexArr)
   }
 
+  p.log()
+
   val meshData: Fut[(Array[Float], Array[Short])] =
-    if (previous isDefined) Fut(compileProcedure(), _.run())
-    else Fut(compileProcedure(), OctreeExecutor(chunk.pos * 16 + V3I(8, 8, 8)))
+    if (previous isDefined) {
+      println("compiling in foreground!")
+      Fut(compileProcedure(), _.run())
+    } else Fut(compileProcedure(), OctreeExecutor(chunk.pos * 16 + V3I(8, 8, 8)))
+
+  p.log()
 
   val renderable = new DisposableCache[Renderable]({
     // create a mesh
@@ -205,7 +213,6 @@ class ChunkRenderer(
     )
 
     // get the arrays
-    //val (vertArr, indexArr) = Await.result(meshData, Duration.Inf)
     val (vertArr, indexArr) = meshData.await
 
     // plug the arrays into the mesh (this uploads them to VRAM)
@@ -225,6 +232,8 @@ class ChunkRenderer(
     renderable.meshPart.primitiveType = GL20.GL_TRIANGLES
     renderable
   }, _.meshPart.mesh.dispose())
+
+  p.log()
 
   /**
     * Bring this object into an active state, generating resources, and return the renderables.
@@ -274,5 +283,9 @@ class ChunkRenderer(
   override def dispose(): Unit = {
     renderable.invalidate
   }
+
+  p.log()
+  p.printDisc(1)
+  p = null
 
 }

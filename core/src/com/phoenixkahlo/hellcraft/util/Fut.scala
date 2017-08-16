@@ -28,8 +28,14 @@ trait Fut[T] {
 
 object Fut {
 
-  def apply[T](factory: => T, executor: Runnable => Unit): Fut[T] =
-    new EvalFut(factory, executor)
+  def apply[T](factory: => T, executor: Runnable => Unit): Fut[T] = {
+    val p = Profiler("fut creation")
+    try new EvalFut(factory, executor)
+    finally {
+      p.log()
+      p.printDisc(1)
+    }
+  }
 
   def fromFuture[T](future: Future[T]): Fut[T] = new Fut[T] {
     override def await: T = Await.result(future, Duration.Inf)

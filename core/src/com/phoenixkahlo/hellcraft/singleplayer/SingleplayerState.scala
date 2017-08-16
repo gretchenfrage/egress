@@ -19,6 +19,7 @@ import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.util._
 import other.AppDirs
 
+import scala.collection.mutable.ArrayBuffer
 import scala.collection.{SortedMap, SortedSet}
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -118,6 +119,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   }
 
   override def render(): Unit = {
+    val p = Profiler("render")
+
     Gdx.graphics.setTitle(Gdx.graphics.getFramesPerSecond.toString)
 
     // setup
@@ -126,6 +129,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     Gdx.gl.glClearColor(0.5089f, 0.6941f, 1f, 1f)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
+
+    p.log()
 
     // interpolation
     val (toRender, interpolation) =
@@ -136,11 +141,18 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           (ultimate, None)
       }
 
+    p.log()
+
     // update controller
     controller.camUpdate(toRender, interpolation)
 
+    p.log()
+
     // memory management
     var factories = toRender.renderables(resources)
+
+    p.log()
+
     val nodes = factories.par.flatMap(_.resources).seq
     vramGraph ++= nodes
     if (g % 600 == 0) PriorityExecContext(1).execute(() => {
@@ -150,6 +162,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         vramGraph --= garbage.toSeq
       })
     })
+
+    p.log()
 
     // add debug renderables
     if (Gdx.input.isKeyPressed(Keys.F)) {
@@ -161,6 +175,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       factories ++= notComplete.keySet.toSeq.map(new ChunkOutlineRenderer(_, Color.PURPLE))
     }
 
+    p.log()
+
     // render 3D stuff
     val provider = new RenderableProvider {
       override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit =
@@ -169,6 +185,9 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     modelBatch.begin(cam)
     modelBatch.render(provider, lights)
     modelBatch.end()
+
+    p.log()
+    p.printDisc(10)
   }
 
   override def onExit(): Unit = {

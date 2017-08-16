@@ -1,18 +1,20 @@
 package com.phoenixkahlo.hellcraft.math.structures
 
-import java.util.concurrent.ThreadFactory
+import java.util.concurrent.{Executors, ThreadFactory}
 
 import com.phoenixkahlo.hellcraft.math.{V2F, V3F}
+import com.phoenixkahlo.hellcraft.util.Profiler
 
 class OctreeExecutor(threads: Int, factory: ThreadFactory) {
 
   private val queue = new OctreeBlockingQueue[Runnable]
+  private val inserter = Executors.newSingleThreadExecutor(factory)
 
   def point: V3F = queue.point
   def point_=(p: V3F) = queue.point = p
 
   def execute(pos: V3F)(task: Runnable): Unit = {
-    queue.add(pos -> task)
+    inserter.execute(() => queue.add(pos -> task))
   }
 
   {
@@ -47,12 +49,13 @@ object OctreeExecutor {
 class Octree2DExecutor(threads: Int, factory: ThreadFactory) {
 
   private val queue = new OctreeBlockingQueue[Runnable]
+  private val inserter = Executors.newSingleThreadExecutor(factory)
 
   def point: V2F = queue.point.flatten
   def point_=(p: V2F) = queue.point = p.inflate(0)
 
   def execute(pos: V2F)(task: Runnable): Unit = {
-    queue.add(pos.inflate(0) -> task)
+    inserter.execute(() => queue.add(pos.inflate(0) -> task))
   }
 
   {
