@@ -2,7 +2,6 @@ package com.phoenixkahlo.hellcraft.math
 
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
-import com.thesamet.spatial.{DimensionalOrdering, Metric}
 
 @CarboniteWith(classOf[FieldNode])
 case class V2F(x: Float, y: Float) extends Serializable {
@@ -98,31 +97,5 @@ case class V2F(x: Float, y: Float) extends Serializable {
 
   override def toString: String =
     "<" + x + ", " + y + ">"
-
-}
-
-object V2F {
-
-  implicit val ordering: DimensionalOrdering[V2F] = new DimensionalOrdering[V2F] {
-    override def compareProjection(dimension: Int)(x: V2F, y: V2F): Int =
-      dimension match {
-        case 0 => (y.x - x.x) / Math.abs(y.x - x.x) toInt
-        case 1 => (y.y - x.y) / Math.abs(y.y - x.y) toInt
-      }
-
-    override def dimensions: Int = 2
-  }
-
-  implicit val metric: Metric[V2F, Float] = new Metric[V2F, Float] {
-    override def distance(x: V2F, y: V2F): Float = x dist y
-
-    override def planarDistance(dimension: Int)(x: V2F, y: V2F): Float = {
-      val dd = dimension match {
-        case 0 => x.x - y.x
-        case 1 => x.y - y.y
-      }
-      dd * dd
-    }
-  }
 
 }

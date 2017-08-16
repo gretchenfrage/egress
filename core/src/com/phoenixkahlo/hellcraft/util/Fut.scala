@@ -3,7 +3,6 @@ package com.phoenixkahlo.hellcraft.util
 import java.util.concurrent.ThreadFactory
 
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F}
-import com.thesamet.spatial.KDTreeMap
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.Duration

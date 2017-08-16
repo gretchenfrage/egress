@@ -13,10 +13,8 @@ import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import com.badlogic.gdx.{Gdx, InputAdapter}
 import com.phoenixkahlo.hellcraft.core._
-import com.phoenixkahlo.hellcraft.finitetest.FiniteGameState
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics._
-import com.phoenixkahlo.hellcraft.infinitetest.InfiniteGameState
 import com.phoenixkahlo.hellcraft.menu.util.{EButton, EButtonStyle}
 import com.phoenixkahlo.hellcraft.singleplayer.SingleplayerState
 import com.phoenixkahlo.hellcraft.util.Cache

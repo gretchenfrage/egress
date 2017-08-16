@@ -3,7 +3,6 @@ package com.phoenixkahlo.hellcraft.math
 import com.badlogic.gdx.math.Vector3
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
-import com.thesamet.spatial.{DimensionalOrdering, KDTree, Metric}
 
 /**
   * A vector of 3 floats
@@ -132,30 +131,6 @@ object V3F {
   def unapply(v: V3F): Option[(Float, Float, Float)] =
     Some((v.x, v.y, v.z))
 
-  implicit val ordering: DimensionalOrdering[V3F] = new DimensionalOrdering[V3F] {
-    override def compareProjection(dimension: Int)(x: V3F, y: V3F): Int =
-      dimension match {
-        case 0 => (y.x - x.x) / Math.abs(y.x - x.x) toInt
-        case 1 => (y.y - x.y) / Math.abs(y.y - x.y) toInt
-        case 2 => (y.z - x.z) / Math.abs(y.z - x.z) toInt
-      }
-
-    override def dimensions: Int = 3
-  }
-
-  implicit val metric: Metric[V3F, Float] = new Metric[V3F, Float] {
-    override def distance(x: V3F, y: V3F): Float =
-      x dist y
-
-    override def planarDistance(dimension: Int)(x: V3F, y: V3F): Float = {
-      val dd = dimension match {
-        case 0 => x.x - y.x
-        case 1 => x.y - y.y
-        case 2 => x.z - y.z
-      }
-      dd * dd
-    }
-  }
 
 }
 

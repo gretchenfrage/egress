@@ -6,7 +6,6 @@ import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.{Avatar, Cylindroid, Entity, PositionHaver}
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
-import com.phoenixkahlo.hellcraft.multiplayertest.EntityID
 
 /**
   * A transformation that is applied to a particular chunk.
@@ -75,11 +74,11 @@ abstract class TransformEntity(entityID: UUID, override val target: V3I, overrid
 
 @CarboniteWith(classOf[FieldNode])
 case class SetAvatarMovement(
-                              avatarID: EntityID,
+                              avatarID: UUID,
                               movDir: V3F,
                               jumping: Boolean,
                               sprinting: Boolean,
-                              override val id: EntityID,
+                              override val id: UUID,
                               override val target: V3I
                             ) extends TransformEntity(avatarID, target, id) {
   override def transform(entity: Entity): Entity =
@@ -88,7 +87,7 @@ case class SetAvatarMovement(
 
 @CarboniteWith(classOf[FieldNode])
 case class ThrustCylindroid(
-                       entityID: EntityID,
+                       entityID: UUID,
                        deltaV: V3F,
                        override val target: V3I,
                        override val id: UUID

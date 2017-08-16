@@ -11,7 +11,6 @@ import com.phoenixkahlo.hellcraft.carbonite.{CarboniteInputStream, CarboniteOutp
 import com.phoenixkahlo.hellcraft.core.Chunk
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.math.structures.OctreeExecutor
-import com.phoenixkahlo.hellcraft.serial.GlobalKryo
 import com.phoenixkahlo.hellcraft.util.{Fut}
 
 import scala.collection.immutable.HashMap

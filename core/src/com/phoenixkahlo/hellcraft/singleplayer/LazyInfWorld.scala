@@ -5,9 +5,7 @@ import java.util.UUID
 import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent, World}
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.graphics.{RenderableFactory, ResourcePack}
-import com.phoenixkahlo.hellcraft.infinitetest.HashCacheWorld
 import com.phoenixkahlo.hellcraft.math.V3I
-import com.phoenixkahlo.hellcraft.serial.save.WorldSave
 import com.phoenixkahlo.hellcraft.util.Fut
 
 import scala.collection.SortedSet

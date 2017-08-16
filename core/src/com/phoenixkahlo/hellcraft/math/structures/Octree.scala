@@ -3,7 +3,6 @@ package com.phoenixkahlo.hellcraft.math.structures
 import java.io.PrintStream
 
 import com.phoenixkahlo.hellcraft.math._
-import com.thesamet.spatial.KDTreeMap
 
 import scala.collection.mutable.ArrayBuffer
 
