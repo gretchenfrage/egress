@@ -2,6 +2,7 @@ package com.phoenixkahlo.hellcraft.multiplayertest
 
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent, World}
+import com.phoenixkahlo.hellcraft.gamedriver.UpdatingGameDriver
 import com.phoenixkahlo.hellcraft.math.V3I
 
 import scala.collection.SortedSet
@@ -85,7 +86,7 @@ class ClientWorld(
     }
     // accumulate all the events from chunks we are updating, and then join them with the unpredictable events
     // filter out events targeted at chunks we are not subscribed to
-    val events = updating.flatMap(chunkAt(_).get.update(this)).filter(e => subscribed.contains(e.target))
+    val events = updating.flatMap(chunkAt(_).get.update(this, UpdatingGameDriver.dt.toNanos.toFloat / 1000000000)).filter(e => subscribed.contains(e.target))
       .to[SortedSet] ++ unpredictable
     // scan all events for events that are not subscribed to
     if (true) {

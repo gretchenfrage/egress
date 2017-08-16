@@ -3,6 +3,7 @@ package com.phoenixkahlo.hellcraft.multiplayertest
 import java.util.concurrent.LinkedBlockingQueue
 
 import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent}
+import com.phoenixkahlo.hellcraft.gamedriver.UpdatingGameDriver
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.serial.save.WorldSave
 import com.phoenixkahlo.hellcraft.util.Cache
@@ -68,7 +69,7 @@ class ServerContinuum(save: WorldSave, server: EgressServer) {
     val allSubscribedChunkPositions = subscriptions.values.foldLeft(new HashSet[V3I])(_ ++ _)
     var next = current.setKeepLoaded(allSubscribedChunkPositions)
     val allSubscribedChunks = allSubscribedChunkPositions.toSeq.map(current.chunkAt(_).get)
-    val eventsProducedByChunks = allSubscribedChunks.flatMap(chunk => chunk.update(current).map((_, Some(chunk.pos))))
+    val eventsProducedByChunks = allSubscribedChunks.flatMap(chunk => chunk.update(current, UpdatingGameDriver.dt.toNanos.toFloat / 1000000000).map((_, Some(chunk.pos))))
     val externalEvents = externs.get(time).map(_.toSeq.map(event => (event, None))).getOrElse(Nil)
     val events = eventsProducedByChunks ++ externalEvents
 

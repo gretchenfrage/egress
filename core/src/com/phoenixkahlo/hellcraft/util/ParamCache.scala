@@ -4,20 +4,11 @@ class ParamCache[P,T](factory: P => T) {
 
   private var value: Option[T] = None
 
-  def apply(param: P) = {
-    val p = Profiler("param cache apply")
-    try {
-      this.synchronized {
-        p.log()
-        if (value.isEmpty) value = Some(factory(param))
-        p.log()
-        value.get
-      }
-    } finally {
-      p.log()
-      p.printDisc(1)
+  def apply(param: P) =
+    this.synchronized {
+      if (value.isEmpty) value = Some(factory(param))
+      value.get
     }
-  }
 
   def invalidate =
     this.synchronized {

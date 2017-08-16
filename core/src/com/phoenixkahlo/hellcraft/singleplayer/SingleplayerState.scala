@@ -11,7 +11,7 @@ import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch, Renderable, Rende
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
-import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
+import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState, UpdatingGameDriver}
 import com.phoenixkahlo.hellcraft.graphics.{ChunkOutlineRenderer, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.structures.{Octree2DExecutor, OctreeExecutor}
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
@@ -95,7 +95,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       while (!Thread.interrupted()) {
         // update world
         var world = history.last._2
-        world = world.update
+        world = world.update(UpdatingGameDriver.dt.toNanos.toFloat / 1000000000f)
         world = world.integrate(controller.mainUpdate(world))
         val avatar = world.findEntity(controller.avatarID).get.asInstanceOf[Avatar]
         OctreeExecutor.global.point = V3F(cam.position)
@@ -119,8 +119,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   }
 
   override def render(): Unit = {
-    val p = Profiler("render")
-
     Gdx.graphics.setTitle(Gdx.graphics.getFramesPerSecond.toString)
 
     // setup
@@ -129,8 +127,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     Gdx.gl.glClearColor(0.5089f, 0.6941f, 1f, 1f)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
-
-    p.log()
 
     // interpolation
     val (toRender, interpolation) =
@@ -141,17 +137,11 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           (ultimate, None)
       }
 
-    p.log()
-
     // update controller
     controller.camUpdate(toRender, interpolation)
 
-    p.log()
-
     // memory management
     var factories = toRender.renderables(resources)
-
-    p.log()
 
     val nodes = factories.par.flatMap(_.resources).seq
     vramGraph ++= nodes
@@ -163,8 +153,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       })
     })
 
-    p.log()
-
     // add debug renderables
     if (Gdx.input.isKeyPressed(Keys.F)) {
       factories ++= toRender.border.toSeq.map(new ChunkOutlineRenderer(_, Color.YELLOW))
@@ -175,8 +163,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       factories ++= notComplete.keySet.toSeq.map(new ChunkOutlineRenderer(_, Color.PURPLE))
     }
 
-    p.log()
-
     // render 3D stuff
     val provider = new RenderableProvider {
       override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit =
@@ -185,9 +171,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     modelBatch.begin(cam)
     modelBatch.render(provider, lights)
     modelBatch.end()
-
-    p.log()
-    p.printDisc(10)
   }
 
   override def onExit(): Unit = {

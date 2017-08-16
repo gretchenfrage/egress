@@ -12,7 +12,7 @@ trait Entity {
 
   def id: UUID
 
-  def update(world: World, ids: Stream[UUID]): Seq[ChunkEvent] = Nil
+  def update(world: World, ids: Stream[UUID], dt: Float): Seq[ChunkEvent] = Nil
 
   def renderables(texturePack: ResourcePack): Seq[RenderableFactory] = Nil
 

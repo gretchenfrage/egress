@@ -6,6 +6,7 @@ import com.esotericsoftware.kryo.DefaultSerializer
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.Entity
+import com.phoenixkahlo.hellcraft.gamedriver.UpdatingGameDriver
 import com.phoenixkahlo.hellcraft.graphics.{ChunkRenderer, RenderableFactory, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Origin, Repeated, V3I}
 import com.phoenixkahlo.hellcraft.util.{ParamCache, Profiler, RNG}
@@ -85,39 +86,21 @@ class Chunk (
 
   def removeEntity(entity: Entity): Chunk = removeEntity(entity.id)
 
-  def update(world: World): Seq[ChunkEvent] = {
+  def update(world: World, dt: Float): Seq[ChunkEvent] = {
     val seed: Long = (world.time.hashCode().toLong << 32) | pos.hashCode().toLong
     val idStreams: Stream[Stream[UUID]] = RNG.meta(RNG(seed), RNG.uuids)
-    entities.values.zip(idStreams).flatMap({ case (entity, ids) => entity.update(world, ids) }).toSeq
+    entities.values.zip(idStreams).flatMap({ case (entity, ids) => entity.update(world, ids, dt) }).toSeq
   }
 
-  @transient private lazy val renderer: ParamCache[(ResourcePack, World), ChunkRenderer] = {
-    val p = Profiler("chunk renderer lazy eval")
-    try {
-      if (lastRenderer == null)
-        new ParamCache({ case (textures, world) => {
-          val p = Profiler("chunk renderer construct, without prior")
-          try new ChunkRenderer(this, textures, world, None)
-          finally {
-            p.log()
-            p.printDisc(1)
-          }
-        } })
-      else {
-        if (lastGraphicsDirty)
-          new ParamCache({ case params@(textures, world) => {
-            val p = Profiler("chunk renderer construct, with prior")
-            try new ChunkRenderer(this, textures, world, Some(lastRenderer(params)))
-            finally {
-              p.log()
-              p.printDisc(1)
-            }
-          } })
-        else
-          lastRenderer
-      }
-    } finally p.printDisc(1)
-  }
+  @transient private lazy val renderer: ParamCache[(ResourcePack, World), ChunkRenderer] =
+    if (lastRenderer == null)
+      new ParamCache({ case (textures, world) => new ChunkRenderer(this, textures, world, None) })
+    else {
+      if (lastGraphicsDirty)
+        new ParamCache({ case params@(textures, world) => new ChunkRenderer(this, textures, world, Some(lastRenderer(params)))})
+      else
+        lastRenderer
+    }
 
   @transient private lazy val meshableFlag: ParamCache[V3I => Option[Chunk], Boolean] =
     if (lastMeshableFlag != null && !lastGraphicsDirty) lastMeshableFlag
@@ -135,15 +118,7 @@ class Chunk (
     meshableFlag(getChunk)
 
   def renderables(texturePack: ResourcePack, world: World): Seq[RenderableFactory] = {
-    val p = Profiler("chunk " + pos)
-    try {
-      //entities.values.flatMap(_.renderables(texturePack)).toSeq :+ renderer((texturePack, world))
-      val entRen = entities.values.flatMap(_.renderables(texturePack)).toSeq
-      p.log()
-      val chuRen = renderer((texturePack, world))
-      p.log()
-      entRen :+ chuRen
-    } finally p.printDisc(2)
+    entities.values.flatMap(_.renderables(texturePack)).toSeq :+ renderer((texturePack, world))
   }
 
   override def hashCode(): Int =

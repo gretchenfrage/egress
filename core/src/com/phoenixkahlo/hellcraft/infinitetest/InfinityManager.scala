@@ -4,6 +4,7 @@ import java.util.UUID
 
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.core._
+import com.phoenixkahlo.hellcraft.gamedriver.UpdatingGameDriver
 import com.phoenixkahlo.hellcraft.graphics.{RenderableFactory, ResourceNode, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Directions, V3I}
 import com.phoenixkahlo.hellcraft.serial.save.WorldSave
@@ -38,7 +39,7 @@ class InfinityManager(save: WorldSave, generator: V3I => Block) {
   }
 
   def update(ps: Seq[V3I], updateBuffer: Boolean): Unit = {
-    val events = ps.flatMap(world.chunkAt(_)).flatMap(_.update(world))
+    val events = ps.flatMap(world.chunkAt(_)).flatMap(_.update(world, UpdatingGameDriver.dt.toNanos.toFloat / 1000000000))
     integrate(events)
     if (updateBuffer)
       buffer.update(world.loaded.keys.toSeq, 3, world)

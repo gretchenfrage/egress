@@ -31,8 +31,8 @@ abstract class Walker[C <: Walker[C]](
     if (direction.magnitude == 0) V2F(0, 0)
     else direction.flatten.normalize * (if (sprinting) sprintVel else maxVel)
 
-  override protected def transform(world: World): C = {
-    val f = super.transform(world)
+  override protected def transform(world: World, dt: Float): C = {
+    val f = super.transform(world, dt)
     if (jumping && f.grounded) f.updateVel(f.vel.copy(y = Math.sqrt(2 * g * jumpHeight).toFloat))
     else f
   }

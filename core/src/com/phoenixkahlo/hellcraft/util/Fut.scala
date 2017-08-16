@@ -29,12 +29,7 @@ trait Fut[T] {
 object Fut {
 
   def apply[T](factory: => T, executor: Runnable => Unit): Fut[T] = {
-    val p = Profiler("fut creation")
-    try new EvalFut(factory, executor)
-    finally {
-      p.log()
-      p.printDisc(1)
-    }
+    new EvalFut(factory, executor)
   }
 
   def fromFuture[T](future: Future[T]): Fut[T] = new Fut[T] {

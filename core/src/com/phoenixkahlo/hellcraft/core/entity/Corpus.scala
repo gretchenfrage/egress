@@ -26,7 +26,7 @@ abstract class Corpus(
                         ) extends PositionHaver {
 
 
-  protected def transform(world: World): Corpus
+  protected def transform(world: World, dt: Float): Corpus
 
   def modelID: UUID = id
 
@@ -36,8 +36,8 @@ abstract class Corpus(
 
   override lazy val chunkPos: V3I = pos / chunkSize floor
 
-  override def update(world: World, ids: Stream[UUID]): Seq[ChunkEvent] = {
-    val replacer = transform(world)
+  override def update(world: World, ids: Stream[UUID], dt: Float) = {
+    val replacer = transform(world, dt)
 
     if (replacer.chunkPos == this.chunkPos)
       Seq(ReplaceEntity(replacer, ids.head))

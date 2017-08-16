@@ -138,9 +138,9 @@ class LazyInfWorld(
   def incrTime: LazyInfWorld =
     new LazyInfWorld(save, time + 1, chunks, futures, border, active, meshable, entityPosHints)
 
-  def update: LazyInfWorld = {
+  def update(dt: Float): LazyInfWorld = {
     val loadified = loadify
-    val events = loadified.active.toSeq.par.map(loadified.chunks(_)).flatMap(_.update(loadified)).seq
+    val events = loadified.active.toSeq.par.map(loadified.chunks(_)).flatMap(_.update(loadified, dt)).seq
     loadified.integrate(events).incrTime
   }
 

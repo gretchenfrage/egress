@@ -61,6 +61,6 @@ class UpdatingGameDriver(state: UpdatingGameState) extends ApplicationAdapter {
 object UpdatingGameDriver {
 
   val updatesPerSecond: Int = 20
-  val dt: Duration = (1 second) / updatesPerSecond
+  var dt: Duration = (1 second) / updatesPerSecond
 
 }

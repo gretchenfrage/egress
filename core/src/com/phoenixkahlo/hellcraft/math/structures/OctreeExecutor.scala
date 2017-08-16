@@ -31,6 +31,15 @@ class OctreeExecutor(threads: Int, factory: ThreadFactory) {
 
 object OctreeExecutor {
 
+  val mesher = new OctreeExecutor(
+    Runtime.getRuntime.availableProcessors,
+    runnable => {
+      val thread = new Thread(runnable, "global mesher exec thread")
+      thread.setPriority(2)
+      thread
+    }
+  )
+
   val global = new OctreeExecutor(
     Runtime.getRuntime.availableProcessors,
     runnable => {
@@ -42,6 +51,10 @@ object OctreeExecutor {
 
   def apply(pos: V3F): Runnable => Unit = {
     global.execute(pos)
+  }
+
+  def mesh(pos: V3F): Runnable => Unit = {
+    mesher.execute(pos)
   }
 
 }

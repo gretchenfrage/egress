@@ -4,6 +4,7 @@ import java.util.UUID
 
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Entity
+import com.phoenixkahlo.hellcraft.gamedriver.UpdatingGameDriver
 import com.phoenixkahlo.hellcraft.graphics.{RenderableFactory, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
@@ -76,7 +77,7 @@ class FiniteWorld(
   */
 
   def update: FiniteWorld =
-    integrate(chunks.flatMap(_.update(this))) incrTime
+    integrate(chunks.flatMap(_.update(this, UpdatingGameDriver.dt.toNanos.toFloat / 1000000000))) incrTime
 
   def integrate(events: Seq[ChunkEvent]): FiniteWorld = {
     val set = events.foldLeft(new TreeSet[ChunkEvent])(_ + _)

@@ -36,9 +36,7 @@ abstract class Cylindroid[C <: Cylindroid[C]](
 
   def naturalVelocity: V2F = V2F(0, 0)
 
-  override protected def transform(world: World): C = {
-    val dt = UpdatingGameDriver.dt.toMillis / 1000f
-
+  override protected def transform(world: World, dt: Float): C = {
     def intersecting(c: C, exclude: Set[V3I]): Seq[(V3I, RectangleProxmimity)] =
       ((c.pos - V3F(c.rad, 0, c.rad)).floor to (c.pos + V3F(c.rad, c.height, c.rad)).floor)
         .filter(!exclude(_))
