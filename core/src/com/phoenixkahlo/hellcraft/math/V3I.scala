@@ -74,6 +74,13 @@ class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
     V3I(x, y, z)
   }
 
+  override lazy val flatten: V2I =
+    V2I(xi, zi)
+
+  def compress(v: V3I): Int = {
+    v.xi + v.zi * xi + v.yi * xi * zi
+  }
+
   @transient lazy val toColor: Color = this / 256 match { case V3F(r, g, b) => new Color(r, g, b, 1) }
 
   def touching: Seq[V3I] =

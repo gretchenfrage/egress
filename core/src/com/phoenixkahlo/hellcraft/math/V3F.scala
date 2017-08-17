@@ -61,7 +61,7 @@ class V3F(val x: Float, val y: Float, val z: Float) {
   def ceil: V3I =
     V3I(Math.ceil(x).toInt, Math.ceil(y).toInt, Math.ceil(z).toInt)
 
-  lazy val flatten =
+  lazy val flatten: V2F =
     V2F(x, z)
 
   lazy val magnitude =
