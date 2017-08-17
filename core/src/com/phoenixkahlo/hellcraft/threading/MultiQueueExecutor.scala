@@ -17,7 +17,7 @@ class MultiQueueExecutor(threadCount: Int, threadFactory: ThreadFactory) {
   @volatile private var activeQueues = Vector[RunnableSource]()
   @volatile private var helperThreads = new ArrayBuffer[Thread]()
   private var managerThread = new Thread(() => {
-    while (true) {
+    while (!Thread.interrupted()) {
       // if the active pool is empty
       if (activeQueues.isEmpty) {
         // kill all the helper threads

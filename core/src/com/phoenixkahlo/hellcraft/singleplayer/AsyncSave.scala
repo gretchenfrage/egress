@@ -10,8 +10,7 @@ import com.phoenixkahlo.hellcraft.carbonite.egress.EgressCarboniteConfig
 import com.phoenixkahlo.hellcraft.carbonite.{CarboniteInputStream, CarboniteOutputStream, DefaultCarboniteConfig, LazyDeserial}
 import com.phoenixkahlo.hellcraft.core.Chunk
 import com.phoenixkahlo.hellcraft.math.V3I
-import com.phoenixkahlo.hellcraft.math.structures.OctreeExecutor
-import com.phoenixkahlo.hellcraft.util.{Fut}
+import com.phoenixkahlo.hellcraft.threading.{Fut, UniExecutor}
 
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
@@ -21,6 +20,8 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 trait AsyncSave extends AutoCloseable {
 
   def push(chunks: Map[V3I, Chunk]): Seq[Fut[Unit]]
+
+  def finalPush(chunks: Map[V3I, Chunk]): Seq[Fut[Unit]]
 
   def push(chunks: Seq[Chunk]): Seq[Fut[Unit]] =
     push(chunks.map(c => (c.pos, c)).toMap)
@@ -50,7 +51,7 @@ class CarboniteSerialService extends SaveSerialService {
     if (path.toFile.exists) {
       val in = new CarboniteInputStream(new FileInputStream(path.toFile))
       try in.readObject().asInstanceOf[Map[V3I, LazyDeserial[Chunk]]]
-        .map({ case (p, laz) => (p, laz.fut(OctreeExecutor(p * 16 + V3I(8, 8, 8)))) })
+        .map({ case (p, laz) => (p, laz.fut(UniExecutor.exec(p * 16 + V3I(8, 8, 8)))) })
       finally in.close()
     } else Map.empty
   }
@@ -61,7 +62,7 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
   if (!path.toFile.exists)
     path.toFile.mkdir()
 
-  val RegionSize = 8
+  val RegionSize = 32
 
   private def pathFor(region: V3I): Path =
     path.resolve("x" + region.xi + "y" + region.yi + "z" + region.zi + ".region")
@@ -101,7 +102,7 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
     }
   }
 
-  override def push(chunks: Map[V3I, Chunk]): Seq[Fut[Unit]] = {
+  def push(chunks: Map[V3I, Chunk], executor: Option[Runnable => Unit]): Seq[Fut[Unit]] = {
     val toSave = chunks.filter({ case (_, c) => !c.freshlyLoaded })
     if (toSave isEmpty) return Seq.empty
 
@@ -112,9 +113,17 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
         var map = serial.read(path).mapValues(_.await)
         map ++= group.map(c => (c.pos, c)).toMap
         serial.write(path, map)
-      }, contextFor(region).execute)
+      }, executor.getOrElse(contextFor(region).execute))
     }
     accumulator
+  }
+
+  override def push(chunks: Map[V3I, Chunk]): Seq[Fut[Unit]] = {
+    push(chunks, None)
+  }
+
+  override def finalPush(chunks: Map[V3I, Chunk]): Seq[Fut[Unit]] = {
+    push(chunks, Some(new Thread(_).start()))
   }
 
   override def pull(chunks: Seq[V3I]): Map[V3I, Fut[Chunk]] = {

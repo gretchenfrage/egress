@@ -6,7 +6,7 @@ import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent, World}
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.graphics.{RenderableFactory, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.V3I
-import com.phoenixkahlo.hellcraft.util.Fut
+import com.phoenixkahlo.hellcraft.threading.Fut
 
 import scala.collection.SortedSet
 import scala.collection.mutable.ArrayBuffer
@@ -100,7 +100,7 @@ class LazyInfWorld(
 
   def pushToSave(): Fut[Unit] = {
     Fut[Unit]({
-      for (fut <- save.push(chunks))
+      for (fut <- save.finalPush(chunks))
         fut.await
       ()
     }, _.run())

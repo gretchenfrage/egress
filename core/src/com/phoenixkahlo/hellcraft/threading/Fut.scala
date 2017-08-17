@@ -1,8 +1,4 @@
-package com.phoenixkahlo.hellcraft.util
-
-import java.util.concurrent.ThreadFactory
-
-import com.phoenixkahlo.hellcraft.math.{Origin, V3F}
+package com.phoenixkahlo.hellcraft.threading
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.Duration

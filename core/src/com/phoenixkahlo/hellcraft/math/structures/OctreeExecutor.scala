@@ -4,7 +4,7 @@ import java.util.concurrent.{Executors, ThreadFactory}
 
 import com.phoenixkahlo.hellcraft.math.{V2F, V3F}
 import com.phoenixkahlo.hellcraft.util.Profiler
-
+/*
 class OctreeExecutor(threads: Int, factory: ThreadFactory) {
 
   private val queue = new OctreeBlockingQueue[Runnable]
@@ -99,3 +99,4 @@ object Octree2DExecutor {
   }
 
 }
+*/

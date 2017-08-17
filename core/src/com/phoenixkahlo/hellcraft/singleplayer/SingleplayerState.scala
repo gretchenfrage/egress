@@ -11,11 +11,11 @@ import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch, Renderable, Rende
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Avatar
-import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState, Delta}
+import com.phoenixkahlo.hellcraft.gamedriver.{Delta, GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics.{ChunkOutlineRenderer, ResourcePack}
-import com.phoenixkahlo.hellcraft.math.structures.{Octree2DExecutor, OctreeExecutor}
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 import com.phoenixkahlo.hellcraft.menu.MainMenu
+import com.phoenixkahlo.hellcraft.threading.UniExecutor
 import com.phoenixkahlo.hellcraft.util._
 import other.AppDirs
 
@@ -39,6 +39,9 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var g = 0
 
   override def onEnter(driver: GameDriver): Unit = {
+    println("activating uni executor")
+    UniExecutor.activate(Runtime.getRuntime.availableProcessors() - 2, new Thread(_, "uni exec thread"))
+
     println("loading")
     val generator = new Generator
 
@@ -98,8 +101,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         world = world.update(Delta.dt.toNanos.toFloat / 1000000000f)
         world = world.integrate(controller.mainUpdate(world))
         val avatar = world.findEntity(controller.avatarID).get.asInstanceOf[Avatar]
-        OctreeExecutor.global.point = V3F(cam.position)
-        Octree2DExecutor.global.point = V3F(cam.position).flatten
+        UniExecutor.point = avatar.pos
         world = world.updateLoaded((avatar.chunkPos - LoadDist) to (avatar.chunkPos + LoadDist))
 
         // manage history
@@ -177,6 +179,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     Gdx.input.setInputProcessor(new InputAdapter)
     updateThread.interrupt()
     updateThread.join()
+    UniExecutor.deactivate()
     val saveFuture = history.last._2.pushToSave()
     vramGraph.managing.foreach(_.dispose())
     saveFuture.await

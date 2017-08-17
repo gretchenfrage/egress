@@ -8,12 +8,12 @@ import com.phoenixkahlo.hellcraft.math.structures.OctreeBlockingQueue
 
 object UniExecutor {
 
-  private var service: MultiQueueExecutor = _
-  private var seqQueue: BlockingQueue[Runnable] = _
-  private var octQueue: OctreeBlockingQueue[Runnable] = _
-  private var flatOctQueue: OctreeBlockingQueue[Runnable] = _
-  private var meshQueue: OctreeBlockingQueue[Runnable] = _
-  private var inserterQueue: BlockingQueue[Runnable] = _
+  @volatile private var service: MultiQueueExecutor = _
+  @volatile private var seqQueue: BlockingQueue[Runnable] = _
+  @volatile private var octQueue: OctreeBlockingQueue[Runnable] = _
+  @volatile private var flatOctQueue: OctreeBlockingQueue[Runnable] = _
+  @volatile private var meshQueue: OctreeBlockingQueue[Runnable] = _
+  @volatile private var inserterQueue: BlockingQueue[Runnable] = _
 
   def activate(threadCount: Int, threadFactory: ThreadFactory): Unit = this.synchronized {
     if (service != null) throw new IllegalArgumentException("cannot active uni executor that is already active")
@@ -36,19 +36,23 @@ object UniExecutor {
   }
 
   def exec(task: Runnable): Unit = {
-    seqQueue.add(task)
+    if (service != null)
+      seqQueue.add(task)
   }
 
   def exec(pos: V3F)(task: Runnable): Unit = {
-    inserterQueue.add(() => octQueue.add(pos -> task))
+    if (service != null)
+      inserterQueue.add(() => octQueue.add(pos -> task))
   }
 
   def exec(pos: V2F)(task: Runnable): Unit = {
-    inserterQueue.add(() => flatOctQueue.add(pos.inflate(0) -> task))
+    if (service != null)
+      inserterQueue.add(() => flatOctQueue.add(pos.inflate(0) -> task))
   }
 
   def mesh(pos: V3F)(task: Runnable): Unit = {
-    inserterQueue.add(() => meshQueue.add(pos -> task))
+    if (inserterQueue != null)
+      inserterQueue.add(() => meshQueue.add(pos -> task))
   }
 
   def point: V3F = octQueue.point

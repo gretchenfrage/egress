@@ -4,9 +4,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 import java.util.concurrent.{Executors, ThreadPoolExecutor, TimeUnit}
 
 import com.phoenixkahlo.hellcraft.core.{Air, BlockGrid, Chunk, Stone}
-import com.phoenixkahlo.hellcraft.math.structures.{Octree2DExecutor, OctreeExecutor}
 import com.phoenixkahlo.hellcraft.math.{V2F, V3I}
-import com.phoenixkahlo.hellcraft.util.{Fut}
+import com.phoenixkahlo.hellcraft.threading.{Fut, UniExecutor}
 import other.OpenSimplexNoise
 
 import scala.collection.mutable
@@ -15,15 +14,6 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 
 class Generator {
 
-  /*
-  implicit val workContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(
-    Runtime.getRuntime.availableProcessors,
-    runnable => {
-      val thread = new Thread(runnable, "generator thread")
-      thread.setPriority(3)
-      thread
-    }))
-    */
   val noise = new OpenSimplexNoise
 
   val amp = 10f
@@ -63,7 +53,7 @@ class Generator {
           patch.min = patch.heights.min
           patch.max = patch.heights.max
           patch
-        }, Octree2DExecutor(V2F(x, z) * 16 + V2F(8, 8)))
+        }, UniExecutor.exec(V2F(x, z) * 16 + V2F(8, 8)))
         heightsMap.put((x, z), future)
         future
     }
@@ -80,7 +70,7 @@ class Generator {
         if (depth >= 0) Air
         else Stone
       }))
-    }, OctreeExecutor(p * 16 + V3I(8, 8, 8)))
+    }, UniExecutor.exec(p * 16 + V3I(8, 8, 8)))
   }
 
 }
