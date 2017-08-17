@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.singleplayer
 
 import java.io._
 import java.nio.file.Path
-import java.util.concurrent.{Executors, LinkedBlockingQueue, ThreadPoolExecutor, TimeUnit}
+import java.util.concurrent._
 
 import com.esotericsoftware.kryo.io
 import com.esotericsoftware.kryo.io.{Input, Output}
@@ -17,7 +17,7 @@ import scala.collection.mutable
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-trait AsyncSave extends AutoCloseable {
+trait AsyncSave {
 
   def push(chunks: Map[V3I, Chunk]): Seq[Fut[Unit]]
 
@@ -34,7 +34,7 @@ trait SaveSerialService {
 
   def write(path: Path, obj: Map[V3I, Chunk]): Unit
 
-  def read(path: Path)(implicit executor: ExecutionContext): Map[V3I, Fut[Chunk]]
+  def read(path: Path): Map[V3I, Fut[Chunk]]
 
 }
 
@@ -47,7 +47,7 @@ class CarboniteSerialService extends SaveSerialService {
     out.close()
   }
 
-  override def read(path: Path)(implicit executor: ExecutionContext): Map[V3I, Fut[Chunk]] = {
+  override def read(path: Path): Map[V3I, Fut[Chunk]] = {
     if (path.toFile.exists) {
       val in = new CarboniteInputStream(new FileInputStream(path.toFile))
       try in.readObject().asInstanceOf[Map[V3I, LazyDeserial[Chunk]]]
@@ -67,38 +67,27 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
   private def pathFor(region: V3I): Path =
     path.resolve("x" + region.xi + "y" + region.yi + "z" + region.zi + ".region")
 
-  private val threads = new mutable.HashMap[V3I, ExecutionContext]
-  private val threadsLock = new Object
-  private implicit val workPool = {
-    val size = Runtime.getRuntime.availableProcessors
-    val executor = new ThreadPoolExecutor(size, size, 0, TimeUnit.NANOSECONDS, new LinkedBlockingQueue,
-      runnable => {
-        val thread = new Thread(runnable, "save thread")
-        thread.setPriority(3)
-        thread
-      }
-    ) {
-      override def afterExecute(r: Runnable, t: Throwable): Unit = {
+  private val workQueues = new mutable.HashMap[V3I, BlockingQueue[Runnable]]
+  private val workQueueLock = new Object
+
+  private def queueFor(region: V3I): BlockingQueue[Runnable] = {
+    workQueueLock.synchronized {
+      workQueues.get(region) match {
+        case Some(queue) => queue
+        case None =>
+          val queue = new LinkedBlockingQueue[Runnable]
+          UniExecutor.addQueue(queue)
+          workQueues.put(region, queue)
+          queue
       }
     }
-    ExecutionContext.fromExecutor(executor)
   }
 
-  private def contextFor(region: V3I): ExecutionContext = {
-    threadsLock.synchronized {
-      threads.get(region) match {
-        case Some(executor) => executor
-        case None =>
-          val executor = ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor(
-            runnable => {
-              val thread = new Thread(runnable, "region save/load thread")
-              thread.setPriority(2)
-              thread
-            }
-          ))
-          threads.put(region, executor)
-          executor
-      }
+  private def execFor(region: V3I): Runnable => Unit = {
+    val queue = queueFor(region)
+    runnable => {
+      queue.add(runnable)
+      ()
     }
   }
 
@@ -113,7 +102,7 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
         var map = serial.read(path).mapValues(_.await)
         map ++= group.map(c => (c.pos, c)).toMap
         serial.write(path, map)
-      }, executor.getOrElse(contextFor(region).execute))
+      }, executor.getOrElse(execFor(region)))
     }
     accumulator
   }
@@ -137,18 +126,11 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
           case Some(chunkFuture) => p -> chunkFuture
           case None => p -> generator(p)
         }).toMap
-      }, contextFor(region).execute)
+      }, queueFor(region).add)
       for (p <- group)
         accumulator = accumulator.updated(p, future.flatMap(_(p)))
     }
     accumulator
-  }
-
-
-  override def close(): Unit = {
-    for (executor <- threads.values) {
-      Await.result(Future { "done!" } (executor), Duration.Inf)
-    }
   }
 
 }

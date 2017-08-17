@@ -51,8 +51,13 @@ object UniExecutor {
   }
 
   def mesh(pos: V3F)(task: Runnable): Unit = {
-    if (inserterQueue != null)
+    if (service != null)
       inserterQueue.add(() => meshQueue.add(pos -> task))
+  }
+
+  def addQueue(queue: LinkedBlockingQueue[Runnable]): Unit = {
+    if (service != null)
+      service.addSource(RunnableSource(queue))
   }
 
   def point: V3F = octQueue.point

@@ -179,10 +179,10 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     Gdx.input.setInputProcessor(new InputAdapter)
     updateThread.interrupt()
     updateThread.join()
-    UniExecutor.deactivate()
     val saveFuture = history.last._2.pushToSave()
     vramGraph.managing.foreach(_.dispose())
     saveFuture.await
+    UniExecutor.deactivate()
   }
 
 }

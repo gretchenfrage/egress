@@ -103,7 +103,7 @@ class LazyInfWorld(
       for (fut <- save.finalPush(chunks))
         fut.await
       ()
-    }, _.run())
+    }, new Thread(_).start())
   }
 
   def integrate(events: Seq[ChunkEvent]): LazyInfWorld = {
