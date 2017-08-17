@@ -25,8 +25,8 @@ object SurfaceNets {
 
   case class Vertex(i: Int, p: V3F)
 
-  def compute(start: V3I, end: V3I, density: V3F => Float): Seq[Quad] = {
-    val size = end - start
+  def apply(start: V3I, end: V3I, density: V3F => Float): Seq[Quad] = {
+    val size = (end + Ones) - start
     var i = 0
     val grid = new Array[Vertex](size.fold(_ * _))
 
@@ -48,7 +48,7 @@ object SurfaceNets {
     // create the quads
     val quads = new ArrayBuffer[Quad]
     def maybeAddQuad(a: V3I, b: V3I, c: V3I, d: V3I): Unit = {
-      val vertices: Seq[Vertex] = Seq(a, b, c, d).map(v => grid(size.compress(v)))
+      val vertices: Seq[Vertex] = Seq(a, b, c, d).map(v => grid(size.compress(v - start)))
       if (!vertices.contains(null)) {
         quads += Quad(vertices(0).p, vertices(1).p, vertices(2).p, vertices(3).p)
       }

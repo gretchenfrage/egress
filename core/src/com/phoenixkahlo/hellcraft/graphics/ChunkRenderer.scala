@@ -11,6 +11,7 @@ import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.math._
+import com.phoenixkahlo.hellcraft.math.isosurface.SurfaceNets
 import com.phoenixkahlo.hellcraft.threading.{Fut, UniExecutor}
 import com.phoenixkahlo.hellcraft.util._
 
@@ -198,16 +199,34 @@ class ChunkRenderer(
       Fut(compileProcedure(), _.run())
     } else Fut(compileProcedure(), UniExecutor.mesh(chunk.pos * 16 + V3I(8, 8, 8)))
 
+  def isoCompile(): (Array[Float], Array[Short]) = {
+    val density: V3F => Float = v => world.weakBlockAt(v.toInts).map(b => if (b.isOpaque) 1f else 0f).getOrElse(0f)
+    val quads = SurfaceNets(chunk.pos * 16, chunk.pos * 16 + V3I(15, 15, 15), density)
+    QuadCompiler(quads, texturePack)
+  }
+
+  val isoMeshData: Fut[(Array[Float], Array[Short])] =
+    if (previous isDefined) {
+      println("compiling in foreground!")
+      Fut(isoCompile(), _.run())
+    } else Fut(isoCompile(), UniExecutor.mesh(chunk.pos * 16 + V3I(8, 8, 8)))
+
   val renderable = new DisposableCache[Renderable]({
+    //val maxVerts = 4 * 6 * 4096
+    //val maxIndices = 6 * 6 * 4096
+
+    // get the arrays
+    val (vertArr, indexArr) = isoMeshData.await
+
+    val maxVerts = vertArr.length
+    val maxIndices = indexArr.length
+
     // create a mesh
-    val mesh = new Mesh(true, 4 * 6 * 4096, 6 * 6 * 4096,
+    val mesh = new Mesh(true, maxVerts, maxIndices,
       new VertexAttribute(Usage.Position, 3, "a_position"),
       new VertexAttribute(Usage.ColorPacked, 4, "a_color"),
       new VertexAttribute(Usage.TextureCoordinates, 2, "a_texCoord0")
     )
-
-    // get the arrays
-    val (vertArr, indexArr) = meshData.await
 
     // plug the arrays into the mesh (this uploads them to VRAM)
     mesh.setVertices(vertArr)
