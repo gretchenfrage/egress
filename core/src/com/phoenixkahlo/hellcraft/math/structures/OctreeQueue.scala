@@ -58,6 +58,7 @@ class OctreeBinPriorityQueue[E] extends util.AbstractQueue[(V3F, E)] {
         val (value, newQueue) = queue.dequeue
         if (newQueue isEmpty) tree -= key
         else tree += key -> newQueue
+        _size -= 1
         (key, value)
       case None => null
     }
@@ -68,6 +69,7 @@ class OctreeBinPriorityQueue[E] extends util.AbstractQueue[(V3F, E)] {
     val queue = tree.getOrElse(key, Queue.empty)
     val newQueue = queue.enqueue(value)
     tree += key -> newQueue
+    _size += 1
     true
   }
 
@@ -81,8 +83,10 @@ class OctreeBinPriorityQueue[E] extends util.AbstractQueue[(V3F, E)] {
   override def iterator(): util.Iterator[(V3F, E)] =
     JavaConverters.asJavaIterator(tree.iterator.flatMap({ case (k, q) => q.map(k -> _) }))
 
-  override def size(): Int =
-    tree.values.map(_.size).sum
+  @volatile private var _size: Int = 0
+
+  override def size(): Int = _size
+
 }
 
 /**
@@ -188,7 +192,7 @@ class OctreeBlockingQueue[E] extends util.AbstractQueue[(V3F, E)] with util.conc
   override def size(): Int = {
     try {
       readLock.lock()
-      queue.size()
+      queue.size
     } finally readLock.unlock()
   }
 }

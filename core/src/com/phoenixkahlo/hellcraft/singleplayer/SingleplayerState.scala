@@ -129,12 +129,12 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
 
     // interpolation
+    val backRender = 2
     val (toRender, interpolation) =
-      (history.last._2, history.dropRight(1).lastOption.map(_._2)) match {
-        case (ultimate, Some(penultimate)) =>
-          (penultimate, Some((ultimate, Math.min(clock.fractionalTicksSince(penultimate.time) - 1, 1))))
-        case (ultimate, None) =>
-          (ultimate, None)
+      (history.dropRight(backRender - 1).lastOption.map(_._2), history.dropRight(backRender).lastOption.map(_._2)) match {
+        case (Some(ultimate), Some(penultimate)) =>
+          (penultimate, Some((ultimate, Math.min(clock.fractionalTicksSince(penultimate.time) - backRender, 1))))
+        case _ => (history.last._2, None)
       }
 
     // update controller

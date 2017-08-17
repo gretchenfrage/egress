@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.util
 
 class ParamCache[P,T](factory: P => T) {
 
-  private var value: Option[T] = None
+  protected var value: Option[T] = None
 
   def apply(param: P) =
     this.synchronized {

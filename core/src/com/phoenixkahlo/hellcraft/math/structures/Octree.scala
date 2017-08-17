@@ -135,13 +135,13 @@ object OctreeTest extends App {
   val t1 = System.nanoTime()
 
   var octree: Octree[Int] = EmptyOctree(Origin, Float.MaxValue)
-  for (n <- 1 to 100) {
-    octree += ((V3I(n, n, n), n))
+  for (n <- 1 to 2) {
+    octree += ((V3I(n, n, -n), n))
   }
   println(octree)
   println("size = " + octree.size)
   println("depth = " + octree.depth)
-  val pos = V3F(50.5f, 50.5f, 50.5f)
+  val pos = Origin
   val buffer = new ArrayBuffer[(V3F, Int)]
   while (octree nonEmpty) {
     val item = octree.closest(pos).get
