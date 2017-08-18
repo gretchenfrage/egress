@@ -95,6 +95,8 @@ object Origin extends V3I(0, 0, 0)
 
 object Ones extends V3I(1, 1, 1)
 
+object ChunkSize extends V3I(16, 16, 16)
+
 object V3I {
 
   def apply(x: Int, y: Int, z: Int) =

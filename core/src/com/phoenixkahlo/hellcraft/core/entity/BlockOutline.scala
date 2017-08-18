@@ -12,7 +12,7 @@ import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core._
-import com.phoenixkahlo.hellcraft.graphics.{RenderableFactory, ResourceNode, ResourcePack}
+import com.phoenixkahlo.hellcraft.graphics.{RenderUnit, ResourceNode, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.util.KeyParamPool
 
@@ -26,7 +26,7 @@ case class BlockOutline(override val pos: V3I, color: V3I, chunkSize: Int = 16) 
   override def update(world: World, ids: Stream[UUID], dt: Float) =
     Seq(RemoveEntity(chunkPos, id, ids.head))
 
-  override def renderables(texturePack: ResourcePack): Seq[RenderableFactory] =
+  override def renderables(texturePack: ResourcePack): Seq[RenderUnit] =
     Seq(BlockOutlineRenderer(pos, color.toColor))
 
 }
@@ -38,7 +38,7 @@ object BlockOutline {
 
 }
 
-case class BlockOutlineRenderer(v: V3I, color: Color) extends RenderableFactory {
+case class BlockOutlineRenderer(v: V3I, color: Color) extends RenderUnit {
 
   /**
     * Bring this object into an active state, generating resources, and return the renderables.
