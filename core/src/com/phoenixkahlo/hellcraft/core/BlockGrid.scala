@@ -6,25 +6,48 @@ import java.util.zip.{Deflater, Inflater}
 
 import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
-case class BlockGrid(blocks: Vector[Byte]) extends Externalizable {
+case class BlockGrid private(private var blocks: Either[Array[Byte], Vector[Byte]]) extends Externalizable {
 
-  def this() = this(null)
+  private def this(blocks: Array[Byte]) = this(Left(blocks))
+  private def this(blocks: Vector[Byte]) = this(Right(blocks))
 
   // TODO: don't reevaluate this with every modification
-  lazy val isAllOpaque: Boolean = blocks.map(BlockDirectory.lookup).forall(_ isOpaque)
-  lazy val isAllTranslucent: Boolean = !isAllOpaque && blocks.map(BlockDirectory.lookup).forall(_ isTranslucent)
+  //lazy val isAllOpaque: Boolean = blocks.map(BlockDirectory.lookup).forall(_ isOpaque)
+  //lazy val isAllTranslucent: Boolean = !isAllOpaque && blocks.map(BlockDirectory.lookup).forall(_ isTranslucent)
+  lazy val isAllOpaque: Boolean = blocks match {
+    case Left(arr) => arr.forall(BlockDirectory.lookup(_).isOpaque)
+    case Right(vec) => vec.forall(BlockDirectory.lookup(_).isOpaque)
+  }
+  lazy val isAllTranslucent: Boolean = !isAllOpaque && (blocks match {
+    case Left(arr) => arr.forall(BlockDirectory.lookup(_).isTranslucent)
+    case Right(vec) => vec.forall(BlockDirectory.lookup(_).isTranslucent)
+  })
+
+  private def asVector: Vector[Byte] = blocks match {
+    case Left(arr) => (0 until 4096).foldLeft(Vector[Byte]())((v, i) => v :+ arr(i))
+    case Right(vec) => vec
+  }
+
+  private def asArray: Array[Byte] = blocks match {
+    case Left(arr) => arr
+    case Right(vec) => vec.toArray
+  }
+
 
   def updated(v: V3I, b: Block): BlockGrid = {
-    new BlockGrid(blocks.updated(BlockGrid.compress(v), b.id))
+    new BlockGrid(asVector.updated(BlockGrid.compress(v), b.id))
   }
 
   def apply(v: V3I): Option[Block] =
-    if (v >= Origin && v < V3I(16, 16, 16)) Some(BlockDirectory(blocks(BlockGrid.compress(v))))
+    if (v >= Origin && v < V3I(16, 16, 16)) blocks match {
+      case Left(arr) => Some(BlockDirectory(arr(BlockGrid.compress(v))))
+      case Right(vec) => Some(BlockDirectory(vec(BlockGrid.compress(v))))
+    }
     else None
 
   override def writeExternal(out: ObjectOutput): Unit = {
     val compressor = new Deflater
-    compressor.setInput(blocks.toArray)
+    compressor.setInput(asArray)
     compressor.finish()
     val buffer = GridCompressBuffers.get
     val length = compressor.deflate(buffer)
@@ -40,8 +63,7 @@ case class BlockGrid(blocks: Vector[Byte]) extends Externalizable {
     val decompressBuffer = GridCompressBuffers.get
     decompressor.setInput(readBuffer, 0, length)
     decompressor.inflate(decompressBuffer)
-    val blocks = (0 until 4096).foldLeft(Vector[Byte]())((v, i) => v :+ decompressBuffer(i))
-    BlocksFieldSetter.set(this, blocks)
+    blocks = Left(decompressBuffer.slice(0, 4096))
   }
 
   override def toString: String = {
@@ -59,23 +81,6 @@ case class BlockGrid(blocks: Vector[Byte]) extends Externalizable {
 
 }
 
-private object BlocksFieldSetter {
-
-  private val field = {
-    val blocksField = classOf[BlockGrid].getDeclaredField("blocks")
-    val modsFields = classOf[Field].getDeclaredField("modifiers")
-    modsFields.setAccessible(true)
-    modsFields.setInt(blocksField, blocksField.getModifiers & ~Modifier.FINAL)
-    blocksField.setAccessible(true)
-    blocksField
-  }
-
-  def set(grid: BlockGrid, blocks: Vector[Byte]): Unit = {
-    field.set(grid, blocks)
-  }
-
-}
-
 private object GridReadBuffers extends ThreadLocal[Array[Byte]] {
   override def initialValue(): Array[Byte] = new Array[Byte](8192)
 }
@@ -87,11 +92,20 @@ private object GridCompressBuffers extends ThreadLocal[Array[Byte]] {
 object BlockGrid {
 
   def apply(block: Block): BlockGrid = {
-    this((1 to 4096).foldLeft(Vector[Byte]())((v, _) => v :+ block.id))
+    val arr = new Array[Byte](4096)
+    for (i <- arr.indices)
+      arr(i) = block.id
+    new BlockGrid(arr)
+    //new BlockGrid(Stream.iterate(block.id, 4096)(identity).toArray)
+    //new BlockGrid((1 to 4096).foldLeft(Vector[Byte]())((v, _) => v :+ block.id))
   }
 
   def apply(generator: V3I => Block): BlockGrid = {
-    this((0 until 4096).map(i => generator(decompress(i)).id).to[Vector])
+    val arr = new Array[Byte](4096)
+    for (i <- arr.indices)
+      arr(i) = generator(decompress(i)).id
+    new BlockGrid(arr)
+    //new BlockGrid((0 until 4096).map(i => generator(decompress(i)).id).to[Vector])
   }
 
   def compress(v: V3I): Int =
