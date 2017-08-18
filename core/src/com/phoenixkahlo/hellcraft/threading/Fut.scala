@@ -19,6 +19,10 @@ trait Fut[T] {
     new FlatMapFut(this, func)
 
   def onComplete(runnable: Runnable): Unit
+
+  def afterwards[N](factory: => N, executor: Runnable => Unit): Fut[N] =
+    new SeqFut(this, factory, executor)
+
 }
 
 object Fut {
@@ -72,6 +76,43 @@ private class EvalFut[T](factory: => T, executor: Runnable => Unit) extends Fut[
       else listeners += runnable
     }
   }
+}
+
+private class SeqFut[T](last: Fut[_], factory: => T, executor: Runnable => Unit) extends Fut[T] {
+  @volatile private var status: Option[T] = None
+  private val listeners = new ArrayBuffer[Runnable]
+  private val monitor = new Object
+
+  last.onComplete(() => {
+    executor(() => {
+      val result = factory
+      monitor.synchronized {
+        status = Some(result)
+        monitor.notifyAll()
+      }
+      listeners.foreach(_.run())
+    })
+  })
+
+  override def await: T = {
+    if (status isDefined) status.get
+    else monitor.synchronized {
+      while (status isEmpty) monitor.wait()
+      status.get
+    }
+  }
+
+  override def query: Option[T] =
+    status
+
+  override def onComplete(runnable: Runnable): Unit = {
+    if (status isDefined) runnable.run()
+    else monitor.synchronized {
+      if (status isDefined) runnable.run()
+      else listeners += runnable
+    }
+  }
+
 }
 
 private class MapFut[S, R](source: Fut[S], func: S => R, executor: Runnable => Unit) extends Fut[R] {

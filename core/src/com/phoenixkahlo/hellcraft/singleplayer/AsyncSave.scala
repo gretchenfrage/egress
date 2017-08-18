@@ -10,7 +10,7 @@ import com.phoenixkahlo.hellcraft.carbonite.egress.EgressCarboniteConfig
 import com.phoenixkahlo.hellcraft.carbonite.{CarboniteInputStream, CarboniteOutputStream, DefaultCarboniteConfig, LazyDeserial}
 import com.phoenixkahlo.hellcraft.core.Chunk
 import com.phoenixkahlo.hellcraft.math.V3I
-import com.phoenixkahlo.hellcraft.threading.{Fut, UniExecutor}
+import com.phoenixkahlo.hellcraft.threading.{Fut, SeqFutFactory, UniExecutor}
 
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
@@ -67,28 +67,23 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
   private def pathFor(region: V3I): Path =
     path.resolve("x" + region.xi + "y" + region.yi + "z" + region.zi + ".region")
 
-  private val workQueues = new mutable.HashMap[V3I, BlockingQueue[Runnable]]
-  private val workQueueLock = new Object
+  private val regionSequences = new mutable.HashMap[V3I, SeqFutFactory]
+  private val regionSequenceLock = new Object
 
-  private def queueFor(region: V3I): BlockingQueue[Runnable] = {
-    workQueueLock.synchronized {
-      workQueues.get(region) match {
-        case Some(queue) => queue
+  private def sequenceFor(region: V3I): SeqFutFactory = {
+    regionSequenceLock.synchronized {
+      regionSequences.get(region) match {
+        case Some(factory) => factory
         case None =>
-          val queue = new LinkedBlockingQueue[Runnable]
-          UniExecutor.addQueue(queue)
-          workQueues.put(region, queue)
-          queue
+          val factory = new SeqFutFactory(UniExecutor.exec)
+          regionSequences.put(region, factory)
+          factory
       }
     }
   }
 
-  private def execFor(region: V3I): Runnable => Unit = {
-    val queue = queueFor(region)
-    runnable => {
-      queue.add(runnable)
-      ()
-    }
+  private def regionFut[T](region: V3I, factory: => T): Fut[T] = {
+    sequenceFor(region)(factory)
   }
 
   def push(chunks: Map[V3I, Chunk], executor: Option[Runnable => Unit]): Seq[Fut[Unit]] = {
@@ -97,12 +92,12 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
 
     var accumulator: Seq[Fut[Unit]] = Seq.empty
     for ((region, group) <- toSave.values.toSeq.groupBy(_.pos / RegionSize floor)) {
-      accumulator +:= Fut[Unit]({
+      accumulator +:= regionFut[Unit](region, {
         val path = pathFor(region)
         var map = serial.read(path).mapValues(_.await)
         map ++= group.map(c => (c.pos, c)).toMap
         serial.write(path, map)
-      }, executor.getOrElse(execFor(region)))
+      })
     }
     accumulator
   }
@@ -120,13 +115,13 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
 
     var accumulator: Map[V3I, Fut[Chunk]] = Map.empty
     for ((region, group) <- chunks.groupBy(_ / RegionSize floor)) {
-      val future: Fut[Map[V3I, Fut[Chunk]]] = Fut({
+      val future: Fut[Map[V3I, Fut[Chunk]]] = regionFut(region, {
         val pulled = serial.read(pathFor(region))
         group.map(p => pulled.get(p) match {
           case Some(chunkFuture) => p -> chunkFuture
           case None => p -> generator(p)
         }).toMap
-      }, queueFor(region).add)
+      })
       for (p <- group)
         accumulator = accumulator.updated(p, future.flatMap(_(p)))
     }
