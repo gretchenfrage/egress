@@ -10,7 +10,7 @@ import com.phoenixkahlo.hellcraft.carbonite.egress.EgressCarboniteConfig
 import com.phoenixkahlo.hellcraft.carbonite.{CarboniteInputStream, CarboniteOutputStream, DefaultCarboniteConfig, LazyDeserial}
 import com.phoenixkahlo.hellcraft.core.Chunk
 import com.phoenixkahlo.hellcraft.math.V3I
-import com.phoenixkahlo.hellcraft.threading.{Fut, SeqFutFactory, UniExecutor}
+import com.phoenixkahlo.hellcraft.threading.{Fut, FutSequences, UniExecutor}
 
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
@@ -67,15 +67,15 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
   private def pathFor(region: V3I): Path =
     path.resolve("x" + region.xi + "y" + region.yi + "z" + region.zi + ".region")
 
-  private val regionSequences = new mutable.HashMap[V3I, SeqFutFactory]
+  private val regionSequences = new mutable.HashMap[V3I, FutSequences]
   private val regionSequenceLock = new Object
 
-  private def sequenceFor(region: V3I): SeqFutFactory = {
+  private def sequenceFor(region: V3I): FutSequences = {
     regionSequenceLock.synchronized {
       regionSequences.get(region) match {
         case Some(factory) => factory
         case None =>
-          val factory = new SeqFutFactory(UniExecutor.exec)
+          val factory = new FutSequences(UniExecutor.exec)
           regionSequences.put(region, factory)
           factory
       }

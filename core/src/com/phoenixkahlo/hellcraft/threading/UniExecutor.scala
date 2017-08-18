@@ -16,42 +16,50 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory) {
   private val quadQueue = new OctreeBlockingQueue[Runnable]
   private val meshQueue = new OctreeBlockingQueue[Runnable]
 
-  private val ticketQueue = new LinkedBlockingQueue[Supplier[Runnable]]
+  private val ticketQueue = new LinkedBlockingQueue[Supplier[Option[Runnable]]]
   private val workers = new ArrayBuffer[Thread]
 
-  for (_ <- 1 to threadCount) workers += threadFactory.newThread(() => {
-    try {
-      while (!Thread.interrupted()) {
-        try {
-          ticketQueue.take().get().run()
-        } catch {
-          case e: InterruptedException => throw e
-          case e: Exception => println("exception in uniexecutor task (swallowing): " + e)
+  case class Worker(work: Runnable) extends Runnable {
+    override def run(): Unit = {
+      try {
+        while (!Thread.interrupted()) {
+          try {
+            work.run()
+          } catch {
+            case e: InterruptedException => throw e
+            case e: Exception => println("exception in uniexecutor task (swallowing): " + e)
+          }
         }
+      } catch {
+        case e: InterruptedException => println("uniexecutor thread shutting down")
       }
-    } catch {
-      case e: InterruptedException => println("uniexecutor thread shutting down")
     }
-  })
+  }
+  for (_ <- 1 to threadCount)
+    workers += threadFactory.newThread(Worker(() => ticketQueue.take().get().foreach(_.run())))
+  workers += threadFactory.newThread(Worker(() => seqQueue.take().run()))
+  workers += threadFactory.newThread(Worker(() => octQueue.take()._2.run()))
+  workers += threadFactory.newThread(Worker(() => quadQueue.take()._2.run()))
+  workers += threadFactory.newThread(Worker(() => meshQueue.take()._2.run()))
 
   def exec(task: Runnable): Unit = {
     seqQueue.add(task)
-    ticketQueue.add(() => seqQueue.remove())
+    ticketQueue.add(() => Option(seqQueue.poll()))
   }
 
   def exec(pos: V3F)(task: Runnable): Unit = {
     octQueue.add(pos -> task)
-    ticketQueue.add(() => octQueue.remove()._2)
+    ticketQueue.add(() => Option(octQueue.poll()).map(_._2))
   }
 
   def exec(pos: V2F)(task: Runnable): Unit = {
     quadQueue.add(pos.inflate(0) -> task)
-    ticketQueue.add(() => quadQueue.remove()._2)
+    ticketQueue.add(() => Option(quadQueue.poll()).map(_._2))
   }
 
   def mesh(pos: V3F)(task: Runnable): Unit = {
     meshQueue.add(pos -> task)
-    ticketQueue.add(() => meshQueue.remove()._2)
+    ticketQueue.add(() => Option(meshQueue.poll()).map(_._2))
   }
 
   def point: V3F = octQueue.point
@@ -99,81 +107,3 @@ object UniExecutor {
 }
 
 
-
-/*
-object UniExecutor {
-
-  @volatile private var service: MultiQueueExecutor = _
-  @volatile private var seqQueue: BlockingQueue[Runnable] = _
-  @volatile private var octQueue: OctreeBlockingQueue[Runnable] = _
-  @volatile private var flatOctQueue: OctreeBlockingQueue[Runnable] = _
-  @volatile private var meshQueue: OctreeBlockingQueue[Runnable] = _
-  @volatile private var inserterQueue: BlockingQueue[Runnable] = _
-
-  def activate(threadCount: Int, threadFactory: ThreadFactory): Unit = this.synchronized {
-    if (service != null) throw new IllegalArgumentException("cannot active uni executor that is already active")
-
-    service = new MultiQueueExecutor(threadCount, threadFactory)
-
-    seqQueue = new LinkedBlockingQueue[Runnable]
-    octQueue = new OctreeBlockingQueue[Runnable]
-    flatOctQueue = new OctreeBlockingQueue[Runnable]
-    meshQueue = new OctreeBlockingQueue[Runnable]
-    inserterQueue = new LinkedBlockingQueue[Runnable]
-
-    service.addSource(RunnableSource(seqQueue))
-    service.addSource(RunnableSource.fromTupleQueue(octQueue))
-    service.addSource(RunnableSource.fromTupleQueue(flatOctQueue))
-    service.addSource(RunnableSource.fromTupleQueue(meshQueue))
-    service.addSource(RunnableSource(inserterQueue))
-
-    service.start()
-  }
-
-  def exec(task: Runnable): Unit = {
-    if (service != null)
-      seqQueue.add(task)
-  }
-
-  def exec(pos: V3F)(task: Runnable): Unit = {
-    if (service != null)
-      inserterQueue.add(() => octQueue.add(pos -> task))
-  }
-
-  def exec(pos: V2F)(task: Runnable): Unit = {
-    if (service != null)
-      inserterQueue.add(() => flatOctQueue.add(pos.inflate(0) -> task))
-  }
-
-  def mesh(pos: V3F)(task: Runnable): Unit = {
-    if (service != null)
-      inserterQueue.add(() => meshQueue.add(pos -> task))
-  }
-
-  def addQueue(queue: LinkedBlockingQueue[Runnable]): Unit = {
-    if (service != null)
-      service.addSource(RunnableSource(queue))
-  }
-
-  def point: V3F = octQueue.point
-  def point_=(p: V3F): Unit = {
-    octQueue.point = p
-    flatOctQueue.point = p.copy(y = 0)
-    meshQueue.point = p
-  }
-
-  def deactivate(): Unit = this.synchronized {
-    if (service == null) throw new IllegalArgumentException("cannot deactive uni executor that is not active")
-
-    service.stop()
-
-    service = null
-    seqQueue = null
-    octQueue = null
-    flatOctQueue = null
-    meshQueue = null
-    inserterQueue = null
-  }
-
-}
-*/

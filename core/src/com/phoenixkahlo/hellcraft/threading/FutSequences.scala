@@ -1,6 +1,9 @@
 package com.phoenixkahlo.hellcraft.threading
 
-class SeqFutFactory(executor: Runnable => Unit) {
+/**
+  * Utility for executing futs sequentially.
+  */
+class FutSequences(executor: Runnable => Unit) {
 
   private var last: Fut[_] = Fut[Unit]((), _.run())
 
