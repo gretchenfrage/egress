@@ -86,6 +86,9 @@ class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
   def touching: Seq[V3I] =
     Directions().map(this + _)
 
+  def neighbors: Seq[V3I] =
+    (Ones.neg to Ones).map(_ + this)
+
 }
 
 object Origin extends V3I(0, 0, 0)

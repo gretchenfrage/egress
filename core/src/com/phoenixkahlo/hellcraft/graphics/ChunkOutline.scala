@@ -32,7 +32,7 @@ class ChunkOutlineRenderer(p: V3I, color: Color) extends RenderableFactory {
     JavaConverters.iterableAsScalaIterable(array).toSeq
   }
 
-  override def resources: Seq[ResourceNode] = ???
+  override def resources: Seq[ResourceNode] = Seq.empty
 }
 
 object ChunkOutlineModel extends KeyParamPool[Color, Color, Model](color => {

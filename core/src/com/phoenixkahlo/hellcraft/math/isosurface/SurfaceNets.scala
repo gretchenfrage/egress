@@ -23,12 +23,10 @@ object SurfaceNets {
     (East, East + North)
   )
 
-  case class Vertex(i: Int, p: V3F)
 
-  def apply(start: V3I, end: V3I, density: V3F => Float): Seq[Quad] = {
-    val size = (end + Ones) - start
-    var i = 0
-    val grid = new Array[Vertex](size.fold(_ * _))
+
+  def apply(size: V3I, density: V3F => Float): Seq[Quad] = {
+    val grid = new Array[V3F](size.fold(_ * _))
 
     // create the grid of vertices, and assign them indices
     for (v <- grid.indices.map(size.decompress)) {
@@ -40,36 +38,35 @@ object SurfaceNets {
       }
 
       if (points nonEmpty) {
-        grid(size.compress(v)) = Vertex(i, points.fold(Origin)(_ + _) / points.size)
-        i += 1
+        grid(size.compress(v)) = points.fold(Origin)(_ + _) / points.size
       }
     }
 
     // create the quads
     val quads = new ArrayBuffer[Quad]
     def maybeAddQuad(a: V3I, b: V3I, c: V3I, d: V3I): Unit = {
-      val vertices: Seq[Vertex] = Seq(a, b, c, d).map(v => grid(size.compress(v - start)))
+      val vertices: Seq[V3F] = Seq(a, b, c, d).map(v => grid(size.compress(v)))
       if (!vertices.contains(null)) {
-        quads += Quad(vertices(0).p, vertices(1).p, vertices(2).p, vertices(3).p)
+        quads += Quad(vertices(0), vertices(1), vertices(2), vertices(3))
       }
     }
     // z axis
     for {
-      x <- start.xi until end.xi
-      y <- start.yi until end.yi
-      z <- start.zi to end.zi
+      x <- 0 until size.xi - 1
+      y <- 0 until size.yi - 1
+      z <- 0 until size.zi - 2
     } yield maybeAddQuad(V3I(x, y, z), V3I(x + 1, y, z), V3I(x + 1, y + 1, z), V3I(x, y + 1, z))
     // x axis
     for {
-      x <- start.xi to end.xi
-      y <- start.yi until end.yi
-      z <- start.zi until end.zi
+      x <- 0 until size.xi - 2
+      y <- 0 until size.yi - 1
+      z <- 0 until size.zi - 1
     } yield maybeAddQuad(V3I(x, y, z), V3I(x, y + 1, z), V3I(x, y + 1, z + 1), V3I(x, y, z + 1))
     // y axis
     for {
-      x <- start.xi until end.xi
-      y <- start.yi to end.yi
-      z <- start.zi until end.zi
+      x <- 0 until size.xi - 1
+      y <- 0 until size.yi - 2
+      z <- 0 until size.zi - 1
     } yield maybeAddQuad(V3I(x, y, z), V3I(x + 1, y, z), V3I(x + 1, y, z + 1), V3I(x, y, z + 1))
 
     quads

@@ -2,12 +2,13 @@ package com.phoenixkahlo.hellcraft.core
 
 import java.util.{Objects, UUID}
 
+import com.badlogic.gdx.graphics.Color
 import com.esotericsoftware.kryo.DefaultSerializer
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
-import com.phoenixkahlo.hellcraft.graphics.{ChunkRenderer, RenderableFactory, ResourcePack}
+import com.phoenixkahlo.hellcraft.graphics.{ChunkOutlineRenderer, ChunkRenderer, RenderableFactory, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Origin, Repeated, V3I}
 import com.phoenixkahlo.hellcraft.util.{ParamCache, Profiler, RNG}
 
@@ -117,8 +118,11 @@ class Chunk (
   def isMeshable(getChunk: V3I => Option[Chunk]): Boolean =
     meshableFlag(getChunk)
 
-  def renderables(texturePack: ResourcePack, world: World): Seq[RenderableFactory] = {
-    entities.values.flatMap(_.renderables(texturePack)).toSeq :+ renderer((texturePack, world))
+  def renderables(resourcePack: ResourcePack, world: World): Seq[RenderableFactory] = {
+    if (renderer.isDefined || pos.neighbors.forall(world.chunkAt(_).isDefined))
+      entities.values.flatMap(_.renderables(resourcePack)).toSeq :+ renderer((resourcePack, world))
+    else
+      Seq(new ChunkOutlineRenderer(pos, Color.CHARTREUSE))
   }
 
   override def hashCode(): Int =

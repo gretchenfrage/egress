@@ -193,21 +193,32 @@ class ChunkRenderer(
     (vertArr, indexArr)
   }
 
+  /*
   val meshData: Fut[(Array[Float], Array[Short])] =
     if (previous isDefined) {
       println("compiling in foreground!")
       Fut(compileProcedure(), _.run())
     } else Fut(compileProcedure(), UniExecutor.mesh(chunk.pos * 16 + V3I(8, 8, 8)))
+    */
 
   def isoCompile(): (Array[Float], Array[Short]) = {
-    val density: V3F => Float = v => world.weakBlockAt(v.toInts).map(b => if (b.isOpaque) 1f else 0f).getOrElse(0f)
-    val quads = SurfaceNets(chunk.pos * 16, chunk.pos * 16 + V3I(15, 15, 15), density)
+    val density: V3F => Float = v => {
+      def densityOf(b: Block) = if (b isOpaque) 1f else 0f
+      /*
+      chunk.blocks(v.floor).map(densityOf)
+        .getOrElse(world.blockAt(v.floor + (chunk.pos * 16)).map(densityOf).getOrElse({
+          println("mesh compiler defaulting")
+          0f
+        }))
+        */
+      densityOf(world.blockAt(v.floor + (chunk.pos * 16)).get)
+    }
+    val quads = SurfaceNets(V3I(18, 18, 18), density).map(_.map(_ + (chunk.pos * 16)))
     QuadCompiler(quads, texturePack)
   }
 
   val isoMeshData: Fut[(Array[Float], Array[Short])] =
     if (previous isDefined) {
-      println("compiling in foreground!")
       Fut(isoCompile(), _.run())
     } else Fut(isoCompile(), UniExecutor.mesh(chunk.pos * 16 + V3I(8, 8, 8)))
 
@@ -250,7 +261,7 @@ class ChunkRenderer(
     * Bring this object into an active state, generating resources, and return the renderables.
     */
   override def apply(interpolate: Option[(World, Float)]): Seq[Renderable] =
-    if (meshData.query.isDefined) renderable() +: {
+    if (isoMeshData.query.isDefined) renderable() +: {
       if (Gdx.input.isKeyPressed(Keys.ALT_LEFT)) {
         // get model instance
         val instance = new ModelInstance(ChunkOutlineModel(Color.GREEN, Color.GREEN))
@@ -285,7 +296,7 @@ class ChunkRenderer(
   override def resources: Seq[ResourceNode] = Seq(this)
 
   override def dependencies: Seq[ResourceNode] =
-    if (meshData.query.isDefined) Nil
+    if (isoMeshData.query.isDefined) Nil
     else previous match {
       case Some(previous) => Seq(previous)
       case None => Nil

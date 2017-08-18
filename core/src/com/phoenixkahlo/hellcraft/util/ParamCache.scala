@@ -10,6 +10,10 @@ class ParamCache[P,T](factory: P => T) {
       value.get
     }
 
+  def isDefined: Boolean = this.synchronized {
+    value isDefined
+  }
+
   def invalidate =
     this.synchronized {
       value = None

@@ -14,4 +14,7 @@ case class Quad(a: V3F, b: V3F, c: V3F, d: V3F) extends Facet {
   def decompose: Seq[Tri] =
     Seq(Tri(a, b, c), Tri(a, c, d))
 
+  def map(func: V3F => V3F): Quad =
+    Quad(func(a), func(b), func(c), func(d))
+
 }

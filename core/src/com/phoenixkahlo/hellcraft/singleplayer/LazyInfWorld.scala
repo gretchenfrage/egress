@@ -43,7 +43,9 @@ class LazyInfWorld(
   override def chunkAt(p: V3I): Option[Chunk] = {
     val cached = cache.get
     if (cached != null && cached.pos == p) Some(cached)
-    else chunks.get(p)
+    else if (chunks contains p) Some(chunks(p))
+    else if (futures contains p) futures(p).query
+    else None
   }
 
   def strongChunkAt(p: V3I): Chunk = {
@@ -75,7 +77,7 @@ class LazyInfWorld(
     val newFutures = futures -- added.keySet
     // compute the new and removed border
     val borderGrouped: Map[Boolean, Set[V3I]] =
-      (border ++ added.keySet).groupBy(_.touching.forall(newChunks.contains))
+      (border ++ added.keySet).groupBy(_.neighbors.forall(newChunks.contains))
     val newNotBorder: Set[V3I] = borderGrouped.getOrElse(true, Set.empty)
     val newBorder: Set[V3I] = borderGrouped.getOrElse(false, Set.empty)
     // compute the new active set
@@ -120,7 +122,7 @@ class LazyInfWorld(
     val newFutures = futures -- added
     // compute the new border
     val borderGrouped: Map[Boolean, Set[V3I]] =
-      (border ++ added).groupBy(_.touching.forall(newChunks.contains))
+      (border ++ added).groupBy(_.neighbors.forall(newChunks.contains))
     val newBorder: Set[V3I] = borderGrouped.getOrElse(false, Set.empty)
     val updatedNotBorder: Set[V3I] = updated.keySet ++ borderGrouped.getOrElse(true, Set.empty)
     // compute the new active set
