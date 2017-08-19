@@ -37,6 +37,8 @@ class Chunk(
     else new ChunkRenderer(this, UniExecutor.mesh(pos * 16 + V3I(8, 8, 8)))
 
 }
+
+
 /*
 @CarboniteWith(classOf[FieldNode])
 class Chunk (
