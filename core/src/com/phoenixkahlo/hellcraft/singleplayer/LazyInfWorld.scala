@@ -4,7 +4,7 @@ import java.util.UUID
 
 import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent, World}
 import com.phoenixkahlo.hellcraft.core.entity.Entity
-import com.phoenixkahlo.hellcraft.graphics.{RenderUnit, ResourcePack}
+import com.phoenixkahlo.hellcraft.graphics.{RenderableFactory, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.threading.Fut
 
@@ -144,7 +144,7 @@ class LazyInfWorld(
     loadified.integrate(events).incrTime
   }
 
-  def renderables(resources: ResourcePack): Seq[RenderUnit] = {
+  def renderables(resources: ResourcePack): Seq[RenderableFactory] = {
     renderable.flatMap(_.renderables(resources, this))
   }
 

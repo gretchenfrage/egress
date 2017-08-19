@@ -13,7 +13,7 @@ import com.phoenixkahlo.hellcraft.util.KeyParamPool
 
 import scala.collection.JavaConverters
 
-class ChunkOutlineRenderer(p: V3I, color: Color) extends RenderUnit {
+class ChunkOutlineRenderer(p: V3I, color: Color) extends RenderableFactory {
   /**
     * Bring this object into an active state, generating resources, and return the renderables. While activating,
     * interpolate with the other world.

@@ -7,7 +7,7 @@ import com.phoenixkahlo.hellcraft.core.World
   * The bridge between the purely functional logic core and the stateful OpenGL graphics system. Is a node in a
   * dependency graph.
   */
-trait RenderUnit {
+trait RenderableFactory {
 
   /**
     * Bring this object into an active state, generating resources, and return the renderables. While activating,

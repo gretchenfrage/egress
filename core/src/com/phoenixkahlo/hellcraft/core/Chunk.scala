@@ -7,11 +7,9 @@ import com.esotericsoftware.kryo.DefaultSerializer
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.Entity
-import com.phoenixkahlo.hellcraft.core.util.ByteField
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
-import com.phoenixkahlo.hellcraft.graphics.{ChunkOutlineRenderer, ChunkRenderer, RenderUnit, ResourcePack}
+import com.phoenixkahlo.hellcraft.graphics.{ChunkOutlineRenderer, ChunkRenderer, RenderableFactory, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Origin, Repeated, V3I}
-import com.phoenixkahlo.hellcraft.threading.UniExecutor
 import com.phoenixkahlo.hellcraft.util.{ParamCache, Profiler, RNG}
 
 import scala.collection.immutable.HashMap
@@ -19,27 +17,6 @@ import scala.collection.immutable.HashMap
 /**
   * A unit of world.
   */
-@CarboniteWith(classOf[FieldNode])
-class Chunk(
-           val pos: V3I,
-           val materials: ByteField,
-           val densities: ByteField,
-           @transient lastTerrain: ChunkTerrain,
-           @transient lastRenderer: ChunkRenderer
-           ) {
-
-  @transient lazy val terrain: ChunkTerrain =
-    if (lastTerrain != null) lastTerrain
-    else new ChunkTerrain(this)
-
-  @transient lazy val renderer: ChunkRenderer =
-    if (lastRenderer != null) lastRenderer
-    else new ChunkRenderer(this, UniExecutor.mesh(pos * 16 + V3I(8, 8, 8)))
-
-}
-
-
-/*
 @CarboniteWith(classOf[FieldNode])
 class Chunk (
               val pos: V3I,
@@ -160,4 +137,3 @@ class Chunk (
     "(pos=" + pos + ", entities=" + entities + ", blocks=" + blocks + ")"
 
 }
-*/

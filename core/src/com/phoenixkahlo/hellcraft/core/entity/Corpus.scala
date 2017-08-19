@@ -5,7 +5,7 @@ import java.util.UUID
 import com.badlogic.gdx.graphics.g3d.{ModelInstance, Renderable}
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core._
-import com.phoenixkahlo.hellcraft.graphics.{RenderUnit, ResourceNode, ResourcePack}
+import com.phoenixkahlo.hellcraft.graphics.{RenderableFactory, ResourceNode, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 import com.phoenixkahlo.hellcraft.util.KeyParamPool
 
@@ -41,14 +41,15 @@ abstract class Corpus(
 
     if (replacer.chunkPos == this.chunkPos)
       Seq(ReplaceEntity(replacer, ids.head))
-     else
+      //Seq(AddEntity(replacer, ids.head))
+    else
       Seq(
         RemoveEntity(this, ids.head),
         AddEntity(replacer, ids.drop(1).head)
       )
   }
 
-  override def renderables(texturePack: ResourcePack): Seq[RenderUnit] =
+  override def renderables(texturePack: ResourcePack): Seq[RenderableFactory] =
     Seq(PooledInstanceRenderer(this, texturePack))
 
   def interpolatePos(world: World, fraction: Float): V3F =
@@ -59,7 +60,7 @@ abstract class Corpus(
 
 }
 
-case class PooledInstanceRenderer(corpus: Corpus, texturePack: ResourcePack) extends RenderUnit {
+case class PooledInstanceRenderer(corpus: Corpus, texturePack: ResourcePack) extends RenderableFactory {
 
   /**
     * Bring this object into an active state, generating resources, and return the renderables.

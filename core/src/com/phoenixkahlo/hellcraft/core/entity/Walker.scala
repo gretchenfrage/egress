@@ -5,7 +5,6 @@ import java.util.UUID
 import com.phoenixkahlo.hellcraft.core.World
 import com.phoenixkahlo.hellcraft.math.{Origin, V2F, V3F}
 
-/*
 abstract class Walker[C <: Walker[C]](
                                        val direction: V3F,
                                        val jumping: Boolean,
@@ -39,4 +38,3 @@ abstract class Walker[C <: Walker[C]](
   }
 
 }
-*/

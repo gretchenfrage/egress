@@ -16,7 +16,6 @@ import scala.collection.immutable.HashSet
 /**
   * An abstract corpus that is a vertically aligned cylinder which collides with blocks.
   */
-/*
 abstract class Cylindroid[C <: Cylindroid[C]](
                 override val pos: V3F,
                 override val id: UUID,
@@ -126,4 +125,3 @@ case class CylindroidModelFactory[C <: Cylindroid[C]](c: Cylindroid[C], textureP
     new ModelInstance(template)
   }
 }
-*/
