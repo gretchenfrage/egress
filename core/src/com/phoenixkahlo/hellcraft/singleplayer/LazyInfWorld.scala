@@ -2,9 +2,10 @@ package com.phoenixkahlo.hellcraft.singleplayer
 
 import java.util.UUID
 
-import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent, World}
-import com.phoenixkahlo.hellcraft.core.entity.Entity
-import com.phoenixkahlo.hellcraft.graphics.{RenderableFactory, ResourcePack}
+import com.phoenixkahlo.hellcraft.oldcore.{Chunk, ChunkEvent, World}
+import com.phoenixkahlo.hellcraft.oldcore.entity.Entity
+import com.phoenixkahlo.hellcraft.graphics.ResourcePack
+import com.phoenixkahlo.hellcraft.graphics.old.RenderableFactory
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.threading.Fut
 

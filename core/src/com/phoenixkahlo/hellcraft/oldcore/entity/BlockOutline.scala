@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.core.entity
+package com.phoenixkahlo.hellcraft.oldcore.entity
 
 import java.util.UUID
 
@@ -11,8 +11,9 @@ import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
-import com.phoenixkahlo.hellcraft.core._
-import com.phoenixkahlo.hellcraft.graphics.{RenderableFactory, ResourceNode, ResourcePack}
+import com.phoenixkahlo.hellcraft.graphics.old.{RenderableFactory, ResourceNode}
+import com.phoenixkahlo.hellcraft.oldcore._
+import com.phoenixkahlo.hellcraft.graphics.{ResourceNode, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.util.KeyParamPool
 

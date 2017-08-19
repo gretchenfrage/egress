@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.core
+package com.phoenixkahlo.hellcraft.oldcore
 
 import com.phoenixkahlo.hellcraft.graphics._
 

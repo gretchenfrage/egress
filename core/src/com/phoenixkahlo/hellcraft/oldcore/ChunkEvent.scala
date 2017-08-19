@@ -1,10 +1,10 @@
-package com.phoenixkahlo.hellcraft.core
+package com.phoenixkahlo.hellcraft.oldcore
 
 import java.util.UUID
 
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
-import com.phoenixkahlo.hellcraft.core.entity.{Avatar, Cylindroid, Entity, PositionHaver}
+import com.phoenixkahlo.hellcraft.oldcore.entity.{Avatar, Cylindroid, Entity, PositionHaver}
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 
 /**

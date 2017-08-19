@@ -1,6 +1,6 @@
 package com.phoenixkahlo.hellcraft.math
 
-import com.phoenixkahlo.hellcraft.core.{Air, World}
+import com.phoenixkahlo.hellcraft.oldcore.{Air, World}
 
 object Raytrace {
 

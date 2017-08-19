@@ -9,10 +9,11 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch, Renderable, RenderableProvider}
 import com.badlogic.gdx.utils.Pool
-import com.phoenixkahlo.hellcraft.core._
-import com.phoenixkahlo.hellcraft.core.entity.Avatar
+import com.phoenixkahlo.hellcraft.oldcore._
+import com.phoenixkahlo.hellcraft.oldcore.entity.Avatar
 import com.phoenixkahlo.hellcraft.gamedriver.{Delta, GameDriver, GameState}
-import com.phoenixkahlo.hellcraft.graphics.{ChunkOutlineRenderer, ResourcePack}
+import com.phoenixkahlo.hellcraft.graphics.ResourcePack
+import com.phoenixkahlo.hellcraft.graphics.old.ChunkOutlineRenderer
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.threading.UniExecutor

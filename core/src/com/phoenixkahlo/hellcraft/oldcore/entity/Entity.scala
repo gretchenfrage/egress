@@ -1,9 +1,10 @@
-package com.phoenixkahlo.hellcraft.core.entity
+package com.phoenixkahlo.hellcraft.oldcore.entity
 
 import java.util.UUID
 
-import com.phoenixkahlo.hellcraft.core.{ChunkEvent, World}
-import com.phoenixkahlo.hellcraft.graphics.{RenderableFactory, ResourcePack}
+import com.phoenixkahlo.hellcraft.oldcore.{ChunkEvent, World}
+import com.phoenixkahlo.hellcraft.graphics.ResourcePack
+import com.phoenixkahlo.hellcraft.graphics.old.RenderableFactory
 
 /**
   * A unit of graphics, logic, or both.

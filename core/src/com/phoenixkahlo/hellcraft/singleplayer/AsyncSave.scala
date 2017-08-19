@@ -8,7 +8,7 @@ import com.esotericsoftware.kryo.io
 import com.esotericsoftware.kryo.io.{Input, Output}
 import com.phoenixkahlo.hellcraft.carbonite.egress.EgressCarboniteConfig
 import com.phoenixkahlo.hellcraft.carbonite.{CarboniteInputStream, CarboniteOutputStream, DefaultCarboniteConfig, LazyDeserial}
-import com.phoenixkahlo.hellcraft.core.Chunk
+import com.phoenixkahlo.hellcraft.oldcore.Chunk
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.threading.{Fut, FutSequences, UniExecutor}
 

@@ -1,7 +1,7 @@
-package com.phoenixkahlo.hellcraft.graphics
-
+package com.phoenixkahlo.hellcraft.graphics.old
 
 import com.badlogic.gdx.graphics.Color
+import com.phoenixkahlo.hellcraft.graphics.{ResourcePack, StoneTID}
 import com.phoenixkahlo.hellcraft.math.Quad
 
 import scala.collection.mutable.ArrayBuffer

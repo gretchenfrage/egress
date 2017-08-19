@@ -1,8 +1,8 @@
 package com.phoenixkahlo.hellcraft.carbonite.egress
 
 import com.phoenixkahlo.hellcraft.carbonite.DefaultCarboniteConfig
-import com.phoenixkahlo.hellcraft.core._
-import com.phoenixkahlo.hellcraft.core.entity.{Avatar, BlockOutline}
+import com.phoenixkahlo.hellcraft.oldcore._
+import com.phoenixkahlo.hellcraft.oldcore.entity.{Avatar, BlockOutline}
 import com.phoenixkahlo.hellcraft.math._
 
 object EgressCarboniteConfig extends DefaultCarboniteConfig {

@@ -1,6 +1,6 @@
 package com.phoenixkahlo.hellcraft.math.isosurface
 
-import com.phoenixkahlo.hellcraft.core.World
+import com.phoenixkahlo.hellcraft.oldcore.World
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
 import com.phoenixkahlo.hellcraft.math._
 

@@ -1,10 +1,10 @@
-package com.phoenixkahlo.hellcraft.core.entity
+package com.phoenixkahlo.hellcraft.oldcore.entity
 
 import java.util.UUID
 
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
-import com.phoenixkahlo.hellcraft.core.{ChunkEvent, World}
+import com.phoenixkahlo.hellcraft.oldcore.{ChunkEvent, World}
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F}
 
 @CarboniteWith(classOf[FieldNode])

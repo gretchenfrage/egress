@@ -1,7 +1,8 @@
-package com.phoenixkahlo.hellcraft.graphics
+package com.phoenixkahlo.hellcraft.graphics.old
 
 import com.badlogic.gdx.graphics.g3d.Renderable
-import com.phoenixkahlo.hellcraft.core.World
+import com.phoenixkahlo.hellcraft.graphics.ResourceNode
+import com.phoenixkahlo.hellcraft.oldcore.World
 
 /**
   * The bridge between the purely functional logic core and the stateful OpenGL graphics system. Is a node in a
@@ -19,10 +20,3 @@ trait RenderableFactory {
 
 }
 
-trait ResourceNode {
-
-  def dependencies: Seq[ResourceNode]
-
-  def dispose(): Unit
-
-}

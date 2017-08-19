@@ -34,6 +34,10 @@ class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
   def <=(o: V3I): Boolean =
     xi <= o.xi && yi <= o.yi && zi <= o.zi
 
+  def dim: Option[Int] =
+    if (xi == yi && yi == zi) Some(xi)
+    else None
+
   def surrounding: Seq[V3I] =
     ((this - Ones) to (this + Ones)) filterNot (this ==)
 

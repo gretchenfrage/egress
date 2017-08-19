@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.core
+package com.phoenixkahlo.hellcraft.oldcore
 
 import java.io._
 import java.lang.reflect.{Field, Modifier}

@@ -1,7 +1,7 @@
 package com.phoenixkahlo.hellcraft.carbonite.egress
 
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteOutputDebugger
-import com.phoenixkahlo.hellcraft.core.{Air, BlockGrid, Chunk}
+import com.phoenixkahlo.hellcraft.oldcore.{Air, BlockGrid, Chunk}
 import com.phoenixkahlo.hellcraft.math.V3I
 
 

@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.core.entity
+package com.phoenixkahlo.hellcraft.oldcore.entity
 
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 
