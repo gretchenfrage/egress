@@ -2,8 +2,9 @@ package com.phoenixkahlo.hellcraft.isotest
 
 import com.phoenixkahlo.hellcraft.core.{Chunk, World}
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
-import com.phoenixkahlo.hellcraft.graphics.`new`.{ChunkRenderer, RenderUnit}
+import com.phoenixkahlo.hellcraft.graphics.`new`.{ChunkMesher, RenderUnit}
 import com.phoenixkahlo.hellcraft.math.{Ones, Origin, V3I}
+import com.phoenixkahlo.hellcraft.util.fields.FractionField
 
 class ArrayWorld(val gen: V3I => Float, size: V3I = V3I(6, 6, 6), override val res: Int = 32) extends World {
 
@@ -21,7 +22,7 @@ class ArrayWorld(val gen: V3I => Float, size: V3I = V3I(6, 6, 6), override val r
   override val time: Long = 0
 
   def renderables(pack: ResourcePack): Seq[RenderUnit] = {
-    (V3I(2, 2, 2) until (size - V3I(2, 2, 2) )).map(chunkAt(_).get.renderer).flatMap(_(this, pack))
+    (V3I(2, 2, 2) until (size - V3I(2, 2, 2) )).map(chunkAt(_).get.mesher).flatMap(_(this, pack))
   }
 
 

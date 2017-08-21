@@ -149,7 +149,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     val nodes = factories.par.flatMap(_.resources).seq
     vramGraph ++= nodes
-    if (g % 600 == 0) PriorityExecContext(1).execute(() => {
+    if (g % 600 == 0) UniExecutor.exec(() => {
       val garbage = vramGraph.garbage(nodes)
       Gdx.app.postRunnable(() => {
         garbage.foreach(_.dispose())

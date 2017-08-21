@@ -11,7 +11,7 @@ import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 
 import scala.collection.mutable.ArrayBuffer
 
-class ChunkRenderer(chunk: Chunk) {
+class ChunkMesher(chunk: Chunk) {
 
   val mesh = new ParamCache[(World, ResourcePack), RenderUnit]({ case (world, pack) => {
     if (!chunk.pos.neighbors.forall(world.chunkAt(_).isDefined))

@@ -71,6 +71,6 @@ object SurfaceNets {
 
     quads
   }
-  
+
 
 }

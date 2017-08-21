@@ -13,7 +13,7 @@ import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.graphics.old.RenderableFactory
 import com.phoenixkahlo.hellcraft.oldcore._
-import com.phoenixkahlo.hellcraft.graphics.ResourcePack
+import com.phoenixkahlo.hellcraft.graphics.{BlockOutlineModel, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.util.ResourceNode
 import com.phoenixkahlo.hellcraft.util.caches.KeyParamPool
@@ -47,7 +47,7 @@ case class BlockOutlineRenderer(v: V3I, color: Color) extends RenderableFactory 
     */
   override def apply(interpolate: Option[(World, Float)]): Seq[Renderable] = {
     // obtain instance
-    val instance = new ModelInstance(OutlineModelPool(color, color))
+    val instance = new ModelInstance(BlockOutlineModel(color, color))
     instance.transform.setTranslation(v toGdx)
     // extract renderables from model
     val array = new com.badlogic.gdx.utils.Array[Renderable]()
@@ -63,50 +63,4 @@ case class BlockOutlineRenderer(v: V3I, color: Color) extends RenderableFactory 
 
 }
 
-object OutlineModelPool extends KeyParamPool[Color,Color,Model](color => {
-  val n = 0 - 1e-3f
-  val p = 1 + 1e-3f
-  val verts: Array[Float] = Array[Float](
-    n, n, n, color toFloatBits,
-    p, n, n, color toFloatBits,
-    p, n, p, color toFloatBits,
-    n, n, p, color toFloatBits,
-    n, p, n, color toFloatBits,
-    p, p, n, color toFloatBits,
-    p, p, p, color toFloatBits,
-    n, p, p, color toFloatBits
-  )
-  val indices: Array[Short] = Array[Short](
-    0, 1,
-    1, 2,
-    2, 3,
-    3, 0,
-    4, 5,
-    5, 6,
-    6, 7,
-    7, 4,
-    0, 4,
-    1, 5,
-    2, 6,
-    3, 7
-  )
 
-  val mesh = new Mesh(true, 8, 24,
-    new VertexAttribute(Usage.Position, 3, "a_position"),
-    new VertexAttribute(Usage.ColorPacked, 4, "a_color")
-  )
-
-  mesh.setVertices(verts)
-  mesh.setIndices(indices)
-
-  val material = new Material()
-  material.set(ColorAttribute.createDiffuse(color))
-
-  val meshPart = new MeshPart("outline", mesh, 0, mesh.getNumIndices, GL20.GL_LINES)
-
-  val builder = new ModelBuilder()
-  builder.begin()
-  builder.part(meshPart, material)
-  builder.end()
-
-})

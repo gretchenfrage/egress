@@ -9,6 +9,9 @@ import scala.reflect.ClassTag
 
 class OptionField[T <: AnyRef] private(private val data: Either[Array[T], Vector[T]], val size: V3I)(implicit tag: ClassTag[T]) {
 
+  val isEmpty: Boolean = Origin.until(size).map(apply).forall(_.isEmpty)
+  val nonEmpty: Boolean = !isEmpty
+
   private def asVector: Vector[T] = data match {
     case Left(arr) => arr.to[Vector]
     case Right(vec) => vec
@@ -39,7 +42,6 @@ class OptionField[T <: AnyRef] private(private val data: Either[Array[T], Vector
 
   override def toString: String =
     "OptionField(" + util.Arrays.toString(asArray.asInstanceOf[Array[Object]]) + ")"
-    //"OptionField~" + hashCode()
 
 }
 

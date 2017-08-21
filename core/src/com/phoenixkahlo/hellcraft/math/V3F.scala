@@ -67,6 +67,9 @@ class V3F(val x: Float, val y: Float, val z: Float) {
   lazy val flatten: V2F =
     V2F(x, z)
 
+  def inflate(w: Float): V4F =
+    V4F(x, y, z, w)
+
   lazy val magnitude =
     Math.sqrt(x * x + y * y + z * z).toFloat
 

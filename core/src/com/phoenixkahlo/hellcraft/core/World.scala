@@ -1,5 +1,8 @@
 package com.phoenixkahlo.hellcraft.core
 
+import java.util.UUID
+
+import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.math.{Ones, Origin, V3F, V3I}
 
 trait World {
@@ -11,6 +14,8 @@ trait World {
   def res: Int
 
   def resVec = V3I(res, res, res)
+
+  def findEntity(id: UUID): Option[Entity]
 
   def density(v: V3F): Option[Float] = {
     val g = v / res * 16
