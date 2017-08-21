@@ -1,16 +1,19 @@
 package com.phoenixkahlo.hellcraft.core
 
 import java.io.{Externalizable, ObjectInput, ObjectOutput}
+import java.util
 import java.util.Objects
 import java.util.zip.{Deflater, Inflater}
 
 import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
-class ByteField private(private var data: Either[Array[Byte], Vector[Byte]], val size: V3I) extends Externalizable {
+class ByteField private(private var data: Either[Array[Byte], Vector[Byte]], private var _size: V3I) extends Externalizable {
 
   private def this(data: Array[Byte], size: V3I) = this(Left(data), size)
 
   private def this(data: Vector[Byte], size: V3I) = this(Right(data), size)
+
+  def size: V3I = _size
 
   private def asVector: Vector[Byte] = data match {
     case Left(arr) => arr.to[Vector]
@@ -33,6 +36,8 @@ class ByteField private(private var data: Either[Array[Byte], Vector[Byte]], val
     } else None
 
   override def writeExternal(out: ObjectOutput): Unit = {
+    out.writeInt(size.xi); out.writeInt(size.yi); out.writeInt(size.zi)
+
     val compressor = new Deflater
     compressor.setInput(asArray)
     compressor.finish()
@@ -44,11 +49,13 @@ class ByteField private(private var data: Either[Array[Byte], Vector[Byte]], val
   }
 
   override def readExternal(in: ObjectInput): Unit = {
+    _size = V3I(in.readInt(), in.readInt(), in.readInt())
+
     val length = in.readShort()
     val buffer = ByteField.buffers.get
     in.read(buffer, 0, length)
 
-    val arr = new Array[Byte](4096)
+    val arr = new Array[Byte](size.fold(_ * _))
     val decompressor = new Inflater
     decompressor.setInput(buffer, 0, length)
     decompressor.inflate(arr)
@@ -57,7 +64,7 @@ class ByteField private(private var data: Either[Array[Byte], Vector[Byte]], val
 
 
   override def hashCode(): Int =
-    Objects.hash(asArray: _*)
+    Objects.hash(asArray)
 
   override def equals(obj: Any): Boolean = obj match {
     case field: ByteField => Origin.until(size).forall(v => this(v) == field(v))
@@ -65,7 +72,7 @@ class ByteField private(private var data: Either[Array[Byte], Vector[Byte]], val
   }
 
   override def toString: String =
-    "ByteField~" + hashCode()
+    "ByteField(" + util.Arrays.toString(asArray) + ")"
 
 }
 
@@ -77,7 +84,7 @@ object ByteField {
   }
 
   def apply(size: V3I, gen: V3I => Byte): ByteField = {
-    val arr = new Array[Byte](4096)
+    val arr = new Array[Byte](size.fold(_ * _))
     for (i <- arr.indices)
       arr(i) = gen(size.decompress(i))
     new ByteField(arr, size)

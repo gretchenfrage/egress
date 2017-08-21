@@ -4,7 +4,7 @@ import java.util.UUID
 
 import com.badlogic.gdx.graphics.g3d.{ModelInstance, Renderable}
 import com.badlogic.gdx.utils.Pool
-import com.phoenixkahlo.hellcraft.graphics.old.{RenderableFactory, ResourceNode}
+import com.phoenixkahlo.hellcraft.graphics.old.{RenderableFactory}
 import com.phoenixkahlo.hellcraft.oldcore._
 import com.phoenixkahlo.hellcraft.graphics.{ResourceNode, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}

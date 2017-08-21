@@ -11,7 +11,7 @@ import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
-import com.phoenixkahlo.hellcraft.graphics.old.{RenderableFactory, ResourceNode}
+import com.phoenixkahlo.hellcraft.graphics.old.{RenderableFactory}
 import com.phoenixkahlo.hellcraft.oldcore._
 import com.phoenixkahlo.hellcraft.graphics.{ResourceNode, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.V3I
