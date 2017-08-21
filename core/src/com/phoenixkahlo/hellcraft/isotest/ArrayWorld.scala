@@ -1,5 +1,8 @@
 package com.phoenixkahlo.hellcraft.isotest
 
+import java.util.UUID
+
+import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.core.{Chunk, World}
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
 import com.phoenixkahlo.hellcraft.graphics.`new`.{ChunkMesher, RenderUnit}
@@ -18,6 +21,10 @@ class ArrayWorld(val gen: V3I => Float, size: V3I = V3I(6, 6, 6), override val r
     if (chunks.indices contains i) Some(chunks(i))
     else None
   }
+
+
+  override def findEntity(id: UUID): Option[Entity] =
+    chunks.toSeq.flatMap(_.entities.get(id)).headOption
 
   override val time: Long = 0
 

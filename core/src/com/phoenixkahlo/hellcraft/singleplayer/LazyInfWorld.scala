@@ -34,12 +34,6 @@ class LazyInfWorld(
     else None
   }
 
-  def strongChunkAt(p: V3I): Chunk = {
-    val cached = cache.get
-    if (cached != null && cached.pos == p) cached
-    else chunks.getOrElse(p, futures.getOrElse(p, save.pull(Seq(p))(p)).await)
-  }
-
   override def findEntity(id: EntityID): Option[Entity] = {
     entityPosHints.get(id).flatMap(chunkAt).flatMap(_.entities.get(id)) match {
       case entity if entity isDefined => entity
@@ -63,7 +57,7 @@ class LazyInfWorld(
     val newFutures = futures -- added.keySet
     // compute the new and removed border
     val borderGrouped: Map[Boolean, Set[V3I]] =
-      (border ++ added.keySet).groupBy(_.neighbors.forall(newChunks.contains))
+      (border ++ added.keySet).groupBy(dependencies(_).forall(newChunks.contains))
     val newNotBorder: Set[V3I] = borderGrouped.getOrElse(true, Set.empty)
     val newBorder: Set[V3I] = borderGrouped.getOrElse(false, Set.empty)
     // compute the new active set
@@ -86,6 +80,18 @@ class LazyInfWorld(
       meshable -- unloaded, entityPosHints)
   }
 
+  def ensureAccessible(target: Seq[V3I]): LazyInfWorld = {
+    val withFutures = updateLoaded((chunks.keySet ++ futures.keySet ++ dependencies(target)).toSeq)
+    target.flatMap(withFutures.futures.get).foreach(_.await)
+    withFutures.loadify
+  }
+
+  def dependencies(p: V3I): Seq[V3I] =
+    V3I(-2, -2, -2).to(V3I(2, 2, 2)).map(_ + p)
+
+  def dependencies(chunks: Seq[V3I]): Seq[V3I] =
+    chunks.flatMap(dependencies)
+
   def pushToSave(): Fut[Unit] = {
     Fut[Unit]({
       for (fut <- save.finalPush(chunks))
@@ -95,10 +101,11 @@ class LazyInfWorld(
   }
 
   def integrate(events: Seq[ChunkEvent]): LazyInfWorld = {
+    val accessible = ensureAccessible(events.map(_.target))
     // produce updated chunks
     val updated: Map[V3I, Chunk] =
       events.groupBy(_.target).par.map({
-        case (p, group) => group.foldLeft(strongChunkAt(p)) { case (c, e) => e(c) }
+        case (p, group) => group.foldLeft(accessible.chunkAt(p).get) { case (c, e) => e(c) }
       }).map(c => (c.pos, c)).toMap.seq
     // compute new chunk map
     val newChunks: Map[V3I, Chunk] = chunks ++ updated
@@ -108,7 +115,7 @@ class LazyInfWorld(
     val newFutures = futures -- added
     // compute the new border
     val borderGrouped: Map[Boolean, Set[V3I]] =
-      (border ++ added).groupBy(_.neighbors.forall(newChunks.contains))
+      (border ++ added).groupBy(dependencies(_).forall(newChunks.contains))
     val newBorder: Set[V3I] = borderGrouped.getOrElse(false, Set.empty)
     val updatedNotBorder: Set[V3I] = updated.keySet ++ borderGrouped.getOrElse(true, Set.empty)
     // compute the new active set

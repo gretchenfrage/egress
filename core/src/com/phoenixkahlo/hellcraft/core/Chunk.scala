@@ -14,7 +14,7 @@ import com.phoenixkahlo.hellcraft.util.fields.FractionField
 class Chunk(
            val pos: V3I,
            val densities: FractionField,
-           val entities: Map[UUID, Entity],
+           val entities: Map[UUID, Entity] = Map.empty,
            @transient lastTerrain: Terrain = null,
            @transient lastMesher: ChunkMesher = null
            ) {
@@ -38,7 +38,7 @@ class Chunk(
 
       override def time: Long = ???
 
-      override def res: Int = ???
+      override def res: Int = 32
 
       override def findEntity(id: UUID): Option[Entity] = ???
     }).nonEmpty

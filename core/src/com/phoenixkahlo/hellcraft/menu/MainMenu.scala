@@ -70,6 +70,15 @@ class MainMenu(providedResources: Cache[ResourcePack]) extends AbstractMenu(prov
     position(isoButton)
     toDispose += isoButton
 
+    val isoSingleButton = new EButton("iso singleplayer", buttonStyle)
+    isoSingleButton.addListener(new ClickListener() {
+      override def clicked(event: InputEvent, x: Float, y: Float): Unit = {
+        driver.enter(new com.phoenixkahlo.hellcraft.singleplayer.SingleplayerState(providedResources))
+      }
+    })
+    position(isoSingleButton)
+    toDispose += isoSingleButton
+
     val openDirButton = new EButton("open directory", buttonStyle)
     openDirButton.addListener(new ClickListener() {
       override def clicked(event: InputEvent, x: Float, y: Float): Unit = {

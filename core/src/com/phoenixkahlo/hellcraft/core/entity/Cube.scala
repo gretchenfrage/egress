@@ -13,7 +13,7 @@ import com.phoenixkahlo.hellcraft.util.ResourceNode
 
 import scala.collection.JavaConverters
 
-case class Cube(color: Color, override val pos: V3F, override val id: UUID) extends Entity(pos, id) {
+case class Cube(color: Color, override val pos: V3F, override val id: UUID) extends Entity {
   override def renderables(pack: ResourcePack): Seq[RenderUnit] = {
     Seq(new CubeRenderer(this))
   }

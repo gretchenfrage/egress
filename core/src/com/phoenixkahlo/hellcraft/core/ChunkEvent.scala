@@ -40,7 +40,7 @@ case class ReplaceEntity(replacer: Entity, override val id: UUID) extends ChunkE
 }
 
 object RemoveEntity {
-  def apply(entity: Entity, id: UUID) = RemoveEntity(entity.chunkPos, entity.id, id)
+  def apply(entity: Entity, id: UUID): RemoveEntity = RemoveEntity(entity.chunkPos, entity.id, id)
 }
 
 abstract class TransformEntity(entityID: UUID, override val target: V3I, override val id: UUID)
