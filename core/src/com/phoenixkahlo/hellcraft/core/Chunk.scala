@@ -4,6 +4,7 @@ import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.graphics.`new`.ChunkRenderer
 import com.phoenixkahlo.hellcraft.math.V3I
+import com.phoenixkahlo.hellcraft.util.fields.FractionField
 
 @CarboniteWith(classOf[FieldNode])
 class Chunk(

@@ -1,11 +1,9 @@
-package com.phoenixkahlo.hellcraft.util
+package com.phoenixkahlo.hellcraft.util.threading
 
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent._
+import java.util.concurrent.atomic.AtomicInteger
 
-import scala.concurrent.duration.Duration
-import scala.concurrent.{CanAwait, ExecutionContext, Future}
-import scala.util.Try
+import scala.concurrent.{ExecutionContext, Future}
 
 private class ScalingQueue extends LinkedBlockingQueue[Runnable] {
 
@@ -75,43 +73,3 @@ object AsyncExecutorTest {
   }
 
 }
-
-/*
-object AsyncExecutor {
-
-  def apply(threadName: String = "async thread"): ExecutorService = {
-    val counter = new AtomicInteger(0)
-    new ThreadPoolExecutor(
-      1,
-      Int.MaxValue,
-      1, TimeUnit.MINUTES,
-      new LinkedBlockingQueue,
-      runnable => new Thread(runnable, threadName + " #" + counter.incrementAndGet())
-    )
-  }
-
-  def context(threadName: String = "async thread"): ExecutionContext =
-    ExecutionContext.fromExecutor(AsyncExecutor(threadName))
-
-  val global: ExecutionContext = context("global async thread")
-
-  def run[T](task: => T): Future[T] =
-    Future { task } (global)
-
-}
-
-object AsyncExecutorTest {
-
-  def main(args: Array[String]): Unit = {
-    val executor = AsyncExecutor("hellfire")
-    for (i <- 1 to 10) {
-      executor.execute(() => {
-        Thread.sleep(1000)
-        println(i)
-        Thread.sleep(1000)
-      })
-    }
-  }
-
-}
-*/

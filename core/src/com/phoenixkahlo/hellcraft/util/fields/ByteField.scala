@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.core
+package com.phoenixkahlo.hellcraft.util.fields
 
 import java.io.{Externalizable, ObjectInput, ObjectOutput}
 import java.util

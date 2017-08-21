@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.singleplayer
+package com.phoenixkahlo.hellcraft.oldsingleplayer
 
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
 

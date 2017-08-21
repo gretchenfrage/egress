@@ -1,8 +1,8 @@
 package com.phoenixkahlo.hellcraft.graphics.old
 
 import com.badlogic.gdx.graphics.g3d.Renderable
-import com.phoenixkahlo.hellcraft.graphics.ResourceNode
 import com.phoenixkahlo.hellcraft.oldcore.World
+import com.phoenixkahlo.hellcraft.util.ResourceNode
 
 /**
   * The bridge between the purely functional logic core and the stateful OpenGL graphics system. Is a node in a

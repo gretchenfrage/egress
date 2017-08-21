@@ -1,8 +1,8 @@
-package com.phoenixkahlo.hellcraft.core
+package com.phoenixkahlo.hellcraft.util.fields
 
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
-import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
+import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
 @CarboniteWith(classOf[FieldNode])
 case class FractionField(bytes: ByteField) {

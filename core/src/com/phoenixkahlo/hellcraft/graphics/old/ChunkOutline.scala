@@ -7,10 +7,11 @@ import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.g3d.{Material, Model, ModelInstance, Renderable}
 import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.utils.Pool
-import com.phoenixkahlo.hellcraft.graphics.{ChunkOutlineModel, ResourceNode}
+import com.phoenixkahlo.hellcraft.graphics.ChunkOutlineModel
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.oldcore.World
-import com.phoenixkahlo.hellcraft.util.KeyParamPool
+import com.phoenixkahlo.hellcraft.util.ResourceNode
+import com.phoenixkahlo.hellcraft.util.caches.KeyParamPool
 
 import scala.collection.JavaConverters
 

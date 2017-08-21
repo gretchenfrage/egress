@@ -1,7 +1,8 @@
 package com.phoenixkahlo.hellcraft.core
 
 import com.phoenixkahlo.hellcraft.math._
-import com.phoenixkahlo.hellcraft.util.ParamCache
+import com.phoenixkahlo.hellcraft.util.caches.ParamCache
+import com.phoenixkahlo.hellcraft.util.fields.OptionField
 
 import scala.collection.mutable.ArrayBuffer
 

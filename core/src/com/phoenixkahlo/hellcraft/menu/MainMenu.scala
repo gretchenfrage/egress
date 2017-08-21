@@ -17,8 +17,8 @@ import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.isotest.IsoState
 import com.phoenixkahlo.hellcraft.menu.util.{EButton, EButtonStyle}
-import com.phoenixkahlo.hellcraft.singleplayer.SingleplayerState
-import com.phoenixkahlo.hellcraft.util.Cache
+import com.phoenixkahlo.hellcraft.oldsingleplayer.SingleplayerState
+import com.phoenixkahlo.hellcraft.util.caches.Cache
 import other.AppDirs
 
 class MainMenu(providedResources: Cache[ResourcePack]) extends AbstractMenu(providedResources) {

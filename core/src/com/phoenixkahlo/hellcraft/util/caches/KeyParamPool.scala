@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.util
+package com.phoenixkahlo.hellcraft.util.caches
 
 import scala.collection.mutable
 

@@ -11,8 +11,9 @@ import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.math.isosurface.SurfaceNets
 import com.phoenixkahlo.hellcraft.oldcore._
-import com.phoenixkahlo.hellcraft.threading.{Fut, UniExecutor}
+import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 import com.phoenixkahlo.hellcraft.util._
+import com.phoenixkahlo.hellcraft.util.caches.DisposableCache
 
 import scala.collection.JavaConverters
 

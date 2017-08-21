@@ -1,5 +1,4 @@
-package com.phoenixkahlo.hellcraft.util
-
+package com.phoenixkahlo.hellcraft.util.caches
 
 class DisposableParamCache[P, T](factory: P => T, disposer: T => Unit) extends ParamCache(factory) {
 

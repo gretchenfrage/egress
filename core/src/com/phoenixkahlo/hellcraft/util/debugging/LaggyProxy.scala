@@ -1,8 +1,9 @@
-package com.phoenixkahlo.hellcraft.util
+package com.phoenixkahlo.hellcraft.util.debugging
 
-import scala.concurrent.duration.Duration
 import java.lang.reflect
 import java.lang.reflect.InvocationTargetException
+
+import scala.concurrent.duration.Duration
 
 /**
   * Wrap your remote objects with these to simulate lag

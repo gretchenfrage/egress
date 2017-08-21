@@ -4,7 +4,7 @@ import java.util.UUID
 
 import com.phoenixkahlo.hellcraft.math.V3I
 
-package object singleplayer {
+package object oldsingleplayer {
 
   type ClientID = UUID
   type EntityID = UUID

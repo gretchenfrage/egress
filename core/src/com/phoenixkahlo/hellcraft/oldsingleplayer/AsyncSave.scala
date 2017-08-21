@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.singleplayer
+package com.phoenixkahlo.hellcraft.oldsingleplayer
 
 import java.io._
 import java.nio.file.Path
@@ -10,7 +10,7 @@ import com.phoenixkahlo.hellcraft.carbonite.egress.EgressCarboniteConfig
 import com.phoenixkahlo.hellcraft.carbonite.{CarboniteInputStream, CarboniteOutputStream, DefaultCarboniteConfig, LazyDeserial}
 import com.phoenixkahlo.hellcraft.oldcore.Chunk
 import com.phoenixkahlo.hellcraft.math.V3I
-import com.phoenixkahlo.hellcraft.threading.{Fut, FutSequences, UniExecutor}
+import com.phoenixkahlo.hellcraft.util.threading.{Fut, FutSequences, UniExecutor}
 
 import scala.collection.immutable.HashMap
 import scala.collection.mutable

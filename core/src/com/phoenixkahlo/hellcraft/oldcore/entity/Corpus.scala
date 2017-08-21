@@ -4,11 +4,12 @@ import java.util.UUID
 
 import com.badlogic.gdx.graphics.g3d.{ModelInstance, Renderable}
 import com.badlogic.gdx.utils.Pool
-import com.phoenixkahlo.hellcraft.graphics.old.{RenderableFactory}
+import com.phoenixkahlo.hellcraft.graphics.old.RenderableFactory
 import com.phoenixkahlo.hellcraft.oldcore._
-import com.phoenixkahlo.hellcraft.graphics.{ResourceNode, ResourcePack}
+import com.phoenixkahlo.hellcraft.graphics.ResourcePack
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
-import com.phoenixkahlo.hellcraft.util.KeyParamPool
+import com.phoenixkahlo.hellcraft.util.ResourceNode
+import com.phoenixkahlo.hellcraft.util.caches.KeyParamPool
 
 import scala.collection.JavaConverters
 import scala.collection.immutable.TreeSet

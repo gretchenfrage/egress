@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.util
+package com.phoenixkahlo.hellcraft.util.debugging
 
 import java.lang
 import java.lang.reflect

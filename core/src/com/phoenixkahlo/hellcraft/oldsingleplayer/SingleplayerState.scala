@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.singleplayer
+package com.phoenixkahlo.hellcraft.oldsingleplayer
 
 import java.util.UUID
 
@@ -16,8 +16,9 @@ import com.phoenixkahlo.hellcraft.graphics.ResourcePack
 import com.phoenixkahlo.hellcraft.graphics.old.ChunkOutlineRenderer
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 import com.phoenixkahlo.hellcraft.menu.MainMenu
-import com.phoenixkahlo.hellcraft.threading.UniExecutor
+import com.phoenixkahlo.hellcraft.util.threading.UniExecutor
 import com.phoenixkahlo.hellcraft.util._
+import com.phoenixkahlo.hellcraft.util.caches.Cache
 import other.AppDirs
 
 import scala.collection.mutable.ArrayBuffer

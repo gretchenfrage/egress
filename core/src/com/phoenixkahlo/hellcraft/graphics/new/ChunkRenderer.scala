@@ -5,8 +5,9 @@ import com.badlogic.gdx.graphics.g3d.{Material, Renderable}
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
 import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.phoenixkahlo.hellcraft.core.{Chunk, World}
-import com.phoenixkahlo.hellcraft.graphics.{ResourceNode, ResourcePack, StoneTID}
-import com.phoenixkahlo.hellcraft.util.ParamCache
+import com.phoenixkahlo.hellcraft.graphics.{ResourcePack, StoneTID}
+import com.phoenixkahlo.hellcraft.util.ResourceNode
+import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 
 import scala.collection.mutable.ArrayBuffer
 

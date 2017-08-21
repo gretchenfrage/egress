@@ -3,8 +3,9 @@ package com.phoenixkahlo.hellcraft.graphics.`new`
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g3d.{ModelInstance, Renderable}
 import com.badlogic.gdx.utils.Pool
-import com.phoenixkahlo.hellcraft.graphics.{ChunkOutlineModel, ResourceNode}
+import com.phoenixkahlo.hellcraft.graphics.ChunkOutlineModel
 import com.phoenixkahlo.hellcraft.math.V3I
+import com.phoenixkahlo.hellcraft.util.ResourceNode
 
 import scala.collection.JavaConverters
 

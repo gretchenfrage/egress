@@ -7,7 +7,13 @@ import java.util.Scanner
 import scala.collection.parallel.mutable.ParSet
 import scala.collection.{JavaConverters, mutable}
 
-
+/**
+  * A java mutable string set that mirrors a file on the hard drive containing one of the strings on each line.
+  * As the file is modified, the modifications will be saved to the file automatically. When the set is
+  * constructed, it reads its contents from the file if the file exists, and if not, it creates the file.
+  * Instances of this are stored in a weak hash set where the keys are paths, ensuring that only one set
+  * will be constructed for a file at a time. However, this is not inherently thread safe.
+  */
 class HardDriveStringSet private[this](file: File) extends java.util.HashSet[String] {
 
   def this(path: Path) = {

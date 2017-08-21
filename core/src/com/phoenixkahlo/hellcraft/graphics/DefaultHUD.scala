@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.graphics
 
 import com.badlogic.gdx.Gdx
 import com.phoenixkahlo.hellcraft.math.V2F
-import com.phoenixkahlo.hellcraft.util.ParamCache
+import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 
 class DefaultHUD extends HUD {
 

@@ -12,7 +12,7 @@ import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics.{MenuPatchActivePID, MenuPatchPID, ResourcePack, XFID}
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 import com.phoenixkahlo.hellcraft.menu.util.{EButton, EButtonStyle}
-import com.phoenixkahlo.hellcraft.util.Cache
+import com.phoenixkahlo.hellcraft.util.caches.Cache
 
 import scala.collection.mutable.ArrayBuffer
 

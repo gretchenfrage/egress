@@ -1,11 +1,11 @@
-package com.phoenixkahlo.hellcraft.singleplayer
+package com.phoenixkahlo.hellcraft.oldsingleplayer
 
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import java.util.concurrent.{Executors, ThreadPoolExecutor, TimeUnit}
 
 import com.phoenixkahlo.hellcraft.oldcore.{Air, BlockGrid, Chunk, Stone}
 import com.phoenixkahlo.hellcraft.math.{V2F, V3I}
-import com.phoenixkahlo.hellcraft.threading.{Fut, UniExecutor}
+import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 import other.OpenSimplexNoise
 
 import scala.collection.mutable

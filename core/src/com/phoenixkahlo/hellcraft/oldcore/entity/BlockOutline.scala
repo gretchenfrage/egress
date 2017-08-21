@@ -11,11 +11,12 @@ import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
-import com.phoenixkahlo.hellcraft.graphics.old.{RenderableFactory}
+import com.phoenixkahlo.hellcraft.graphics.old.RenderableFactory
 import com.phoenixkahlo.hellcraft.oldcore._
-import com.phoenixkahlo.hellcraft.graphics.{ResourceNode, ResourcePack}
+import com.phoenixkahlo.hellcraft.graphics.ResourcePack
 import com.phoenixkahlo.hellcraft.math.V3I
-import com.phoenixkahlo.hellcraft.util.KeyParamPool
+import com.phoenixkahlo.hellcraft.util.ResourceNode
+import com.phoenixkahlo.hellcraft.util.caches.KeyParamPool
 
 import scala.collection.JavaConverters
 

@@ -1,10 +1,10 @@
-package com.phoenixkahlo.hellcraft.util
+package com.phoenixkahlo.hellcraft.util.debugging
 
 import java.lang
-
-import scala.concurrent.duration.Duration
 import java.lang.reflect
 import java.util.concurrent.{ScheduledThreadPoolExecutor, TimeUnit}
+
+import scala.concurrent.duration.Duration
 
 object LaggyNoReplyProxy {
 

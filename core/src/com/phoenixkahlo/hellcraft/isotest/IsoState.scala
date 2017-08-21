@@ -7,12 +7,12 @@ import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch, Renderable, RenderableProvider}
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.utils.Pool
-import com.phoenixkahlo.hellcraft.core.ByteField
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
 import com.phoenixkahlo.hellcraft.graphics.`new`.NoInterpolation
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
-import com.phoenixkahlo.hellcraft.util.Cache
+import com.phoenixkahlo.hellcraft.util.caches.Cache
+import com.phoenixkahlo.hellcraft.util.fields.ByteField
 import other.OpenSimplexNoise
 
 class IsoState(providedResources: Cache[ResourcePack]) extends GameState {

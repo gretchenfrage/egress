@@ -10,8 +10,9 @@ import com.phoenixkahlo.hellcraft.oldcore.entity.Entity
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.graphics.old.{ChunkOutlineRenderer, ChunkRenderer, RenderableFactory}
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
-import com.phoenixkahlo.hellcraft.math.{Origin, Repeated, V3I}
-import com.phoenixkahlo.hellcraft.util.{ParamCache, Profiler, RNG}
+import com.phoenixkahlo.hellcraft.math.{Origin, RNG, Repeated, V3I}
+import com.phoenixkahlo.hellcraft.util.caches.ParamCache
+import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 
 import scala.collection.immutable.HashMap
 

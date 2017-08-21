@@ -6,7 +6,7 @@ import com.badlogic.gdx.graphics.g3d.model.MeshPart
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.g3d.{Material, Model}
 import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
-import com.phoenixkahlo.hellcraft.util.KeyParamPool
+import com.phoenixkahlo.hellcraft.util.caches.KeyParamPool
 
 object ChunkOutlineModel extends KeyParamPool[Color, Color, Model](color => {
   val n = 0.5f

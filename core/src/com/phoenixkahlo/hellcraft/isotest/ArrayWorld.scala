@@ -1,6 +1,6 @@
 package com.phoenixkahlo.hellcraft.isotest
 
-import com.phoenixkahlo.hellcraft.core.{ByteField, Chunk, FractionField, World}
+import com.phoenixkahlo.hellcraft.core.{Chunk, World}
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
 import com.phoenixkahlo.hellcraft.graphics.`new`.{ChunkRenderer, RenderUnit}
 import com.phoenixkahlo.hellcraft.math.{Ones, Origin, V3I}

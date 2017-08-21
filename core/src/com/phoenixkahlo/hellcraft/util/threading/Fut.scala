@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.threading
+package com.phoenixkahlo.hellcraft.util.threading
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.Duration

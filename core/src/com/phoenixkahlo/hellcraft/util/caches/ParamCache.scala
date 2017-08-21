@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.util
+package com.phoenixkahlo.hellcraft.util.caches
 
 class ParamCache[P,T](factory: P => T) {
 

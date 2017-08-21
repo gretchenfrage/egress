@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.threading
+package com.phoenixkahlo.hellcraft.util.threading
 
 /**
   * Utility for executing futs sequentially.

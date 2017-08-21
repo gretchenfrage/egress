@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.threading
+package com.phoenixkahlo.hellcraft.util.threading
 
 import java.util
 import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue, ThreadFactory}

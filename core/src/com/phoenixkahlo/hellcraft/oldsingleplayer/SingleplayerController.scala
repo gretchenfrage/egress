@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.singleplayer
+package com.phoenixkahlo.hellcraft.oldsingleplayer
 
 import java.util.UUID
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -7,10 +7,9 @@ import com.badlogic.gdx.Input.{Buttons, Keys}
 import com.badlogic.gdx.{Gdx, InputAdapter}
 import com.badlogic.gdx.graphics.{Camera, Color, PerspectiveCamera}
 import com.phoenixkahlo.hellcraft.oldcore._
-import com.phoenixkahlo.hellcraft.math._
+import com.phoenixkahlo.hellcraft.math.{RNG, _}
 import com.badlogic.gdx.Input.Keys._
 import com.phoenixkahlo.hellcraft.oldcore.entity.{Avatar, BlockOutline}
-import com.phoenixkahlo.hellcraft.util.RNG
 
 import scala.collection.{SortedSet, mutable}
 
