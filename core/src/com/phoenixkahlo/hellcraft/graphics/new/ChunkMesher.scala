@@ -6,18 +6,19 @@ import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
 import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.phoenixkahlo.hellcraft.core.{Chunk, World}
 import com.phoenixkahlo.hellcraft.graphics.{ResourcePack, StoneTID}
+import com.phoenixkahlo.hellcraft.math.Quad
 import com.phoenixkahlo.hellcraft.util.ResourceNode
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 
 import scala.collection.mutable.ArrayBuffer
 
-class ChunkMesher(chunk: Chunk) {
+class ChunkMesher(chunk: Chunk, quads: Seq[Quad]) {
 
   val mesh = new ParamCache[(World, ResourcePack), RenderUnit]({ case (world, pack) => {
     if (!chunk.pos.neighbors.forall(world.chunkAt(_).isDefined))
       throw new IllegalArgumentException("chunk cannot render with undefined neighbors")
 
-    val tris = chunk.terrain.quads(world).flatMap(_.decompose).flatMap(_.bothSides)
+    val tris = quads.flatMap(_.decompose).flatMap(_.bothSides)
 
     val verts = new ArrayBuffer[Float]
     val indices = new ArrayBuffer[Short]

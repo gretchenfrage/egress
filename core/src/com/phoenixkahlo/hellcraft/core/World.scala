@@ -17,6 +17,9 @@ trait World {
 
   def findEntity(id: UUID): Option[Entity]
 
+  /**
+    * Samples the density using trilinear interpolation
+    */
   def density(v: V3F): Option[Float] = {
     val g = v / res * 16
 
@@ -24,10 +27,10 @@ trait World {
     val v1 = g ceil
 
     def point(v: V3I): Option[Float] =
-      chunkAt(v / res floor).map(_.densities(v % res).get)
+      chunkAt(v / res floor).map(_.terrain.densities(v % res).get)
 
     if (v0 == v1) point(v0)
-    else if (chunkAt(v0 / res floor).isDefined && chunkAt(v1 / res floor).isDefined) {
+    else if ((v0 / res floor).to(v1 / res floor).forall(chunkAt(_).isDefined)) {
       val d = (g - v0) \\ (v1 - v0)
 
       val c00 = point(V3I(v0.xi, v0.yi, v0.zi)).get * (1 - d.x) + point(V3I(v1.xi, v0.yi, v0.zi)).get * d.x

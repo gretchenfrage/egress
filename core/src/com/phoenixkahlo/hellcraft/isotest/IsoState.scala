@@ -53,8 +53,8 @@ class IsoState(providedResources: Cache[ResourcePack]) extends GameState {
     lights.add(new DirectionalLight().set(1, 1, 1, 0, -1, 0))
 
     println(world.chunkAt(V3I(3, 3, 3)).get.densities)
-    println(world.chunkAt(V3I(3, 3, 3)).get.terrain.vertices(world))
-    println(world.chunkAt(V3I(3, 3, 3)).get.terrain.quads(world))
+    println(world.chunkAt(V3I(3, 3, 3)).get.terrain.getVertices(world))
+    println(world.chunkAt(V3I(3, 3, 3)).get.terrain.getQuads(world))
   }
 
   override def render(): Unit = {

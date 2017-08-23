@@ -9,7 +9,7 @@ import com.phoenixkahlo.hellcraft.graphics.`new`.{ChunkMesher, RenderUnit}
 import com.phoenixkahlo.hellcraft.math.{Ones, Origin, V3I}
 import com.phoenixkahlo.hellcraft.util.fields.FractionField
 
-class ArrayWorld(val gen: V3I => Float, size: V3I = V3I(6, 6, 6), override val res: Int = 32) extends World {
+class ArrayWorld(val gen: V3I => Float, size: V3I = V3I(6, 6, 6), override val res: Int = 16) extends World {
 
   val chunks = new Array[Chunk](size.fold(_ * _))
   for (p <- Origin until size) {

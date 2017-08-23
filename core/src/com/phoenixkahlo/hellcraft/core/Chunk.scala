@@ -7,9 +7,52 @@ import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
 import com.phoenixkahlo.hellcraft.graphics.`new`.{ChunkMesher, RenderUnit}
-import com.phoenixkahlo.hellcraft.math.{RNG, V3I}
-import com.phoenixkahlo.hellcraft.util.fields.FractionField
+import com.phoenixkahlo.hellcraft.math.{RNG, V3F, V3I}
+import com.phoenixkahlo.hellcraft.util.fields.{FractionField, OptionField}
 
+@CarboniteWith(classOf[FieldNode])
+class Chunk(
+           val pos: V3I,
+           val terrain: Terrain,
+           val entities: Map[UUID, Entity] = Map.empty,
+           @transient lastMesher: ChunkMesher = null
+           ) {
+
+  @transient lazy val mesher: Option[ChunkMesher] = Option(lastMesher) match {
+    case last if last isDefined => last
+    case None => terrain.getQuads match {
+      case Some(quads) => Some(new ChunkMesher(this, quads))
+      case None => None
+    }
+  }
+
+  def putEntity(entity: Entity): Chunk =
+    new Chunk(pos, terrain, entities + (entity.id -> entity), mesher.orNull)
+
+  def removeEntity(entity: UUID): Chunk =
+    new Chunk(pos, terrain, entities - entity, mesher.orNull)
+
+  def updateTerrain(neu: Terrain): Chunk =
+    new Chunk(pos, neu, entities, null)
+
+  def update(world: World, dt: Float): Seq[ChunkEvent] = {
+    val seed: Long = (world.time.hashCode().toLong << 32) | pos.hashCode().toLong
+    val idss: Stream[Stream[UUID]] = RNG.meta(RNG(seed), RNG.uuids)
+    entities.values.zip(idss).flatMap({ case (entity, ids) => entity.update(world, ids, dt) }).toSeq
+  }
+
+  override def hashCode(): Int =
+    Objects.hash(pos, terrain, entities)
+
+  override def equals(obj: scala.Any): Boolean =
+    obj match {
+      case chunk: Chunk => pos == chunk.pos && terrain == chunk.terrain && entities == chunk.entities
+      case _ => false
+    }
+
+}
+
+/*
 @CarboniteWith(classOf[FieldNode])
 class Chunk(
            val pos: V3I,
@@ -38,7 +81,7 @@ class Chunk(
 
       override def time: Long = ???
 
-      override def res: Int = 32
+      override def res: Int = 16
 
       override def findEntity(id: UUID): Option[Entity] = ???
     }).nonEmpty
@@ -60,3 +103,4 @@ class Chunk(
     }
 
 }
+*/
