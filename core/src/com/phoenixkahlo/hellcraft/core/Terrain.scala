@@ -12,6 +12,8 @@ import scala.collection.mutable.ArrayBuffer
 
 sealed trait Terrain {
 
+  def pos: V3I
+
   def densities: FractionField
 
   def getVertices: Option[OptionField[V3F]] = None

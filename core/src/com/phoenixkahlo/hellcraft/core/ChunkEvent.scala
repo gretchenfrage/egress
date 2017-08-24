@@ -7,7 +7,7 @@ import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.{Cube, Entity}
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 
-abstract class ChunkEvent(val target: V3I, val id: UUID) extends Comparable[ChunkEvent] {
+abstract sealed class ChunkEvent(val target: V3I, val id: UUID) extends Comparable[ChunkEvent] {
 
   def apply(chunk: Chunk): Chunk
 
@@ -23,6 +23,14 @@ abstract class ChunkEvent(val target: V3I, val id: UUID) extends Comparable[Chun
   override def hashCode(): Int =
     id.hashCode()
 
+}
+
+/**
+  * This is the only event that can update terrain
+  */
+@CarboniteWith(classOf[FieldNode])
+case class UpdateTerrain(neu: Terrain, override val id: UUID) extends ChunkEvent(neu.pos, id) {
+  override def apply(chunk: Chunk): Chunk = chunk.updateTerrain(neu)
 }
 
 @CarboniteWith(classOf[FieldNode])

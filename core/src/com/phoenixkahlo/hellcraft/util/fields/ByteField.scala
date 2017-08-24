@@ -75,10 +75,12 @@ class ByteField private(private var data: Either[Array[Byte], Vector[Byte]], pri
   override def hashCode(): Int =
     Objects.hash(asArray)
 
-  override def equals(obj: Any): Boolean = obj match {
-    case field: ByteField => Origin.until(size).forall(v => this(v) == field(v))
-    case _ => false
-  }
+  override def equals(obj: Any): Boolean =
+    if (obj.isInstanceOf[AnyRef] && this.eq(obj.asInstanceOf[AnyRef])) true
+    else obj match {
+      case field: ByteField => Origin.until(size).forall(v => this (v) == field(v))
+      case _ => false
+    }
 
   override def toString: String =
     "ByteField(" + util.Arrays.toString(asArray) + ")"

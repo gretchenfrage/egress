@@ -35,10 +35,12 @@ class OptionField[T <: AnyRef] private(private val data: Either[Array[T], Vector
   override def hashCode(): Int =
     Objects.hash(asArray: _*)
 
-  override def equals(obj: scala.Any): Boolean = obj match {
-    case field: OptionField[T] => Origin.until(size).forall(v => this(v) == field(v))
-    case _ => false
-  }
+  override def equals(obj: scala.Any): Boolean =
+    if (obj.isInstanceOf[AnyRef] && this.eq(obj.asInstanceOf[AnyRef])) true
+    else obj match {
+      case field: OptionField[T] => Origin.until(size).forall(v => this (v) == field(v))
+      case _ => false
+    }
 
   override def toString: String =
     "OptionField(" + util.Arrays.toString(asArray.asInstanceOf[Array[Object]]) + ")"
