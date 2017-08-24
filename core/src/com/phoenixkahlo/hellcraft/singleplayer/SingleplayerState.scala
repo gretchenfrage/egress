@@ -39,6 +39,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var g = 0
 
   override def onEnter(driver: GameDriver): Unit = {
+    val res = 8
+
     println("activating uni executor")
     UniExecutor.activate(Runtime.getRuntime.availableProcessors() - 2, new Thread(_, "uni exec thread"), t => {
       System.err.println("uni executor failure")
@@ -47,13 +49,13 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     })
 
     println("instantiating save")
-    val generator = new Generator(32)
+    val generator = new Generator(res)
     save = new RegionGenAsyncSave(AppDirs.dataDir("egress").resolve("single"), new CarboniteSerialService, generator.genChunk)
 
     clock = new GametimeClock
 
     println("instantiating history")
-    infinitum = new Infinitum(32, save, 1f / 20f)
+    infinitum = new Infinitum(res, save, 1f / 20f)
 
     println("loading resources")
     resources = providedResources()

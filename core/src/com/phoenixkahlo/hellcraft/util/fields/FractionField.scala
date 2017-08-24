@@ -12,6 +12,9 @@ case class FractionField(bytes: ByteField) {
   def apply(v: V3I): Option[Float] =
     bytes(v).map(b => (b & 0xFF) / 255f)
 
+  def atMod(v: V3I): Float =
+    (bytes.atMod(v) & 0xFF) / 255f
+
   def updated(v: V3I, n: Float): FractionField =
     FractionField(bytes.updated(v, (n * 255).toByte))
 

@@ -15,6 +15,9 @@ class ByteField private(private var data: Either[Array[Byte], Vector[Byte]], pri
 
   def size: V3I = _size
 
+  if (size.xi != size.yi || size.yi != size.zi)
+    throw new IllegalArgumentException("byte field must have equal dimensions")
+
   private def asVector: Vector[Byte] = data match {
     case Left(arr) => arr.to[Vector]
     case Right(vec) => vec
@@ -34,6 +37,12 @@ class ByteField private(private var data: Either[Array[Byte], Vector[Byte]], pri
       case Left(arr) => Some(arr(size.compress(v)))
       case Right(vec) => Some(vec(size.compress(v)))
     } else None
+
+  def atMod(v: V3I): Byte =
+    data match {
+      case Left(arr) => arr(size.compress(v % size.xi))
+      case Right(vec) => vec(size.compress(v % size.xi))
+    }
 
   override def writeExternal(out: ObjectOutput): Unit = {
     out.writeInt(size.xi); out.writeInt(size.yi); out.writeInt(size.zi)
