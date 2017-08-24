@@ -86,6 +86,39 @@ private class EvalFut[T](factory: => T, executor: Runnable => Unit) extends Fut[
   }
 }
 
+case class Promise(task: Runnable, executor: Runnable => Unit) extends Fut[Unit] {
+  @volatile private var done: Boolean = false
+  private val listeners = new ArrayBuffer[Runnable]
+  private val monitor = new Object
+
+  executor(() => {
+    task.run()
+    monitor.synchronized {
+      done = true
+      monitor.notifyAll()
+    }
+    listeners.foreach(_.run())
+  })
+
+  override def await: Unit = {
+    if (!done) monitor.synchronized {
+      while (!done) monitor.wait()
+    }
+  }
+
+  override def query: Option[Unit] =
+    if (done) Some(())
+    else None
+
+  override def onComplete(runnable: Runnable): Unit = {
+    if (done) runnable.run()
+    else monitor.synchronized {
+      if (done) runnable.run()
+      else listeners += runnable
+    }
+  }
+}
+
 private class SeqFut[T](last: Fut[_], factory: => T, executor: Runnable => Unit) extends Fut[T] {
   @volatile private var status: Option[T] = None
   private val listeners = new ArrayBuffer[Runnable]

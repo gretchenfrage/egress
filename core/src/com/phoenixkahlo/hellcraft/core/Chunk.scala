@@ -50,6 +50,10 @@ class Chunk(
       case _ => false
     }
 
+  def renderables(pack: ResourcePack, world: World): Seq[RenderUnit] = {
+    entities.values.flatMap(_.renderables(pack)).toSeq ++ mesher.flatMap(_(world, pack))
+  }
+
 }
 
 /*

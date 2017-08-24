@@ -1,5 +1,8 @@
 package com.phoenixkahlo.hellcraft.core
 
+import com.phoenixkahlo.hellcraft.carbonite
+import com.phoenixkahlo.hellcraft.carbonite._
+import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 import com.phoenixkahlo.hellcraft.util.fields.{FractionField, OptionField}
@@ -14,12 +17,20 @@ sealed trait Terrain {
 
   def getQuads: Option[Seq[Quad]] = None
 
+  def terrainType: TerrainType
+
 }
 
+sealed trait TerrainType
+
+@CarboniteWith(classOf[FieldNode])
 case class Densities(pos: V3I, densities: FractionField) extends Terrain {
 
+  def canUpgrade(world: World): Boolean =
+    pos.touching.forall(world.chunkAt(_).isDefined)
+
   def upgrade(world: World): Option[Vertices] = {
-    if (pos.touching.forall(world.chunkAt(_).isDefined)) {
+    if (canUpgrade(world)) {
       val verts = OptionField(world.resVec, i => {
         // real world coordinates of the middle of the cube
         val v = (i / world.res + pos) * 16
@@ -58,15 +69,24 @@ case class Densities(pos: V3I, densities: FractionField) extends Terrain {
     } else None
   }
 
+  override def terrainType: TerrainType = Densities
+
 }
 
+object Densities extends TerrainType
+
+@CarboniteWith(classOf[FieldNode])
 case class Vertices(pos: V3I, densities: FractionField, vertices: OptionField[V3F]) extends Terrain {
 
   override def getVertices = Some(vertices)
 
-  def upgrade(world: World): Option[Quads] = {
+  def canUpgrade(world: World): Boolean = {
     val dependencies: Seq[V3I] = Seq(pos, pos + Up, pos + East, pos + North)
-    if (dependencies.map(world.chunkAt(_).flatMap(_.terrain.getVertices)).forall(_.isDefined)) {
+    dependencies.map(world.chunkAt(_).flatMap(_.terrain.getVertices)).forall(_.isDefined)
+  }
+
+  def upgrade(world: World): Option[Quads] = {
+    if (canUpgrade(world)) {
 
       def vert(v: V3I): Option[V3F] = {
         val global = (pos * world.res) + v
@@ -90,9 +110,19 @@ case class Vertices(pos: V3I, densities: FractionField, vertices: OptionField[V3
     } else None
   }
 
+  override def terrainType: TerrainType = Vertices
+
 }
+
+object Vertices extends TerrainType
+
+@CarboniteWith(classOf[FieldNode])
 case class Quads(pos: V3I, densities: FractionField, vertices: OptionField[V3F], quads: Seq[Quad]) extends Terrain {
   override def getVertices = Some(vertices)
 
   override def getQuads = Some(quads)
+
+  override def terrainType: TerrainType = Quads
 }
+
+object Quads extends TerrainType
