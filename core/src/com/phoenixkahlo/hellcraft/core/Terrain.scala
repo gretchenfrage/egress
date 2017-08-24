@@ -27,7 +27,7 @@ sealed trait TerrainType
 case class Densities(pos: V3I, densities: FractionField) extends Terrain {
 
   def canUpgrade(world: World): Boolean =
-    pos.touching.forall(world.chunkAt(_).isDefined)
+    pos.neighbors.forall(world.chunkAt(_).isDefined)
 
   def upgrade(world: World): Option[Vertices] = {
     if (canUpgrade(world)) {

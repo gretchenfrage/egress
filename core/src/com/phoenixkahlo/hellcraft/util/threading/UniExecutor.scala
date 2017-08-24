@@ -2,14 +2,14 @@ package com.phoenixkahlo.hellcraft.util.threading
 
 import java.util
 import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue, ThreadFactory}
-import java.util.function.Supplier
+import java.util.function.{Consumer, Supplier}
 
 import com.phoenixkahlo.hellcraft.math.{V2F, V3F}
 import com.phoenixkahlo.hellcraft.math.octree.OctreeBlockingQueue
 
 import scala.collection.mutable.ArrayBuffer
 
-class UniExecutor(threadCount: Int, threadFactory: ThreadFactory) {
+class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: Consumer[Throwable]) {
 
   private val seqQueue = new LinkedBlockingQueue[Runnable]
   private val octQueue = new OctreeBlockingQueue[Runnable]
@@ -27,7 +27,7 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory) {
             work.run()
           } catch {
             case e: InterruptedException => throw e
-            case e: Exception => println("exception in uniexecutor task (swallowing): " + e)
+            case e: Exception => failHandler.accept(e)
           }
         }
       } catch {
@@ -92,9 +92,9 @@ object UniExecutor {
   def point: V3F = service.point
   def point_=(p: V3F): Unit = service.point = p
 
-  def activate(threadCount: Int, threadFactory: ThreadFactory): Unit = this.synchronized {
+  def activate(threadCount: Int, threadFactory: ThreadFactory, failHandler: Consumer[Throwable]): Unit = this.synchronized {
     if (service != null) throw new IllegalStateException("uni executor is already active")
-    service = new UniExecutor(threadCount, threadFactory)
+    service = new UniExecutor(threadCount, threadFactory, failHandler)
     service.start()
   }
 

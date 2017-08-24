@@ -9,16 +9,16 @@ class GameDriver(startState: GameState) extends ApplicationAdapter {
   private var toEnter: Option[GameState] = None
   private var ifFails: Option[GameState] = None
 
-  def enter(state: GameState, ifFails: Option[GameState] = None): Unit = {
+  def enter(state: GameState, ifFails: Option[GameState] = None): Unit = this.synchronized {
     toEnter = Some(state)
     this.ifFails = ifFails
   }
 
-  override def create(): Unit = {
+  override def create(): Unit = this.synchronized {
     state.onEnter(this)
   }
 
-  override def render(): Unit = {
+  override def render(): Unit = this.synchronized  {
     toEnter match {
       case Some(nextState) =>
         state.onExit()
@@ -44,10 +44,11 @@ class GameDriver(startState: GameState) extends ApplicationAdapter {
     state.render()
   }
 
-  override def resize(width: Int, height: Int): Unit =
+  override def resize(width: Int, height: Int): Unit = this.synchronized {
     state.onResize(width, height)
+  }
 
-  override def dispose(): Unit = {
+  override def dispose(): Unit = this.synchronized {
     state.onExit()
   }
 

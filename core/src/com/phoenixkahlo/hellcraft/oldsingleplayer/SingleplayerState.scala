@@ -42,7 +42,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
   override def onEnter(driver: GameDriver): Unit = {
     println("activating uni executor")
-    UniExecutor.activate(Runtime.getRuntime.availableProcessors() - 2, new Thread(_, "uni exec thread"))
+    UniExecutor.activate(Runtime.getRuntime.availableProcessors() - 2, new Thread(_, "uni exec thread"), _.printStackTrace())
 
     println("loading")
     val generator = new Generator

@@ -127,7 +127,10 @@ class DefaultCarboniteConfig extends CarboniteConfig {
     // things to use java serialization for
     else if (clazz == classOf[Ordering[_]]) new JavaSerialNode(classOf[Ordering[_]])
     // undefined
-    else ???
+    else {
+      System.err.println("could not resolve serializer for " + clazz)
+      ???
+    }
   }
 
   register[Seq[_]]()

@@ -51,7 +51,7 @@ class Chunk(
     }
 
   def renderables(pack: ResourcePack, world: World): Seq[RenderUnit] = {
-    entities.values.flatMap(_.renderables(pack)).toSeq ++ mesher.flatMap(_(world, pack))
+    entities.values.flatMap(_.renderables(pack)).toSeq ++ mesher.map(_(world, pack)).getOrElse(Seq.empty)
   }
 
 }

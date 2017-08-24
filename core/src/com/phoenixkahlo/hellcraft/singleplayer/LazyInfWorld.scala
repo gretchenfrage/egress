@@ -52,7 +52,7 @@ class InfWorld(
     * @return the updated world, the new chunks in the density state, and the new chunks in the vertex state
     */
   def ++(added: Seq[Chunk]): (InfWorld, Seq[Chunk], Seq[Chunk]) =
-    this -- added.map(_.pos) ++ added
+    this -- added.map(_.pos) add added
 
   def --(ps: Seq[V3I]): InfWorld = {
     new InfWorld(time, res, chunks -- ps, complete -- ps, entityPosHints)
@@ -81,27 +81,24 @@ class InfWorld(
 
 class Infinitum(res: Int, save: AsyncSave, dt: Float) {
 
-  @volatile var history = SortedMap.empty[Long, InfWorld]
+  @volatile var history = SortedMap(0L -> new InfWorld(0, res, Map.empty, Set.empty, Map.empty))
   history += (0L -> new InfWorld(0, res, Map.empty, Set.empty, Map.empty))
 
-  var loading = Set.empty[V3I]
   val loadQueue = new LinkedBlockingQueue[Chunk]
 
   def apply(time: Long): Option[InfWorld] = history.get(time)
 
   def apply(): InfWorld = history.last._2
 
-  def update(loadTarget: Iterable[V3I]): Unit = {
+  def update(loadTarget: Set[V3I]): Unit = {
     var world = this()
 
     // push chunks to save
     val unload: Seq[Chunk] = (world.chunks.keySet -- loadTarget).toSeq.map(world.chunks(_))
     save.push(unload)
-    loading --= unload.map(_.pos)
 
     // create load futures
-    val toLoad: Map[V3I, Fut[Chunk]] = save.pull((loadTarget.toSet -- (world.chunks.keySet ++ loading)).toSeq)
-    loading ++= toLoad.keySet
+    val toLoad: Map[V3I, Fut[Chunk]] = save.pull((loadTarget -- world.chunks.keySet).toSeq)
     for (fut <- toLoad.values) fut.onComplete(() => loadQueue.add(fut.query.get))
 
     // accumulate from the queue
@@ -109,7 +106,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     while (loadQueue.size > 0) loaded +:= loadQueue.remove()
 
     // filter out chunks that aren't being loaded
-    loaded = loaded.filter(loading contains _.pos)
+    loaded = loaded.filter(loadTarget contains _.pos)
 
     // integrate them into the world
     var (newWorld: InfWorld, toVertex: Seq[Chunk], toQuad: Seq[Chunk]) = world ++ loaded
@@ -129,7 +126,6 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
 
     // create vertex futures
     for (chunk <- toVertex.filter(_.terrain.asInstanceOf[Densities].canUpgrade(world))) {
-      loading += chunk.pos
       val fut = Fut(chunk.updateTerrain(chunk.terrain.asInstanceOf[Densities].upgrade(world).get),
         UniExecutor.exec(chunk.pos * 16 + V3I(8, 8, 8)))
       fut.onComplete(() => loadQueue.add(fut.query.get))
@@ -137,7 +133,6 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
 
     // create quad futures
     for (chunk <- toQuad.filter(_.terrain.asInstanceOf[Vertices].canUpgrade(world))) {
-      loading += chunk.pos
       val fut = Fut(chunk.updateTerrain(chunk.terrain.asInstanceOf[Vertices].upgrade(world).get),
         UniExecutor.exec(chunk.pos * 16 + V3I(8, 8, 8)))
       fut.onComplete(() => loadQueue.add(fut.query.get))

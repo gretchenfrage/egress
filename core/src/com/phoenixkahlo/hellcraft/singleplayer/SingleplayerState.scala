@@ -1,6 +1,6 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
-import com.badlogic.gdx.{Gdx, InputAdapter}
+import com.badlogic.gdx.{Gdx, InputAdapter, InputMultiplexer}
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.{Color, GL20, PerspectiveCamera}
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
@@ -8,10 +8,12 @@ import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch, Renderable, RenderableProvider}
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.utils.Pool
+import com.phoenixkahlo.hellcraft.core.{Densities, Quads, Vertices}
 import com.phoenixkahlo.hellcraft.gamedriver.{Delta, GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
-import com.phoenixkahlo.hellcraft.graphics.`new`.NoInterpolation
+import com.phoenixkahlo.hellcraft.graphics.`new`.{ChunkOutline, NoInterpolation}
 import com.phoenixkahlo.hellcraft.math.V3F
+import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.oldcore.entity.Avatar
 import com.phoenixkahlo.hellcraft.util.DependencyGraph
 import com.phoenixkahlo.hellcraft.util.caches.Cache
@@ -26,7 +28,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
   private var save: AsyncSave = _
   private var clock: GametimeClock = _
-  private var history: SortedMap[Long, LazyInfWorld] = _
+  private var infinitum: Infinitum = _
   private var resources: ResourcePack = _
   private var cam: PerspectiveCamera = _
   private var controller: FirstPersonCameraController = _
@@ -38,7 +40,11 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
   override def onEnter(driver: GameDriver): Unit = {
     println("activating uni executor")
-    UniExecutor.activate(Runtime.getRuntime.availableProcessors() - 2, new Thread(_, "uni exec thread"))
+    UniExecutor.activate(Runtime.getRuntime.availableProcessors() - 2, new Thread(_, "uni exec thread"), t => {
+      System.err.println("uni executor failure")
+      t.printStackTrace()
+      driver.enter(new MainMenu(providedResources))
+    })
 
     println("instantiating save")
     val generator = new Generator(32)
@@ -47,9 +53,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     clock = new GametimeClock
 
     println("instantiating history")
-    val world = new LazyInfWorld(save, 0, Map.empty, Map.empty, Set.empty, Set.empty, Set.empty, Map.empty)
-        .updateLoaded(LoadDist.neg to LoadDist)
-    history = SortedMap(0L -> world)
+    infinitum = new Infinitum(32, save, 1f / 20f)
 
     println("loading resources")
     resources = providedResources()
@@ -62,7 +66,16 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     cam.lookAt(0, 10, 0)
 
     println("instantiating controller")
+    val multiplexer = new InputMultiplexer
+    multiplexer.addProcessor(new InputAdapter {
+      override def keyDown(keycode: Int): Boolean =
+        if (keycode == Keys.ESCAPE) {
+          driver.enter(new MainMenu(providedResources))
+          true
+        } else false
+    })
     controller = new FirstPersonCameraController(cam)
+    multiplexer.addProcessor(controller)
     Gdx.input.setInputProcessor(controller)
 
     println("instantiating model batch")
@@ -91,22 +104,22 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     try {
       while (!Thread.interrupted()) {
         // update world
-        var world = history.last._2
-        world = world.update(Delta.dt.toNanos.toFloat / 1000000000f)
         UniExecutor.point = V3F(cam.position)
         val p = (V3F(cam.position) / 16).floor
-        world = world.updateLoaded((p - LoadDist) to (p + LoadDist))
+        infinitum.update(((p - LoadDist) to (p + LoadDist)).toSet)
+        val time = infinitum().time
 
-        // manage history
-        history = history.updated(world.time, world)
-        history = history.rangeImpl(Some(world.time - 5), None)
+        // debug
+        if (Gdx.input.isKeyJustPressed(Keys.P)) {
+          println(infinitum.loadQueue)
+        }
 
         // manage time
-        if (clock.timeSince(world.time) > (500 milliseconds)) {
+        if (clock.timeSince(time) > (500 milliseconds)) {
           println("can't keep up!")
-          clock.forgive(clock.timeSince(world.time) - (500 milliseconds))
+          clock.forgive(clock.timeSince(time) - (500 milliseconds))
         }
-        clock.waitUntil(world.time + 1)
+        clock.waitUntil(time + 1)
       }
     } catch {
       case e: InterruptedException => println("singleplayer shutting down")
@@ -125,15 +138,25 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     // interpolation
     val backRender = 2
-    val (toRender, interpolation) = (history.last._2, NoInterpolation)
+    val (toRender, interpolation) = (infinitum(), NoInterpolation)
 
     // update controller
     controller.update()
 
-    // memory management
-    var factories = toRender.renderables(resources)
+    // get render units
+    var units = toRender.renderables(resources)
 
-    val nodes = factories.par.flatMap(_.resources).seq
+    // add debug units
+    if (Gdx.input.isKeyPressed(Keys.ALT_LEFT)) {
+      toRender.chunks.values.map(_.terrain).foreach {
+        case Densities(p, _) => units +:= new ChunkOutline(p, Color.RED)
+        case Vertices(p, _, _) => units +:= new ChunkOutline(p, Color.BLUE)
+        case Quads(p, _, _, _) => units +:= new ChunkOutline(p, Color.GREEN)
+      }
+    }
+
+    // do memory management
+    val nodes = units.par.flatMap(_.resources).seq
     vramGraph ++= nodes
     if (g % 600 == 0) UniExecutor.exec(() => {
       val garbage = vramGraph.garbage(nodes)
@@ -146,7 +169,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     // render 3D stuff
     val provider = new RenderableProvider {
       override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit =
-        factories.flatMap(_(interpolation)).foreach(renderables.add)
+        units.flatMap(_(interpolation)).foreach(renderables.add)
     }
     modelBatch.begin(cam)
     modelBatch.render(provider, lights)
@@ -157,9 +180,9 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     Gdx.input.setInputProcessor(new InputAdapter)
     updateThread.interrupt()
     updateThread.join()
-    val saveFuture = history.last._2.pushToSave()
+    //val saveFuture = history.last._2.pushToSave()
     vramGraph.managing.foreach(_.dispose())
-    saveFuture.await
+    //saveFuture.await
     UniExecutor.deactivate()
   }
 

@@ -5,6 +5,8 @@ import java.util.UUID
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g3d.{ModelInstance, Renderable}
 import com.badlogic.gdx.utils.Pool
+import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
+import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.graphics.{BlockOutlineModel, ResourcePack}
 import com.phoenixkahlo.hellcraft.graphics.`new`.{Interpolation, RenderUnit}
@@ -13,6 +15,7 @@ import com.phoenixkahlo.hellcraft.util.ResourceNode
 
 import scala.collection.JavaConverters
 
+@CarboniteWith(classOf[FieldNode])
 case class Cube(color: Color, override val pos: V3F, override val id: UUID) extends Entity {
   override def renderables(pack: ResourcePack): Seq[RenderUnit] = {
     Seq(new CubeRenderer(this))

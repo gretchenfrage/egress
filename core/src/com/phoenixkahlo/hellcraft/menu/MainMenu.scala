@@ -15,7 +15,6 @@ import com.badlogic.gdx.{Gdx, InputAdapter}
 import com.phoenixkahlo.hellcraft.oldcore._
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics._
-import com.phoenixkahlo.hellcraft.isotest.IsoState
 import com.phoenixkahlo.hellcraft.menu.util.{EButton, EButtonStyle}
 import com.phoenixkahlo.hellcraft.oldsingleplayer.SingleplayerState
 import com.phoenixkahlo.hellcraft.util.caches.Cache
@@ -60,15 +59,6 @@ class MainMenu(providedResources: Cache[ResourcePack]) extends AbstractMenu(prov
     })
     position(singleplayerButton)
     toDispose += singleplayerButton
-
-    val isoButton = new EButton("isotest", buttonStyle)
-    isoButton.addListener(new ClickListener() {
-      override def clicked(event: InputEvent, x: Float, y: Float): Unit = {
-        driver.enter(new IsoState(providedResources))
-      }
-    })
-    position(isoButton)
-    toDispose += isoButton
 
     val isoSingleButton = new EButton("iso singleplayer", buttonStyle)
     isoSingleButton.addListener(new ClickListener() {
