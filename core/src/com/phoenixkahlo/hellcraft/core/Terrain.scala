@@ -58,8 +58,11 @@ case class Densities(pos: V3I, densities: FractionField) extends Terrain {
 
         val t = 0.5f
         for ((v1, v2) <- edges) {
-          if ((world.density(v1).get > t) ^ (world.density(v2).get > t)) {
-            spoints += ((v1 + v2) / 2)
+          val d1 = world.density(v1).get
+          val d2 = world.density(v2).get
+          if ((d1 > t) ^ (d2 > t)) {
+            val delta = (t - d1) / (d2 - d1)
+            spoints += (v1 + ((v2 - v1) * delta))
           }
         }
 
