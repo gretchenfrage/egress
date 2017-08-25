@@ -111,11 +111,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         infinitum.update(((p - LoadDist) to (p + LoadDist)).toSet)
         val time = infinitum().time
 
-        // debug
-        if (Gdx.input.isKeyJustPressed(Keys.P)) {
-          println(infinitum.loadQueue)
-        }
-
         // manage time
         if (clock.timeSince(time) > (500 milliseconds)) {
           println("can't keep up!")

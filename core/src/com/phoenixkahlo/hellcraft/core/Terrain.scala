@@ -58,8 +58,9 @@ case class Densities(pos: V3I, densities: FractionField) extends Terrain {
 
         val spoints = new ArrayBuffer[V3F]
 
+        val t = 0.8f
         for ((v1, v2) <- edges) {
-          if ((world.density(v1).get > 0.5f) ^ (world.density(v2).get > 0.5f)) {
+          if ((world.density(v1).get > t) ^ (world.density(v2).get > t)) {
             spoints += ((v1 + v2) / 2)
           }
         }
@@ -70,57 +71,6 @@ case class Densities(pos: V3I, densities: FractionField) extends Terrain {
           Some(avg / world.res * 16)
         }
       })
-      /*
-      val verts = OptionField(world.resVec, i => {
-        val p = Profiler("vertex calc " + pos + ", " + i)
-
-        // real world coordinates of the middle of the cube
-        val v = (i / world.res + pos) * 16
-
-        val spoints = new ArrayBuffer[V3F]
-
-        p.log()
-
-        val h = 16f / world.res / 2f
-        val edges: Seq[(V3F, V3F)] = Seq(
-          (v + V3F(-h, -h, -h)) -> (v + V3F(h, -h, -h)),
-          (v + V3F(-h, -h, -h)) -> (v + V3F(-h, h, -h)),
-          (v + V3F(-h, -h, -h)) -> (v + V3F(-h, -h, h)),
-
-          (v + V3F(-h, -h, h)) -> (v + V3F(-h, h, h)),
-          (v + V3F(h, -h, -h)) -> (v + V3F(h, h, -h)),
-          (v + V3F(h, -h, h)) -> (v + V3F(h, h, h)),
-
-          (v + V3F(-h, h, -h)) -> (v + V3F(-h, h, h)),
-          (v + V3F(-h, h, -h)) -> (v + V3F(h, h, -h)),
-
-          (v + V3F(-h, -h, h)) -> (v + V3F(h, -h, h)),
-          (v + V3F(h, -h, -h)) -> (v + V3F(h, -h, h)),
-
-          (v + V3F(-h, h, h)) -> (v + V3F(h, h, h)),
-          (v + V3F(h, h, -h)) -> (v + V3F(h, h, h))
-        )
-
-        p.log()
-
-        for ((v1, v2) <- edges) {
-          if ((world.density(v1).get > 0.5f) != (world.density(v2).get > 0.5f)) {
-            spoints += ((v1 + v2) / 2)
-          }
-        }
-
-        p.log()
-
-        try {
-          if (spoints isEmpty) None
-          else Some(spoints.fold(Origin)(_ + _) / spoints.size)
-        } finally {
-          p.log()
-          p.printDisc(1)
-        }
-      })
-      */
-
       p.log()
       p.printDisc(1)
 

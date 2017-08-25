@@ -73,6 +73,9 @@ class DefaultCarboniteConfig extends CarboniteConfig {
     else if (clazz == classOf[Set[_]]) SetNode
     else if (clazz == classOf[SortedMap[_, _]]) SortedMapNode
     else if (clazz == classOf[SortedSet[_]]) SortedSetNode
+    // either
+    else if (clazz == classOf[Left[_, _]]) new FieldNode(classOf[Left[_, _]])
+    else if (clazz == classOf[Right[_, _]]) new FieldNode(classOf[Right[_, _]])
     // singletons
     else if (ReflectUtil.isSingleton(clazz)) SingletonNode
     // arrays
@@ -143,6 +146,9 @@ class DefaultCarboniteConfig extends CarboniteConfig {
 
   register[String]()
 
+  register[Left[_, _]]()
+  register[Right[_, _]]()
+
   register[Tuple1[_]]()
   register[Tuple2[_, _]]()
   register[Tuple3[_, _, _]]()
@@ -174,6 +180,16 @@ class DefaultCarboniteConfig extends CarboniteConfig {
   register[Boolean]()
   register[Float]()
   register[Double]()
+
+  register[Array[Int]]()
+  register[Array[Long]]()
+  register[Array[Short]]()
+  register[Array[Byte]]()
+  register[Array[Char]]()
+  register[Array[Boolean]]()
+  register[Array[Float]]()
+  register[Array[Double]]()
+  register[Array[AnyRef]]()
 
   register[UUID]()
 

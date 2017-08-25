@@ -3,11 +3,14 @@ package com.phoenixkahlo.hellcraft.util.fields
 import java.util
 import java.util.Objects
 
+import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
+import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
 import scala.reflect.ClassTag
 
-class OptionField[T <: AnyRef] private(private val data: Either[Array[T], Vector[T]], val size: V3I)(implicit tag: ClassTag[T]) {
+@CarboniteWith(classOf[FieldNode])
+class OptionField[T <: AnyRef] private(private val data: Either[Array[T], Vector[T]], val size: V3I) {
 
   val isEmpty: Boolean = Origin.until(size).map(apply).forall(_.isEmpty)
   val nonEmpty: Boolean = !isEmpty
@@ -19,7 +22,7 @@ class OptionField[T <: AnyRef] private(private val data: Either[Array[T], Vector
 
   private def asArray: Array[T] = data match {
     case Left(arr) => arr
-    case Right(vec) => vec.toArray
+    case Right(vec) => vec.toArray[AnyRef].asInstanceOf[Array[T]]
   }
 
   def updated(v: V3I, d: T): OptionField[T] = {
@@ -49,11 +52,12 @@ class OptionField[T <: AnyRef] private(private val data: Either[Array[T], Vector
 
 object OptionField {
 
-  def apply[T <: AnyRef](size: V3I, gen: V3I => Option[T])(implicit tag: ClassTag[T]): OptionField[T] = {
-    val arr = java.lang.reflect.Array.newInstance(tag.runtimeClass, size.fold(_ * _)).asInstanceOf[Array[T]]
+  def apply[T <: AnyRef](size: V3I, gen: V3I => Option[T]): OptionField[T] = {
+    //val arr = java.lang.reflect.Array.newInstance(tag.runtimeClass, size.fold(_ * _)).asInstanceOf[Array[T]]
+    val arr = new Array[AnyRef](size.fold(_ * _)).asInstanceOf[Array[T]]
     for (i <- arr.indices)
       gen(size.decompress(i)).foreach(arr(i) = _)
-    new OptionField(Left(arr), size)(tag)
+    new OptionField(Left(arr), size)
   }
 
 }

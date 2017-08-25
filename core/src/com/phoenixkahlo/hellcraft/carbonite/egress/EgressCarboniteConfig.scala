@@ -5,7 +5,7 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Cube
 import com.phoenixkahlo.hellcraft.oldcore
 import com.phoenixkahlo.hellcraft.math._
-import com.phoenixkahlo.hellcraft.util.fields.{ByteField, FractionField}
+import com.phoenixkahlo.hellcraft.util.fields.{ByteField, FractionField, OptionField}
 
 object EgressCarboniteConfig extends DefaultCarboniteConfig {
 
@@ -46,7 +46,11 @@ object EgressCarboniteConfig extends DefaultCarboniteConfig {
   register(East.getClass)
   register(West.getClass)
 
+  register[Tri]()
+  register[Quad]()
+
   register[ByteField]()
   register[FractionField]()
+  register[OptionField[_]]()
 
 }
