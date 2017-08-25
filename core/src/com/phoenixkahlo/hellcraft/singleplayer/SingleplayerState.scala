@@ -72,13 +72,14 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     multiplexer.addProcessor(new InputAdapter {
       override def keyDown(keycode: Int): Boolean =
         if (keycode == Keys.ESCAPE) {
+          println("closing world")
           driver.enter(new MainMenu(providedResources))
           true
         } else false
     })
     controller = new FirstPersonCameraController(cam)
     multiplexer.addProcessor(controller)
-    Gdx.input.setInputProcessor(controller)
+    Gdx.input.setInputProcessor(multiplexer)
 
     println("instantiating model batch")
     modelBatch = new ModelBatch
