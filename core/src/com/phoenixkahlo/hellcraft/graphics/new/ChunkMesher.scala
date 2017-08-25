@@ -8,13 +8,13 @@ import com.phoenixkahlo.hellcraft.core.{Chunk, World}
 import com.phoenixkahlo.hellcraft.graphics.{ResourcePack, StoneTID}
 import com.phoenixkahlo.hellcraft.math.Quad
 import com.phoenixkahlo.hellcraft.util.ResourceNode
-import com.phoenixkahlo.hellcraft.util.caches.ParamCache
+import com.phoenixkahlo.hellcraft.util.caches.{DisposableParamCache, ParamCache}
 
 import scala.collection.mutable.ArrayBuffer
 
 class ChunkMesher(chunk: Chunk, quads: Seq[Quad]) {
 
-  val mesh = new ParamCache[(World, ResourcePack), RenderUnit]({ case (world, pack) => {
+  val mesh = new DisposableParamCache[(World, ResourcePack), Renderable]({ case (world, pack) => {
     if (!chunk.pos.neighbors.forall(world.chunkAt(_).isDefined))
       throw new IllegalArgumentException("chunk cannot render with undefined neighbors")
 
@@ -56,26 +56,27 @@ class ChunkMesher(chunk: Chunk, quads: Seq[Quad]) {
     renderable.meshPart.offset = 0
     renderable.meshPart.size = indices.size
     renderable.meshPart.primitiveType = GL20.GL_TRIANGLES
+    renderable
 
-    val resource = new ResourceNode {
-      override def dependencies: Seq[ResourceNode] = Seq.empty
+  }}, _.meshPart.mesh.dispose())
 
-      override def dispose(): Unit = mesh.dispose()
-    }
-
+  val meshUnit = new ParamCache[(World, ResourcePack), RenderUnit]({ case (world, pack) => {
     new RenderUnit {
       override def apply(interpolation: Interpolation): Seq[Renderable] =
-        Seq(renderable)
+        Seq(mesh((world, pack)))
 
       override def resources: Seq[ResourceNode] =
-        Seq(resource)
+        Seq(new ResourceNode {
+          override def dependencies: Seq[ResourceNode] = Seq.empty
+
+          override def dispose(): Unit = mesh.invalidate
+        })
     }
-  }
-  })
+  }})
 
   def apply(world: World, pack: ResourcePack): Seq[RenderUnit] = {
     if (chunk.pos.neighbors.forall(world.chunkAt(_).isDefined))
-      Seq(mesh((world, pack)), new ChunkOutline(chunk.pos, Color.GREEN))
+      Seq(meshUnit((world, pack)), new ChunkOutline(chunk.pos, Color.GREEN))
     else Seq.empty
   }
 
