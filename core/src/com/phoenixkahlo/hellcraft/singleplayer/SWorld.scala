@@ -113,10 +113,10 @@ class SWorld(
   }
 
   /**
-    * The render units of all chunks in quad terrain state
+    * The render units of all chunks
     */
   def renderables(resources: ResourcePack): Seq[RenderUnit] = {
-    state3.map(chunks(_)).flatMap(_.renderables(resources, this)).toSeq
+    chunks.values.flatMap(_.renderables(resources, this)).toSeq
   }
 
 }

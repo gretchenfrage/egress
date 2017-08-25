@@ -39,7 +39,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var g = 0
 
   override def onEnter(driver: GameDriver): Unit = {
-    val res = 8
+    val res = 32
 
     println("activating uni executor")
     UniExecutor.activate(Runtime.getRuntime.availableProcessors() - 2, new Thread(_, "uni exec thread"), t => {
@@ -158,6 +158,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     if (g % 600 == 0) UniExecutor.exec(() => {
       val garbage = vramGraph.garbage(nodes)
       Gdx.app.postRunnable(() => {
+        println("deleting: " + garbage)
         garbage.foreach(_.dispose())
         vramGraph --= garbage.toSeq
       })

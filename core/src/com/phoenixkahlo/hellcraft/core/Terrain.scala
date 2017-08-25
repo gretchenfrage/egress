@@ -34,8 +34,6 @@ case class Densities(pos: V3I, densities: FractionField) extends Terrain {
 
   def upgrade(world: World): Option[Vertices] = {
     if (canUpgrade(world)) {
-      val p = Profiler("densities -> vertices upgrade")
-
       val verts = OptionField(world.resVec, v => {
         val edges: Seq[(V3I, V3I)] = Seq(
           v -> (v + East),
@@ -58,7 +56,7 @@ case class Densities(pos: V3I, densities: FractionField) extends Terrain {
 
         val spoints = new ArrayBuffer[V3F]
 
-        val t = 0.8f
+        val t = 0.5f
         for ((v1, v2) <- edges) {
           if ((world.density(v1).get > t) ^ (world.density(v2).get > t)) {
             spoints += ((v1 + v2) / 2)
@@ -71,9 +69,6 @@ case class Densities(pos: V3I, densities: FractionField) extends Terrain {
           Some(avg / world.res * 16)
         }
       })
-      p.log()
-      p.printDisc(1)
-
       Some(Vertices(pos, densities, verts))
     } else None
   }
@@ -90,15 +85,12 @@ case class Vertices(pos: V3I, densities: FractionField, vertices: OptionField[V3
   override def getVertices = Some(vertices)
 
   def canUpgrade(world: World): Boolean = {
-    //val dependencies: Seq[V3I] = Seq(pos, pos + Up, pos + East, pos + North)
     val dependencies = pos.neighbors
     dependencies.map(world.chunkAt(_).flatMap(_.terrain.getVertices)).forall(_.isDefined)
   }
 
   def upgrade(world: World): Option[Quads] = {
     if (canUpgrade(world)) {
-      val p = Profiler("vertices -> quads upgrade")
-
       def vert(v: V3I): Option[V3F] = {
         val global = (pos * world.res) + v
         world.chunkAt(global / world.res floor).get.terrain.getVertices.get.apply(global % world.res)
@@ -116,11 +108,7 @@ case class Vertices(pos: V3I, densities: FractionField, vertices: OptionField[V3
           case _ => None
         })
 
-      p.log()
-      p.printDisc(1)
-
       Some(Quads(pos, densities, vertices, quads))
-
     } else None
   }
 

@@ -11,6 +11,6 @@ package object singleplayer {
   type EventID = UUID
   type AvatarID = UUID
 
-  val LoadDist = V3I(3, 3, 3)
+  val LoadDist = V3I(6, 6, 6)
 
 }

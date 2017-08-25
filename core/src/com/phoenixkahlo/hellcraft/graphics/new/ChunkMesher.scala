@@ -76,7 +76,7 @@ class ChunkMesher(chunk: Chunk, quads: Seq[Quad]) {
 
   def apply(world: World, pack: ResourcePack): Seq[RenderUnit] = {
     if (chunk.pos.neighbors.forall(world.chunkAt(_).isDefined))
-      Seq(meshUnit((world, pack)), new ChunkOutline(chunk.pos, Color.GREEN))
+      Seq(meshUnit((world, pack)))
     else Seq.empty
   }
 
