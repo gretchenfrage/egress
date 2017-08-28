@@ -1,32 +1,72 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
 import java.util.concurrent.ThreadLocalRandom
+import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.phoenixkahlo.hellcraft.core.{Chunk, Densities, World}
-import com.phoenixkahlo.hellcraft.math.{Simplex, V2F, V3I}
+import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.fields.FractionField
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 
+import scala.collection.mutable
+
 class Generator(res: Int) {
 
-  val noise = Simplex(0.1f, 1)
+  val rv2d = V2I(res, res)
+  val rv3d = V3I(res, res, res)
+
+  val heightNoise = Simplex(1f / 8f, 30f)
+
+  class HeightPatch {
+    val heights = new Array[Double](res * res)
+
+    def apply(v: V2I) = heights(v.yi * res + v.xi)
+
+    def update(v: V2I, d: Double) = heights(v.yi * res + v.xi) = d
+
+    var min: Double = Double.NaN
+    var max: Double = Double.NaN
+  }
+
+  val heightsMap = new mutable.HashMap[V2I, Fut[HeightPatch]]
+  val heightsLock = new ReentrantReadWriteLock
+
+  def heightsAt(v: V2I): Fut[HeightPatch] = {
+    heightsLock.readLock().lock()
+    if (heightsMap.contains(v)) {
+      try return heightsMap(v)
+      finally heightsLock.readLock().unlock()
+    }
+    heightsLock.readLock().unlock()
+    heightsLock.writeLock().lock()
+    val fut = heightsMap.get(v) match {
+      case Some(fut) => fut
+      case None =>
+        val fut = Fut[HeightPatch]({
+          val patch = new HeightPatch
+          for (vv <- Origin2D until rv2d) {
+            patch(vv) = heightNoise(v * res + vv)
+          }
+          patch.min = patch.heights.min
+          patch.max = patch.heights.max
+          patch
+        }, UniExecutor.exec(v * 16 + V2I(8, 8)))
+        heightsMap.put(v, fut)
+        fut
+    }
+    heightsLock.writeLock().unlock()
+    fut
+  }
 
   def genChunk(p: V3I): Fut[Chunk] = {
-    /*
-    Fut(new Chunk(p, Densities(p, FractionField(V3I(res, res, res), i => {
-      val v = p * res + i
-      //Math.min(Math.max(-v.yi - v.flatten.dist(V2F(0, 0)), 1), 0)
-      //if (ThreadLocalRandom.current.nextBoolean()) 1 else 0
-      /*
-      if (-v.yi > v.flatten.dist(V2F(0, 0))) 1
-      else 0
-      */
-    }))), UniExecutor.exec(p * 16 + V3I(8, 8, 8)))
-    */
-    Fut({
-      new Chunk(p, Densities(p, FractionField(V3I(res, res, res), v => noise(p * 16 + (v / res * 16)))))
-    }, UniExecutor.exec(p * 16 + V3I(8, 8, 8)))
-
+    heightsAt(p.flatten).map(heights => {
+      new Chunk(p, Densities(p, FractionField(rv3d, i => {
+        val v = p * res + i
+        val depth = (p.yi * res + i.yi) - heights(i.flatten)
+        if (depth >= 0) 0
+        else 1
+      })))
+    })
   }
 
 }

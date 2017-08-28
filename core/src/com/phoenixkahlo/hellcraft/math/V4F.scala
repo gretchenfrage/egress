@@ -1,5 +1,9 @@
 package com.phoenixkahlo.hellcraft.math
 
+import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
+import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
+
+@CarboniteWith(classOf[FieldNode])
 case class V4F(x: Float, y: Float, z: Float, w: Float) {
 
   def +(o: V4F): V4F =

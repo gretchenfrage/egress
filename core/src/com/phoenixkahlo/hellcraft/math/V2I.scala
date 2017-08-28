@@ -48,3 +48,9 @@ object V2I {
     Some((v.xi, v.yi))
 
 }
+
+object Origin2D extends V2I(0, 0)
+object North2D extends V2I(0, 1)
+object South2D extends V2I(0, -1)
+object West2D extends V2I(-1, 0)
+object East2D extends V2I(1, 0)

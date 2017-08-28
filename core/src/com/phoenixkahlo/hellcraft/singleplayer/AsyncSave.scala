@@ -56,7 +56,7 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
   if (!path.toFile.exists)
     path.toFile.mkdir()
 
-  val RegionSize = 4
+  val RegionSize = 32
 
   private def pathFor(region: V3I): Path =
     path.resolve("x" + region.xi + "y" + region.yi + "z" + region.zi + ".region")

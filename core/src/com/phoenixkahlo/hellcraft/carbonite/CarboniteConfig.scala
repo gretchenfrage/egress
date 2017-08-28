@@ -30,6 +30,9 @@ class DefaultCarboniteConfig extends CarboniteConfig {
     val nodeType = resolveType(clazz)
     if (!types.contains(nodeType))
       types += nodeType
+
+    if (types.size > Byte.MaxValue)
+      throw new RuntimeException("exceeded node type limit")
   }
 
   def register[T]()(implicit tag: ClassTag[T]): Unit = {

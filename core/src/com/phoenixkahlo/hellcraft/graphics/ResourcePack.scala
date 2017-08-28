@@ -30,6 +30,9 @@ case object TitleFID extends FontID
 case object ButtonFID extends FontID
 case object XFID extends FontID
 
+sealed trait ShaderID
+
+
 
 trait ResourcePack {
 
