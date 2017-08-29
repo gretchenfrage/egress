@@ -2,12 +2,14 @@ package com.phoenixkahlo.hellcraft.singleplayer
 
 import com.badlogic.gdx.{Gdx, InputAdapter, InputMultiplexer}
 import com.badlogic.gdx.Input.Keys
-import com.badlogic.gdx.graphics.{Color, GL20, PerspectiveCamera}
+import com.badlogic.gdx.graphics.Pixmap.Format
+import com.badlogic.gdx.graphics.{Camera, Color, GL20, PerspectiveCamera}
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.{DirectionalLight, DirectionalShadowLight}
 import com.badlogic.gdx.graphics.g3d._
 import com.badlogic.gdx.graphics.g3d.shaders.DefaultShader
-import com.badlogic.gdx.graphics.g3d.utils.{BaseShaderProvider, DepthShaderProvider, FirstPersonCameraController}
+import com.badlogic.gdx.graphics.g3d.utils.{BaseShaderProvider, DepthShaderProvider, FirstPersonCameraController, ShaderProvider}
+import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core.{Densities, Quads, Vertices}
@@ -35,6 +37,9 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var cam: PerspectiveCamera = _
   private var controller: FirstPersonCameraController = _
   private var modelBatch: ModelBatch = _
+  private var lightCam: Camera = _
+  private var lightBuffer: FrameBuffer = _
+  private var lightBatch: ModelBatch = _
   private var environment: Environment = _
   private var vramGraph: DependencyGraph = _
   private var updateThread: Thread = _
@@ -96,7 +101,26 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     })
 
-    println("instantiating lights")
+    println("initializing lights")
+    lightCam = new PerspectiveCamera(120f, 1024, 1024)
+    lightCam.near = 1f
+    lightCam.far = 10f
+    lightCam.position.set(0, 10, 0)
+    lightCam.lookAt(-1, 0, 0)
+    lightCam.update()
+
+    lightBuffer = new FrameBuffer(Format.RGBA8888, 1024, 1024, true)
+
+    lightBatch = new ModelBatch(new ShaderProvider {
+      val shader = new DepthShader
+      shader.init()
+
+      override def getShader(renderable: Renderable): Shader = shader
+
+      override def dispose(): Unit = shader.dispose()
+    })
+
+    println("instantiating environment")
     environment = new Environment
     environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1))
     environment.add(new DirectionalLight().set(1, 1, 1, 0, -1, 0))
@@ -182,9 +206,18 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit =
         units.flatMap(_(interpolation)).foreach(renderables.add)
     }
-    modelBatch.begin(cam)
-    modelBatch.render(provider, environment)
-    modelBatch.end()
+
+    lightBuffer.begin()
+    Gdx.gl.glClearColor(0, 0, 0, 1)
+    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
+    lightBatch.begin(lightCam)
+    lightBatch.render(provider)
+    lightBatch.end()
+    lightBuffer.end()
+
+    lightBatch.begin(lightCam)
+    lightBatch.render(provider, environment)
+    lightBatch.end()
   }
 
   override def onExit(): Unit = {
