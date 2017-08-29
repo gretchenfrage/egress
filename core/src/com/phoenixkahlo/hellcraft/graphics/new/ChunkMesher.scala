@@ -31,9 +31,9 @@ class ChunkMesher(chunk: Chunk, quads: Seq[Quad]) {
       val tri = tris(i)
       indices.append((i * 3).toShort, (i * 3 + 1).toShort, (i * 3 + 2).toShort)
       verts.append(
-        tri.a.x, tri.a.y, tri.a.z, Color.WHITE.toFloatBits, u1, v1,
-        tri.b.x, tri.b.y, tri.b.z, Color.WHITE.toFloatBits, u2, v2,
-        tri.c.x, tri.c.y, tri.c.z, Color.WHITE.toFloatBits, u3, v3
+        tri.a.x, tri.a.y, tri.a.z, Color.RED.toFloatBits, u1, v1,
+        tri.b.x, tri.b.y, tri.b.z, Color.GREEN.toFloatBits, u2, v2,
+        tri.c.x, tri.c.y, tri.c.z, Color.BLUE.toFloatBits, u3, v3
       )
     }
 
