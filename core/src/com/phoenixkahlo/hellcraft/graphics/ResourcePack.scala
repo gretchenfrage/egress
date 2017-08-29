@@ -3,7 +3,8 @@ package com.phoenixkahlo.hellcraft.graphics
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter
-import com.badlogic.gdx.graphics.g2d.{BitmapFont, TextureRegion}
+import com.badlogic.gdx.graphics.g2d.{BitmapFont, SpriteBatch, TextureRegion}
+import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.graphics.{Pixmap, Texture}
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 
@@ -31,7 +32,7 @@ case object ButtonFID extends FontID
 case object XFID extends FontID
 
 sealed trait ShaderID
-
+case object TestSID extends ShaderID
 
 
 trait ResourcePack {
@@ -47,6 +48,8 @@ trait ResourcePack {
   def font(fontID: FontID): BitmapFont
 
   def pixmap(pixmapID: PixmapID): Pixmap
+
+  def shader(shaderID: ShaderID): ShaderProgram
 
 }
 
@@ -100,5 +103,13 @@ class DefaultResourcePack extends ResourcePack {
 
   override def pixmap(pixmapID: PixmapID): Pixmap =
     pixmaps(pixmapID)
+
+  val shaders: Map[ShaderID, ShaderProgram] = Seq(
+    TestSID -> "test"
+  ) map { case (sid, path) => sid -> new ShaderProgram(Gdx.files.internal("shaders/" + path + "_v.glsl"),
+    Gdx.files.internal("shaders/" + path + "_f.glsl")) } toMap
+
+  override def shader(shaderID: ShaderID): ShaderProgram =
+    shaders(shaderID)
 
 }

@@ -4,9 +4,10 @@ import com.badlogic.gdx.{Gdx, InputAdapter, InputMultiplexer}
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.{Color, GL20, PerspectiveCamera}
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
-import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
+import com.badlogic.gdx.graphics.g3d.environment.{DirectionalLight, DirectionalShadowLight}
 import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch, Renderable, RenderableProvider}
-import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
+import com.badlogic.gdx.graphics.g3d.utils.{DepthShaderProvider, FirstPersonCameraController}
+import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core.{Densities, Quads, Vertices}
 import com.phoenixkahlo.hellcraft.gamedriver.{Delta, GameDriver, GameState}
@@ -33,7 +34,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var cam: PerspectiveCamera = _
   private var controller: FirstPersonCameraController = _
   private var modelBatch: ModelBatch = _
-  private var lights: Environment = _
+  private var environment: Environment = _
   private var vramGraph: DependencyGraph = _
   private var updateThread: Thread = _
   private var g = 0
@@ -85,9 +86,9 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     modelBatch = new ModelBatch
 
     println("instantiating lights")
-    lights = new Environment
-    lights.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1))
-    lights.add(new DirectionalLight().set(1, 1, 1, 0, -1, 0))
+    environment = new Environment
+    environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1))
+    environment.add(new DirectionalLight().set(1, 1, 1, 0, -1, 0))
 
     println("instantiating VRAM graph")
     vramGraph = new DependencyGraph
@@ -171,7 +172,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         units.flatMap(_(interpolation)).foreach(renderables.add)
     }
     modelBatch.begin(cam)
-    modelBatch.render(provider, lights)
+    modelBatch.render(provider, environment)
     modelBatch.end()
   }
 
