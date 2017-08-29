@@ -31,10 +31,6 @@ case object TitleFID extends FontID
 case object ButtonFID extends FontID
 case object XFID extends FontID
 
-sealed trait ShaderID
-case object TestSID extends ShaderID
-
-
 trait ResourcePack {
 
   def sheet: Texture
@@ -48,8 +44,6 @@ trait ResourcePack {
   def font(fontID: FontID): BitmapFont
 
   def pixmap(pixmapID: PixmapID): Pixmap
-
-  def shader(shaderID: ShaderID): ShaderProgram
 
 }
 
@@ -103,13 +97,5 @@ class DefaultResourcePack extends ResourcePack {
 
   override def pixmap(pixmapID: PixmapID): Pixmap =
     pixmaps(pixmapID)
-
-  val shaders: Map[ShaderID, ShaderProgram] = Seq(
-    TestSID -> "test"
-  ) map { case (sid, path) => sid -> new ShaderProgram(Gdx.files.internal("shaders/" + path + "_v.glsl"),
-    Gdx.files.internal("shaders/" + path + "_f.glsl")) } toMap
-
-  override def shader(shaderID: ShaderID): ShaderProgram =
-    shaders(shaderID)
 
 }

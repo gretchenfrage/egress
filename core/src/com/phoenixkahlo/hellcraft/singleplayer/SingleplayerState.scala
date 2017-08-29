@@ -5,14 +5,14 @@ import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.{Color, GL20, PerspectiveCamera}
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.{DirectionalLight, DirectionalShadowLight}
-import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch, Renderable, RenderableProvider}
-import com.badlogic.gdx.graphics.g3d.utils.{DepthShaderProvider, FirstPersonCameraController}
+import com.badlogic.gdx.graphics.g3d._
+import com.badlogic.gdx.graphics.g3d.utils.{BaseShaderProvider, DepthShaderProvider, FirstPersonCameraController}
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core.{Densities, Quads, Vertices}
 import com.phoenixkahlo.hellcraft.gamedriver.{Delta, GameDriver, GameState}
-import com.phoenixkahlo.hellcraft.graphics.ResourcePack
-import com.phoenixkahlo.hellcraft.graphics.`new`.{ChunkOutline, NoInterpolation}
+import com.phoenixkahlo.hellcraft.graphics.{ResourcePack}
+import com.phoenixkahlo.hellcraft.graphics.`new`.{ChunkOutline, NoInterpolation, TestShader}
 import com.phoenixkahlo.hellcraft.math.V3F
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.oldcore.entity.Avatar
@@ -83,7 +83,10 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     Gdx.input.setInputProcessor(multiplexer)
 
     println("instantiating model batch")
-    modelBatch = new ModelBatch
+    modelBatch = new ModelBatch(new BaseShaderProvider {
+      override def createShader(renderable: Renderable): Shader =
+        new TestShader
+    })
 
     println("instantiating lights")
     environment = new Environment
