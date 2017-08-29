@@ -13,7 +13,7 @@ import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core.{Densities, Quads, Vertices}
 import com.phoenixkahlo.hellcraft.gamedriver.{Delta, GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
-import com.phoenixkahlo.hellcraft.graphics.`new`.{ChunkOutline, NoInterpolation, TestShader}
+import com.phoenixkahlo.hellcraft.graphics.`new`._
 import com.phoenixkahlo.hellcraft.math.V3F
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.oldcore.entity.Avatar
@@ -89,10 +89,10 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       val custom = new TestShader(resources.sheet)
 
       override def createShader(renderable: Renderable): Shader =
-        if (renderable.meshPart.primitiveType == GL20.GL_TRIANGLES)
-          custom
-        else
-          new DefaultShader(renderable, new DefaultShader.Config())
+        Option(renderable.userData).map(_.asInstanceOf[ShaderID]).getOrElse(DefaultSID) match {
+          case DefaultSID => new DefaultShader(renderable, new DefaultShader.Config())
+          case CustomSID => custom
+        }
 
     })
 

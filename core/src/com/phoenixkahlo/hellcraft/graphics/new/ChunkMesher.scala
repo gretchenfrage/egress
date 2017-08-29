@@ -46,16 +46,17 @@ class ChunkMesher(chunk: Chunk, quads: Seq[Quad]) {
     mesh.setVertices(verts.toArray)
     mesh.setIndices(indices.toArray)
 
-    val material = new Material
-    material.set(TextureAttribute.createDiffuse(pack.sheet))
+    //val material = new Material
+    //material.set(TextureAttribute.createDiffuse(pack.sheet))
 
     // create the renderable
     val renderable = new Renderable()
     renderable.meshPart.mesh = mesh
-    renderable.material = material
+    renderable.material = new Material
     renderable.meshPart.offset = 0
     renderable.meshPart.size = indices.size
     renderable.meshPart.primitiveType = GL20.GL_TRIANGLES
+    renderable.userData = CustomSID
     renderable
 
   }}, _.meshPart.mesh.dispose())
