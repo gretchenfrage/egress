@@ -7,5 +7,4 @@ varying vec4 v_position;
 
 void main() {
     gl_FragColor = vec4(length(v_position.xyz - u_lightPosition) / u_cameraFar);
-
 }

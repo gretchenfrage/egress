@@ -37,7 +37,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var cam: PerspectiveCamera = _
   private var controller: FirstPersonCameraController = _
   private var modelBatch: ModelBatch = _
-  private var lightCam: Camera = _
+  private var lightCam: PerspectiveCamera = _
   private var lightBuffer: FrameBuffer = _
   private var lightBatch: ModelBatch = _
   private var environment: Environment = _
@@ -74,24 +74,10 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     cam.position.set(V3F(-10, 10, -10) toGdx)
     cam.lookAt(0, 10, 0)
 
-    println("instantiating controller")
-    val multiplexer = new InputMultiplexer
-    multiplexer.addProcessor(new InputAdapter {
-      override def keyDown(keycode: Int): Boolean =
-        if (keycode == Keys.ESCAPE) {
-          println("closing world")
-          driver.enter(new MainMenu(providedResources))
-          true
-        } else false
-    })
-    controller = new FirstPersonCameraController(cam)
-    multiplexer.addProcessor(controller)
-    Gdx.input.setInputProcessor(multiplexer)
-
     println("instantiating model batch")
     modelBatch = new ModelBatch(new BaseShaderProvider {
 
-      val custom = new TestShader(resources.sheet)
+      val custom = new TestShader(resources.sheet, lightCam)
 
       override def createShader(renderable: Renderable): Shader =
         Option(renderable.userData).map(_.asInstanceOf[ShaderID]).getOrElse(DefaultSID) match {
@@ -103,10 +89,10 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     println("initializing lights")
     lightCam = new PerspectiveCamera(120f, 1024, 1024)
-    lightCam.near = 1f
-    lightCam.far = 10f
+    lightCam.near = 0.1f
+    lightCam.far = 100f
     lightCam.position.set(0, 10, 0)
-    lightCam.lookAt(-1, 0, 0)
+    lightCam.lookAt(1, 10, 1)
     lightCam.update()
 
     lightBuffer = new FrameBuffer(Format.RGBA8888, 1024, 1024, true)
@@ -124,6 +110,20 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     environment = new Environment
     environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1))
     environment.add(new DirectionalLight().set(1, 1, 1, 0, -1, 0))
+
+    println("instantiating controller")
+    val multiplexer = new InputMultiplexer
+    multiplexer.addProcessor(new InputAdapter {
+      override def keyDown(keycode: Int): Boolean =
+        if (keycode == Keys.ESCAPE) {
+          println("closing world")
+          driver.enter(new MainMenu(providedResources))
+          true
+        } else false
+    })
+    controller = new FirstPersonCameraController(lightCam)
+    multiplexer.addProcessor(controller)
+    Gdx.input.setInputProcessor(multiplexer)
 
     println("instantiating VRAM graph")
     vramGraph = new DependencyGraph

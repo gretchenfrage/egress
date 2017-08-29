@@ -40,9 +40,11 @@ class DepthShader extends Shader {
     this.cam = camera
     this.context = context
     program.begin()
+
     program.setUniformMatrix(u_projViewTrans, camera.combined)
     program.setUniformf(u_cameraFar, camera.far)
     program.setUniform3fv(u_lightPosition, Array(camera.position.x, camera.position.y, camera.position.z), 0, 3)
+
     context.setDepthTest(GL20.GL_LEQUAL)
     context.setCullFace(GL20.GL_BACK)
   }
