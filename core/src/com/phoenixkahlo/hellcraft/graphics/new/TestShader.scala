@@ -13,11 +13,11 @@ import com.phoenixkahlo.hellcraft.graphics.ResourcePack
 
 class TestShader(sheet: Texture) extends Shader {
 
-  private var program: ShaderProgram = _
-  private var cam: Camera = _
-  private var context: RenderContext = _
-  private var u_projViewTrans: Int = _
-  private var u_worldTrans: Int = _
+  var program: ShaderProgram = _
+  var cam: Camera = _
+  var context: RenderContext = _
+  var u_projViewTrans: Int = _
+  var u_worldTrans: Int = _
 
   override def canRender(instance: Renderable): Boolean = {
     instance.meshPart.primitiveType == GL20.GL_TRIANGLES

@@ -9,14 +9,14 @@ import com.badlogic.gdx.utils.GdxRuntimeException
 
 class DepthShader extends Shader {
 
-  private var program: ShaderProgram = _
-  private var cam: Camera = _
-  private var context: RenderContext = _
+  var program: ShaderProgram = _
+  var cam: Camera = _
+  var context: RenderContext = _
 
-  private var u_projViewTrans: Int = _
-  private var u_worldTrans: Int = _
-  private var u_cameraFar: Int = _
-  private var u_lightPosition: Int = _
+  var u_projViewTrans: Int = _
+  var u_worldTrans: Int = _
+  var u_cameraFar: Int = _
+  var u_lightPosition: Int = _
 
   override def canRender(instance: Renderable): Boolean = true
 
