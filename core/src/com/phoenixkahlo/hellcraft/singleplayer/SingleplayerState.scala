@@ -106,8 +106,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     lightCam = new PerspectiveCamera(120f, 1024, 1024)
     lightCam.near = 0.1f
     lightCam.far = 100f
-    lightCam.position.set(0, 10, 0)
-    lightCam.lookAt(1, 10, 1)
+    lightCam.position.set(0, 15, 0)
+    lightCam.lookAt(1, 15, 1)
     lightCam.update()
 
     lightBuffer = new FrameBuffer(Format.RGBA8888, 1024, 1024, true)
@@ -223,9 +223,9 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     Gdx.gl.glClearColor(0.5089f, 0.6941f, 1f, 1f)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
-    modelBatch.begin(cam)
-    modelBatch.render(provider, environment)
-    modelBatch.end()
+    lightBatch.begin(lightCam)
+    lightBatch.render(provider, environment)
+    lightBatch.end()
 
   }
 
