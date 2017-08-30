@@ -40,6 +40,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var lightCam: PerspectiveCamera = _
   private var lightBuffer: FrameBuffer = _
   private var lightBatch: ModelBatch = _
+  private var sceneShader: TestShader = _
+  private var depthShader: DepthShader = _
   private var environment: Environment = _
   private var vramGraph: DependencyGraph = _
   private var updateThread: Thread = _
@@ -75,15 +77,19 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     cam.lookAt(0, 10, 0)
 
     println("instantiating model batch")
+    sceneShader = new TestShader(resources.sheet, lightCam)
+    sceneShader.init()
     modelBatch = new ModelBatch(new BaseShaderProvider {
 
-      val custom = new TestShader(resources.sheet, lightCam)
-
+      shaders.add(sceneShader)
       override def createShader(renderable: Renderable): Shader =
+        new DefaultShader(renderable, new DefaultShader.Config())
+      /*
         Option(renderable.userData).map(_.asInstanceOf[ShaderID]).getOrElse(DefaultSID) match {
           case DefaultSID => new DefaultShader(renderable, new DefaultShader.Config())
-          case CustomSID => custom
+          case CustomSID => sceneShader
         }
+        */
 
     })
 
@@ -97,13 +103,13 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     lightBuffer = new FrameBuffer(Format.RGBA8888, 1024, 1024, true)
 
+    depthShader = new DepthShader
+    depthShader.init()
     lightBatch = new ModelBatch(new ShaderProvider {
-      val shader = new DepthShader
-      shader.init()
 
-      override def getShader(renderable: Renderable): Shader = shader
+      override def getShader(renderable: Renderable): Shader = depthShader
 
-      override def dispose(): Unit = shader.dispose()
+      override def dispose(): Unit = depthShader.dispose()
     })
 
     println("instantiating environment")
@@ -119,9 +125,16 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           println("closing world")
           driver.enter(new MainMenu(providedResources))
           true
+        } else if (keycode == Keys.L) {
+          println("depth shader log: ")
+          println(depthShader.program.getLog)
+          println()
+          println("scene shader log: ")
+          println(sceneShader.program.getLog)
+          true
         } else false
     })
-    controller = new FirstPersonCameraController(lightCam)
+    controller = new FirstPersonCameraController(cam)
     multiplexer.addProcessor(controller)
     Gdx.input.setInputProcessor(multiplexer)
 
@@ -207,6 +220,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         units.flatMap(_(interpolation)).foreach(renderables.add)
     }
 
+    // render onto light buffer
     lightBuffer.begin()
     Gdx.gl.glClearColor(0, 0, 0, 1)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
@@ -214,10 +228,11 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     lightBatch.render(provider)
     lightBatch.end()
     lightBuffer.end()
+    sceneShader.depthMap = lightBuffer.getColorBufferTexture
 
-    lightBatch.begin(lightCam)
-    lightBatch.render(provider, environment)
-    lightBatch.end()
+    modelBatch.begin(cam)
+    modelBatch.render(provider, environment)
+    modelBatch.end()
   }
 
   override def onExit(): Unit = {

@@ -6,7 +6,6 @@ attribute vec2 a_texCoord0;
 
 uniform mat4 u_worldTrans;
 uniform mat4 u_projViewTrans;
-
 varying vec4 v_position;
 
 void main() {

@@ -9,7 +9,7 @@ import com.badlogic.gdx.utils.GdxRuntimeException
 
 class DepthShader extends Shader {
 
-  private var program: ShaderProgram = _
+  var program: ShaderProgram = _
   private var cam: Camera = _
   private var context: RenderContext = _
 
