@@ -79,20 +79,13 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     println("instantiating model batch")
     sceneShader = new TestShader(resources.sheet)
     sceneShader.init()
-    /*
-    modelBatch = new ModelBatch(new BaseShaderProvider {
-
-      shaders.add(sceneShader)
-
-      override def createShader(renderable: Renderable): Shader =
-        new DefaultShader(renderable, new DefaultShader.Config())
-
-    })
-    */
+    val lineShader = new LineShader
+    lineShader.init()
     modelBatch = new ModelBatch(new ShaderProvider {
       override def getShader(renderable: Renderable): Shader =
         Option(renderable.userData).map(_.asInstanceOf[ShaderID]).getOrElse(DefaultSID) match {
           case CustomSID => sceneShader
+          case LineSID => lineShader
           case DefaultSID => Option(renderable.shader).find(_.isInstanceOf[DefaultShader]).getOrElse({
             val shader = new DefaultShader(renderable)
             shader.init()

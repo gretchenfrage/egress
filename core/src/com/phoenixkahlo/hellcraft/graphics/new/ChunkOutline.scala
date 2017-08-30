@@ -20,6 +20,10 @@ class ChunkOutline(p: V3I, color: Color) extends RenderUnit {
       override def newObject(): Renderable = new Renderable
     }
     instance.getRenderables(array, pool)
+    // set shader id
+    for (renderable <- JavaConverters.asScalaIterator(array.iterator())) {
+      renderable.userData = LineSID
+    }
     // return renderables
     JavaConverters.iterableAsScalaIterable(array).toSeq
   }
