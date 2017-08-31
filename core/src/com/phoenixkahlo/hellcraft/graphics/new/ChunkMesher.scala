@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.g3d.{Material, Renderable}
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
 import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.phoenixkahlo.hellcraft.core.{Chunk, World}
+import com.phoenixkahlo.hellcraft.graphics.shaders.SceneSID
 import com.phoenixkahlo.hellcraft.graphics.{ResourcePack, StoneTID}
 import com.phoenixkahlo.hellcraft.math.Quad
 import com.phoenixkahlo.hellcraft.util.ResourceNode
@@ -56,7 +57,7 @@ class ChunkMesher(chunk: Chunk, quads: Seq[Quad]) {
     renderable.meshPart.offset = 0
     renderable.meshPart.size = indices.size
     renderable.meshPart.primitiveType = GL20.GL_TRIANGLES
-    renderable.userData = CustomSID
+    renderable.userData = SceneSID
     renderable
 
   }}, _.meshPart.mesh.dispose())

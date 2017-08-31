@@ -184,6 +184,10 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     // get the events from the world
     var events = world.events(dt)
 
+    // filter out evens for which chunks don't exist
+    // TODO: find a way to integrate them anyways
+    events = events.filter(world.chunks contains _.target)
+
     // scan the events for update terrain events, and use them to invalidate upgrade futures
     val invalidateRange = V3I(-2, -2, -2) to V3I(2, 2, 2)
     events.flatMap({

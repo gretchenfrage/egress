@@ -4,7 +4,6 @@ import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
 import com.phoenixkahlo.hellcraft.gamedriver.GameDriver;
 import com.phoenixkahlo.hellcraft.menu.MainMenu;
-import other.Animation3DTest;
 
 import java.awt.*;
 
@@ -15,6 +14,8 @@ public class DesktopLauncher {
 		double factor = 0.5;
 		config.width = (int) (screenSize.width * factor);
 		config.height = (int) (screenSize.height * factor);
+		config.width = 1024;
+		config.height = 1024;
 		config.title = "egress";
 		//new LwjglApplication(new Animation3DTest(), config);
 		new LwjglApplication(new GameDriver(new MainMenu()), config);

@@ -16,6 +16,7 @@ import com.phoenixkahlo.hellcraft.core.{Densities, Quads, Vertices}
 import com.phoenixkahlo.hellcraft.gamedriver.{Delta, GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
 import com.phoenixkahlo.hellcraft.graphics.`new`._
+import com.phoenixkahlo.hellcraft.graphics.shaders._
 import com.phoenixkahlo.hellcraft.math.V3F
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.oldcore.entity.Avatar
@@ -34,15 +35,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var clock: GametimeClock = _
   private var infinitum: Infinitum = _
   private var resources: ResourcePack = _
-  private var cam: PerspectiveCamera = _
+  private var renderer: Renderer = _
   private var controller: FirstPersonCameraController = _
-  private var modelBatch: ModelBatch = _
-  private var lightCam: PerspectiveCamera = _
-  private var lightBuffer: FrameBuffer = _
-  private var lightBatch: ModelBatch = _
-  private var depthShader: DepthShader = _
-  private var sceneShader: TestShader = _
-  private var environment: Environment = _
   private var vramGraph: DependencyGraph = _
   private var updateThread: Thread = _
   private var g = 0
@@ -69,57 +63,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     println("loading resources")
     resources = providedResources()
 
-    println("creating camera")
-    cam = new PerspectiveCamera(90, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
-    cam.near = 0.1f
-    cam.far = 1000
-    cam.position.set(V3F(-10, 10, -10) toGdx)
-    cam.lookAt(0, 10, 0)
-
-    println("instantiating model batch")
-    sceneShader = new TestShader(resources.sheet)
-    sceneShader.init()
-    val lineShader = new LineShader
-    lineShader.init()
-    modelBatch = new ModelBatch(new ShaderProvider {
-      override def getShader(renderable: Renderable): Shader =
-        Option(renderable.userData).map(_.asInstanceOf[ShaderID]).getOrElse(DefaultSID) match {
-          case CustomSID => sceneShader
-          case LineSID => lineShader
-          case DefaultSID => Option(renderable.shader).find(_.isInstanceOf[DefaultShader]).getOrElse({
-            val shader = new DefaultShader(renderable)
-            shader.init()
-            renderable.shader = shader
-            shader
-            })
-        }
-
-      override def dispose(): Unit = sceneShader.dispose()
-    })
-
-    println("instantiating environment")
-    environment = new Environment
-    environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1))
-    environment.add(new DirectionalLight().set(1, 1, 1, 0, -1, 0))
-
-    println("instantiating lighting")
-    lightCam = new PerspectiveCamera(120f, 1024, 1024)
-    lightCam.near = 0.1f
-    lightCam.far = 100f
-    lightCam.position.set(0, 15, 0)
-    lightCam.lookAt(1, 15, 1)
-    lightCam.update()
-
-    lightBuffer = new FrameBuffer(Format.RGBA8888, 1024, 1024, true)
-    depthShader = new DepthShader()
-    depthShader.init()
-    lightBatch = new ModelBatch(new ShaderProvider {
-      override def getShader(renderable: Renderable): Shader =
-        depthShader
-
-      override def dispose(): Unit =
-        depthShader.dispose()
-    })
+    println("creating renderer")
+    renderer = new Renderer(resources)
 
     println("instantiating controller")
     val multiplexer = new InputMultiplexer
@@ -131,7 +76,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           true
         } else false
     })
-    controller = new FirstPersonCameraController(cam)
+    controller = new FirstPersonCameraController(renderer.cam)
     multiplexer.addProcessor(controller)
     Gdx.input.setInputProcessor(multiplexer)
 
@@ -153,8 +98,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     try {
       while (!Thread.interrupted()) {
         // update world
-        UniExecutor.point = V3F(cam.position)
-        val p = (V3F(cam.position) / 16).floor
+        UniExecutor.point = V3F(renderer.cam.position)
+        val p = (V3F(renderer.cam.position) / 16).floor
         infinitum.update(((p - LoadDist) to (p + LoadDist)).toSet)
         val time = infinitum().time
 
@@ -177,7 +122,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     g += 1
 
     // interpolation
-    val backRender = 2
     val (toRender, interpolation) = (infinitum(), NoInterpolation)
 
     // update controller
@@ -207,31 +151,20 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       })
     })
 
-    // render 3D stuff
+    // convert to provider
     val provider = new RenderableProvider {
       override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit =
         units.flatMap(_(interpolation)).foreach(renderables.add)
     }
-    lightBuffer.begin()
-    Gdx.gl.glClearColor(0, 0, 0, 1)
-    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
-    lightBatch.begin(lightCam)
-    lightBatch.render(provider)
-    lightBatch.end()
-    lightBuffer.end()
 
-    Gdx.gl.glClearColor(0.5089f, 0.6941f, 1f, 1f)
-    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
-    Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
-    lightBatch.begin(lightCam)
-    lightBatch.render(provider, environment)
-    lightBatch.end()
-
+    // render
+    renderer.render(Seq(provider))
   }
 
   override def onExit(): Unit = {
     Gdx.input.setInputProcessor(new InputAdapter)
     updateThread.interrupt()
+    renderer.dispose()
     updateThread.join()
     //val saveFuture = history.last._2.pushToSave()
     vramGraph.managing.foreach(_.dispose())
