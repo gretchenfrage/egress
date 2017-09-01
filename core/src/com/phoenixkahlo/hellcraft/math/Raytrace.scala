@@ -1,6 +1,6 @@
 package com.phoenixkahlo.hellcraft.math
 
-import com.phoenixkahlo.hellcraft.oldcore.{Air, World}
+import com.phoenixkahlo.hellcraft.core.World
 
 object Raytrace {
 
@@ -24,20 +24,6 @@ object Raytrace {
         .map({ case (plane, block) => (line intersection plane, block) }).minBy { case (point, _) => point dist pos }
 
     nextV #:: collisions(nextV, nextPos, dir)
-  }
-
-  def hit(pos: V3F, dir: V3F, world: World, range: Float = 4): Option[V3I] = {
-    collisions(pos floor, pos, dir)
-      .takeWhile(v => (v + Repeated(0.5f) dist pos) <= range)
-      .takeWhile(v => world.chunkIsDefinedAt(v / 16 floor))
-      .find(v => world.blockAt(v).get != Air)
-  }
-
-  def place(pos: V3F, dir: V3F, world: World, range: Float = 4): Option[V3I] = {
-    collisions(pos floor, pos, dir)
-      .takeWhile(v => (v + Repeated(0.5f) dist pos) <= range)
-      .takeWhile(v => world.blockAt(v).contains(Air))
-      .lastOption
   }
 
 }

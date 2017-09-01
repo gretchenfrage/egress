@@ -1,12 +1,10 @@
-package com.phoenixkahlo.hellcraft.graphics.`new`
+package com.phoenixkahlo.hellcraft.graphics
 
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
 import com.badlogic.gdx.graphics.g3d.{Material, Renderable}
-import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
 import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.phoenixkahlo.hellcraft.core.{Chunk, World}
 import com.phoenixkahlo.hellcraft.graphics.shaders.SceneSID
-import com.phoenixkahlo.hellcraft.graphics.{ResourcePack, StoneTID}
 import com.phoenixkahlo.hellcraft.math.Quad
 import com.phoenixkahlo.hellcraft.util.ResourceNode
 import com.phoenixkahlo.hellcraft.util.caches.{DisposableParamCache, ParamCache}

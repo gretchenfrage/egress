@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.graphics.`new`
+package com.phoenixkahlo.hellcraft.graphics
 
 import com.phoenixkahlo.hellcraft.core.World
 

@@ -1,9 +1,8 @@
-package com.phoenixkahlo.hellcraft.graphics.`new`
+package com.phoenixkahlo.hellcraft.graphics
 
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g3d.{ModelInstance, Renderable}
 import com.badlogic.gdx.utils.Pool
-import com.phoenixkahlo.hellcraft.graphics.ChunkOutlineModel
 import com.phoenixkahlo.hellcraft.graphics.shaders.LineSID
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.util.ResourceNode

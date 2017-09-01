@@ -5,8 +5,8 @@ import java.util.{Objects, UUID}
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.Entity
-import com.phoenixkahlo.hellcraft.graphics.ResourcePack
-import com.phoenixkahlo.hellcraft.graphics.`new`.{ChunkMesher, RenderUnit}
+import com.phoenixkahlo.hellcraft.graphics.{ChunkMesher, RenderUnit, ResourcePack}
+import com.phoenixkahlo.hellcraft.graphics.RenderUnit
 import com.phoenixkahlo.hellcraft.math.{RNG, V3F, V3I}
 import com.phoenixkahlo.hellcraft.util.fields.{FractionField, OptionField}
 

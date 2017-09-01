@@ -3,25 +3,10 @@ package com.phoenixkahlo.hellcraft.carbonite.egress
 import com.phoenixkahlo.hellcraft.carbonite.DefaultCarboniteConfig
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Cube
-import com.phoenixkahlo.hellcraft.oldcore
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.fields.{ByteField, FractionField, OptionField}
 
 object EgressCarboniteConfig extends DefaultCarboniteConfig {
-
-  register[oldcore.Chunk]()
-  register[oldcore.BlockGrid]()
-
-  register[oldcore.PutBlock]()
-  register[oldcore.UncacheMesh]()
-  register[oldcore.AddEntity]()
-  register[oldcore.RemoveEntity]()
-  register[oldcore.ReplaceEntity]()
-  register[oldcore.SetAvatarMovement]()
-  register[oldcore.ThrustCylindroid]()
-
-  register[oldcore.entity.Avatar]()
-  register[oldcore.entity.BlockOutline]()
 
   register[Chunk]()
   register[Densities]()

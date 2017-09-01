@@ -12,11 +12,9 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import com.badlogic.gdx.{Gdx, InputAdapter}
-import com.phoenixkahlo.hellcraft.oldcore._
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.menu.util.{EButton, EButtonStyle}
-import com.phoenixkahlo.hellcraft.oldsingleplayer.SingleplayerState
 import com.phoenixkahlo.hellcraft.util.caches.Cache
 import other.AppDirs
 
@@ -51,16 +49,7 @@ class MainMenu(providedResources: Cache[ResourcePack]) extends AbstractMenu(prov
       35
     )
 
-    val singleplayerButton = new EButton("singleplayer", buttonStyle)
-    singleplayerButton.addListener(new ClickListener() {
-      override def clicked(event: InputEvent, x: Float, y: Float): Unit = {
-        driver.enter(new SingleplayerState(providedResources))
-      }
-    })
-    position(singleplayerButton)
-    toDispose += singleplayerButton
-
-    val isoSingleButton = new EButton("iso singleplayer", buttonStyle)
+    val isoSingleButton = new EButton("singleplayer", buttonStyle)
     isoSingleButton.addListener(new ClickListener() {
       override def clicked(event: InputEvent, x: Float, y: Float): Unit = {
         driver.enter(new com.phoenixkahlo.hellcraft.singleplayer.SingleplayerState(providedResources))

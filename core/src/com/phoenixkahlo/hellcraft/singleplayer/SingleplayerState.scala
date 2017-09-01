@@ -14,12 +14,11 @@ import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core.{Densities, Quads, Vertices}
 import com.phoenixkahlo.hellcraft.gamedriver.{Delta, GameDriver, GameState}
-import com.phoenixkahlo.hellcraft.graphics.ResourcePack
-import com.phoenixkahlo.hellcraft.graphics.`new`._
+import com.phoenixkahlo.hellcraft.graphics.{ChunkOutline, NoInterpolation, ResourcePack}
+import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.graphics.shaders._
 import com.phoenixkahlo.hellcraft.math.V3F
 import com.phoenixkahlo.hellcraft.menu.MainMenu
-import com.phoenixkahlo.hellcraft.oldcore.entity.Avatar
 import com.phoenixkahlo.hellcraft.util.DependencyGraph
 import com.phoenixkahlo.hellcraft.util.caches.Cache
 import com.phoenixkahlo.hellcraft.util.threading.UniExecutor

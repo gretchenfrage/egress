@@ -10,7 +10,6 @@ import com.badlogic.gdx.graphics.g3d.utils.{DefaultShaderProvider, ShaderProvide
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.utils.Disposable
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
-import com.phoenixkahlo.hellcraft.graphics.`new`._
 import com.phoenixkahlo.hellcraft.graphics.shaders._
 import com.phoenixkahlo.hellcraft.math.V3F
 
@@ -51,7 +50,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
     override def dispose(): Unit = ()
   })
 
-  val lightBuffer = new FrameBuffer(GL20.GL_DEPTH_COMPONENT16, 1024, 1024, true)
+  //val lightBuffer = new FrameBuffer(GL20.GL_DEPTH_COMPONENT16, 1024, 1024, true)
 
 
   def render(providers: Seq[RenderableProvider]): Unit = {
