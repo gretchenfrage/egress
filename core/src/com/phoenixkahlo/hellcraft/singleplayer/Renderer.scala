@@ -12,7 +12,7 @@ import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.utils.Disposable
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
 import com.phoenixkahlo.hellcraft.graphics.shaders._
-import com.phoenixkahlo.hellcraft.math.V3F
+import com.phoenixkahlo.hellcraft.math.{Down, V3F, V3I}
 
 import scala.collection.JavaConverters
 
@@ -60,16 +60,23 @@ class Renderer(resources: ResourcePack) extends Disposable {
   })
 
   val lightBuffer = new FrameBuffer(Pixmap.Format.RGBA8888, 1024, 1024, true)
-  val light = new OrthographicCamera(30, 30)
-  light.position.set(0, 50, 0)
-  light.direction.set(1, -1, 1)
-  light.up.set(0, 1, 0)
+  val lightCam = new OrthographicCamera(50, 50)
+  lightCam.position.set(0, 10, 0)
+  lightCam.direction.set(V3I(1, -1, 1).normalize.toGdx)
+  //lightCam.direction.set(0, -1, 0)
+  lightCam.up.set(0, 1, 0)
+  lightCam.near = 1
+  lightCam.far = 50
+  lightCam.update()
 
 
   def render(providers: Seq[RenderableProvider]): Unit = {
     Gdx.gl.glClearColor(0.5089f, 0.6941f, 1f, 1f)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
+
+    //lightBuffer.begin()
+    //depthBatch.begin(lightCam)
 
     if (!Gdx.input.isKeyPressed(Keys.M)) {
       batch.begin(cam)
