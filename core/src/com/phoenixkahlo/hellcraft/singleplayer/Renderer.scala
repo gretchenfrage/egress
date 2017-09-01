@@ -1,7 +1,8 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.{GL20, PerspectiveCamera, Pixmap}
+import com.badlogic.gdx.Input.Keys
+import com.badlogic.gdx.graphics._
 import com.badlogic.gdx.graphics.g3d.shaders.DefaultShader
 import com.badlogic.gdx.graphics.g3d._
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
@@ -23,7 +24,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
   val cam = new PerspectiveCamera(70, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
   cam.near = 0.1f
-  cam.far = 1000
+  cam.far = 50
   cam.position.set(V3F(-10, 10, -10) toGdx)
   cam.lookAt(0, 10, 0)
 
@@ -31,6 +32,8 @@ class Renderer(resources: ResourcePack) extends Disposable {
   sceneShader.init()
   val lineShader = new LineShader
   lineShader.init()
+  val depthShader = new DepthShader
+  depthShader.init()
 
   val batch = new ModelBatch(new ShaderProvider {
     override def getShader(renderable: Renderable): Shader =
@@ -50,7 +53,17 @@ class Renderer(resources: ResourcePack) extends Disposable {
     override def dispose(): Unit = ()
   })
 
-  //val lightBuffer = new FrameBuffer(GL20.GL_DEPTH_COMPONENT16, 1024, 1024, true)
+  val depthBatch = new ModelBatch(new ShaderProvider {
+    override def getShader(renderable: Renderable): Shader = depthShader
+
+    override def dispose(): Unit = ()
+  })
+
+  val lightBuffer = new FrameBuffer(Pixmap.Format.RGBA8888, 1024, 1024, true)
+  val light = new OrthographicCamera(30, 30)
+  light.position.set(0, 50, 0)
+  light.direction.set(1, -1, 1)
+  light.up.set(0, 1, 0)
 
 
   def render(providers: Seq[RenderableProvider]): Unit = {
@@ -58,9 +71,15 @@ class Renderer(resources: ResourcePack) extends Disposable {
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
 
-    batch.begin(cam)
-    batch.render(JavaConverters.asJavaIterable(providers), environment)
-    batch.end()
+    if (!Gdx.input.isKeyPressed(Keys.M)) {
+      batch.begin(cam)
+      batch.render(JavaConverters.asJavaIterable(providers), environment)
+      batch.end()
+    } else {
+      depthBatch.begin(cam)
+      depthBatch.render(JavaConverters.asJavaIterable(providers), environment)
+      depthBatch.end()
+    }
   }
 
   override def dispose(): Unit = {

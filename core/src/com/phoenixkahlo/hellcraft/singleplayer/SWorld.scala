@@ -203,6 +203,10 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       }
     }
 
+    // filter out events that can't be integrated
+    // TODO: avoid this all together
+    events = events.filter(world.chunks contains _.target)
+
     // integrate the accumulated events into the world
     world = world.integrate(events)
 
