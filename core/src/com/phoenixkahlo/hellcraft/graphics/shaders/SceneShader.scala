@@ -7,7 +7,7 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.graphics.{Camera, GL20, PerspectiveCamera, Texture}
 import com.badlogic.gdx.utils.GdxRuntimeException
 
-class SceneShader(sheet: Texture) extends Shader {
+class SceneShader(sheet: Texture, light: Camera) extends Shader {
 
   var program: ShaderProgram = _
   var cam: Camera = _
@@ -15,7 +15,11 @@ class SceneShader(sheet: Texture) extends Shader {
 
   var u_projViewTrans: Int = _
   var u_worldTrans: Int = _
+  var u_shadowProjViewTrans: Int = _
   var u_texture: Int = _
+  var u_depthMap: Int = _
+
+  var depthMap: Texture = _
 
   override def canRender(instance: Renderable): Boolean = {
     instance.userData == SceneSID
@@ -31,6 +35,9 @@ class SceneShader(sheet: Texture) extends Shader {
 
     u_projViewTrans = program.getUniformLocation("u_projViewTrans")
     u_worldTrans = program.getUniformLocation("u_worldTrans")
+    u_shadowProjViewTrans = program.getUniformLocation("u_shadowProjViewTrans")
+    u_texture = program.getUniformLocation("u_texture")
+    u_depthMap = program.getUniformLocation("u_depthMap")
   }
 
   override def compareTo(other: Shader): Int = 0
@@ -42,8 +49,11 @@ class SceneShader(sheet: Texture) extends Shader {
     program.begin()
 
     program.setUniformMatrix(u_projViewTrans, camera.combined)
+    program.setUniformMatrix(u_shadowProjViewTrans, light.combined)
     sheet.bind(0)
     program.setUniformi(u_texture, 0)
+    depthMap.bind(1)
+    program.setUniformi(u_depthMap, 1)
 
     context.setDepthTest(GL20.GL_LEQUAL)
     context.setCullFace(GL20.GL_BACK)

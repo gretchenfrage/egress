@@ -28,7 +28,16 @@ class Renderer(resources: ResourcePack) extends Disposable {
   cam.position.set(V3F(-10, 10, -10) toGdx)
   cam.lookAt(0, 10, 0)
 
-  val sceneShader = new SceneShader(resources.sheet)
+  val lightBuffer = new FrameBuffer(Pixmap.Format.RGBA8888, 1024, 1024, true)
+  val lightCam = new OrthographicCamera(50, 50)
+  lightCam.position.set(0, 10, 0)
+  lightCam.direction.set(V3I(1, -1, 1).normalize.toGdx)
+  lightCam.up.set(0, 1, 0)
+  lightCam.near = 1
+  lightCam.far = 50
+  lightCam.update()
+
+  val sceneShader = new SceneShader(resources.sheet, lightCam)
   sceneShader.init()
   val lineShader = new LineShader
   lineShader.init()
@@ -59,31 +68,26 @@ class Renderer(resources: ResourcePack) extends Disposable {
     override def dispose(): Unit = ()
   })
 
-  val lightBuffer = new FrameBuffer(Pixmap.Format.RGBA8888, 1024, 1024, true)
-  val lightCam = new OrthographicCamera(50, 50)
-  lightCam.position.set(0, 10, 0)
-  lightCam.direction.set(V3I(1, -1, 1).normalize.toGdx)
-  //lightCam.direction.set(0, -1, 0)
-  lightCam.up.set(0, 1, 0)
-  lightCam.near = 1
-  lightCam.far = 50
-  lightCam.update()
-
 
   def render(providers: Seq[RenderableProvider]): Unit = {
     val toRender = JavaConverters.asJavaIterable(providers)
 
-    Gdx.gl.glClearColor(0.5089f, 0.6941f, 1f, 1f)
-    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
-    Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
-
     lightBuffer.begin()
+
+    Gdx.gl.glClearColor(1, 1, 1, 1)
+    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
+
     depthBatch.begin(lightCam)
     depthBatch.render(toRender, environment)
     depthBatch.end()
+
     lightBuffer.end()
 
+    sceneShader.depthMap = lightBuffer.getColorBufferTexture
 
+    Gdx.gl.glClearColor(0.5089f, 0.6941f, 1f, 1f)
+    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
+    Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
 
     if (!Gdx.input.isKeyPressed(Keys.M)) {
       batch.begin(cam)
