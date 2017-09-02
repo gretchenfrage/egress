@@ -14,10 +14,7 @@ class DepthShader extends Shader {
   var cam: Camera = _
   var context: RenderContext = _
 
-  var u_worldTrans: Int = _
-  var u_projViewTrans: Int = _
-  var u_lightFar: Int = _
-  var u_lightPos: Int = _
+  var u_combinedTrans: Int = _
 
   override def canRender(instance: Renderable): Boolean = true
 
@@ -29,10 +26,7 @@ class DepthShader extends Shader {
     if (!(program isCompiled))
       throw new GdxRuntimeException(program.getLog)
 
-    u_worldTrans = program.getUniformLocation("u_worldTrans")
-    u_projViewTrans = program.getUniformLocation("u_projViewTrans")
-    u_lightFar = program.getUniformLocation("u_lightFar")
-    u_lightPos = program.getUniformLocation("u_lightPos")
+    u_combinedTrans = program.getUniformLocation("u_combinedTrans")
   }
 
   override def compareTo(other: Shader): Int = 0
@@ -43,16 +37,12 @@ class DepthShader extends Shader {
 
     program.begin()
 
-    program.setUniformMatrix(u_projViewTrans, cam.combined)
-    program.setUniformf(u_lightFar, cam.far)
-    program.setUniform3fv(u_lightPos, Array(cam.position.x, cam.position.y, cam.position.z), 0, 3)
-
     context.setDepthTest(GL20.GL_LEQUAL)
     context.setCullFace(GL20.GL_BACK)
   }
 
   override def render(renderable: Renderable): Unit = {
-    program.setUniformMatrix(u_worldTrans, renderable.worldTransform)
+    program.setUniformMatrix(u_combinedTrans, renderable.worldTransform.cpy.mul(cam.combined))
     renderable.meshPart.render(program)
   }
 
