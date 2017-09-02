@@ -24,7 +24,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
   val cam = new PerspectiveCamera(70, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
   cam.near = 0.1f
-  cam.far = 50
+  cam.far = 1000
   cam.position.set(V3F(-10, 10, -10) toGdx)
   cam.lookAt(0, 10, 0)
 

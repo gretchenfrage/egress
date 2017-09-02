@@ -28,18 +28,21 @@ class ChunkMesher(chunk: Chunk, quads: Seq[Quad]) {
 
     for (i <- tris.indices) {
       val tri = tris(i)
+      val n = (tri.b - tri.a) cross (tri.c - tri.a) normalize
+
       indices.append((i * 3).toShort, (i * 3 + 1).toShort, (i * 3 + 2).toShort)
       verts.append(
-        tri.a.x, tri.a.y, tri.a.z, Color.RED.toFloatBits, u1, v1,
-        tri.b.x, tri.b.y, tri.b.z, Color.GREEN.toFloatBits, u2, v2,
-        tri.c.x, tri.c.y, tri.c.z, Color.BLUE.toFloatBits, u3, v3
+        tri.a.x, tri.a.y, tri.a.z, Color.RED.toFloatBits, u1, v1, n.x, n.y, n.z,
+        tri.b.x, tri.b.y, tri.b.z, Color.GREEN.toFloatBits, u2, v2, n.x, n.y, n.z,
+        tri.c.x, tri.c.y, tri.c.z, Color.BLUE.toFloatBits, u3, v3, n.x, n.y, n.z
       )
     }
 
     val mesh = new Mesh(true, verts.size, indices.size,
       new VertexAttribute(Usage.Position, 3, "a_position"),
       new VertexAttribute(Usage.ColorPacked, 4, "a_color"),
-      new VertexAttribute(Usage.TextureCoordinates, 2, "a_texCoord0")
+      new VertexAttribute(Usage.TextureCoordinates, 2, "a_texCoord0"),
+      new VertexAttribute(Usage.Normal, 3, "a_normal")
     )
 
     mesh.setVertices(verts.toArray)

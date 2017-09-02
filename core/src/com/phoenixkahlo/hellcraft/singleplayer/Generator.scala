@@ -15,7 +15,7 @@ class Generator(res: Int) {
   val rv2d = V2I(res, res)
   val rv3d = V3I(res, res, res)
 
-  val heightNoise = Simplex(1f / 8f, 30f)
+  val heightNoise = Simplex(1f / 8f, 15f)
 
   class HeightPatch {
     val heights = new Array[Double](res * res)
