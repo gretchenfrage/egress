@@ -13,6 +13,17 @@ uniform sampler2D u_texture;
 uniform sampler2D u_depthMap;
 uniform vec3 u_lightPos;
 
+vec4 encodeFloatRGBA(float n) {
+    vec4 enc = vec4(1.0, 255.0, 65025.0, 160581375.0) * n;
+    enc = fract(enc);
+    enc -= enc.yzww * vec4(1.0 / 255.0, 1.0 / 255.0, 1.0 / 255.0, 0.0);
+    return enc;
+}
+
+float decodeFloatRGBA(vec4 rgba) {
+    return dot(rgba, vec4(1.0, 1 / 255.0, 1 / 65025.0, 1 / 160581375.0));
+}
+
 void main() {
     // constants
     vec3 lightCol = vec3(1, 1, 1);
@@ -43,7 +54,7 @@ void main() {
         visible = false;
     } else if ((v_shadowCoord.x < 0) || (v_shadowCoord.y < 0) || (v_shadowCoord.x >= 1) || (v_shadowCoord.y >= 1)) {
         visible = false;
-    } else if (texture2D(u_depthMap, v_shadowCoord.xy).a < v_shadowCoord.z - bias) {
+    } else if (decodeFloatRGBA(texture2D(u_depthMap, v_shadowCoord.xy)) < v_shadowCoord.z - bias) {
         visible = false;
     }
 

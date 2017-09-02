@@ -15,7 +15,6 @@ public class DesktopLauncher {
 		config.width = (int) (screenSize.width * factor);
 		config.height = (int) (screenSize.height * factor);
 		config.title = "egress";
-		//new LwjglApplication(new Animation3DTest(), config);
 		new LwjglApplication(new GameDriver(new MainMenu()), config);
 	}
 }
