@@ -22,8 +22,8 @@ void main() {
 
     // material properties
     vec3 diffuseCol = texture2D(u_texture, v_texCoord0).rgb;
-    vec3 ambientCol = vec3(0.1, 0.1, 0.1) * diffuseCol;
-    vec3 specularCol = vec3(0.3, 0.3, 0.3);
+    vec3 ambientCol = vec3(0.95, 0.95, 0.95) * diffuseCol;
+    vec3 specularCol = vec3(0.05, 0.05, 0.05);
 
     // distance to light
     float distance = length(lightPos - v_pos);
@@ -31,7 +31,10 @@ void main() {
     // cos of the angle between the normal and light directions clamped above 0
     vec3 n = normalize(v_normalCamSpace);
     vec3 l = normalize(v_lightDirCamSpace);
-    float cosTheta = clamp(dot(n, l), 0, 1);
+    float cosTheta = clamp(dot(n, l), -1, 1);
+    if (cosTheta < 0) {
+        cosTheta /= 4;
+    }
 
     // cos of the angle between the cam dir vector and the reflect vector
     vec3 e = normalize(v_camDirCamSpace);
@@ -40,7 +43,7 @@ void main() {
 
     // temporary, neutralize the distance
     distance = 1;
-    lightPow = 1;
+    lightPow = 0.5;
 
     // compute the color
     vec3 col =
