@@ -5,6 +5,7 @@ varying vec2 v_texCoord0;
 varying vec4 v_color;
 varying vec4 v_shadowCoord;
 
+varying vec3 v_normalWorldSpace;
 varying vec3 v_normalCamSpace;
 varying vec3 v_lightDirCamSpace;
 varying vec3 v_camDirCamSpace;
@@ -30,7 +31,7 @@ void main() {
 
     // material properties
     vec3 diffuseCol = texture2D(u_texture, v_texCoord0).rgb;
-    vec3 ambientCol = vec3(0.4) * diffuseCol;
+    vec3 ambientCol = vec3(0.3) * diffuseCol;
     vec3 specularCol = vec3(0.1);
 
     // cos of the angle between the normal and light directions clamped above 0
@@ -53,6 +54,8 @@ void main() {
     if (v_shadowCoord.z < 0) {
         visible = false;
     } else if ((v_shadowCoord.x < 0) || (v_shadowCoord.y < 0) || (v_shadowCoord.x >= 1) || (v_shadowCoord.y >= 1)) {
+        visible = false;
+    } else if (dot(v_normalWorldSpace, u_lightPos - v_pos) < 0) {
         visible = false;
     } else if (decodeFloatRGBA(texture2D(u_depthMap, v_shadowCoord.xy)) < v_shadowCoord.z - bias) {
         visible = false;
