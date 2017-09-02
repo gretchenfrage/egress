@@ -45,23 +45,21 @@ void main() {
     distance = 1;
     lightPow = 0.5;
 
+    // compute visibility
+    float visibility = 1.0;
+    if (v_shadowCoord.z < 0) {
+        visibility = 0.2;
+    } else if ((v_shadowCoord.x < 0) || (v_shadowCoord.y < 0) || (v_shadowCoord.x >= 1) || (v_shadowCoord.y >= 1)) {
+        visibility = 0.2;
+    } else if (texture2D(u_depthMap, v_shadowCoord.xy).a < v_shadowCoord.z - bias) {
+        visibility = 0.2;
+    }
+
     // compute the color
     vec3 col =
         ambientCol +
-        diffuseCol * lightCol * lightPow * cosTheta / (distance * distance) +
-        specularCol * lightCol * lightPow * pow(cosAlpha, 5) / (distance * distance);
+        visibility * diffuseCol * lightCol * lightPow * cosTheta / (distance * distance) +
+        visibility * specularCol * lightCol * lightPow * pow(cosAlpha, 5) / (distance * distance);
 
     gl_FragColor = vec4(col, 1);
-
-    /*
-    float visibility = 1.0;
-    if (v_shadowCoord.z < 0) {
-        visibility = 0.5;
-    } else if ((v_shadowCoord.x < 0) || (v_shadowCoord.y < 0) || (v_shadowCoord.x >= 1) || (v_shadowCoord.y >= 1)) {
-        visibility = 0.5;
-    } else if (texture2D(u_depthMap, v_shadowCoord.xy).a < v_shadowCoord.z - bias) {
-        visibility = 0.5;
-    }
-    gl_FragColor = texture2D(u_texture, v_texCoord0) * visibility;
-    */
 }
