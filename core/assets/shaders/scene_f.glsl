@@ -17,49 +17,60 @@ uniform vec3 lightPos;
 void main() {
     // constants
     vec3 lightCol = vec3(1, 1, 1);
-    float lightPow = 50;
-    float bias = 0.005;
+    float lightPow = 1;
+    float ambientPow = 0.4;
 
     // material properties
     vec3 diffuseCol = texture2D(u_texture, v_texCoord0).rgb;
-    vec3 ambientCol = vec3(0.95, 0.95, 0.95) * diffuseCol;
-    vec3 specularCol = vec3(0.05, 0.05, 0.05);
-
-    // distance to light
-    float distance = length(lightPos - v_pos);
+    //vec3 ambientCol = vec3(0.5) * diffuseCol;
+    vec3 specularCol = vec3(0);
 
     // cos of the angle between the normal and light directions clamped above 0
     vec3 n = normalize(v_normalCamSpace);
     vec3 l = normalize(v_lightDirCamSpace);
-    float cosTheta = clamp(dot(n, l), -1, 1);
-    if (cosTheta < 0) {
-        cosTheta /= 4;
-    }
+    float cosTheta = clamp(dot(n, l), 0, 1);
 
     // cos of the angle between the cam dir vector and the reflect vector
     vec3 e = normalize(v_camDirCamSpace);
     vec3 r = reflect(-l, n);
     float cosAlpha = clamp(dot(e, r), 0, 1);
 
-    // temporary, neutralize the distance
-    distance = 1;
-    lightPow = 0.5;
+    // begin strength variables
+    float diffuseStrength = cosTheta * lightPow;
+    float specularStrength = pow(cosAlpha, 5) * lightPow;
 
     // compute visibility
-    float visibility = 1.0;
+    float bias = 0.005 * tan(acos(cosTheta));
+    bool visible = true;
     if (v_shadowCoord.z < 0) {
-        visibility = 0.2;
+        visible = false;
     } else if ((v_shadowCoord.x < 0) || (v_shadowCoord.y < 0) || (v_shadowCoord.x >= 1) || (v_shadowCoord.y >= 1)) {
-        visibility = 0.2;
+        visible = false;
     } else if (texture2D(u_depthMap, v_shadowCoord.xy).a < v_shadowCoord.z - bias) {
-        visibility = 0.2;
+        visible = false;
+    }
+
+    // apply visibility to light strength
+    if (!visible) {
+        diffuseStrength = 0;
+        specularStrength = 0;
+    }
+
+    // cap the ambient strength
+    float ambientStrength = ambientPow;
+    float totalStrength = ambientStrength + diffuseStrength + specularStrength;
+    if (totalStrength > 1) {
+        ambientStrength -= (totalStrength - 1);
+    }
+    if (ambientStrength < 0) {
+        ambientStrength = 0;
     }
 
     // compute the color
     vec3 col =
-        ambientCol +
-        visibility * diffuseCol * lightCol * lightPow * cosTheta / (distance * distance) +
-        visibility * specularCol * lightCol * lightPow * pow(cosAlpha, 5) / (distance * distance);
+        diffuseCol * lightCol * ambientStrength +
+        diffuseCol * lightCol * diffuseStrength +
+        specularCol * lightCol * specularStrength;
 
     gl_FragColor = vec4(col, 1);
 }
