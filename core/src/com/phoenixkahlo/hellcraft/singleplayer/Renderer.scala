@@ -71,20 +71,27 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
 
   def render(providers: Seq[RenderableProvider]): Unit = {
+    val toRender = JavaConverters.asJavaIterable(providers)
+
     Gdx.gl.glClearColor(0.5089f, 0.6941f, 1f, 1f)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
 
-    //lightBuffer.begin()
-    //depthBatch.begin(lightCam)
+    lightBuffer.begin()
+    depthBatch.begin(lightCam)
+    depthBatch.render(toRender, environment)
+    depthBatch.end()
+    lightBuffer.end()
+
+
 
     if (!Gdx.input.isKeyPressed(Keys.M)) {
       batch.begin(cam)
       batch.render(JavaConverters.asJavaIterable(providers), environment)
       batch.end()
     } else {
-      depthBatch.begin(cam)
-      depthBatch.render(JavaConverters.asJavaIterable(providers), environment)
+      depthBatch.begin(lightCam)
+      depthBatch.render(toRender, environment)
       depthBatch.end()
     }
   }
