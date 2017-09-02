@@ -17,13 +17,11 @@ uniform vec3 lightPos;
 void main() {
     // constants
     vec3 lightCol = vec3(1, 1, 1);
-    float lightPow = 1;
-    float ambientPow = 0.4;
 
     // material properties
     vec3 diffuseCol = texture2D(u_texture, v_texCoord0).rgb;
-    //vec3 ambientCol = vec3(0.5) * diffuseCol;
-    vec3 specularCol = vec3(0);
+    vec3 ambientCol = vec3(0.4) * diffuseCol;
+    vec3 specularCol = vec3(0.1);
 
     // cos of the angle between the normal and light directions clamped above 0
     vec3 n = normalize(v_normalCamSpace);
@@ -36,8 +34,8 @@ void main() {
     float cosAlpha = clamp(dot(e, r), 0, 1);
 
     // begin strength variables
-    float diffuseStrength = cosTheta * lightPow;
-    float specularStrength = pow(cosAlpha, 5) * lightPow;
+    float diffuseStrength = cosTheta;
+    float specularStrength = pow(cosAlpha, 5);
 
     // compute visibility
     float bias = 0.005 * tan(acos(cosTheta));
@@ -56,19 +54,9 @@ void main() {
         specularStrength = 0;
     }
 
-    // cap the ambient strength
-    float ambientStrength = ambientPow;
-    float totalStrength = ambientStrength + diffuseStrength + specularStrength;
-    if (totalStrength > 1) {
-        ambientStrength -= (totalStrength - 1);
-    }
-    if (ambientStrength < 0) {
-        ambientStrength = 0;
-    }
-
     // compute the color
     vec3 col =
-        diffuseCol * lightCol * ambientStrength +
+        ambientCol +
         diffuseCol * lightCol * diffuseStrength +
         specularCol * lightCol * specularStrength;
 
