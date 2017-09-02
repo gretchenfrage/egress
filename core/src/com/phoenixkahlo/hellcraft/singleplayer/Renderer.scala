@@ -12,7 +12,7 @@ import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.utils.Disposable
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
 import com.phoenixkahlo.hellcraft.graphics.shaders._
-import com.phoenixkahlo.hellcraft.math.{Down, V3F, V3I}
+import com.phoenixkahlo.hellcraft.math._
 
 import scala.collection.JavaConverters
 
@@ -28,6 +28,48 @@ class Renderer(resources: ResourcePack) extends Disposable {
   cam.position.set(V3F(-10, 10, -10) toGdx)
   cam.lookAt(0, 10, 0)
 
+  val worldBoxRad = LoadDist.fold(Math.max) * 16
+  val sunlightRes = (worldBoxRad * 3 * ShadowPixelDensity) toInt
+  val lightBuffer = new FrameBuffer(Pixmap.Format.RGBA8888, sunlightRes, sunlightRes, true)
+  val lightCam = new OrthographicCamera(worldBoxRad * 3 , worldBoxRad * 3 )
+  lightCam.up.set(V3F(0.0001f, 1, 0).normalize.toGdx)
+  lightCam.near = 1
+  lightCam.far = worldBoxRad * 3
+
+  var skyColor: V3F = V3F(0.5089f, 0.6941f, 1f)
+
+  def setupSunlight(world: SWorld): Unit = {
+    /*
+    val center = (V3F(cam.position) / 16 floor) * 16
+    val pos = (center + V3F(sunlightSize, 0, 0)).toGdx
+    pos.sub(center toGdx).rotate(South toGdx, world.time.toFloat / DayCycleTicks * 360).add(center toGdx)
+    lightCam.position.set(pos)
+    lightCam.lookAt(center toGdx)
+    lightCam.update()
+    */
+    val cycle = world.time.toFloat / DayCycleTicks.toFloat
+    val sunDir = V3F(-Trig.cos(cycle * 360), Trig.sin(cycle * 360), 0)
+    val worldCenter = V3F(cam.position)
+    val sunPos = worldCenter + (sunDir * worldBoxRad * 1.5f)
+
+    lightCam.position.set(sunPos toGdx)
+    lightCam.lookAt(worldCenter.toGdx)
+    lightCam.update()
+
+    skyColor = V3F(0.5089f, 0.6941f, 1f) * Math.max(0.1f, sunDir.y)
+  }
+
+  /*
+  val (lightBuffer, lightCam) = {
+    val size = LoadDist.fold(Math.max) * 16 * 1.5f
+    val res = (size * ShadowPixelDensity) toInt
+
+    val buffer = new FrameBuffer(Pixmap.Format.RGBA8888, res, res, true)
+    val cam = new OrthographicCamera(size, size)
+    cam.
+  }
+  */
+  /*
   val lightBuffer = new FrameBuffer(Pixmap.Format.RGBA8888, 1024, 1024, true)
   val lightCam = new OrthographicCamera(50, 50)
   lightCam.position.set(0, 10, 0)
@@ -36,6 +78,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
   lightCam.near = 1
   lightCam.far = 50
   lightCam.update()
+  */
 
   val sceneShader = new SceneShader(resources.sheet, lightCam)
   sceneShader.init()
@@ -69,7 +112,9 @@ class Renderer(resources: ResourcePack) extends Disposable {
   })
 
 
-  def render(providers: Seq[RenderableProvider]): Unit = {
+  def render(world: SWorld, providers: Seq[RenderableProvider]): Unit = {
+    setupSunlight(world)
+
     val toRender = JavaConverters.asJavaIterable(providers)
 
     lightBuffer.begin()
@@ -85,7 +130,8 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
     sceneShader.depthMap = lightBuffer.getColorBufferTexture
 
-    Gdx.gl.glClearColor(0.5089f, 0.6941f, 1f, 1f)
+    //Gdx.gl.glClearColor(0.5089f, 0.6941f, 1f, 1f)
+    Gdx.gl.glClearColor(skyColor.x, skyColor.y, skyColor.z, 1f)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
 

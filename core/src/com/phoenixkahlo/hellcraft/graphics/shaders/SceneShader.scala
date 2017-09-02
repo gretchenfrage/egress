@@ -62,13 +62,6 @@ uniform vec3 lightPos;
     u_lightPos = program.getUniformLocation("u_lightPos")
     u_texture = program.getUniformLocation("u_texture")
     u_depthMap = program.getUniformLocation("u_depthMap")
-    /*
-    u_projViewTrans = program.getUniformLocation("u_projViewTrans")
-    u_worldTrans = program.getUniformLocation("u_worldTrans")
-    u_shadowProjViewTrans = program.getUniformLocation("u_shadowProjViewTrans")
-    u_texture = program.getUniformLocation("u_texture")
-    u_depthMap = program.getUniformLocation("u_depthMap")
-    */
   }
 
   override def compareTo(other: Shader): Int = 0
@@ -79,8 +72,6 @@ uniform vec3 lightPos;
 
     program.begin()
 
-    //program.setUniformMatrix(u_projViewTrans, camera.combined)
-    //program.setUniformMatrix(u_shadowProjViewTrans, light.combined)
     program.setUniformMatrix(u_viewTrans, cam.view)
     program.setUniformMatrix(u_projTrans, cam.projection)
     program.setUniformMatrix(u_shadowProjViewTrans, light.combined)

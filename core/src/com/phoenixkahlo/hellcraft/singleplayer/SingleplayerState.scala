@@ -157,7 +157,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     }
 
     // render
-    renderer.render(Seq(provider))
+    renderer.render(toRender, Seq(provider))
   }
 
   override def onExit(): Unit = {

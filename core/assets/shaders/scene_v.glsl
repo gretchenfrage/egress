@@ -9,7 +9,7 @@ uniform mat4 u_worldTrans;
 uniform mat4 u_viewTrans;
 uniform mat4 u_projTrans;
 uniform mat4 u_shadowProjViewTrans;
-uniform vec3 lightPos;
+uniform vec3 u_lightPos;
 
 varying vec3 v_pos;
 
@@ -45,7 +45,7 @@ void main() {
     // only valid if world trans matrix does not scale the model
     v_normalCamSpace = (u_viewTrans * u_worldTrans * vec4(a_normal, 0)).xyz;
     vec3 vertPosCamSpace = (u_viewTrans * u_worldTrans * vec4(a_position, 1)).xyz;
-    vec3 lightPosCamSpace = (u_viewTrans * vec4(lightPos, 1)).xyz;
+    vec3 lightPosCamSpace = (u_viewTrans * vec4(u_lightPos, 1)).xyz;
     v_camDirCamSpace = -vertPosCamSpace;
     v_lightDirCamSpace = lightPosCamSpace + v_camDirCamSpace;
 

@@ -11,8 +11,7 @@ varying vec3 v_camDirCamSpace;
 
 uniform sampler2D u_texture;
 uniform sampler2D u_depthMap;
-uniform vec3 lightPos;
-
+uniform vec3 u_lightPos;
 
 void main() {
     // constants
