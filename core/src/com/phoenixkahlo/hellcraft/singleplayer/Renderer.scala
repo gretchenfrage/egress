@@ -44,12 +44,8 @@ class Renderer(resources: ResourcePack) extends Disposable {
   lineShader.init()
   val depthShader = new DepthShader
   depthShader.init()
-  val sunShader = new BasicShader(resources.solo(SunTID), SunSID)
-  sunShader.init()
-  val basicSheetShader = new BasicShader(resources.sheet, SceneSID)
-  basicSheetShader.init()
-
-  val sunModel = new SunModel
+  val basicShader = new BasicShader(resources.sheet, SceneSID)
+  basicShader.init()
 
   val batch = new ModelBatch(new ShaderProvider {
     override def getShader(renderable: Renderable): Shader =
@@ -62,9 +58,9 @@ class Renderer(resources: ResourcePack) extends Disposable {
           shader
         }
       } else renderable.userData.asInstanceOf[ShaderID] match {
-        case SceneSID => sceneShader
+        //case SceneSID => sceneShader
+        case SceneSID => basicShader
         case LineSID => lineShader
-        case SunSID => sunShader
       }
 
     override def dispose(): Unit = ()
@@ -108,7 +104,6 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
     sceneShader.depthMap = lightBuffer.getColorBufferTexture
 
-    //Gdx.gl.glClearColor(0.5089f, 0.6941f, 1f, 1f)
     Gdx.gl.glClearColor(skyColor.x, skyColor.y, skyColor.z, 1f)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
     Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
@@ -116,7 +111,6 @@ class Renderer(resources: ResourcePack) extends Disposable {
     if (!Gdx.input.isKeyPressed(Keys.M)) {
       batch.begin(cam)
       batch.render(JavaConverters.asJavaIterable(providers), environment)
-      //batch.render(sunModel.renderable)
       batch.end()
     } else {
       depthBatch.begin(lightCam)
