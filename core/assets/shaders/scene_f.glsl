@@ -32,7 +32,7 @@ void main() {
     // material properties
     vec3 diffuseCol = texture2D(u_texture, v_texCoord0).rgb;
     vec3 ambientCol = vec3(0.3) * diffuseCol;
-    vec3 specularCol = vec3(0.1);
+    vec3 specularCol = vec3(1, 1, 1) * 0.05;
 
     // cos of the angle between the normal and light directions clamped above 0
     vec3 n = normalize(v_normalCamSpace);

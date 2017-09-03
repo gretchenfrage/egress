@@ -20,6 +20,7 @@ case object CursorTID extends SheetTextureID
 sealed trait SoloTextureID
 case object ButtonTID extends SoloTextureID
 case object ButtonActiveTID extends SoloTextureID
+case object SunTID extends SoloTextureID
 
 sealed trait PixmapID
 case object MenuPatchPID extends PixmapID
@@ -66,7 +67,8 @@ class DefaultResourcePack extends ResourcePack {
 
   val solos: Map[SoloTextureID, Texture] = Seq(
     ButtonTID -> "button.png",
-    ButtonActiveTID -> "button_active.png"
+    ButtonActiveTID -> "button_active.png",
+    SunTID -> "sun.png"
   ) map { case (tid, path) => (tid, new Texture(Gdx.files.internal(path))) } toMap
 
   override def solo(texID: SoloTextureID): Texture =

@@ -10,7 +10,7 @@ import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.utils.{DefaultShaderProvider, ShaderProvider}
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.utils.Disposable
-import com.phoenixkahlo.hellcraft.graphics.ResourcePack
+import com.phoenixkahlo.hellcraft.graphics.{ResourcePack, SunModel, SunTID}
 import com.phoenixkahlo.hellcraft.graphics.shaders._
 import com.phoenixkahlo.hellcraft.math._
 
@@ -38,54 +38,18 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
   var skyColor: V3F = V3F(0.5089f, 0.6941f, 1f)
 
-  def setupSunlight(world: SWorld): Unit = {
-    /*
-    val center = (V3F(cam.position) / 16 floor) * 16
-    val pos = (center + V3F(sunlightSize, 0, 0)).toGdx
-    pos.sub(center toGdx).rotate(South toGdx, world.time.toFloat / DayCycleTicks * 360).add(center toGdx)
-    lightCam.position.set(pos)
-    lightCam.lookAt(center toGdx)
-    lightCam.update()
-    */
-    val cycle = world.time.toFloat / DayCycleTicks.toFloat
-    val sunDir = V3F(-Trig.cos(cycle * 360), Trig.sin(cycle * 360), 0)
-    val worldCenter = V3F(cam.position)
-    val sunPos = worldCenter + (sunDir * worldBoxRad * 1.5f)
-
-    lightCam.position.set(sunPos toGdx)
-    lightCam.lookAt(worldCenter.toGdx)
-    lightCam.update()
-
-    skyColor = V3F(0.5089f, 0.6941f, 1f) * Math.max(0.1f, sunDir.y)
-  }
-
-  /*
-  val (lightBuffer, lightCam) = {
-    val size = LoadDist.fold(Math.max) * 16 * 1.5f
-    val res = (size * ShadowPixelDensity) toInt
-
-    val buffer = new FrameBuffer(Pixmap.Format.RGBA8888, res, res, true)
-    val cam = new OrthographicCamera(size, size)
-    cam.
-  }
-  */
-  /*
-  val lightBuffer = new FrameBuffer(Pixmap.Format.RGBA8888, 1024, 1024, true)
-  val lightCam = new OrthographicCamera(50, 50)
-  lightCam.position.set(0, 10, 0)
-  lightCam.direction.set(V3I(1, -1, 1).normalize.toGdx)
-  lightCam.up.set(0, 1, 0)
-  lightCam.near = 1
-  lightCam.far = 50
-  lightCam.update()
-  */
-
   val sceneShader = new SceneShader(resources.sheet, lightCam)
   sceneShader.init()
   val lineShader = new LineShader
   lineShader.init()
   val depthShader = new DepthShader
   depthShader.init()
+  val sunShader = new BasicShader(resources.solo(SunTID), SunSID)
+  sunShader.init()
+  val basicSheetShader = new BasicShader(resources.sheet, SceneSID)
+  basicSheetShader.init()
+
+  val sunModel = new SunModel
 
   val batch = new ModelBatch(new ShaderProvider {
     override def getShader(renderable: Renderable): Shader =
@@ -100,6 +64,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
       } else renderable.userData.asInstanceOf[ShaderID] match {
         case SceneSID => sceneShader
         case LineSID => lineShader
+        case SunSID => sunShader
       }
 
     override def dispose(): Unit = ()
@@ -110,6 +75,19 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
     override def dispose(): Unit = ()
   })
+
+  def setupSunlight(world: SWorld): Unit = {
+    val cycle = world.time.toFloat / DayCycleTicks.toFloat
+    val sunDir = V3F(-Trig.cos(cycle * 360), Trig.sin(cycle * 360), 0)
+    val worldCenter = V3F(cam.position)
+    val sunPos = worldCenter + (sunDir * worldBoxRad * 1.5f)
+
+    lightCam.position.set(sunPos toGdx)
+    lightCam.lookAt(worldCenter.toGdx)
+    lightCam.update()
+
+    skyColor = V3F(0.5089f, 0.6941f, 1f) * Math.max(0.1f, sunDir.y)
+  }
 
 
   def render(world: SWorld, providers: Seq[RenderableProvider]): Unit = {
@@ -138,6 +116,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
     if (!Gdx.input.isKeyPressed(Keys.M)) {
       batch.begin(cam)
       batch.render(JavaConverters.asJavaIterable(providers), environment)
+      //batch.render(sunModel.renderable)
       batch.end()
     } else {
       depthBatch.begin(lightCam)
