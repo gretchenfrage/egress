@@ -1,6 +1,6 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
-import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.{Gdx, utils}
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics._
 import com.badlogic.gdx.graphics.g3d.shaders.DefaultShader
@@ -9,7 +9,7 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.utils.{DefaultShaderProvider, ShaderProvider}
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
-import com.badlogic.gdx.utils.Disposable
+import com.badlogic.gdx.utils.{Disposable, Pool}
 import com.phoenixkahlo.hellcraft.graphics.{ResourcePack, SunModel, SunTID}
 import com.phoenixkahlo.hellcraft.graphics.shaders._
 import com.phoenixkahlo.hellcraft.math._
@@ -46,6 +46,10 @@ class Renderer(resources: ResourcePack) extends Disposable {
   depthShader.init()
   val basicShader = new BasicShader(resources.sheet, SceneSID)
   basicShader.init()
+  val sunShader = new BasicShader(resources.solo(SunTID), null)
+  sunShader.init()
+
+  val sunModel = new SunModel
 
   val batch = new ModelBatch(new ShaderProvider {
     override def getShader(renderable: Renderable): Shader =
@@ -111,6 +115,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
     if (!Gdx.input.isKeyPressed(Keys.M)) {
       batch.begin(cam)
       batch.render(JavaConverters.asJavaIterable(providers), environment)
+      batch.render(sunModel, environment, sunShader)
       batch.end()
     } else {
       depthBatch.begin(lightCam)
@@ -122,6 +127,9 @@ class Renderer(resources: ResourcePack) extends Disposable {
   override def dispose(): Unit = {
     sceneShader.dispose()
     lineShader.dispose()
+    basicShader.dispose()
+    sunShader.dispose()
+    sunModel.dispose()
   }
 
 }
