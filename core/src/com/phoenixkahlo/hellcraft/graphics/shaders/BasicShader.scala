@@ -23,8 +23,6 @@ class BasicShader(sheet: Texture, shaderID: ShaderID) extends Shader {
   override def init(): Unit = {
     val vert = Gdx.files.internal("shaders/basic_v.glsl").readString()
     val frag = Gdx.files.internal("shaders/basic_f.glsl").readString()
-    println("vert = " + vert)
-    println("frag = " + frag)
     program = new ShaderProgram(vert, frag)
 
     if (!(program isCompiled))
@@ -32,8 +30,6 @@ class BasicShader(sheet: Texture, shaderID: ShaderID) extends Shader {
 
     u_MVP = program.getUniformLocation("u_MVP")
     u_texture = program.getUniformLocation("u_texture")
-    println("u_MVP = " + u_MVP)
-    println("u_texture = " + u_texture)
   }
 
   override def compareTo(other: Shader): Int = 0
@@ -52,7 +48,7 @@ class BasicShader(sheet: Texture, shaderID: ShaderID) extends Shader {
   }
 
   override def render(renderable: Renderable): Unit = {
-    program.setUniformMatrix(u_MVP, renderable.worldTransform.cpy().mul(cam.combined))
+    program.setUniformMatrix(u_MVP, renderable.worldTransform.cpy().mulLeft(cam.combined))
     renderable.meshPart.render(program)
   }
 

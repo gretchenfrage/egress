@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.utils.{DefaultShaderProvider, ShaderProvider}
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
+import com.badlogic.gdx.math.{Matrix4, Quaternion}
 import com.badlogic.gdx.utils.{Disposable, Pool}
 import com.phoenixkahlo.hellcraft.graphics.{ResourcePack, SunModel, SunTID}
 import com.phoenixkahlo.hellcraft.graphics.shaders._
@@ -25,8 +26,8 @@ class Renderer(resources: ResourcePack) extends Disposable {
   val cam = new PerspectiveCamera(70, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
   cam.near = 0.1f
   cam.far = 1000
-  cam.position.set(V3F(-10, 10, -10) toGdx)
-  cam.lookAt(0, 10, 0)
+  cam.position.set(0, 0, -10) //.set(V3F(-10, 10, -10) toGdx)
+  cam.lookAt(0, 0, 0)
 
   val worldBoxRad = LoadDist.fold(Math.max) * 16
   val sunlightRes = (worldBoxRad * 3 * ShadowPixelDensity) toInt
@@ -62,8 +63,8 @@ class Renderer(resources: ResourcePack) extends Disposable {
           shader
         }
       } else renderable.userData.asInstanceOf[ShaderID] match {
-        //case SceneSID => sceneShader
-        case SceneSID => basicShader
+        case SceneSID => sceneShader
+        //case SceneSID => basicShader
         case LineSID => lineShader
       }
 
@@ -87,49 +88,76 @@ class Renderer(resources: ResourcePack) extends Disposable {
     lightCam.update()
 
     skyColor = V3F(0.5089f, 0.6941f, 1f) * Math.max(0.1f, sunDir.y)
-  }
+
+    val sunDist = cam.far * 0.9f
+    val scale = 50
+    sunModel.renderable.worldTransform.set(Array[Float](
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1
+    ))
+    sunModel.renderable.worldTransform
+      .translate(((East * sunDist * Trig.cos(cycle * 360)) + (Up * sunDist * Trig.sin(cycle * 360))) toGdx)
+    sunModel.renderable.worldTransform.rotate(South toGdx, cycle * 360)
+    sunModel.renderable.worldTransform.rotate(Down toGdx, 90)
+    sunModel.renderable.worldTransform.scale(scale, scale, scale)
+
+/*
+val scale = 2
+
+val sunTrans = new Matrix4(Array[Float](
+  scale, 0, 0, 0,
+  0, scale, 0, 0,
+  0, 0, scale, 0,
+  0, 0, 0,     1
+))
+sunModel.renderable.worldTransform.set(sunTrans)
+
+*/
+}
 
 
-  def render(world: SWorld, providers: Seq[RenderableProvider]): Unit = {
-    setupSunlight(world)
+def render(world: SWorld, providers: Seq[RenderableProvider]): Unit = {
+setupSunlight(world)
 
-    val toRender = JavaConverters.asJavaIterable(providers)
+val toRender = JavaConverters.asJavaIterable(providers)
 
-    lightBuffer.begin()
+lightBuffer.begin()
 
-    Gdx.gl.glClearColor(1, 1, 1, 1)
-    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
+Gdx.gl.glClearColor(1, 1, 1, 1)
+Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
 
-    depthBatch.begin(lightCam)
-    depthBatch.render(toRender, environment)
-    depthBatch.end()
+depthBatch.begin(lightCam)
+depthBatch.render(toRender, environment)
+depthBatch.end()
 
-    lightBuffer.end()
+lightBuffer.end()
 
-    sceneShader.depthMap = lightBuffer.getColorBufferTexture
+sceneShader.depthMap = lightBuffer.getColorBufferTexture
 
-    Gdx.gl.glClearColor(skyColor.x, skyColor.y, skyColor.z, 1f)
-    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
-    Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
+Gdx.gl.glClearColor(skyColor.x, skyColor.y, skyColor.z, 1f)
+Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
+Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
 
-    if (!Gdx.input.isKeyPressed(Keys.M)) {
-      batch.begin(cam)
-      batch.render(JavaConverters.asJavaIterable(providers), environment)
-      batch.render(sunModel, environment, sunShader)
-      batch.end()
-    } else {
-      depthBatch.begin(lightCam)
-      depthBatch.render(toRender, environment)
-      depthBatch.end()
-    }
-  }
+if (!Gdx.input.isKeyPressed(Keys.M)) {
+  batch.begin(cam)
+  batch.render(JavaConverters.asJavaIterable(providers), environment)
+  batch.render(sunModel, environment, sunShader)
+  batch.end()
+} else {
+  depthBatch.begin(lightCam)
+  depthBatch.render(toRender, environment)
+  depthBatch.end()
+}
+}
 
-  override def dispose(): Unit = {
-    sceneShader.dispose()
-    lineShader.dispose()
-    basicShader.dispose()
-    sunShader.dispose()
-    sunModel.dispose()
-  }
+override def dispose(): Unit = {
+sceneShader.dispose()
+lineShader.dispose()
+basicShader.dispose()
+sunShader.dispose()
+sunModel.dispose()
+}
 
 }

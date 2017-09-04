@@ -27,8 +27,8 @@ object Up extends Direction(0, 1, 0)
 object Down extends Direction(0, -1, 0)
 object North extends Direction(0, 0, 1)
 object South extends Direction(0, 0, -1)
-object East extends Direction(1, 0, 0)
-object West extends Direction(-1, 0, 0)
+object East extends Direction(-1, 0, 0)
+object West extends Direction(1, 0, 0)
 
 object Directions {
   val directions: List[Direction] = List(Up, Down, North, South, East, West)
