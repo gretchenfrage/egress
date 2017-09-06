@@ -11,7 +11,7 @@ import com.badlogic.gdx.graphics.g3d.utils.{DefaultShaderProvider, ShaderProvide
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.math.{Matrix4, Quaternion}
 import com.badlogic.gdx.utils.{Disposable, Pool}
-import com.phoenixkahlo.hellcraft.graphics.{ResourcePack, SunModel, SunTID}
+import com.phoenixkahlo.hellcraft.graphics.{ResourcePack, SkyPID, SunModel, SunTID}
 import com.phoenixkahlo.hellcraft.graphics.shaders._
 import com.phoenixkahlo.hellcraft.math._
 
@@ -78,25 +78,27 @@ class Renderer(resources: ResourcePack) extends Disposable {
   })
 
   def setupSunlight(world: SWorld): Unit = {
-    val cycle = world.time.toFloat / DayCycleTicks.toFloat
+    val cycle = (world.time.toFloat / DayCycleTicks.toFloat) % 1
     val sunDir = V3F(-Trig.cos(cycle * 360), Trig.sin(cycle * 360), 0)
     val worldCenter = V3F(cam.position)
     val sunPos = worldCenter + (sunDir * worldBoxRad * 1.5f)
 
     lightCam.position.set(sunPos toGdx)
-    lightCam.lookAt(worldCenter.toGdx)
+    lightCam.lookAt(worldCenter toGdx)
     lightCam.update()
 
-    skyColor = V3F(0.5089f, 0.6941f, 1f) * Math.max(0.1f, sunDir.y)
+    //skyColor = V3F(0.5089f, 0.6941f, 1f) * Math.max(0.1f, sunDir.y)
+    val gradient = resources.pixmap(SkyPID)
+    val c = gradient.getPixel(
+      if (cycle > 0.5) (cycle - 0.5) * 2 * gradient.getWidth toInt
+      else (1 - (cycle * 2)) * gradient.getWidth toInt
+      , gradient.getHeight / 2)
+    skyColor = V3F(((c & 0xFF) >> 24) / 255, ((c & 0x00FF) >> 16) / 255, ((c & 0x0000FF) >> 8) / 255)
 
-    val sunDist = cam.far * 0.9f
+
+    val sunDist = 900
     val scale = 50
-    sunModel.renderable.worldTransform.set(Array[Float](
-      1, 0, 0, 0,
-      0, 1, 0, 0,
-      0, 0, 1, 0,
-      0, 0, 0, 1
-    ))
+    sunModel.renderable.worldTransform.setToTranslation(cam.position)
     sunModel.renderable.worldTransform
       .translate(((East * sunDist * Trig.cos(cycle * 360)) + (Up * sunDist * Trig.sin(cycle * 360))) toGdx)
     sunModel.renderable.worldTransform.rotate(South toGdx, cycle * 360)

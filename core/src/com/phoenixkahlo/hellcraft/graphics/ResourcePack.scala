@@ -25,6 +25,7 @@ case object SunTID extends SoloTextureID
 sealed trait PixmapID
 case object MenuPatchPID extends PixmapID
 case object MenuPatchActivePID extends PixmapID
+case object SkyPID extends PixmapID
 
 sealed trait FontID
 case object HeaderFID extends FontID
@@ -94,7 +95,8 @@ class DefaultResourcePack extends ResourcePack {
 
   val pixmaps: Map[PixmapID, Pixmap] = Seq(
     MenuPatchPID -> "button.png",
-    MenuPatchActivePID -> "button_active.png"
+    MenuPatchActivePID -> "button_active.png",
+    SkyPID -> "sky.png"
   ) map { case (pid, path) => (pid, new Pixmap(Gdx.files.internal(path))) } toMap
 
   override def pixmap(pixmapID: PixmapID): Pixmap =
