@@ -13,8 +13,8 @@ object Raytrace {
       if (dir.z < 0) (XYPlane(v.z), v + South)
       else (XYPlane(v.z + 1), v + North)
     val yz: (YZPlane, V3I) =
-      if (dir.x < 0) (YZPlane(v.x), v + West)
-      else (YZPlane(v.x + 1), v + East)
+      if (dir.x < 0) (YZPlane(v.x), v + East)
+      else (YZPlane(v.x + 1), v + West)
     val xz: (XZPlane, V3I) =
       if (dir.y < 0) (XZPlane(v.y), v + Down)
       else (XZPlane(v.y + 1), v + Up)

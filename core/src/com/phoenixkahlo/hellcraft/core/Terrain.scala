@@ -36,19 +36,19 @@ case class Densities(pos: V3I, densities: FractionField) extends Terrain {
     if (canUpgrade(world)) {
       val verts = OptionField(world.resVec, v => {
         val edges: Seq[(V3I, V3I)] = Seq(
-          v -> (v + East),
+          v -> (v + West),
           v -> (v + Up),
           v -> (v + North),
 
-          (v + North) -> (v + East),
-          (v + East) -> (v + V3I(1, 1, 0)),
+          (v + North) -> (v + West),
+          (v + West) -> (v + V3I(1, 1, 0)),
           (v + V3I(1, 0, 1)) -> (v + Ones),
 
           (v + Up) -> (v + V3I(0, 1, 1)),
           (v + Up) -> (v + V3I(1, 1, 0)),
 
           (v + North) -> (v + V3I(1, 0, 1)),
-          (v + East) -> (v + V3I(1, 0, 1)),
+          (v + West) -> (v + V3I(1, 0, 1)),
 
           (v + V3I(0, 1, 1)) -> (v + Ones),
           (v + V3I(1, 1, 0)) -> (v + Ones)
@@ -101,8 +101,8 @@ case class Vertices(pos: V3I, densities: FractionField, vertices: OptionField[V3
 
       val quads = Origin.until(world.resVec)
         .flatMap(v => Seq(
-          (v, v + North, v + North + East, v + East),
-          (v, v + Up, v + Up + East, v + East),
+          (v, v + North, v + North + West, v + West),
+          (v, v + Up, v + Up + West, v + West),
           (v, v + Up, v + Up + North, v + North)
         ))
         .map({ case (v1, v2, v3, v4) => (vert(v1), vert(v2), vert(v3), vert(v4)) })

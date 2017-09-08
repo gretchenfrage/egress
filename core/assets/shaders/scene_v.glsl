@@ -13,6 +13,7 @@ uniform vec3 u_lightPos;
 
 varying vec3 v_pos;
 
+varying vec3 v_normalWorldSpace;
 varying vec2 v_texCoord0;
 varying vec4 v_color;
 varying vec4 v_shadowCoord;
@@ -43,6 +44,7 @@ void main() {
 
     // for normal shading
     // only valid if world trans matrix does not scale the model
+    v_normalWorldSpace = (u_worldTrans * vec4(a_normal, 0)).xyz;
     v_normalCamSpace = (u_viewTrans * u_worldTrans * vec4(a_normal, 0)).xyz;
     vec3 vertPosCamSpace = (u_viewTrans * u_worldTrans * vec4(a_position, 1)).xyz;
     vec3 lightPosCamSpace = (u_viewTrans * vec4(u_lightPos, 1)).xyz;

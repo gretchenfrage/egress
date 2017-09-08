@@ -73,7 +73,11 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           println("closing world")
           driver.enter(new MainMenu(providedResources))
           true
+        } else if (keycode == Keys.J) {
+          println(V3F(renderer.cam.direction))
+          true
         } else false
+
     })
     controller = new FirstPersonCameraController(renderer.cam)
     multiplexer.addProcessor(controller)
