@@ -9,11 +9,30 @@ import com.badlogic.gdx.utils.GdxRuntimeException
 
 class SceneShader(sheet: Texture, light: Camera) extends Shader {
 
+  /*
+uniform mat4 u_worldTrans;
+uniform mat4 u_viewTrans;
+uniform mat4 u_projTrans;
+uniform mat4 u_shadowMVP;
+uniform vec3 lightPos;
+
+uniform sampler2D u_texture;
+uniform sampler2D u_depthMap;
+uniform vec3 lightPos;
+
+   */
 
   var program: ShaderProgram = _
   var cam: Camera = _
   var context: RenderContext = _
 
+  /*
+  var u_projViewTrans: Int = _
+  var u_worldTrans: Int = _
+  var u_shadowProjViewTrans: Int = _
+  var u_texture: Int = _
+  var u_depthMap: Int = _
+  */
   var u_worldTrans: Int = _
   var u_viewTrans: Int = _
   var u_projTrans: Int = _

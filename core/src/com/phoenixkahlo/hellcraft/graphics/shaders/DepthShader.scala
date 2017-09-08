@@ -42,7 +42,7 @@ class DepthShader extends Shader {
   }
 
   override def render(renderable: Renderable): Unit = {
-    program.setUniformMatrix(u_combinedTrans, renderable.worldTransform.cpy.mulLeft(cam.combined))
+    program.setUniformMatrix(u_combinedTrans, renderable.worldTransform.cpy.mul(cam.combined))
     renderable.meshPart.render(program)
   }
 
