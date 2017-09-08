@@ -11,7 +11,7 @@ import com.badlogic.gdx.graphics.g3d.utils.{DefaultShaderProvider, ShaderProvide
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.math.{Matrix4, Quaternion}
 import com.badlogic.gdx.utils.{Disposable, Pool}
-import com.phoenixkahlo.hellcraft.graphics.{ResourcePack, SunModel, SunTID}
+import com.phoenixkahlo.hellcraft.graphics.{ResourcePack, SkyPID, SunModel, SunTID}
 import com.phoenixkahlo.hellcraft.graphics.shaders._
 import com.phoenixkahlo.hellcraft.math._
 
@@ -32,7 +32,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
   val worldBoxRad = LoadDist.fold(Math.max) * 16
   val sunlightRes = (worldBoxRad * 3 * ShadowPixelDensity) toInt
   val lightBuffer = new FrameBuffer(Pixmap.Format.RGBA8888, sunlightRes, sunlightRes, true)
-  val lightCam = new OrthographicCamera(worldBoxRad * 3 , worldBoxRad * 3 )
+  val lightCam = new OrthographicCamera(worldBoxRad * 3, worldBoxRad * 3)
   lightCam.up.set(V3F(0.0001f, 1, 0).normalize.toGdx)
   lightCam.near = 1
   lightCam.far = worldBoxRad * 3
@@ -78,7 +78,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
   })
 
   def setupSunlight(world: SWorld): Unit = {
-    val cycle = world.time.toFloat / DayCycleTicks.toFloat
+    val cycle = world.time.toFloat / DayCycleTicks.toFloat % 1
     val sunDir = V3F(-Trig.cos(cycle * 360), Trig.sin(cycle * 360), 0)
     val worldCenter = V3F(cam.position)
     val sunPos = worldCenter + (sunDir * worldBoxRad * 1.5f)
@@ -87,7 +87,56 @@ class Renderer(resources: ResourcePack) extends Disposable {
     lightCam.lookAt(worldCenter.toGdx)
     lightCam.update()
 
-    skyColor = V3F(0.5089f, 0.6941f, 1f) * Math.max(0.1f, sunDir.y)
+    //skyColor = V3F(0.5089f, 0.6941f, 1f)
+
+    val dayColor = V3F(0.5089f, 0.6941f, 1f)
+    val nightColor = V3F(0.0039f, 0.0471f, 0.1843f)
+    val transFrac = 0.1f
+
+    var trans: Float = 0
+    var from: V3F = null
+    var to: V3F = null
+    if (cycle < transFrac / 2 || cycle > 1 - transFrac / 2) {
+      // sunrise
+      trans = (cycle + transFrac / 2) % 1 / transFrac
+      from = nightColor
+      to = dayColor
+    } else if (cycle > 0.5f - transFrac / 2 && cycle < 0.5f + transFrac / 2) {
+      // sunset
+      trans = (cycle + transFrac / 2 - 0.5f) / transFrac
+      from = dayColor
+      to = nightColor
+    } else if (cycle < 0.5f) {
+      // day
+      from = dayColor
+      to = dayColor
+    } else {
+      // night
+      from = nightColor
+      to = nightColor
+    }
+    /*
+    val (trans: Float, from: V3F, to: V3F) =
+      if (cycle < transFrac / 2 || cycle > 1 - transFrac / 2) {
+        // sunrise
+        ((cycle + transFrac / 2) % 1 / transFrac, nightColor, dayColor)
+      } else if (cycle > 0.5f - transFrac / 2 && cycle < 0.5f + transFrac / 2) {
+        // sunset
+        (cycle + transFrac / 2 - 0.5f, dayColor, nightColor)
+      } else if (cycle < 0.5f) {
+        // day
+        (0, dayColor, dayColor)
+      } else {
+        // night
+        (0, nightColor, nightColor)
+      }
+      */
+
+
+    //skyColor = to
+    //skyColor = ((to - from) * (Trig.sin(trans * 360 - 180) / 2 + 0.5f)) + from
+    skyColor = ((to - from) * trans) + from
+
 
     val sunDist = cam.far * 0.9f
     val scale = 50
@@ -103,61 +152,49 @@ class Renderer(resources: ResourcePack) extends Disposable {
     sunModel.renderable.worldTransform.rotate(Down toGdx, 90)
     sunModel.renderable.worldTransform.scale(scale, scale, scale)
 
-/*
-val scale = 2
-
-val sunTrans = new Matrix4(Array[Float](
-  scale, 0, 0, 0,
-  0, scale, 0, 0,
-  0, 0, scale, 0,
-  0, 0, 0,     1
-))
-sunModel.renderable.worldTransform.set(sunTrans)
-
-*/
-}
+  }
 
 
-def render(world: SWorld, providers: Seq[RenderableProvider]): Unit = {
-setupSunlight(world)
+  def render(world: SWorld, providers: Seq[RenderableProvider]): Unit = {
+    setupSunlight(world)
 
-val toRender = JavaConverters.asJavaIterable(providers)
+    val toRender = JavaConverters.asJavaIterable(providers)
 
-lightBuffer.begin()
+    lightBuffer.begin()
 
-Gdx.gl.glClearColor(1, 1, 1, 1)
-Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
+    Gdx.gl.glClearColor(1, 1, 1, 1)
+    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
 
-depthBatch.begin(lightCam)
-depthBatch.render(toRender, environment)
-depthBatch.end()
+    depthBatch.begin(lightCam)
+    depthBatch.render(toRender, environment)
+    depthBatch.end()
 
-lightBuffer.end()
+    lightBuffer.end()
 
-sceneShader.depthMap = lightBuffer.getColorBufferTexture
+    sceneShader.depthMap = lightBuffer.getColorBufferTexture
 
-Gdx.gl.glClearColor(skyColor.x, skyColor.y, skyColor.z, 1f)
-Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
-Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
+    Gdx.gl.glClearColor(skyColor.x, skyColor.y, skyColor.z, 1f)
+    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
+    Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
 
-if (!Gdx.input.isKeyPressed(Keys.M)) {
-  batch.begin(cam)
-  batch.render(JavaConverters.asJavaIterable(providers), environment)
-  batch.render(sunModel, environment, sunShader)
-  batch.end()
-} else {
-  depthBatch.begin(lightCam)
-  depthBatch.render(toRender, environment)
-  depthBatch.end()
-}
-}
+    if (!Gdx.input.isKeyPressed(Keys.M)) {
+      batch.begin(cam)
+      batch.render(JavaConverters.asJavaIterable(providers), environment)
+      batch.render(sunModel, environment, sunShader)
+      batch.end()
+    } else {
+      depthBatch.begin(lightCam)
+      depthBatch.render(toRender, environment)
+      depthBatch.end()
+    }
+  }
 
-override def dispose(): Unit = {
-sceneShader.dispose()
-lineShader.dispose()
-basicShader.dispose()
-sunShader.dispose()
-sunModel.dispose()
-}
+  override def dispose(): Unit = {
+    sceneShader.dispose()
+    lineShader.dispose()
+    basicShader.dispose()
+    sunShader.dispose()
+    sunModel.dispose()
+  }
 
 }
