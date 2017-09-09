@@ -44,7 +44,11 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     val res = 32
 
     println("activating uni executor")
-    UniExecutor.activate(Runtime.getRuntime.availableProcessors() - 2, new Thread(_, "uni exec thread"), t => {
+    UniExecutor.activate(Runtime.getRuntime.availableProcessors() - 2, task => {
+      val thread = new Thread(task, "uni exec thread")
+      thread.setPriority(backgroundThreadPriority)
+      thread
+    }, t => {
       System.err.println("uni executor failure")
       t.printStackTrace()
       driver.enter(new MainMenu(providedResources))
@@ -86,11 +90,11 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     println("instantiating VRAM graph")
     vramGraph = new DependencyGraph
 
-    Thread.currentThread().setPriority(10)
+    Thread.currentThread().setPriority(renderLoopThreadPriority)
 
     println("spawning updating thread")
     updateThread = new Thread(this, "update thread")
-    updateThread.setPriority(10)
+    updateThread.setPriority(mainLoopThreadPriority)
     clock.reset()
     updateThread.start()
 
@@ -157,7 +161,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     // convert to provider
     val provider = new RenderableProvider {
       override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit =
-        units.flatMap(_(interpolation)).foreach(renderables.add)
+        units.flatMap(_ (interpolation)).foreach(renderables.add)
     }
 
     // render

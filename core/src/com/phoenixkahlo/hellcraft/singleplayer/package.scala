@@ -20,4 +20,9 @@ package object singleplayer {
   val DayCycleTicks = DayCycleTime.toSeconds * Delta.updatesPerSecond
   val ShadowPixelDensity = 10
 
+  val mainLoopThreadPriority = 3
+  val renderLoopThreadPriority = 3
+  val backgroundThreadPriority = 1
+  val useParCollections = false
+
 }

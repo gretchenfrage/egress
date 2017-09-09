@@ -80,9 +80,16 @@ class SWorld(
     * equals frequency.
     */
   def integrate(events: Map[V3I, Seq[ChunkEvent]], mod: Int, freq: V3I): SWorld = {
-    val updated = events.filterKeys(_ % mod == freq).par.map({
-      case (p, group) => group.foldLeft(chunks(p)) { case (c, e) => e(c) }
-    }).toSeq.seq
+    val updated =
+      if (useParCollections) {
+        events.par.filterKeys(_ % mod == freq).map({
+          case (p, group) => group.foldLeft(chunks(p)) { case (c, e) => e(c) }
+        }).toSeq.seq
+      } else {
+        events.filterKeys(_ % mod == freq).map({
+          case (p, group) => group.foldLeft(chunks(p)) { case (c, e) => e(c) }
+        }).toSeq
+      }
     this ++ updated
   }
 
