@@ -1,11 +1,14 @@
 package com.phoenixkahlo.hellcraft
 
+import java.lang.reflect.ParameterizedType
 import java.util.UUID
 
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
 
 import scala.concurrent.duration._
 import com.phoenixkahlo.hellcraft.math.V3I
+
+import scala.reflect.ClassTag
 
 package object singleplayer {
 
@@ -26,3 +29,6 @@ package object singleplayer {
   val useParCollections = false
 
 }
+
+class Bar[T]
+class Baz extends Bar[String]

@@ -33,5 +33,7 @@ object East extends Direction(-1, 0, 0)
 object Directions {
   val directions: List[Direction] = List(Up, Down, North, South, West, East)
 
+  val tuple = (Up, Down, North, South, West, East)
+
   def apply(): List[Direction] = directions
 }

@@ -18,7 +18,7 @@ sealed trait Terrain {
 
   def getVertices: Option[OptionField[V3F]] = None
 
-  def getQuads: Option[Seq[Quad]] = None
+  def asFacets: Option[Facets] = None
 
   def terrainType: TerrainType
 
@@ -92,26 +92,43 @@ case class Vertices(pos: V3I, densities: FractionField, vertices: OptionField[V3
     dependencies.map(world.chunkAt(_).flatMap(_.terrain.getVertices)).forall(_.isDefined)
   }
 
-  def upgrade(world: World): Option[Quads] = {
+  def upgrade(world: World): Option[Facets] = {
     if (canUpgrade(world)) {
       def vert(v: V3I): Option[V3F] = {
         val global = (pos * world.res) + v
         world.chunkAt(global / world.res floor).get.terrain.getVertices.get.apply(global % world.res)
       }
 
-      val quads = Origin.until(world.resVec)
-        .flatMap(v => Seq(
-          (v, v + North, v + North + West, v + West),
-          (v, v + Up, v + Up + West, v + West),
-          (v, v + Up, v + Up + North, v + North)
-        ))
-        .map({ case (v1, v2, v3, v4) => (vert(v1), vert(v2), vert(v3), vert(v4)) })
-        .flatMap({
-          case (Some(a), Some(b), Some(c), Some(d)) => Some(Quad(a, b, c, d))
-          case _ => None
+      def facets(d1: V3I, d2: V3I, d3: V3I, dir: Direction): OptionField[Tri] =
+        OptionField(world.resVec, v => {
+          (vert(v + d1), vert(v + d2), vert(v + d3)) match {
+            case (Some(a), Some(b), Some(c)) =>
+              val tri = Tri(a, b, c)
+              if (world.sampleDirection(tri.center).get.dot(dir) > 0) Some(tri)
+              else Some(tri.reverse)
+            case _ => None
+          }
         })
 
-      Some(Quads(pos, densities, vertices, quads))
+
+      /*
+      val upgraded = Facets(pos, densities, vertices,
+        facets(Origin, Up + North, Up, East), facets(Origin, North, North + Up, East),
+        facets(Origin, Up + East, Up, North), facets(Origin, East, East + Up, North),
+        facets(Origin, North, North + East, Down), facets(Origin, North + East, East, Down)
+      )
+      */
+
+      val empty = OptionField.empty[Tri](world.resVec)
+      val upgraded = Facets(pos, densities, vertices,
+        empty, empty,
+        empty, empty,
+        facets(Origin, North, North + East, Down), facets(Origin, North + East, East, Down)
+      )
+
+
+      Some(upgraded)
+
     } else None
   }
 
@@ -122,12 +139,18 @@ case class Vertices(pos: V3I, densities: FractionField, vertices: OptionField[V3
 object Vertices extends TerrainType
 
 @CarboniteWith(classOf[FieldNode])
-case class Quads(pos: V3I, densities: FractionField, vertices: OptionField[V3F], quads: Seq[Quad]) extends Terrain {
+case class Facets(pos: V3I, densities: FractionField, vertices: OptionField[V3F],
+                  a: OptionField[Tri], b: OptionField[Tri],
+                  c: OptionField[Tri], d: OptionField[Tri],
+                  e: OptionField[Tri], f: OptionField[Tri]) extends Terrain with Iterable[Tri] {
   override def getVertices = Some(vertices)
 
-  override def getQuads = Some(quads)
+  override def asFacets = Some(this)
 
-  override def terrainType: TerrainType = Quads
+  override def terrainType: TerrainType = Facets
+
+  override def iterator: Iterator[Tri] =
+    Iterator(a, b, c, d, e, f).map(_.iterator).flatten
 }
 
-object Quads extends TerrainType
+object Facets extends TerrainType

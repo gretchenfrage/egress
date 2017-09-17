@@ -20,8 +20,8 @@ class Chunk(
 
   @transient lazy val mesher: Option[ChunkMesher] = Option(lastMesher) match {
     case last if last isDefined => last
-    case None => terrain.getQuads match {
-      case Some(quads) => Some(new ChunkMesher(this, quads))
+    case None => terrain.asFacets match {
+      case Some(facets) => Some(new ChunkMesher(this, facets))
       case None => None
     }
   }
@@ -55,56 +55,3 @@ class Chunk(
   }
 
 }
-
-/*
-@CarboniteWith(classOf[FieldNode])
-class Chunk(
-           val pos: V3I,
-           val densities: FractionField,
-           val entities: Map[UUID, Entity] = Map.empty,
-           @transient lastTerrain: Terrain = null,
-           @transient lastMesher: ChunkMesher = null
-           ) {
-
-  def putEntity(entity: Entity): Chunk =
-    new Chunk(pos, densities, entities.updated(entity.id, entity), terrain, mesher)
-
-  def removeEntity(entity: UUID): Chunk =
-    new Chunk(pos, densities, entities - entity, terrain, mesher)
-
-  @transient val terrain: Terrain = Option(lastTerrain).getOrElse(new Terrain(this))
-  @transient val mesher: ChunkMesher = Option(lastMesher).getOrElse(new ChunkMesher(this))
-
-  def renderables(pack: ResourcePack, world: World): Seq[RenderUnit] = {
-    mesher(world, pack) ++ entities.values.flatMap(_.renderables(pack))
-  }
-
-  def isMeshable(getChunk: V3I => Option[Chunk]): Boolean = {
-    terrain.vertices(new World {
-      override def chunkAt(p: V3I): Option[Chunk] = getChunk(p)
-
-      override def time: Long = ???
-
-      override def res: Int = 16
-
-      override def findEntity(id: UUID): Option[Entity] = ???
-    }).nonEmpty
-  }
-
-  def update(world: World, dt: Float): Seq[ChunkEvent] = {
-    val seed: Long = (world.time.hashCode().toLong << 32) | pos.hashCode().toLong
-    val idStreams: Stream[Stream[UUID]] = RNG.meta(RNG(seed), RNG.uuids)
-    entities.values.zip(idStreams).flatMap({ case (entity, ids) => entity.update(world, ids, dt) }).toSeq
-  }
-
-  override def hashCode(): Int =
-    Objects.hash(pos, densities, entities)
-
-  override def equals(obj: scala.Any): Boolean =
-    obj match {
-      case chunk: Chunk => pos == chunk.pos && densities == chunk.densities && entities == chunk.entities
-      case _ => false
-    }
-
-}
-*/

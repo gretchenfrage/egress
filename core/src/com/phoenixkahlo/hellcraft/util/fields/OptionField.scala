@@ -10,10 +10,11 @@ import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 import scala.reflect.ClassTag
 
 @CarboniteWith(classOf[FieldNode])
-class OptionField[T <: AnyRef] private(private val data: Either[Array[T], Vector[T]], val size: V3I) {
+class OptionField[T <: AnyRef] private(private val data: Either[Array[T], Vector[T]], val sizeVec: V3I)
+  extends Iterable[T] {
 
-  val isEmpty: Boolean = Origin.until(size).map(apply).forall(_.isEmpty)
-  val nonEmpty: Boolean = !isEmpty
+  override val isEmpty: Boolean = Origin.until(sizeVec).map(apply).forall(_.isEmpty)
+  override val nonEmpty: Boolean = !isEmpty
 
   private def asVector: Vector[T] = data match {
     case Left(arr) => arr.to[Vector]
@@ -26,22 +27,26 @@ class OptionField[T <: AnyRef] private(private val data: Either[Array[T], Vector
   }
 
   def updated(v: V3I, d: T): OptionField[T] = {
-    new OptionField[T](Right(asVector.updated(size.compress(v), d)), size)
+    new OptionField[T](Right(asVector.updated(sizeVec.compress(v), d)), sizeVec)
   }
 
   def apply(v: V3I): Option[T] =
-    if (v >= Origin && v < size) data match {
-      case Left(arr) => Option(arr(size.compress(v)))
-      case Right(vec) => Option(vec(size.compress(v)))
+    if (v >= Origin && v < sizeVec) data match {
+      case Left(arr) => Option(arr(sizeVec.compress(v)))
+      case Right(vec) => Option(vec(sizeVec.compress(v)))
     } else None
 
   override def hashCode(): Int =
     Objects.hash(asArray: _*)
 
+
+  override def iterator: Iterator[T] =
+    Origin.until(sizeVec).iterator.flatMap(apply)
+
   override def equals(obj: scala.Any): Boolean =
-    if (obj.isInstanceOf[AnyRef] && this.eq(obj.asInstanceOf[AnyRef])) true
-    else obj match {
-      case field: OptionField[T] => Origin.until(size).forall(v => this (v) == field(v))
+    obj match {
+      case value: AnyRef if this.eq(value) => true
+      case field: OptionField[T] => Origin.until(sizeVec).forall(v => this (v) == field(v))
       case _ => false
     }
 
@@ -53,10 +58,14 @@ class OptionField[T <: AnyRef] private(private val data: Either[Array[T], Vector
 object OptionField {
 
   def apply[T <: AnyRef](size: V3I, gen: V3I => Option[T]): OptionField[T] = {
-    //val arr = java.lang.reflect.Array.newInstance(tag.runtimeClass, size.fold(_ * _)).asInstanceOf[Array[T]]
     val arr = new Array[AnyRef](size.fold(_ * _)).asInstanceOf[Array[T]]
     for (i <- arr.indices)
       gen(size.decompress(i)).foreach(arr(i) = _)
+    new OptionField(Left(arr), size)
+  }
+
+  def empty[T <: AnyRef](size: V3I): OptionField[T] = {
+    val arr = new Array[AnyRef](size.fold(_ * _)).asInstanceOf[Array[T]]
     new OptionField(Left(arr), size)
   }
 

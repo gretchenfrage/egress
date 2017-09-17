@@ -11,6 +11,12 @@ case class Tri(a: V3F, b: V3F, c: V3F) extends Facet {
   def bothSides: Seq[Tri] =
     Seq(this, Tri(c, b, a))
 
+  def reverse: Tri =
+    Tri(c, b, a)
+
+  def center: V3F =
+    (a + b + c) / 3
+
 }
 
 @CarboniteWith(classOf[FieldNode])

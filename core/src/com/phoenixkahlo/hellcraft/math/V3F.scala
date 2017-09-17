@@ -120,6 +120,10 @@ class V3F(val x: Float, val y: Float, val z: Float) {
   def normalize =
     this / magnitude
 
+  def tryNormalize =
+    if (this == Origin) Origin
+    else this.normalize
+
   def angleWith(v: V3F) =
     Trig.acos(this.normalize dot v.normalize)
 

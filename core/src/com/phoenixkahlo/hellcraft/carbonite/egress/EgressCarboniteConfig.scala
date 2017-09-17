@@ -11,7 +11,7 @@ object EgressCarboniteConfig extends DefaultCarboniteConfig {
   register[Chunk]()
   register[Densities]()
   register[Vertices]()
-  register[Quads]()
+  register[Facets]()
 
   register[AddEntity]()
   register[RemoveEntity]()

@@ -1,22 +1,14 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
-import com.badlogic.gdx.{Gdx, InputAdapter, InputMultiplexer}
 import com.badlogic.gdx.Input.Keys
-import com.badlogic.gdx.graphics.Pixmap.Format
-import com.badlogic.gdx.graphics.{Color, GL20, PerspectiveCamera}
-import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
-import com.badlogic.gdx.graphics.g3d.environment.{DirectionalLight, DirectionalShadowLight}
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g3d._
-import com.badlogic.gdx.graphics.g3d.shaders.DefaultShader
-import com.badlogic.gdx.graphics.g3d.utils.{BaseShaderProvider, DepthShaderProvider, FirstPersonCameraController, ShaderProvider}
-import com.badlogic.gdx.graphics.glutils.FrameBuffer
-import com.badlogic.gdx.math.Vector3
+import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.utils.Pool
-import com.phoenixkahlo.hellcraft.core.{Densities, Quads, Vertices}
-import com.phoenixkahlo.hellcraft.gamedriver.{Delta, GameDriver, GameState}
+import com.badlogic.gdx.{Gdx, InputAdapter, InputMultiplexer}
+import com.phoenixkahlo.hellcraft.core.{Densities, Facets, Vertices}
+import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics.{ChunkOutline, NoInterpolation, ResourcePack}
-import com.phoenixkahlo.hellcraft.graphics._
-import com.phoenixkahlo.hellcraft.graphics.shaders._
 import com.phoenixkahlo.hellcraft.math.V3F
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.util.DependencyGraph
@@ -25,7 +17,6 @@ import com.phoenixkahlo.hellcraft.util.threading.UniExecutor
 import other.AppDirs
 
 import scala.concurrent.duration._
-import scala.collection.SortedMap
 
 
 class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameState with Runnable {
@@ -142,7 +133,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       toRender.chunks.values.map(_.terrain).foreach {
         case Densities(p, _) => units +:= new ChunkOutline(p, Color.RED)
         case Vertices(p, _, _) => units +:= new ChunkOutline(p, Color.BLUE)
-        case Quads(p, _, _, _) => units +:= new ChunkOutline(p, Color.GREEN)
+        case Facets(p, _, _, _, _, _, _, _, _) => units +:= new ChunkOutline(p, Color.GREEN)
       }
     }
 
