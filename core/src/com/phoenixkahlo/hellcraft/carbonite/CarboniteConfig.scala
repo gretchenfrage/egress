@@ -64,7 +64,8 @@ class DefaultCarboniteConfig extends CarboniteConfig {
     if (clazz.isAnnotationPresent(classOf[CarboniteWith])) {
       clazz.getAnnotation(classOf[CarboniteWith]).value.asInstanceOf[Class[_ <: NodeType]]
         .getConstructor(classOf[Class[_]]).newInstance(clazz)
-    }
+    } else if (clazz.isAnnotationPresent(classOf[CarboniteFields]))
+      new FieldNode(clazz)
     // externalizable
     else if (clazz.getInterfaces.contains(classOf[Externalizable]))
       new ExternalizableNode(clazz.asInstanceOf[Class[Externalizable]])

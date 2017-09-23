@@ -20,8 +20,8 @@ class Chunk(
 
   @transient lazy val mesher: Option[ChunkMesher] = Option(lastMesher) match {
     case last if last isDefined => last
-    case None => terrain.asFacets match {
-      case Some(facets) => Some(new ChunkMesher(this, facets))
+    case None => terrain.asMeshable match {
+      case Some(meshable) => Some(new ChunkMesher(this, meshable))
       case None => None
     }
   }

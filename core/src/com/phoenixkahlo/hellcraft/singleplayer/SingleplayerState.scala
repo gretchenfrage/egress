@@ -6,7 +6,7 @@ import com.badlogic.gdx.graphics.g3d._
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.utils.Pool
 import com.badlogic.gdx.{Gdx, InputAdapter, InputMultiplexer}
-import com.phoenixkahlo.hellcraft.core.{Densities, Facets, Vertices}
+import com.phoenixkahlo.hellcraft.core.{Densities, Meshable, Vertices}
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics.{ChunkOutline, NoInterpolation, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.V3F
@@ -133,7 +133,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       toRender.chunks.values.map(_.terrain).foreach {
         case Densities(p, _) => units +:= new ChunkOutline(p, Color.RED)
         case Vertices(p, _, _) => units +:= new ChunkOutline(p, Color.BLUE)
-        case Facets(p, _, _, _, _, _, _, _, _) => units +:= new ChunkOutline(p, Color.GREEN)
+        case Meshable(p, _, _, _, _) => units +:= new ChunkOutline(p, Color.GREEN)
       }
     }
 

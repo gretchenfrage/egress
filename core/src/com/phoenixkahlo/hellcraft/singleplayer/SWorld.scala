@@ -51,7 +51,7 @@ class SWorld(
       removed.chunks ++ cs.map(c => c.pos -> c),
       removed.state1 ++ grouped(Densities),
       removed.state2 ++ grouped(Vertices),
-      removed.state3 ++ grouped(Facets)
+      removed.state3 ++ grouped(Meshable)
     )
   }
 
@@ -62,7 +62,7 @@ class SWorld(
       removed.chunks + (c.pos -> c),
       if (group == Densities) removed.state1 + c.pos else removed.state1,
       if (group == Vertices) removed.state2 + c.pos else removed.state2,
-      if (group == Facets) removed.state3 + c.pos else removed.state3
+      if (group == Meshable) removed.state3 + c.pos else removed.state3
     )
   }
 
@@ -172,7 +172,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
         val upgraded = chunk.terrain match {
           case d: Densities => d.upgrade(upgradeWith).get
           case v: Vertices => v.upgrade(upgradeWith).get
-          case q: Facets => ???
+          case q: Meshable => ???
         }
         upgradeQueue.add(upgraded -> upgradeID)
       })
