@@ -124,6 +124,7 @@ class ChunkMesher(chunk: Chunk, meshable: Meshable) {
     new RenderUnit {
       override def apply(interpolation: Interpolation): Seq[Renderable] =
         Seq(mesh(pack))
+        //Seq(mesh(pack), gradient(()))
         //Seq(mesh(pack), gradient(()), density(world))
 
       override def resources: Seq[ResourceNode] =

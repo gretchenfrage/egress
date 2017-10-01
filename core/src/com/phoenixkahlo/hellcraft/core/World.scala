@@ -34,12 +34,15 @@ trait World {
       val v0 = vGrid.floor.toInts
       val v1 = v0 + Ones
       if (v0.to(v1).map(_ / res floor).forall(chunkAt(_).isDefined)) {
+        // alias for the function
+        val dgp: V3I => Option[Float] = densityGridPoint
+
         val d = (vGrid - v0) \\ (v1 - v0)
 
-        val c00 = densityGridPoint(V3I(v0.xi, v0.yi, v0.zi)).get * (1 - d.x) + densityGridPoint(V3I(v1.xi, v0.yi, v0.zi)).get * d.x
-        val c01 = densityGridPoint(V3I(v0.xi, v0.yi, v1.zi)).get * (1 - d.x) + densityGridPoint(V3I(v1.xi, v0.yi, v1.zi)).get * d.x
-        val c10 = densityGridPoint(V3I(v0.xi, v1.yi, v0.zi)).get * (1 - d.x) + densityGridPoint(V3I(v1.xi, v1.yi, v0.zi)).get * d.x
-        val c11 = densityGridPoint(V3I(v0.xi, v1.yi, v1.zi)).get * (1 - d.x) + densityGridPoint(V3I(v1.xi, v1.yi, v1.zi)).get * d.x
+        val c00 = dgp(V3I(v0.xi, v0.yi, v0.zi)).get * (1 - d.x) + dgp(V3I(v1.xi, v0.yi, v0.zi)).get * d.x
+        val c01 = dgp(V3I(v0.xi, v0.yi, v1.zi)).get * (1 - d.x) + dgp(V3I(v1.xi, v0.yi, v1.zi)).get * d.x
+        val c10 = dgp(V3I(v0.xi, v1.yi, v0.zi)).get * (1 - d.x) + dgp(V3I(v1.xi, v1.yi, v0.zi)).get * d.x
+        val c11 = dgp(V3I(v0.xi, v1.yi, v1.zi)).get * (1 - d.x) + dgp(V3I(v1.xi, v1.yi, v1.zi)).get * d.x
 
         val c0 = c00 * (1 - d.y) + c10 * d.y
         val c1 = c01 * (1 - d.y) + c11 * d.y
@@ -59,35 +62,13 @@ trait World {
   }
 
   /**
-    * Samples the density field's direction at an arbitrary point using trilinear interpolation of unit vectors.
+    * Samples the density field's direction at an arbitrary point.
     */
   def sampleDirection(v: V3F): Option[V3F] = {
     Directions().map(d => sampleDensity(d * 0.01f + v).map(d * _)).fold(Some(Origin))({
       case (Some(a), Some(b)) => Some(a + b)
       case _ => None
     }).map(_ / 6).map(_.tryNormalize)
-    /*
-    if (v % 1 == Origin) direction(v.toInts)
-    else {
-      val v0 = v.floor.toInts
-      val v1 = v0 + Ones
-      if (v0.to(v1).map(_ / res floor).forall(chunkAt(_).isDefined)) {
-        val d = (v - v0) \\ (v1 - v0)
-
-        val c00 = direction(V3I(v0.xi, v0.yi, v0.zi)).get * (1 - d.x) + direction(V3I(v1.xi, v0.yi, v0.zi)).get * d.x
-        val c01 = direction(V3I(v0.xi, v0.yi, v1.zi)).get * (1 - d.x) + direction(V3I(v1.xi, v0.yi, v1.zi)).get * d.x
-        val c10 = direction(V3I(v0.xi, v1.yi, v0.zi)).get * (1 - d.x) + direction(V3I(v1.xi, v1.yi, v0.zi)).get * d.x
-        val c11 = direction(V3I(v0.xi, v1.yi, v1.zi)).get * (1 - d.x) + direction(V3I(v1.xi, v1.yi, v1.zi)).get * d.x
-
-        val c0 = c00 * (1 - d.y) + c10 * d.y
-        val c1 = c01 * (1 - d.y) + c11 * d.y
-
-        val c = c0 * (1 - d.z) + c1 * d.z
-
-        Some(c.tryNormalize)
-      } else None
-    }
-    */
   }
 
 }
