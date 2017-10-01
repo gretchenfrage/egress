@@ -1,4 +1,4 @@
-#version 120
+#version 150
 
 attribute vec3 a_position;
 attribute vec4 a_color;
@@ -11,16 +11,16 @@ uniform mat4 u_projTrans;
 uniform mat4 u_shadowProjViewTrans;
 uniform vec3 u_lightPos;
 
-varying vec3 v_pos;
+out vec3 v_pos;
 
-varying vec3 v_normalWorldSpace;
-varying vec2 v_texCoord0;
-varying vec4 v_color;
-varying vec4 v_shadowCoord;
+out vec2 v_texCoord0;
+out vec4 v_color;
+out vec4 v_shadowCoord;
 
-varying vec3 v_normalCamSpace;
-varying vec3 v_lightDirCamSpace;
-varying vec3 v_camDirCamSpace;
+out vec3 v_normalWorldSpace;
+out vec3 v_normalCamSpace;
+out vec3 v_lightDirCamSpace;
+out vec3 v_camDirCamSpace;
 
 void main() {
     // precomputations

@@ -1,14 +1,15 @@
-#version 120
+#version 150
 
-varying vec3 v_pos;
-varying vec2 v_texCoord0;
-varying vec4 v_color;
-varying vec4 v_shadowCoord;
+in vec3 f_pos;
 
-varying vec3 v_normalWorldSpace;
-varying vec3 v_normalCamSpace;
-varying vec3 v_lightDirCamSpace;
-varying vec3 v_camDirCamSpace;
+in vec2 f_texCoord0;
+in vec4 f_color;
+in vec4 f_shadowCoord;
+
+in vec3 f_normalWorldSpace;
+in vec3 f_normalCamSpace;
+in vec3 f_lightDirCamSpace;
+in vec3 f_camDirCamSpace;
 
 uniform sampler2D u_texture;
 uniform sampler2D u_depthMap;
@@ -30,17 +31,18 @@ void main() {
     vec3 lightCol = vec3(1, 1, 1);
 
     // material properties
-    vec3 diffuseCol = texture2D(u_texture, v_texCoord0).rgb;
+    vec3 diffuseCol = texture2D(u_texture, f_texCoord0).rgb;
+    //vec3 diffuseCol = vec3(v_texCoord0, 1);
     vec3 ambientCol = vec3(0.3) * diffuseCol;
     vec3 specularCol = vec3(1, 1, 1) * 0.05;
 
     // cos of the angle between the normal and light directions clamped above 0
-    vec3 n = normalize(v_normalCamSpace);
-    vec3 l = normalize(v_lightDirCamSpace);
+    vec3 n = normalize(f_normalCamSpace);
+    vec3 l = normalize(f_lightDirCamSpace);
     float cosTheta = clamp(dot(n, l), 0, 1);
 
     // cos of the angle between the cam dir vector and the reflect vector
-    vec3 e = normalize(v_camDirCamSpace);
+    vec3 e = normalize(f_camDirCamSpace);
     vec3 r = reflect(-l, n);
     float cosAlpha = clamp(dot(e, r), 0, 1);
 
@@ -51,13 +53,13 @@ void main() {
     // compute visibility
     float bias = 0.005 * tan(acos(cosTheta));
     bool visible = true;
-    if (v_shadowCoord.z < 0) {
+    if (f_shadowCoord.z < 0) {
         visible = false;
-    } else if ((v_shadowCoord.x < 0) || (v_shadowCoord.y < 0) || (v_shadowCoord.x >= 1) || (v_shadowCoord.y >= 1)) {
+    } else if ((f_shadowCoord.x < 0) || (f_shadowCoord.y < 0) || (f_shadowCoord.x >= 1) || (f_shadowCoord.y >= 1)) {
         visible = false;
-    } else if (dot(v_normalWorldSpace, u_lightPos - v_pos) < 0) {
+    } else if (dot(f_normalWorldSpace, u_lightPos - f_pos) < 0) {
         visible = false;
-    } else if (decodeFloatRGBA(texture2D(u_depthMap, v_shadowCoord.xy)) < v_shadowCoord.z - bias) {
+    } else if (decodeFloatRGBA(texture2D(u_depthMap, f_shadowCoord.xy)) < f_shadowCoord.z - bias) {
         visible = false;
     }
 

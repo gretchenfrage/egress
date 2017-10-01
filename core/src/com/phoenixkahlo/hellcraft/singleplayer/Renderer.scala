@@ -11,7 +11,7 @@ import com.badlogic.gdx.graphics.g3d.utils.{DefaultShaderProvider, ShaderProvide
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.math.{Matrix4, Quaternion}
 import com.badlogic.gdx.utils.{Disposable, Pool}
-import com.phoenixkahlo.hellcraft.graphics.{ResourcePack, SkyPID, SunModel, SunTID}
+import com.phoenixkahlo.hellcraft.graphics.{ResourcePack, SunModel, SunTID}
 import com.phoenixkahlo.hellcraft.graphics.shaders._
 import com.phoenixkahlo.hellcraft.math._
 
@@ -26,7 +26,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
   val cam = new PerspectiveCamera(70, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
   cam.near = 0.1f
   cam.far = 1000
-  cam.position.set(0, 0, -10) //.set(V3F(-10, 10, -10) toGdx)
+  cam.position.set(0, 0, -10)
   cam.lookAt(0, 0, 0)
 
   val worldBoxRad = LoadDist.fold(Math.max) * 16
@@ -64,7 +64,6 @@ class Renderer(resources: ResourcePack) extends Disposable {
         }
       } else renderable.userData.asInstanceOf[ShaderID] match {
         case SceneSID => sceneShader
-        //case SceneSID => basicShader
         case LineSID => lineShader
       }
 
@@ -115,26 +114,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
       from = nightColor
       to = nightColor
     }
-    /*
-    val (trans: Float, from: V3F, to: V3F) =
-      if (cycle < transFrac / 2 || cycle > 1 - transFrac / 2) {
-        // sunrise
-        ((cycle + transFrac / 2) % 1 / transFrac, nightColor, dayColor)
-      } else if (cycle > 0.5f - transFrac / 2 && cycle < 0.5f + transFrac / 2) {
-        // sunset
-        (cycle + transFrac / 2 - 0.5f, dayColor, nightColor)
-      } else if (cycle < 0.5f) {
-        // day
-        (0, dayColor, dayColor)
-      } else {
-        // night
-        (0, nightColor, nightColor)
-      }
-      */
 
-
-    //skyColor = to
-    //skyColor = ((to - from) * (Trig.sin(trans * 360 - 180) / 2 + 0.5f)) + from
     skyColor = ((to - from) * trans) + from
 
 

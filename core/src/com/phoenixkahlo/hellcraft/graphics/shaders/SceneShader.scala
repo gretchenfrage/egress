@@ -3,14 +3,15 @@ package com.phoenixkahlo.hellcraft.graphics.shaders
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.graphics.g3d.{Renderable, Shader}
-import com.badlogic.gdx.graphics.glutils.ShaderProgram
+import com.badlogic.gdx.graphics.glutils.GeomShaderProgram.ShaderPart
+import com.badlogic.gdx.graphics.glutils.{GeomShaderProgram, ShaderProgram, ShaderStage}
 import com.badlogic.gdx.graphics.{Camera, GL20, PerspectiveCamera, Texture}
 import com.badlogic.gdx.utils.GdxRuntimeException
 
 class SceneShader(sheet: Texture, light: Camera) extends Shader {
 
 
-  var program: ShaderProgram = _
+  var program: GeomShaderProgram = _
   var cam: Camera = _
   var context: RenderContext = _
 
@@ -30,8 +31,14 @@ class SceneShader(sheet: Texture, light: Camera) extends Shader {
 
   override def init(): Unit = {
     val vert = Gdx.files.internal("shaders/scene_v.glsl").readString()
+    val geom = Gdx.files.internal("shaders/scene_g.glsl").readString()
     val frag = Gdx.files.internal("shaders/scene_f.glsl").readString()
-    program = new ShaderProgram(vert, frag)
+    //program = new ShaderProgram(vert, frag)
+    program = new GeomShaderProgram(
+      new ShaderPart(ShaderStage.vertex, vert),
+      new ShaderPart(ShaderStage.geometry, geom),
+      new ShaderPart(ShaderStage.fragment, frag)
+    )
 
     if (!(program isCompiled))
       throw new GdxRuntimeException(program.getLog)

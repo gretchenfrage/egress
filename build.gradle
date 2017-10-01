@@ -29,14 +29,6 @@ allprojects {
         maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
         maven { url "https://oss.sonatype.org/content/repositories/releases/" }
     }
-
-    /*
-    gradle.projectsEvaluated {
-        tasks.withType(ScalaCompile) {
-            options.compilerArgs << "-feature"
-        }
-    }
-    */
 }
 
 project(":desktop") {
