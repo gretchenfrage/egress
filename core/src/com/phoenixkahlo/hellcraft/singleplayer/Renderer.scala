@@ -142,6 +142,11 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
   }
 
+  def onResize(width: Int, height: Int): Unit = {
+    cam.viewportWidth = width
+    cam.viewportHeight = height
+    cam.update()
+  }
 
   def render(world: SWorld, providers: Seq[RenderableProvider]): Unit = {
     setupSunlight(world)

@@ -159,6 +159,10 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     renderer.render(toRender, Seq(provider))
   }
 
+  override def onResize(width: Int, height: Int): Unit = {
+    renderer.onResize(width, height)
+  }
+
   override def onExit(): Unit = {
     Gdx.input.setInputProcessor(new InputAdapter)
     updateThread.interrupt()
