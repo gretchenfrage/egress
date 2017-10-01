@@ -53,7 +53,7 @@ case class Densities(pos: V3I, densities: FractionField) extends Terrain {
 
   def upgrade(world: World): Option[Vertices] = {
     if (canUpgrade(world)) {
-      val verts = OptionField(world.resVec, v => {
+      val verts = OptionField(world.resVec + Ones, v => {
         val edges: Seq[(V3I, V3I)] = Seq(
           v -> (v + West),
           v -> (v + Up),
@@ -107,49 +107,17 @@ case class Vertices(pos: V3I, densities: FractionField, vertices: OptionField[Ve
 
   override def getVertices = Some(vertices)
 
-  def canUpgrade(world: World): Boolean =
-      pos.neighbors.map(world.chunkAt(_).flatMap(_.terrain.getVertices)).forall(_.isDefined)
-
-  /*
-  def upgrade(world: World): Option[Facets] = {
-    if (canUpgrade(world)) {
-      def vert(v: V3I): Option[V3F] = {
-        val global = (pos * world.res) + v
-        world.chunkAt(global / world.res floor).get.terrain.getVertices.get.apply(global % world.res)
-      }
-
-      def facets(d1: V3I, d2: V3I, d3: V3I, dir: Direction): OptionField[Tri] =
-        OptionField(world.resVec, v => {
-          (vert(v + d1), vert(v + d2), vert(v + d3)) match {
-            case (Some(a), Some(b), Some(c)) =>
-              val tri = Tri(a, b, c)
-              if (world.sampleDirection(tri.center).get.dot(dir) > 0) Some(tri)
-              else Some(tri.reverse)
-            case _ => None
-          }
-        })
-
-      val upgraded = Facets(pos, densities, vertices,
-        facets(Origin, Up + North, Up, East), facets(Origin, North, North + Up, East),
-        facets(Origin, Up + East, Up, North), facets(Origin, East, East + Up, North),
-        facets(Origin, North, North + East, Down), facets(Origin, North + East, East, Down)
-      )
-
-
-      Some(upgraded)
-
-    } else None
-  }
-  */
+  def canUpgrade(world: World): Boolean = true
+      //pos.neighbors.map(world.chunkAt(_).flatMap(_.terrain.getVertices)).forall(_.isDefined)
 
   def upgrade(world: World): Option[Meshable] = {
     if (canUpgrade(world)) {
       // first, generate the vertex-index maps, in both directions
       val vertMap = new ArrayBuffer[V3I]
-      val vertMapInv = new ShortFieldBuffer(world.resVec)
+      val vertMapInv = new ShortFieldBuffer(vertices.sizeVec)
       var index: Short = 0
 
-      for (v <- Origin until world.resVec) {
+      for (v <- Origin until vertices.sizeVec) {
         vertices(v) match {
           case Some(vert) =>
             vertMap += v
@@ -163,9 +131,9 @@ case class Vertices(pos: V3I, densities: FractionField, vertices: OptionField[Ve
       val indices = new ArrayBuffer[Short]
 
       val deltas = Seq(
-        (North, North + East, East),
+        (North, North + West, West),
         (Up, Up + North, North),
-        (Up, Up + East, East)
+        (Up, Up + West, West)
       )
 
       for (v <- Origin until world.resVec) {
@@ -205,22 +173,3 @@ case class Meshable(pos: V3I, densities: FractionField, vertices: OptionField[Ve
 }
 
 object Meshable extends TerrainType
-
-/*
-@CarboniteWith(classOf[FieldNode])
-case class Facets(pos: V3I, densities: FractionField, vertices: OptionField[V3F],
-                  a: OptionField[Tri], b: OptionField[Tri],
-                  c: OptionField[Tri], d: OptionField[Tri],
-                  e: OptionField[Tri], f: OptionField[Tri]) extends Terrain with Iterable[Tri] {
-  override def getVertices = Some(vertices)
-
-  override def asFacets = Some(this)
-
-  override def terrainType: TerrainType = Facets
-
-  override def iterator: Iterator[Tri] =
-    Iterator(a, b, c, d, e, f).map(_.iterator).flatten
-}
-
-object Facets extends TerrainType
-*/
