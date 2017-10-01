@@ -24,6 +24,9 @@ trait World {
   def densityGridPoint(v: V3I): Option[Float] =
     chunkAt(v / res floor).map(_.terrain.densities.atMod(v))
 
+  def materialGridPoint(v: V3I): Option[Material] =
+    chunkAt(v / res floor).map(_.terrain.materials.atMod(v)).map(Materials(_))
+
   /**
     * Samples the density at an arbitrary point using trilinear interpolation.
     */

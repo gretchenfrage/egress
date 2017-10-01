@@ -120,7 +120,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
     }
 
     skyColor = ((to - from) * trans) + from
-    
+
     val fromPow = if (from == dayColor) 1 else 0
     val toPow = if (to == dayColor) 1 else 0
     val lightPow = ((toPow - fromPow) * trans) + fromPow

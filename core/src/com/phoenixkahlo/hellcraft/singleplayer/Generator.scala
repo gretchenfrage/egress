@@ -3,9 +3,9 @@ package com.phoenixkahlo.hellcraft.singleplayer
 import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
-import com.phoenixkahlo.hellcraft.core.{Chunk, Densities, World}
+import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.math._
-import com.phoenixkahlo.hellcraft.util.fields.FractionField
+import com.phoenixkahlo.hellcraft.util.fields.{ByteField, FractionField}
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 
 import scala.collection.mutable
@@ -60,12 +60,20 @@ class Generator(res: Int) {
 
   def genChunk(p: V3I): Fut[Chunk] = {
     heightsAt(p.flatten).map(heights => {
-      new Chunk(p, Densities(p, FractionField(rv3d, i => {
-        val v = p * res + i
-        val depth = (p.yi * res + i.yi) - heights(i.flatten)
-        if (depth >= 0) 0
-        else 1
-      })))
+      new Chunk(p, Densities(p,
+        ByteField(rv3d, i => {
+          val v = p * res + i
+          val depth = (p.yi * res + i.yi) - heights(i.flatten)
+          if (depth >= 0) Air.id
+          else if (p.flatten % 2 == Origin2D) Stone.id
+          else Dirt.id
+        }),
+        FractionField(rv3d, i => {
+          val v = p * res + i
+          val depth = (p.yi * res + i.yi) - heights(i.flatten)
+          if (depth >= 0) 0
+          else 1
+        })))
     })
   }
 

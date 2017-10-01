@@ -131,9 +131,9 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     // add debug units
     if (Gdx.input.isKeyPressed(Keys.ALT_LEFT)) {
       toRender.chunks.values.map(_.terrain).foreach {
-        case Densities(p, _) => units +:= new ChunkOutline(p, Color.RED)
-        case Vertices(p, _, _) => units +:= new ChunkOutline(p, Color.BLUE)
-        case Meshable(p, _, _, _, _) => units +:= new ChunkOutline(p, Color.GREEN)
+        case Densities(p, _, _) => units +:= new ChunkOutline(p, Color.RED)
+        case Vertices(p, _, _, _) => units +:= new ChunkOutline(p, Color.BLUE)
+        case Meshable(p, _, _, _, _, _) => units +:= new ChunkOutline(p, Color.GREEN)
       }
     }
 

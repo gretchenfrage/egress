@@ -7,7 +7,7 @@ import com.phoenixkahlo.hellcraft.core.Vertices.Vert
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
-import com.phoenixkahlo.hellcraft.util.fields.{FractionField, OptionField, ShortFieldBuffer}
+import com.phoenixkahlo.hellcraft.util.fields.{ByteField, FractionField, OptionField, ShortFieldBuffer}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -33,6 +33,8 @@ sealed trait Terrain {
 
   def pos: V3I
 
+  def materials: ByteField
+
   def densities: FractionField
 
   def getVertices: Option[OptionField[Vertices.Vert]] = None
@@ -46,7 +48,7 @@ sealed trait Terrain {
 sealed trait TerrainType
 
 @CarboniteFields
-case class Densities(pos: V3I, densities: FractionField) extends Terrain {
+case class Densities(pos: V3I, materials: ByteField, densities: FractionField) extends Terrain {
 
   def canUpgrade(world: World): Boolean =
     pos.neighbors.forall(world.chunkAt(_).isDefined)
@@ -89,10 +91,17 @@ case class Densities(pos: V3I, densities: FractionField) extends Terrain {
         else {
           val p = (spoints.fold(Origin)(_ + _) / spoints.size) / world.res * 16
           val n = world.sampleDirection(p).get.neg
-          Some(Vert(p, n))
+          var mat = world.materialGridPoint(pos * world.res + v).get
+
+          // attempt to make the material not be air
+          if (mat == Air)
+            mat = (pos * world.res + v).neighbors.map(world.materialGridPoint(_).get).fold(Air)(
+              (mat1, mat2) => if (mat1 == Air) mat2 else mat1)
+
+          Some(Vert(p, n, mat))
         }
       })
-      Some(Vertices(pos, densities, verts))
+      Some(Vertices(pos, materials, verts, densities))
     } else None
   }
 
@@ -103,7 +112,7 @@ case class Densities(pos: V3I, densities: FractionField) extends Terrain {
 object Densities extends TerrainType
 
 @CarboniteFields
-case class Vertices(pos: V3I, densities: FractionField, vertices: OptionField[Vert]) extends Terrain {
+case class Vertices(pos: V3I, materials: ByteField, vertices: OptionField[Vert], densities: FractionField) extends Terrain {
 
   override def getVertices = Some(vertices)
 
@@ -156,7 +165,7 @@ case class Vertices(pos: V3I, densities: FractionField, vertices: OptionField[Ve
         }
       }
 
-      Some(Meshable(pos, densities, vertices, vertMap, indices))
+      Some(Meshable(pos, materials, densities, vertices, vertMap, indices))
     } else None
   }
 
@@ -165,12 +174,12 @@ case class Vertices(pos: V3I, densities: FractionField, vertices: OptionField[Ve
 }
 
 object Vertices extends TerrainType {
-  case class Vert(p: V3F, n: V3F)
+  case class Vert(p: V3F, n: V3F, material: Material)
 }
 
 @CarboniteFields
-case class Meshable(pos: V3I, densities: FractionField, vertices: OptionField[Vert], vertMap: Seq[V3I],
-                    indices: Seq[Short]) extends Terrain {
+case class Meshable(pos: V3I, materials: ByteField, densities: FractionField, vertices: OptionField[Vert],
+                    vertMap: Seq[V3I], indices: Seq[Short]) extends Terrain {
   override def terrainType: TerrainType = Meshable
 
   override def getVertices = Some(vertices)

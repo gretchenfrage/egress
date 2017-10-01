@@ -4,7 +4,7 @@ import com.badlogic.gdx.graphics.VertexAttributes.Usage
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.{Material, Renderable}
 import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
-import com.phoenixkahlo.hellcraft.core.{Chunk, Meshable, Vertices, World}
+import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.graphics.shaders.{LineSID, PointSID, SceneSID}
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.ResourceNode
@@ -14,16 +14,20 @@ import scala.collection.mutable.ArrayBuffer
 
 class ChunkMesher(chunk: Chunk, meshable: Meshable) {
 
-  val mesh = new DisposableParamCache[ResourcePack, Renderable](pack => {
+  val mesh = new DisposableParamCache[(ResourcePack, World), Renderable]({ case (pack, world) => {
     val vertData = new ArrayBuffer[Float]
 
-    val (u1, v1) = (pack(StoneTID).getU, pack(StoneTID).getV)
-    val (u2, v2) = (pack(StoneTID).getU2, pack(StoneTID).getV)
+    //val (u1, v1) = (pack(StoneTID).getU, pack(StoneTID).getV)
+    //val (u2, v2) = (pack(StoneTID).getU2, pack(StoneTID).getV)
 
     for (v: V3I <- meshable.vertMap) {
       val vert: Vertices.Vert = meshable.vertices(v).get
 
-      val (texU, texV) = (u1, v1)
+      //val (texU, texV) = (u1, v1)
+      //val mat = world.materialGridPoint(chunk.pos * world.res + v).get
+      val mat = vert.material
+      val tex = pack(mat.tid)
+      val (texU, texV) = (tex.getU, tex.getV)
 
       vertData.append(
         vert.p.x, vert.p.y, vert.p.z,
@@ -54,7 +58,7 @@ class ChunkMesher(chunk: Chunk, meshable: Meshable) {
     renderable.meshPart.primitiveType = GL20.GL_TRIANGLES
     renderable.userData = SceneSID
     renderable
-  }, _.meshPart.mesh.dispose())
+  }}, _.meshPart.mesh.dispose())
 
   val gradient = new DisposableParamCache[Unit, Renderable](u => {
     val vertices = new ArrayBuffer[Float]
@@ -123,7 +127,7 @@ class ChunkMesher(chunk: Chunk, meshable: Meshable) {
   val meshUnit = new ParamCache[(World, ResourcePack), RenderUnit]({ case (world, pack) => {
     new RenderUnit {
       override def apply(interpolation: Interpolation): Seq[Renderable] =
-        Seq(mesh(pack))
+        Seq(mesh((pack, world)))
         //Seq(mesh(pack), gradient(()))
         //Seq(mesh(pack), gradient(()), density(world))
 
