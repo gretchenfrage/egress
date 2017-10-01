@@ -7,7 +7,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 /**
   * The fut system is an alternative to scala and java's future systems, that gives more flexibility to their
   * means of execution. Instead of the means of execution being hard-coded into the future system, the creation or
-  * transformation of a <code>Fut</code> acceps a <code>Runnable => Unit</code> function that will be used to execute it.
+  * transformation of a <code>Fut</code> accepts a <code>Runnable => Unit</code> function that will be used to execute it.
   * This allows futs to be executed in a Java <code>Executor</code>, a Scala <code>ExecutionContext</code>, some
   * alternative such as a spatially prioritized executor, in a new thread, or even by hitching off of other threads using
   * <code>_.run()</code> as the executor (that is optimal for cheap transformations).

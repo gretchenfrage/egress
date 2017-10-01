@@ -1,10 +1,11 @@
 package com.phoenixkahlo.hellcraft.graphics
 
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.{Material, Renderable}
 import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.phoenixkahlo.hellcraft.core.{Chunk, Meshable, Vertices, World}
-import com.phoenixkahlo.hellcraft.graphics.shaders.SceneSID
+import com.phoenixkahlo.hellcraft.graphics.shaders.{LineSID, PointSID, SceneSID}
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.ResourceNode
 import com.phoenixkahlo.hellcraft.util.caches.{DisposableParamCache, ParamCache}
@@ -13,7 +14,7 @@ import scala.collection.mutable.ArrayBuffer
 
 class ChunkMesher(chunk: Chunk, meshable: Meshable) {
 
-  val mesh = new DisposableParamCache[(World, ResourcePack), Renderable]({ case (world, pack) => {
+  val mesh = new DisposableParamCache[ResourcePack, Renderable](pack => {
     val vertData = new ArrayBuffer[Float]
 
     val (u1, v1) = (pack(StoneTID).getU, pack(StoneTID).getV)
@@ -53,18 +54,87 @@ class ChunkMesher(chunk: Chunk, meshable: Meshable) {
     renderable.meshPart.primitiveType = GL20.GL_TRIANGLES
     renderable.userData = SceneSID
     renderable
-  }}, _.meshPart.mesh.dispose())
+  }, _.meshPart.mesh.dispose())
+
+  val gradient = new DisposableParamCache[Unit, Renderable](u => {
+    val vertices = new ArrayBuffer[Float]
+    val indices = new ArrayBuffer[Short]
+    var index = 0
+
+    for (vert <- meshable.vertices) {
+      val d = vert.p + vert.n
+      vertices.append(
+        vert.p.x, vert.p.y, vert.p.z, Color.BLACK.toFloatBits,
+        d.x, d.y, d.z, Color.WHITE.toFloatBits
+      )
+      indices.append(index.toShort, (index + 1).toShort)
+      index += 2
+    }
+
+    val mesh = new Mesh(true, vertices.size, indices.size,
+      new VertexAttribute(Usage.Position, 3, "a_position"),
+      new VertexAttribute(Usage.ColorPacked, 4, "a_color")
+    )
+
+    mesh.setVertices(vertices.toArray)
+    mesh.setIndices(indices.toArray)
+
+    val renderable = new Renderable
+    renderable.meshPart.mesh = mesh
+    renderable.material = new Material
+    renderable.meshPart.offset = 0
+    renderable.meshPart.size = indices.size
+    renderable.meshPart.primitiveType = GL20.GL_LINES
+    renderable.userData = LineSID
+
+    renderable
+  }, _.meshPart.mesh.dispose())
+
+  val density = new DisposableParamCache[World, Renderable](world => {
+    val vertices = new ArrayBuffer[Float]
+    val indices = new ArrayBuffer[Short]
+    var index = 0
+
+    for (v <- (chunk.pos * 16) until ((chunk.pos + Ones) * 16)) {
+      vertices.append(v.x, v.y, v.z, new Color(world.sampleDensity(v).get, 0, 0, 1).toFloatBits)
+      indices.append(index.toShort)
+      index += 1
+    }
+
+    val mesh = new Mesh(true, vertices.size, indices.size,
+      new VertexAttribute(Usage.Position, 3, "a_position"),
+      new VertexAttribute(Usage.ColorPacked, 4, "a_color")
+    )
+
+    mesh.setVertices(vertices.toArray)
+    mesh.setIndices(indices.toArray)
+
+    val renderable = new Renderable
+    renderable.meshPart.mesh = mesh
+    renderable.material = new Material
+    renderable.meshPart.offset = 0
+    renderable.meshPart.size = indices.size
+    renderable.meshPart.primitiveType = GL20.GL_POINTS
+    renderable.userData = PointSID
+
+    renderable
+  }, _.meshPart.mesh.dispose())
 
   val meshUnit = new ParamCache[(World, ResourcePack), RenderUnit]({ case (world, pack) => {
     new RenderUnit {
       override def apply(interpolation: Interpolation): Seq[Renderable] =
-        Seq(mesh((world, pack)))
+        Seq(mesh(pack))
+        //Seq(mesh(pack), gradient(()), density(world))
 
       override def resources: Seq[ResourceNode] =
         Seq(new ResourceNode {
           override def dependencies: Seq[ResourceNode] = Seq.empty
 
-          override def dispose(): Unit = mesh.invalidate
+          override def dispose(): Unit = {
+            mesh.invalidate
+            gradient.invalidate
+            density.invalidate
+          }
         })
     }
   }})

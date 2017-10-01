@@ -50,6 +50,4 @@ void main() {
     vec3 lightPosCamSpace = (u_viewTrans * vec4(u_lightPos, 1)).xyz;
     v_camDirCamSpace = -vertPosCamSpace;
     v_lightDirCamSpace = lightPosCamSpace + v_camDirCamSpace;
-
-
 }

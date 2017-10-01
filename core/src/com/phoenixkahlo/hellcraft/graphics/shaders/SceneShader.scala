@@ -33,7 +33,6 @@ class SceneShader(sheet: Texture, light: Camera) extends Shader {
     val vert = Gdx.files.internal("shaders/scene_v.glsl").readString()
     val geom = Gdx.files.internal("shaders/scene_g.glsl").readString()
     val frag = Gdx.files.internal("shaders/scene_f.glsl").readString()
-    //program = new ShaderProgram(vert, frag)
     program = new GeomShaderProgram(
       new ShaderPart(ShaderStage.vertex, vert),
       new ShaderPart(ShaderStage.geometry, geom),

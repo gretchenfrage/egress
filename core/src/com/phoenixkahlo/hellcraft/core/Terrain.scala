@@ -12,9 +12,9 @@ import com.phoenixkahlo.hellcraft.util.fields.{FractionField, OptionField, Short
 import scala.collection.mutable.ArrayBuffer
 
 /**
-  * Terrain represents the world's terrain at a center chunk. It is directly owned by a chunk, and encapsulates the
-  * iso-surface logic. Terrain can exist in three states, each of which is an upgrade of the other. A Terrain can
-  * be upgraded if its adjacent chunks' terrains are equal or greater in tier.
+  * Terrain represents the world's terrain at a certain chunk. It is directly owned by a chunk, and encapsulates the
+  * iso-surface logic. Terrain can exist in three states, each of which is an upgrade of the former. A Terrain can
+  * be queried for whether it's able to upgrade itself in a given world.
   *
   * The first type is Densities, which is produced by the world generator. It contains a grid of density values,
   * from 0 to 1.
@@ -75,10 +75,10 @@ case class Densities(pos: V3I, densities: FractionField) extends Terrain {
 
         val spoints = new ArrayBuffer[V3F]
 
-        val t = 0.5f
+        val t = 0
         for ((v1, v2) <- edges) {
-          val d1 = world.density(v1).get
-          val d2 = world.density(v2).get
+          val d1 = world.densityGridPoint(v1).get
+          val d2 = world.densityGridPoint(v2).get
           if ((d1 > t) ^ (d2 > t)) {
             val delta = (t - d1) / (d2 - d1)
             spoints += (v1 + ((v2 - v1) * delta))
@@ -88,7 +88,7 @@ case class Densities(pos: V3I, densities: FractionField) extends Terrain {
         if (spoints isEmpty) None
         else {
           val p = (spoints.fold(Origin)(_ + _) / spoints.size) / world.res * 16
-          val n = world.sampleDirection(p).get
+          val n = world.sampleDirection(p).get.neg
           Some(Vert(p, n))
         }
       })
@@ -108,7 +108,6 @@ case class Vertices(pos: V3I, densities: FractionField, vertices: OptionField[Ve
   override def getVertices = Some(vertices)
 
   def canUpgrade(world: World): Boolean = true
-      //pos.neighbors.map(world.chunkAt(_).flatMap(_.terrain.getVertices)).forall(_.isDefined)
 
   def upgrade(world: World): Option[Meshable] = {
     if (canUpgrade(world)) {
@@ -130,6 +129,7 @@ case class Vertices(pos: V3I, densities: FractionField, vertices: OptionField[Ve
       // then, find facets and build the index sequence
       val indices = new ArrayBuffer[Short]
 
+      // all deltas must be in the positive direction to make use of vertices overlap and avoid patches
       val deltas = Seq(
         (North, North + West, West),
         (Up, Up + North, North),

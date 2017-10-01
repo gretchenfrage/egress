@@ -49,6 +49,8 @@ class Renderer(resources: ResourcePack) extends Disposable {
   basicShader.init()
   val sunShader = new BasicShader(resources.solo(SunTID), null)
   sunShader.init()
+  val pointShader = new PointShader
+  pointShader.init()
 
   val sunModel = new SunModel
 
@@ -65,6 +67,8 @@ class Renderer(resources: ResourcePack) extends Disposable {
       } else renderable.userData.asInstanceOf[ShaderID] match {
         case SceneSID => sceneShader
         case LineSID => lineShader
+        case PointSID => pointShader
+        case BasicSID => basicShader
       }
 
     override def dispose(): Unit = ()
