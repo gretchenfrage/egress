@@ -75,5 +75,5 @@ void main() {
         diffuseCol * lightCol * diffuseStrength +
         specularCol * lightCol * specularStrength;
 
-    gl_FragColor = vec4(col, 1);
+    gl_FragColor = vec4(col, 1);// * f_color;
 }
