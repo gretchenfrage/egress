@@ -22,8 +22,10 @@ class SceneShader(sheet: Texture, light: Camera) extends Shader {
   var u_lightPos: Int = _
   var u_texture: Int = _
   var u_depthMap: Int = _
+  var u_lightPow: Int = _
 
   var depthMap: Texture = _
+  var lightPow: Float = 1
 
   override def canRender(instance: Renderable): Boolean = {
     instance.userData == SceneSID
@@ -49,6 +51,7 @@ class SceneShader(sheet: Texture, light: Camera) extends Shader {
     u_lightPos = program.getUniformLocation("u_lightPos")
     u_texture = program.getUniformLocation("u_texture")
     u_depthMap = program.getUniformLocation("u_depthMap")
+    u_lightPow = program.getUniformLocation("u_lightPow")
   }
 
   override def compareTo(other: Shader): Int = 0
@@ -67,6 +70,7 @@ class SceneShader(sheet: Texture, light: Camera) extends Shader {
     program.setUniformi(u_texture, 0)
     depthMap.bind(1)
     program.setUniformi(u_depthMap, 1)
+    program.setUniformf(u_lightPow, lightPow)
 
     context.setDepthTest(GL20.GL_LEQUAL)
     context.setCullFace(GL20.GL_BACK)

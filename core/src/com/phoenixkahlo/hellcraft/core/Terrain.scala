@@ -153,17 +153,6 @@ case class Vertices(pos: V3I, densities: FractionField, vertices: OptionField[Ve
 
             case _ =>
           }
-          /*
-          if (vertices(v).isDefined &&
-            vertices(v + d1).isDefined &&
-            vertices(v + d2).isDefined &&
-            vertices(v + d3).isDefined) {
-            indices.append(vertMapInv(v), vertMapInv(v + d1), vertMapInv(v + d2))
-            indices.append(vertMapInv(v), vertMapInv(v + d2), vertMapInv(v + d1))
-            indices.append(vertMapInv(v), vertMapInv(v + d2), vertMapInv(v + d3))
-            indices.append(vertMapInv(v), vertMapInv(v + d3), vertMapInv(v + d2))
-          }
-          */
         }
       }
 

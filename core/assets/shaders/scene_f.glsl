@@ -14,6 +14,7 @@ in vec3 f_camDirCamSpace;
 uniform sampler2D u_texture;
 uniform sampler2D u_depthMap;
 uniform vec3 u_lightPos;
+uniform float u_lightPow;
 
 vec4 encodeFloatRGBA(float n) {
     vec4 enc = vec4(1.0, 255.0, 65025.0, 160581375.0) * n;
@@ -47,8 +48,8 @@ void main() {
     float cosAlpha = clamp(dot(e, r), 0, 1);
 
     // begin strength variables
-    float diffuseStrength = cosTheta;
-    float specularStrength = pow(cosAlpha, 5);
+    float diffuseStrength = cosTheta * u_lightPow;
+    float specularStrength = pow(cosAlpha, 5) * u_lightPow;
 
     // compute visibility
     float bias = 0.005 * tan(acos(cosTheta));
