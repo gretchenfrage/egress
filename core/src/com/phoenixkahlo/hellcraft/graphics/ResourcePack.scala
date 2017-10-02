@@ -1,6 +1,7 @@
 package com.phoenixkahlo.hellcraft.graphics
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.audio.Sound
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter
 import com.badlogic.gdx.graphics.g2d.{BitmapFont, SpriteBatch, TextureRegion}
@@ -32,6 +33,9 @@ case object HeaderFID extends FontID
 case object TitleFID extends FontID
 case object ButtonFID extends FontID
 case object XFID extends FontID
+
+sealed trait SoundID
+case object SnapSID extends SoundID
 
 trait ResourcePack {
 
@@ -101,5 +105,10 @@ class DefaultResourcePack extends ResourcePack {
 
   override def pixmap(pixmapID: PixmapID): Pixmap =
     pixmaps(pixmapID)
+
+  val sounds: Map[SoundID, Sound] = Seq(
+    SnapSID -> "snap.wav"
+  ) map { case (sid, path) => (sid, Gdx.audio.newSound(Gdx.files.internal("sounds/" + path))) } toMap
+
 
 }

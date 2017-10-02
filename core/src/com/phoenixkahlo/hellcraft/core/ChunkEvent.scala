@@ -7,7 +7,11 @@ import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.{Cube, Entity}
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 
-abstract sealed class ChunkEvent(val target: V3I, val id: UUID) extends Comparable[ChunkEvent] {
+sealed trait UpdateEffect
+
+
+
+abstract sealed class ChunkEvent(val target: V3I, val id: UUID) extends UpdateEffect with Comparable[ChunkEvent] {
 
   def apply(chunk: Chunk): Chunk
 

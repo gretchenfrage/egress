@@ -1,15 +1,15 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
 import java.util.UUID
-import java.util.concurrent.{ConcurrentLinkedQueue, LinkedBlockingQueue}
+import java.util.concurrent.ConcurrentLinkedQueue
 
-import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.core._
+import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.graphics.{RenderUnit, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
-import com.phoenixkahlo.hellcraft.util.threading.{Fut, Promise, UniExecutor}
+import com.phoenixkahlo.hellcraft.util.threading.UniExecutor
 
-import scala.collection.{SortedMap, immutable}
+import scala.collection.SortedMap
 
 /**
   * A purely functional implementation of world, that stores a map of chunks, and three set of chunk indices,
@@ -139,13 +139,15 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
   private val loadQueue = new ConcurrentLinkedQueue[(Chunk, LoadID)]
   private var loadMap = Map.empty[V3I, LoadID]
 
+  private var pendingEvents = Map.empty[V3I, Seq[ChunkEvent]]
+
   private val upgradeQueue = new ConcurrentLinkedQueue[(Terrain, UpgradeID)]
   private var upgradeMap = Map.empty[V3I, UpgradeID]
 
   def apply(t: Long): Option[SWorld] = history.get(t)
   def apply(): SWorld = history.last._2
 
-  def update(loadTarget: Set[V3I]): Unit = {
+  def update(loadTarget: Set[V3I], externalEvents: Seq[ChunkEvent] = Seq.empty): Unit = {
     var world = this()
 
     // push chunks to save
@@ -178,21 +180,27 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       })
     }
 
-    // pull loaded chunks from the queue and add them to the world if they're valid
+    // begin to accumulate events
+    var events = world.events(dt) ++ externalEvents
+
+    // pull loaded chunks from the queue and add them to the world if they're valid, also accumulate pending events
     while (loadQueue.size > 0) {
       val (chunk, loadID) = loadQueue.remove()
       if (loadMap.get(chunk.pos).contains(loadID)) {
         loadMap -= chunk.pos
         world += chunk
+        if (pendingEvents contains chunk.pos) {
+          events ++= pendingEvents(chunk.pos)
+          pendingEvents -= chunk.pos
+        }
       }
     }
 
-    // get the events from the world
-    var events = world.events(dt)
-
-    // filter out events for which chunks don't exist
-    // TODO: find a way to integrate them anyways
-    events = events.filter(world.chunks contains _.target)
+    // partition events by whether they can be integrated immediately
+    val (integrateNow, integrateLater) = events.partition(world.chunks contains _.target)
+    events = integrateNow
+    // add the events that can't be immediately integrated to the pending event sequence
+    pendingEvents ++= integrateLater.groupBy(_.target)
 
     // scan the events for update terrain events, and use them to invalidate upgrade futures
     val invalidateRange = V3I(-2, -2, -2) to V3I(2, 2, 2)
@@ -210,10 +218,6 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       }
     }
 
-    // filter out events that can't be integrated
-    // TODO: avoid this all together
-    events = events.filter(world.chunks contains _.target)
-
     // integrate the accumulated events into the world
     world = world.integrate(events)
 
@@ -223,6 +227,5 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     // append to history
     history += world.time -> world
   }
-
 
 }

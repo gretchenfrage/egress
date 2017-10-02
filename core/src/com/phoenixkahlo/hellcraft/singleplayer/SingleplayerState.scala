@@ -1,15 +1,18 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
+import java.util.UUID
+
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g3d._
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.utils.Pool
 import com.badlogic.gdx.{Gdx, InputAdapter, InputMultiplexer}
-import com.phoenixkahlo.hellcraft.core.{Densities, Meshable, Vertices}
+import com.phoenixkahlo.hellcraft.core.entity.Cube
+import com.phoenixkahlo.hellcraft.core.{AddEntity, Densities, Meshable, Vertices}
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics.{ChunkOutline, NoInterpolation, ResourcePack}
-import com.phoenixkahlo.hellcraft.math.V3F
+import com.phoenixkahlo.hellcraft.math.{Origin, V3F}
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.util.DependencyGraph
 import com.phoenixkahlo.hellcraft.util.caches.Cache
@@ -53,6 +56,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     println("instantiating history")
     infinitum = new Infinitum(res, save, 1f / 20f)
+    infinitum.update(Set.empty, Seq(AddEntity(Cube(Color.PURPLE, V3F(0, 25, 0), UUID.randomUUID()), UUID.randomUUID())))
 
     println("loading resources")
     resources = providedResources()
