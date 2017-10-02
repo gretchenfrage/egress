@@ -111,9 +111,9 @@ class SWorld(
   }
 
   /**
-    * Get all events from chunks with complete terrain
+    * Get all effects from chunks with complete terrain
     */
-  def events(dt: Float): Seq[ChunkEvent] = {
+  def effects(dt: Float): Seq[UpdateEffect] = {
     state3.toSeq.map(chunks(_)).flatMap(_.update(this, dt))
   }
 
@@ -147,7 +147,12 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
   def apply(t: Long): Option[SWorld] = history.get(t)
   def apply(): SWorld = history.last._2
 
-  def update(loadTarget: Set[V3I], externalEvents: Seq[ChunkEvent] = Seq.empty): Unit = {
+  /**
+    * Update the world, and return the effects.
+    * This concurrent, imperative logic is probably the most complicated part of this game, so let's Keep It Simple Sweety.
+   */
+  def update(loadTarget: Set[V3I], externalEvents: Seq[ChunkEvent] = Seq.empty):
+      Map[UpdateEffectType, Seq[UpdateEffect]] = {
     var world = this()
 
     // push chunks to save
@@ -180,8 +185,9 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       })
     }
 
-    // begin to accumulate events
-    var events = world.events(dt) ++ externalEvents
+    // get effects and begin to accumulate events
+    val effects = world.effects(dt).groupBy(_.effectType).withDefaultValue(Seq.empty)
+    var events = effects(ChunkEvent).map(_.asInstanceOf[ChunkEvent]) ++ externalEvents
 
     // pull loaded chunks from the queue and add them to the world if they're valid, also accumulate pending events
     while (loadQueue.size > 0) {
@@ -226,6 +232,8 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
 
     // append to history
     history += world.time -> world
+
+    effects
   }
 
 }

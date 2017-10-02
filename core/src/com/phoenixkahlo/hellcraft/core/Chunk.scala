@@ -35,7 +35,7 @@ class Chunk(
   def updateTerrain(neu: Terrain): Chunk =
     new Chunk(pos, neu, entities, null)
 
-  def update(world: World, dt: Float): Seq[ChunkEvent] = {
+  def update(world: World, dt: Float): Seq[UpdateEffect] = {
     val seed: Long = (world.time.hashCode().toLong << 32) | pos.hashCode().toLong
     val idss: Stream[Stream[UUID]] = RNG.meta(RNG(seed), RNG.uuids)
     entities.values.zip(idss).flatMap({ case (entity, ids) => entity.update(world, ids, dt) }).toSeq

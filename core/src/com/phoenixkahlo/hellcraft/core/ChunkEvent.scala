@@ -5,14 +5,20 @@ import java.util.UUID
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.{Cube, Entity}
+import com.phoenixkahlo.hellcraft.graphics.SoundID
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 
-sealed trait UpdateEffect
+sealed trait UpdateEffect {
+  def effectType: UpdateEffectType
+}
+sealed trait UpdateEffectType
 
-
+case class SoundEffect(sound: SoundID, pow: Float, pos: V3F) extends UpdateEffect {
+  override def effectType: UpdateEffectType = SoundEffect
+}
+case object SoundEffect extends UpdateEffectType
 
 abstract sealed class ChunkEvent(val target: V3I, val id: UUID) extends UpdateEffect with Comparable[ChunkEvent] {
-
   def apply(chunk: Chunk): Chunk
 
   override def compareTo(o: ChunkEvent): Int =
@@ -27,7 +33,9 @@ abstract sealed class ChunkEvent(val target: V3I, val id: UUID) extends UpdateEf
   override def hashCode(): Int =
     id.hashCode()
 
+  override def effectType: UpdateEffectType = ChunkEvent
 }
+case object ChunkEvent extends UpdateEffectType
 
 /**
   * This is the only event that can update terrain

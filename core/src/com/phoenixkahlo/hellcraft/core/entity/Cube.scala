@@ -8,8 +8,7 @@ import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core._
-import com.phoenixkahlo.hellcraft.graphics.{BlockOutlineModel, Interpolation, RenderUnit, ResourcePack}
-import com.phoenixkahlo.hellcraft.graphics.RenderUnit
+import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.math.V3F
 import com.phoenixkahlo.hellcraft.util.ResourceNode
 
@@ -19,6 +18,11 @@ import scala.collection.JavaConverters
 case class Cube(color: Color, override val pos: V3F, override val id: UUID) extends Entity {
   override def renderables(pack: ResourcePack): Seq[RenderUnit] = {
     Seq(new CubeRenderer(this))
+  }
+
+  override def update(world: World, ids: Stream[UUID], dt: Float): Seq[UpdateEffect] = {
+    if (world.time % 60 == 0) Seq(SoundEffect(SnapSID, 1, pos))
+    else Seq.empty
   }
 }
 

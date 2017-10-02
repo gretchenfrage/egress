@@ -9,7 +9,7 @@ import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.utils.Pool
 import com.badlogic.gdx.{Gdx, InputAdapter, InputMultiplexer}
 import com.phoenixkahlo.hellcraft.core.entity.Cube
-import com.phoenixkahlo.hellcraft.core.{AddEntity, Densities, Meshable, Vertices}
+import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics.{ChunkOutline, NoInterpolation, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F}
@@ -102,8 +102,13 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         // update world
         UniExecutor.point = V3F(renderer.cam.position)
         val p = (V3F(renderer.cam.position) / 16).floor
-        infinitum.update(((p - LoadDist) to (p + LoadDist)).toSet)
+        val effects = infinitum.update(((p - LoadDist) to (p + LoadDist)).toSet)
         val time = infinitum().time
+
+        // process effects
+        effects(SoundEffect).map(_.asInstanceOf[SoundEffect]).foreach({
+          case SoundEffect(sid, pow, pos) => resources.sound(sid).play(pow)
+        })
 
         // manage time
         if (clock.timeSince(time) > (500 milliseconds)) {

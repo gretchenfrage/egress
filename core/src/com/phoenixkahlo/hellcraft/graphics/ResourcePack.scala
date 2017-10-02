@@ -51,6 +51,8 @@ trait ResourcePack {
 
   def pixmap(pixmapID: PixmapID): Pixmap
 
+  def sound(soundID: SoundID): Sound
+
 }
 
 class DefaultResourcePack extends ResourcePack {
@@ -110,5 +112,6 @@ class DefaultResourcePack extends ResourcePack {
     SnapSID -> "snap.wav"
   ) map { case (sid, path) => (sid, Gdx.audio.newSound(Gdx.files.internal("sounds/" + path))) } toMap
 
-
+  override def sound(soundID: SoundID): Sound =
+    sounds(soundID)
 }
