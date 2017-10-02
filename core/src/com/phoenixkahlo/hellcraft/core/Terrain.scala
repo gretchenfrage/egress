@@ -174,6 +174,7 @@ case class Vertices(pos: V3I, materials: ByteField, vertices: OptionField[Vert],
 }
 
 object Vertices extends TerrainType {
+  @CarboniteFields
   case class Vert(p: V3F, n: V3F, material: Material)
 }
 

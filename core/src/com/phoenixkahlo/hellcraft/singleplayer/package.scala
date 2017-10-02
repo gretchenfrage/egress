@@ -17,7 +17,8 @@ package object singleplayer {
   type EventID = UUID
   type AvatarID = UUID
 
-  val LoadDist = V3I(6, 6, 6)
+  val WorldRes = 8
+  val LoadDist = V3I(6, 3, 6)
 
   val DayCycleTime = 20 seconds
   val DayCycleTicks = DayCycleTime.toSeconds * Delta.updatesPerSecond
@@ -29,6 +30,3 @@ package object singleplayer {
   val useParCollections = false
 
 }
-
-class Bar[T]
-class Baz extends Bar[String]

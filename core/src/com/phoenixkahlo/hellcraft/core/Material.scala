@@ -1,5 +1,6 @@
 package com.phoenixkahlo.hellcraft.core
 
+import com.phoenixkahlo.hellcraft.carbonite._
 import com.phoenixkahlo.hellcraft.graphics.{DirtTID, ErrorTID, SheetTextureID, StoneTID}
 
 sealed trait Material {

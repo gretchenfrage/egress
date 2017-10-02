@@ -36,7 +36,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var g = 0
 
   override def onEnter(driver: GameDriver): Unit = {
-    val res = 32
+    val res = WorldRes
 
     println("activating uni executor")
     UniExecutor.activate(Runtime.getRuntime.availableProcessors() - 2, task => {
