@@ -144,6 +144,9 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         case Vertices(p, _, _, _) => units +:= new ChunkOutline(p, Color.BLUE)
         case Meshable(p, _, _, _, _, _) => units +:= new ChunkOutline(p, Color.GREEN)
       }
+      infinitum.loading.foreach(p => {
+        units +:= new ChunkOutline(p, Color.WHITE)
+      })
     }
 
     // do memory management

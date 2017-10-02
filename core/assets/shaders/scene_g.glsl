@@ -32,7 +32,7 @@ out vec3 f_lightDirCamSpace;
 out vec3 f_camDirCamSpace;
 
 void main() {
-    vec3 avg_normal = normalize((v_normalWorldSpace[0] + v_normalWorldSpace[1] + v_normalWorldSpace[2]) / 3f);
+    vec3 avg_normal = normalize((v_normalWorldSpace[0] + v_normalWorldSpace[1] + v_normalWorldSpace[2]) / 3.0);
     vec3 avg_normalCamSpace = (u_viewTrans * u_worldTrans * vec4(avg_normal, 0)).xyz;
 
     f_pos =                           v_pos[0];
@@ -47,7 +47,7 @@ void main() {
     EmitVertex();
 
     f_pos =                           v_pos[1];
-    f_texCoord0 =               v_texCoord0[0] + vec2(0, 1f / 16f);
+    f_texCoord0 =               v_texCoord0[0] + vec2(0, 1.0 / 16.0);
     f_color =                 vec4(0, 1, 0, 1);//v_color[1];
     f_shadowCoord =           v_shadowCoord[1];
     f_normalWorldSpace =            avg_normal;//v_normalWorldSpace[1];
@@ -58,7 +58,7 @@ void main() {
     EmitVertex();
 
     f_pos =                           v_pos[2];
-    f_texCoord0 =               v_texCoord0[0] + vec2(1f / 16f, 0);
+    f_texCoord0 =               v_texCoord0[0] + vec2(1.0 / 16.0, 0);
     f_color =                 vec4(0, 0, 1, 1);//v_color[2];
     f_shadowCoord =           v_shadowCoord[2];
     f_normalWorldSpace =            avg_normal;//v_normalWorldSpace[2];

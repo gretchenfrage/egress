@@ -7,7 +7,7 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.graphics.{RenderUnit, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
-import com.phoenixkahlo.hellcraft.util.threading.UniExecutor
+import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 
 import scala.collection.SortedMap
 
@@ -147,6 +147,8 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
   def apply(t: Long): Option[SWorld] = history.get(t)
   def apply(): SWorld = history.last._2
 
+  def loading: Set[V3I] = loadMap.keySet
+
   /**
     * Update the world, and return the effects.
     * This concurrent, imperative logic is probably the most complicated part of this game, so let's Keep It Simple Sweety.
@@ -162,7 +164,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     world --= toUnload.map(_.pos)
 
     // pull chunk futures from save to create load futures
-    val loadFuts = save.pull((loadTarget -- world.chunks.keySet -- loadMap.keySet).toSeq)
+    val loadFuts: Map[V3I, Fut[Chunk]] = save.pull((loadTarget -- world.chunks.keySet -- loadMap.keySet).toSeq)
     for ((p, fut) <- loadFuts) {
       val loadID = UUID.randomUUID()
       loadMap += p -> loadID
@@ -202,12 +204,6 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       }
     }
 
-    // partition events by whether they can be integrated immediately
-    val (integrateNow, integrateLater) = events.partition(world.chunks contains _.target)
-    events = integrateNow
-    // add the events that can't be immediately integrated to the pending event sequence
-    pendingEvents ++= integrateLater.groupBy(_.target)
-
     // scan the events for update terrain events, and use them to invalidate upgrade futures
     val invalidateRange = V3I(-2, -2, -2) to V3I(2, 2, 2)
     events.flatMap({
@@ -224,8 +220,14 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       }
     }
 
+    // partition events by whether they can be integrated immediately
+    val (integrateNow, integrateLater) = events.partition(world.chunks contains _.target)
+
+    // add the events that can't be immediately integrated to the pending event sequence
+    pendingEvents ++= integrateLater.groupBy(_.target)
+
     // integrate the accumulated events into the world
-    world = world.integrate(events)
+    world = world.integrate(integrateNow)
 
     // increment time
     world = world.incrTime
