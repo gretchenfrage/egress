@@ -15,6 +15,7 @@ import com.phoenixkahlo.hellcraft.graphics.{ChunkOutline, NoInterpolation, Resou
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F}
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.util.DependencyGraph
+import com.phoenixkahlo.hellcraft.util.audio.AudioUtil
 import com.phoenixkahlo.hellcraft.util.caches.Cache
 import com.phoenixkahlo.hellcraft.util.threading.UniExecutor
 import other.AppDirs
@@ -106,9 +107,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         val time = infinitum().time
 
         // process effects
-        effects(SoundEffect).map(_.asInstanceOf[SoundEffect]).foreach({
-          case SoundEffect(sid, pow, pos) => resources.sound(sid).play(pow)
-        })
+        effects(SoundEffect).map(_.asInstanceOf[SoundEffect])
+          .foreach(AudioUtil.play(resources, V3F(renderer.cam.position)))
 
         // manage time
         if (clock.timeSince(time) > (500 milliseconds)) {
