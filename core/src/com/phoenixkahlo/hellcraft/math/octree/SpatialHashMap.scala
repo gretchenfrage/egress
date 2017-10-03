@@ -23,7 +23,7 @@ case class SpatialHashMap[+E] private(binSize: Float, searchRange: Float, bins: 
   }
 
   override def get(key: V3F): Option[E] = {
-    bins(hash(key)).find({ case (k, v) => k == key }).map(_._2)
+    bins.getOrElse(hash(key), List.empty).find({ case (k, v) => k == key }).map(_._2)
   }
 
   override def iterator: Iterator[(V3F, E)] = {
@@ -62,7 +62,7 @@ object SpatialHashMapTest extends App {
     val t1 = System.nanoTime()
 
     var map: SpatialHashMap[Unit] = SpatialHashMap(binSize)
-    for (_ <- 1 to 20) {
+    for (_ <- 1 to 1000) {
       map += ((V3F(
         Math.random().toFloat * 12 - 6,
         Math.random().toFloat * 12 - 6,
