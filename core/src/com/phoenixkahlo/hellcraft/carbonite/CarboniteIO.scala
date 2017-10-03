@@ -14,6 +14,8 @@ trait CarboniteOutput extends ObjectOutput {
 
   def writeClass(clazz: Class[_]): Unit
 
+  def writeNodeTypeID(id: NodeTypeID): Unit = writeShort(id)
+
   def config: CarboniteConfig
 
   override def writeObject(obj: Any): Unit = {
@@ -43,7 +45,7 @@ trait CarboniteOutput extends ObjectOutput {
 
     writeRefCount(refCount)
     for (datum <- toWrite) {
-      writeByte(datum.nodeTypeID)
+      writeNodeTypeID(datum.nodeTypeID)
       datum.node.write(this, refLookup)
     }
   }
@@ -58,13 +60,15 @@ trait CarboniteInput extends ObjectInput {
 
   def readClass(): Class[_]
 
+  def readNodeTypeID(): NodeTypeID = readShort()
+
   def config: CarboniteConfig
 
   override def readObject(): AnyRef = {
     val refCount = readRefCount()
     val refs = new mutable.HashMap[Int, DeserialNode]
     for (ref <- 0 until refCount) {
-      val typeID = readByte()
+      val typeID = readNodeTypeID()
       val node = config.deserial(typeID)
       node.read(this)
       refs.put(ref, node)

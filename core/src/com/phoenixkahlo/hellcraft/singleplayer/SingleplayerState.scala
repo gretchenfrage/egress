@@ -47,7 +47,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       System.err.println("uni executor failure")
       t.printStackTrace()
       driver.enter(new MainMenu(providedResources))
-    })
+    }, 4)
 
     println("instantiating save")
     val generator = new Generator(res)

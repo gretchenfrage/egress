@@ -10,7 +10,7 @@ case class SpatialHashMap[+E] private(binSize: Float, searchRange: Float, bins: 
   override def +[V1 >: E](kv: (V3F, V1)): SpatialHashMap[V1] = {
     val (key, value) = kv
     val hashed = hash(key)
-    copy(bins = bins + (hashed -> (bins.getOrElse(hashed, List.empty) :+ kv)))
+    copy(bins = bins + (hashed -> (bins.getOrElse(hashed, List.empty).filterNot(_._1 == key) :+ kv)))
   }
 
   override def -(key: V3F): SpatialHashMap[E] = {
@@ -50,7 +50,7 @@ case class SpatialHashMap[+E] private(binSize: Float, searchRange: Float, bins: 
 
 object SpatialHashMap {
   def apply[E](binSize: Float): SpatialHashMap[E] = {
-    val searchRange = Math.sqrt(3 * binSize * binSize).toFloat * 2
+    val searchRange = Math.sqrt(3 * binSize * binSize).toFloat * 2.001f
     SpatialHashMap(binSize, searchRange, Map.empty)
   }
 }

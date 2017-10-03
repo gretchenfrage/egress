@@ -8,8 +8,6 @@ import com.phoenixkahlo.hellcraft.util.fields.{ByteField, FractionField, OptionF
 
 object EgressCarboniteConfig extends DefaultCarboniteConfig {
 
-
-
   register[Chunk]()
   register[Densities]()
   register[Vertices]()

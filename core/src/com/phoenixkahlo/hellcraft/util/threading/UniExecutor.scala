@@ -5,16 +5,16 @@ import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue, ThreadFactory}
 import java.util.function.{Consumer, Supplier}
 
 import com.phoenixkahlo.hellcraft.math.{V2F, V3F}
-import com.phoenixkahlo.hellcraft.math.octree.OctreeBlockingQueue
+import com.phoenixkahlo.hellcraft.math.octree.SpatialHashMapBlockingQueue
 
 import scala.collection.mutable.ArrayBuffer
 
-class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: Consumer[Throwable]) {
+class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: Consumer[Throwable], binSize: Float) {
 
   private val seqQueue = new LinkedBlockingQueue[Runnable]
-  private val octQueue = new OctreeBlockingQueue[Runnable]
-  private val quadQueue = new OctreeBlockingQueue[Runnable]
-  private val meshQueue = new OctreeBlockingQueue[Runnable]
+  private val octQueue = new SpatialHashMapBlockingQueue[Runnable](binSize)
+  private val quadQueue = new SpatialHashMapBlockingQueue[Runnable](binSize)
+  private val meshQueue = new SpatialHashMapBlockingQueue[Runnable](binSize)
 
   private val ticketQueue = new LinkedBlockingQueue[Supplier[Option[Runnable]]]
   private val workers = new ArrayBuffer[Thread]
@@ -35,6 +35,7 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
       }
     }
   }
+
   for (_ <- 1 to threadCount)
     workers += threadFactory.newThread(Worker(() => ticketQueue.take().get().foreach(_.run())))
   workers += threadFactory.newThread(Worker(() => seqQueue.take().run()))
@@ -63,6 +64,7 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
   }
 
   def point: V3F = octQueue.point
+
   def point_=(p: V3F): Unit = {
     octQueue.point = p
     quadQueue.point = p.copy(y = 0)
@@ -90,13 +92,15 @@ object UniExecutor {
   def mesh(pos: V3F)(task: Runnable): Unit = service.mesh(pos)(task)
 
   def point: V3F = service.point
+
   def point_=(p: V3F): Unit = service.point = p
 
-  def activate(threadCount: Int, threadFactory: ThreadFactory, failHandler: Consumer[Throwable]): Unit = this.synchronized {
-    if (service != null) throw new IllegalStateException("uni executor is already active")
-    service = new UniExecutor(threadCount, threadFactory, failHandler)
-    service.start()
-  }
+  def activate(threadCount: Int, threadFactory: ThreadFactory, failHandler: Consumer[Throwable], binSize: Float): Unit =
+    this.synchronized {
+      if (service != null) throw new IllegalStateException("uni executor is already active")
+      service = new UniExecutor(threadCount, threadFactory, failHandler, binSize)
+      service.start()
+    }
 
   def deactivate(): Unit = this.synchronized {
     if (service == null) throw new IllegalStateException("uni executor is not active")

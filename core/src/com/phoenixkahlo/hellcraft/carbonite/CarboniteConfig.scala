@@ -41,7 +41,7 @@ class DefaultCarboniteConfig extends CarboniteConfig {
 
   override def serial(obj: Any): (SerialNode, NodeTypeID) = {
     try {
-      types.zipWithIndex.flatMap({ case (nType, id) => nType.serial(obj).map((_, id.toByte)) }).head
+      types.zipWithIndex.flatMap({ case (nType, id) => nType.serial(obj).map((_, id.toShort)) }).head
     } catch {
       case e: NoSuchElementException =>
         System.err.println("no valid serializer for " + obj)
