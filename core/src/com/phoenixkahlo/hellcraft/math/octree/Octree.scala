@@ -108,6 +108,39 @@ case class OctreeBranch[+E](center: V3F, range: Float, children: Map[V3I, Octree
 
   override def closest(point: V3F): Option[(V3F, E)] = {
     Signs().flatMap(children(_).closest(point)).sortBy(_._1 dist point).headOption
+
+    /*
+    val pmc = point - center
+    val sign = V3I(
+      if (pmc.x > 0) 1 else -1,
+      if (pmc.y > 0) 1 else -1,
+      if (pmc.z > 0) 1 else -1
+    )
+    Stream(
+      sign,
+      V3I(-sign.xi, sign.yi, sign.zi), V3I(sign.xi, -sign.yi, sign.zi), V3I(sign.xi, sign.yi, -sign.zi),
+      V3I(sign.xi, -sign.yi, -sign.zi), V3I(-sign.xi, sign.yi, -sign.zi), V3I(-sign.xi, -sign.yi, sign.zi),
+      sign.neg
+    ).flatMap(children(_).closest(point)).headOption
+    */
+    /*
+    if (point == center) Signs().flatMap(children(_).closest(point)).sortBy(_._1 dist point).headOption
+    else {
+      val pmc = point - center
+      val sign = V3I(
+        if (pmc.x > 0) 1 else -1,
+        if (pmc.y > 0) 1 else -1,
+        if (pmc.z > 0) 1 else -1
+      )
+      Stream(
+        sign,
+        V3I(-sign.xi, sign.yi, sign.zi), V3I(sign.xi, -sign.yi, sign.zi), V3I(sign.xi, sign.yi, -sign.zi),
+        V3I(sign.xi, -sign.yi, -sign.zi), V3I(-sign.xi, sign.yi, -sign.zi), V3I(-sign.xi, -sign.yi, sign.zi),
+        sign.neg
+      ).flatMap(children(_).closest(point)).headOption
+    }
+    */
+
   }
 
   override def prettyPrint(indentation: Int, out: PrintStream): Unit = {
@@ -134,23 +167,35 @@ object OctreeTest extends App {
 
   val t1 = System.nanoTime()
 
-  var octree: Octree[Int] = EmptyOctree(Origin, Float.MaxValue)
-  for (n <- 1 to 2) {
+  var octree: Octree[Unit] = EmptyOctree(Origin, Float.MaxValue)
+  /*
+  for (n <- 1 to 100) {
     octree += ((V3I(n, n, -n), n))
+  }
+  */
+  for (_ <- 1 to 10000) {
+    octree += ((V3F(
+      Math.random().toFloat * 1000000 - 500000,
+      Math.random().toFloat * 1000000 - 500000,
+      Math.random().toFloat * 1000000 - 500000
+    ), ()))
   }
   println(octree)
   println("size = " + octree.size)
   println("depth = " + octree.depth)
   val pos = Origin
-  val buffer = new ArrayBuffer[(V3F, Int)]
+  val buffer = new ArrayBuffer[V3F]
   while (octree nonEmpty) {
     val item = octree.closest(pos).get
-    buffer += item
+    buffer += item._1
     octree -= item._1
   }
   println(buffer)
 
   val t2 = System.nanoTime()
   println("construction and deconstruction took " + (t2 - t1) / 1000000 + " ms")
+
+  val sorted = buffer.to[Vector].sortBy(_ dist Origin)
+  println("is sorted = " + (buffer.to[Vector] == sorted))
 
 }

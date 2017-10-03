@@ -150,12 +150,12 @@ case class Vertices(pos: V3I, materials: ByteField, vertices: OptionField[Vert],
           (vertices(v), vertices(v + d1), vertices(v + d2), vertices(v + d3)) match {
             case (Some(vert1), Some(vert2), Some(vert3), Some(vert4)) =>
               // create triangle of verts 1, 2, 3 in correct direction
-              if ((((vert2.p - vert1.p) cross (vert3.p - vert1.p)) dot ((vert1.n + vert2.n + vert3.n) / 3).normalize) > 0)
+              if ((((vert2.p - vert1.p) cross (vert3.p - vert1.p)) dot ((vert1.n + vert2.n + vert3.n) / 3).tryNormalize) > 0)
                 indices.append(vertMapInv(v), vertMapInv(v + d1), vertMapInv(v + d2))
               else
                 indices.append(vertMapInv(v), vertMapInv(v + d2), vertMapInv(v + d1))
               // create triangle of verts 1, 3, 4 in correct direction
-              if ((((vert3.p - vert1.p) cross (vert4.p - vert1.p)) dot ((vert1.n + vert3.n + vert4.n) / 3).normalize) > 0)
+              if ((((vert3.p - vert1.p) cross (vert4.p - vert1.p)) dot ((vert1.n + vert3.n + vert4.n) / 3).tryNormalize) > 0)
                 indices.append(vertMapInv(v), vertMapInv(v + d2), vertMapInv(v + d3))
               else
                 indices.append(vertMapInv(v), vertMapInv(v + d3), vertMapInv(v + d2))
