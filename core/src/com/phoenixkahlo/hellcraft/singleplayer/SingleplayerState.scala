@@ -57,7 +57,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     println("instantiating history")
     infinitum = new Infinitum(res, save, 1f / 20f)
-    infinitum.update(Set.empty, Seq(AddEntity(Cube(Color.PURPLE, V3F(0, 25, 0), UUID.randomUUID()), UUID.randomUUID())))
+    //infinitum.update(Set.empty, Seq(AddEntity(Cube(Color.PURPLE, V3F(0, 25, 0), UUID.randomUUID()), UUID.randomUUID())))
 
     println("loading resources")
     resources = providedResources()

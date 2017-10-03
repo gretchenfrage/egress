@@ -1,6 +1,6 @@
-#version 120
+#version 150
 
-attribute vec3 a_position;
+in vec3 a_position;
 
 uniform mat4 u_combinedTrans;
 
