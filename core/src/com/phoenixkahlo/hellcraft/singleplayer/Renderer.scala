@@ -26,8 +26,9 @@ class Renderer(resources: ResourcePack) extends Disposable {
   val cam = new PerspectiveCamera(70, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
   cam.near = 0.1f
   cam.far = 1000
-  cam.position.set(0, 0, -10)
-  cam.lookAt(0, 0, 0)
+  cam.position.set(30, 30, 30)
+  cam.lookAt(0, 25, 0)
+  cam.up.set(0, 1, 0)
 
   val worldBoxRad = LoadDist.fold(Math.max) * 16
   val sunlightRes = (worldBoxRad * 3 * ShadowPixelDensity) toInt
@@ -83,7 +84,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
   def setupSunlight(world: SWorld): Unit = {
     val cycle = world.time.toFloat / DayCycleTicks.toFloat % 1
     val sunDir = V3F(-Trig.cos(cycle * 360), Trig.sin(cycle * 360), 0)
-    val worldCenter = V3F(cam.position)
+    val worldCenter = (V3F(cam.position) / 32 floor) * 32
     val sunPos = worldCenter + (sunDir * worldBoxRad * 1.5f)
 
     lightCam.position.set(sunPos toGdx)

@@ -131,7 +131,7 @@ class ChunkMesher(chunk: Chunk, meshable: Meshable) {
         //Seq(mesh(pack), gradient(()))
         //Seq(mesh(pack), gradient(()), density(world))
 
-      override def resources: Seq[ResourceNode] =
+      override val resources: Seq[ResourceNode] =
         Seq(new ResourceNode {
           override def dependencies: Seq[ResourceNode] = Seq.empty
 

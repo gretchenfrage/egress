@@ -20,12 +20,13 @@ package object singleplayer {
   val WorldRes = 16
   val LoadDist = V3I(6, 3, 6)
 
-  val DayCycleTime = 20 seconds
+  val DayCycleTime = 20 minutes
   val DayCycleTicks = DayCycleTime.toSeconds * Delta.updatesPerSecond
   val ShadowPixelDensity = 10
 
-  val mainLoopThreadPriority = 3
-  val renderLoopThreadPriority = 6
+  val auxBackgroundThreads = 0//Runtime.getRuntime.availableProcessors() - 2
+  val mainLoopThreadPriority = 5
+  val renderLoopThreadPriority = 10
   val backgroundThreadPriority = 1
   val useParCollections = false
 

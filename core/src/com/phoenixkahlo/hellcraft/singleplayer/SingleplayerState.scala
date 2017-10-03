@@ -40,7 +40,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     val res = WorldRes
 
     println("activating uni executor")
-    UniExecutor.activate(Runtime.getRuntime.availableProcessors() - 2, task => {
+    UniExecutor.activate(auxBackgroundThreads, task => {
       val thread = new Thread(task, "uni exec thread")
       thread.setPriority(backgroundThreadPriority)
       thread
