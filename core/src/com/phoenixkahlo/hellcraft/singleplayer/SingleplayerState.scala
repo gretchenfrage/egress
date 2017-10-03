@@ -12,7 +12,7 @@ import com.phoenixkahlo.hellcraft.core.entity.Cube
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics.{ChunkOutline, NoInterpolation, ResourcePack}
-import com.phoenixkahlo.hellcraft.math.{Origin, V3F}
+import com.phoenixkahlo.hellcraft.math.{Origin, Raytrace, V3F}
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.util.DependencyGraph
 import com.phoenixkahlo.hellcraft.util.audio.AudioUtil
@@ -32,6 +32,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var renderer: Renderer = _
   private var controller: FirstPersonCameraController = _
   private var vramGraph: DependencyGraph = _
+  private var mainLoopTasks: java.util.Queue[Runnable] = _
   private var updateThread: Thread = _
   private var g = 0
 
@@ -76,6 +77,23 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         } else if (keycode == Keys.J) {
           println(V3F(renderer.cam.direction))
           true
+        } else if (keycode == Keys.P) {
+          val camPos = V3F(renderer.cam.position)
+          val camDir = V3F(renderer.cam.direction)
+          val world = infinitum()
+          mainLoopTasks.add(() => {
+            val camChunk = camPos / 16 floor
+            val meshes: Seq[(Seq[Short], Short => V3F)] =
+              camChunk.neighbors.flatMap(world.chunkAt).flatMap(_.terrain.asMeshable).map(meshable => {
+                meshable.indices -> ((i: Short) => meshable.vertices(meshable.vertMap(i)).get.p)
+              })
+            val hit = Raytrace.meshes(camPos, camDir, meshes)
+            println("hit = " + hit)
+            if (hit.isDefined)
+              infinitum.update(infinitum().chunks.keySet, Seq(AddEntity(Cube(Color.ORANGE, hit.get, UUID.randomUUID()), UUID.randomUUID())))
+
+          })
+          true
         } else false
 
     })
@@ -89,6 +107,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     Thread.currentThread().setPriority(renderLoopThreadPriority)
 
     println("spawning updating thread")
+    mainLoopTasks = new java.util.concurrent.ConcurrentLinkedQueue
     updateThread = new Thread(this, "update thread")
     updateThread.setPriority(mainLoopThreadPriority)
     clock.reset()
@@ -100,6 +119,10 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   override def run(): Unit = {
     try {
       while (!Thread.interrupted()) {
+        // run tasks from queue
+        while (mainLoopTasks.size > 0)
+          mainLoopTasks.remove().run()
+
         // update world
         UniExecutor.point = V3F(renderer.cam.position)
         val p = (V3F(renderer.cam.position) / 16).floor

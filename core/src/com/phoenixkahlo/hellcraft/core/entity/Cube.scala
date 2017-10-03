@@ -20,10 +20,12 @@ case class Cube(color: Color, override val pos: V3F, override val id: UUID) exte
     Seq(new CubeRenderer(this))
   }
 
+  /*
   override def update(world: World, ids: Stream[UUID], dt: Float): Seq[UpdateEffect] = {
     if (world.time % 60 == 0) Seq(SoundEffect(SnapSID, 1, pos))
     else Seq.empty
   }
+  */
 }
 
 class CubeRenderer(cube: Cube) extends RenderUnit {

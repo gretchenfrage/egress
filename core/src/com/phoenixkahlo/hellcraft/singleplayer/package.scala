@@ -25,7 +25,7 @@ package object singleplayer {
   val ShadowPixelDensity = 10
 
   val mainLoopThreadPriority = 3
-  val renderLoopThreadPriority = 3
+  val renderLoopThreadPriority = 6
   val backgroundThreadPriority = 1
   val useParCollections = false
 
