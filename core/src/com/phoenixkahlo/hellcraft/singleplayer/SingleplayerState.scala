@@ -178,7 +178,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     if (g % 600 == 0) UniExecutor.exec(() => {
       val garbage = vramGraph.garbage(nodes)
       Gdx.app.postRunnable(() => {
-        println("deleting: " + garbage)
+        println("deleting " + garbage.size + " resource nodes")
         garbage.foreach(_.dispose())
         vramGraph --= garbage.toSeq
       })
