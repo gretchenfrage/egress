@@ -224,7 +224,10 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     val (integrateNow, integrateLater) = events.partition(world.chunks contains _.target)
 
     // add the events that can't be immediately integrated to the pending event sequence
-    pendingEvents ++= integrateLater.groupBy(_.target)
+    //pendingEvents ++= integrateLater.groupBy(_.target)
+    for ((key, seq) <- integrateLater.groupBy(_.target)) {
+      pendingEvents = pendingEvents.updated(key, pendingEvents.getOrElse(key, Seq.empty) ++ seq)
+    }
 
     // integrate the accumulated events into the world
     world = world.integrate(integrateNow)

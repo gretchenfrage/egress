@@ -176,6 +176,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
     if (!Gdx.input.isKeyPressed(Keys.M)) {
       batch.begin(cam)
+      println("rendering " + providers.size + " renderables")
       batch.render(JavaConverters.asJavaIterable(providers), environment)
       batch.render(sunModel, environment, sunShader)
       batch.end()

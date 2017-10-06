@@ -12,7 +12,7 @@ import com.phoenixkahlo.hellcraft.core.entity.Cube
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics.{ChunkOutline, NoInterpolation, ResourcePack}
-import com.phoenixkahlo.hellcraft.math.{Origin, Raytrace, V3F}
+import com.phoenixkahlo.hellcraft.math.{Origin, Raytrace, V3F, V3I}
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.util.DependencyGraph
 import com.phoenixkahlo.hellcraft.util.audio.AudioUtil
@@ -59,6 +59,9 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     println("instantiating history")
     infinitum = new Infinitum(res, save, 1f / 20f)
     //infinitum.update(Set.empty, Seq(AddEntity(Cube(Color.PURPLE, V3F(0, 25, 0), UUID.randomUUID()), UUID.randomUUID())))
+    //for (v <- Origin until V3I(10, 10, 1)) {
+    //  infinitum.update(Set.empty, Seq(AddEntity(Cube(Color.PURPLE, v, UUID.randomUUID()), UUID.randomUUID())))
+    //}
 
     println("loading resources")
     resources = providedResources()
@@ -81,6 +84,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           val camPos = V3F(renderer.cam.position)
           val camDir = V3F(renderer.cam.direction)
           val world = infinitum()
+
+          
           mainLoopTasks.add(() => {
             val camChunk = camPos / 16 floor
             val meshes: Seq[(Seq[Short], Short => V3F)] =
