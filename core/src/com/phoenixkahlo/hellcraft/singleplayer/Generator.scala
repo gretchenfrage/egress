@@ -1,9 +1,12 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
+import java.util.UUID
 import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.phoenixkahlo.hellcraft.core._
+import com.phoenixkahlo.hellcraft.core.entity.Cube
+import com.phoenixkahlo.hellcraft.graphics.StoneTID
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.fields.{ByteField, FractionField}
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
@@ -74,7 +77,7 @@ class Generator(res: Int) {
           if (depth >= 0) 0
           else 1
         })))
-    })
+    }).map(_.putEntity(new Cube(StoneTID, p * 16, UUID.randomUUID())))
   }
 
 }

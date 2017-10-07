@@ -8,10 +8,10 @@ import com.badlogic.gdx.graphics.g3d._
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.utils.Pool
 import com.badlogic.gdx.{Gdx, InputAdapter, InputMultiplexer}
-import com.phoenixkahlo.hellcraft.core.entity.Cube
+import com.phoenixkahlo.hellcraft.core.entity.{CubeFrame, Cube}
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
-import com.phoenixkahlo.hellcraft.graphics.{ChunkOutline, NoInterpolation, ResourcePack}
+import com.phoenixkahlo.hellcraft.graphics.{ChunkOutline, NoInterpolation, ResourcePack, StoneTID}
 import com.phoenixkahlo.hellcraft.math.{Origin, Raytrace, V3F, V3I}
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.util.DependencyGraph
@@ -95,7 +95,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
             val hit = Raytrace.meshes(camPos, camDir, meshes)
             println("hit = " + hit)
             if (hit.isDefined)
-              infinitum.update(infinitum().chunks.keySet, Seq(AddEntity(Cube(Color.ORANGE, hit.get, UUID.randomUUID()), UUID.randomUUID())))
+              infinitum.update(infinitum().chunks.keySet, Seq(AddEntity(new Cube(StoneTID, hit.get, UUID.randomUUID()), UUID.randomUUID())))
 
           })
           true
@@ -192,12 +192,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     // convert to provider
     val provider = new RenderableProvider {
       override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit = {
-        val t1 = System.nanoTime()
-        try units.flatMap(_ (interpolation)).foreach(renderables.add)
-        finally {
-          val t2 = System.nanoTime()
-          println("provider.getRenderables took " + ((t2 - t1) / 1000000) + " ms")
-        }
+        units.flatMap(_ (interpolation)).foreach(renderables.add)
       }
     }
 

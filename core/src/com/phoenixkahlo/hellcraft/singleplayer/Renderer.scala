@@ -52,6 +52,8 @@ class Renderer(resources: ResourcePack) extends Disposable {
   sunShader.init()
   val pointShader = new PointShader
   pointShader.init()
+  val genericShader = new GenericShader(resources.sheet, lightCam)
+  genericShader.init()
 
   val sunModel = new SunModel
 
@@ -71,6 +73,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
         case LineSID => lineShader
         case PointSID => pointShader
         case BasicSID => basicShader
+        case GenericSID => genericShader
       }
 
     override def dispose(): Unit = ()
@@ -170,6 +173,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
     lightBuffer.end()
 
     sceneShader.depthMap = lightBuffer.getColorBufferTexture
+    genericShader.depthMap = lightBuffer.getColorBufferTexture
 
     Gdx.gl.glClearColor(skyColor.x, skyColor.y, skyColor.z, 1f)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
@@ -177,10 +181,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
     if (!Gdx.input.isKeyPressed(Keys.M)) {
       batch.begin(cam)
-      val t1 = System.nanoTime()
       batch.render(JavaConverters.asJavaIterable(providers), environment)
-      val t2 = System.nanoTime()
-      println("batch.render took " + ((t2 - t1) / 1000000) + " ms")
       batch.render(sunModel, environment, sunShader)
       batch.end()
     } else {
@@ -196,6 +197,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
     basicShader.dispose()
     sunShader.dispose()
     sunModel.dispose()
+    genericShader.dispose()
   }
 
 }

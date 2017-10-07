@@ -4,7 +4,7 @@ import java.util.UUID
 
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
-import com.phoenixkahlo.hellcraft.core.entity.{Cube, Entity}
+import com.phoenixkahlo.hellcraft.core.entity.{CubeFrame, Entity}
 import com.phoenixkahlo.hellcraft.graphics.SoundID
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 
@@ -78,7 +78,7 @@ abstract class TransformEntity(entityID: UUID, override val target: V3I, overrid
 }
 
 @CarboniteWith(classOf[FieldNode])
-case class SetCubePos(cube: Cube, v: V3F, override val id: UUID) extends TransformEntity(cube.id, cube.chunkPos, id) {
+case class SetCubePos(cube: CubeFrame, v: V3F, override val id: UUID) extends TransformEntity(cube.id, cube.chunkPos, id) {
   override def transform(entity: Entity): Entity =
     cube.copy(pos = v)
 }
