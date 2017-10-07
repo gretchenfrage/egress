@@ -8,7 +8,7 @@ import com.badlogic.gdx.graphics.glutils.{GeomShaderProgram, ShaderProgram, Shad
 import com.badlogic.gdx.graphics.{Camera, GL20, PerspectiveCamera, Texture}
 import com.badlogic.gdx.utils.GdxRuntimeException
 
-class SceneShader(sheet: Texture, light: Camera) extends Shader {
+class TerrainShader(sheet: Texture, light: Camera) extends Shader {
 
 
   var program: GeomShaderProgram = _
@@ -28,13 +28,13 @@ class SceneShader(sheet: Texture, light: Camera) extends Shader {
   var lightPow: Float = 1
 
   override def canRender(instance: Renderable): Boolean = {
-    instance.userData == SceneSID
+    instance.userData == TerrainSID
   }
 
   override def init(): Unit = {
-    val vert = Gdx.files.internal("shaders/scene_v.glsl").readString()
-    val geom = Gdx.files.internal("shaders/scene_g.glsl").readString()
-    val frag = Gdx.files.internal("shaders/scene_f.glsl").readString()
+    val vert = Gdx.files.internal("shaders/terrain_v.glsl").readString()
+    val geom = Gdx.files.internal("shaders/terrain_g.glsl").readString()
+    val frag = Gdx.files.internal("shaders/terrain_f.glsl").readString()
     program = new GeomShaderProgram(
       new ShaderPart(ShaderStage.vertex, vert),
       new ShaderPart(ShaderStage.geometry, geom),

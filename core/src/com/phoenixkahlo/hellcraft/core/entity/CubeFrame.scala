@@ -9,7 +9,7 @@ import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.graphics._
-import com.phoenixkahlo.hellcraft.graphics.shaders.{LineSID, SceneSID}
+import com.phoenixkahlo.hellcraft.graphics.shaders.{LineSID, TerrainSID}
 import com.phoenixkahlo.hellcraft.math.V3F
 import com.phoenixkahlo.hellcraft.util.ResourceNode
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache

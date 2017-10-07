@@ -77,7 +77,7 @@ class Generator(res: Int) {
           if (depth >= 0) 0
           else 1
         })))
-    }).map(_.putEntity(new Cube(StoneTID, p * 16, UUID.randomUUID())))
+    })
   }
 
 }

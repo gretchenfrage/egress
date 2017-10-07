@@ -40,13 +40,13 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
   var skyColor: V3F = V3F(0.5089f, 0.6941f, 1f)
 
-  val sceneShader = new SceneShader(resources.sheet, lightCam)
-  sceneShader.init()
+  val terrainShader = new TerrainShader(resources.sheet, lightCam)
+  terrainShader.init()
   val lineShader = new LineShader
   lineShader.init()
   val depthShader = new DepthShader
   depthShader.init()
-  val basicShader = new BasicShader(resources.sheet, SceneSID)
+  val basicShader = new BasicShader(resources.sheet, TerrainSID)
   basicShader.init()
   val sunShader = new BasicShader(resources.solo(SunTID), null)
   sunShader.init()
@@ -69,7 +69,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
           shader
         }
       } else renderable.userData.asInstanceOf[ShaderID] match {
-        case SceneSID => sceneShader
+        case TerrainSID => terrainShader
         case LineSID => lineShader
         case PointSID => pointShader
         case BasicSID => basicShader
@@ -132,7 +132,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
     val lightPow = ((toPow - fromPow) * trans) + fromPow
     sceneShader.lightPow = lightPow
     */
-    sceneShader.lightPow = 1
+    terrainShader.lightPow = 1
 
     val sunDist = cam.far * 0.9f
     val scale = 50
@@ -172,7 +172,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
     lightBuffer.end()
 
-    sceneShader.depthMap = lightBuffer.getColorBufferTexture
+    terrainShader.depthMap = lightBuffer.getColorBufferTexture
     genericShader.depthMap = lightBuffer.getColorBufferTexture
 
     Gdx.gl.glClearColor(skyColor.x, skyColor.y, skyColor.z, 1f)
@@ -192,7 +192,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
   }
 
   override def dispose(): Unit = {
-    sceneShader.dispose()
+    terrainShader.dispose()
     lineShader.dispose()
     basicShader.dispose()
     sunShader.dispose()

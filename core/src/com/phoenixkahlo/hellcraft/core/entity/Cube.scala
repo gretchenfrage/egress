@@ -6,7 +6,7 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.Renderable
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteFields
 import com.phoenixkahlo.hellcraft.graphics._
-import com.phoenixkahlo.hellcraft.graphics.shaders.{GenericSID, SceneSID}
+import com.phoenixkahlo.hellcraft.graphics.shaders.{GenericSID, TerrainSID}
 import com.phoenixkahlo.hellcraft.math.V3F
 import com.phoenixkahlo.hellcraft.util.ResourceNode
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache

@@ -6,7 +6,7 @@ import com.badlogic.gdx.graphics.g3d.{Material, Renderable, RenderableProvider}
 import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.utils
 import com.badlogic.gdx.utils.{Disposable, Pool}
-import com.phoenixkahlo.hellcraft.graphics.shaders.{SceneSID}
+import com.phoenixkahlo.hellcraft.graphics.shaders.{TerrainSID}
 
 class SunModel extends RenderableProvider with Disposable {
 
