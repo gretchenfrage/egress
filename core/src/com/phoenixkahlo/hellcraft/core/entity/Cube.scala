@@ -32,3 +32,4 @@ class Cube(tid: SheetTextureID, override val pos: V3F, override val id: UUID) ex
 
   override def renderables(pack: ResourcePack): Seq[RenderUnit] = renderUnit(pack)
 }
+

@@ -46,6 +46,8 @@ class Renderer(resources: ResourcePack) extends Disposable {
   lineShader.init()
   val depthShader = new DepthShader
   depthShader.init()
+  val depthLineShader = new DepthLineShader
+  depthLineShader.init()
   val basicShader = new BasicShader(resources.sheet, TerrainSID)
   basicShader.init()
   val sunShader = new BasicShader(resources.solo(SunTID), null)
@@ -80,7 +82,9 @@ class Renderer(resources: ResourcePack) extends Disposable {
   })
 
   val depthBatch = new ModelBatch(new ShaderProvider {
-    override def getShader(renderable: Renderable): Shader = depthShader
+    override def getShader(renderable: Renderable): Shader =
+      if (renderable.userData == LineSID) depthLineShader
+      else depthShader
 
     override def dispose(): Unit = ()
   })
