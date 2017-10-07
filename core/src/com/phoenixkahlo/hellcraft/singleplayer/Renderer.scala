@@ -60,6 +60,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
       if (renderable.userData == null) {
         if (renderable.shader != null) renderable.shader
         else {
+          println("warning: generating default shader")
           val shader = new DefaultShader(renderable)
           shader.init()
           renderable.shader = shader
@@ -176,8 +177,10 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
     if (!Gdx.input.isKeyPressed(Keys.M)) {
       batch.begin(cam)
-      println("rendering " + providers.size + " renderables")
+      val t1 = System.nanoTime()
       batch.render(JavaConverters.asJavaIterable(providers), environment)
+      val t2 = System.nanoTime()
+      println("batch.render took " + ((t2 - t1) / 1000000) + " ms")
       batch.render(sunModel, environment, sunShader)
       batch.end()
     } else {

@@ -29,7 +29,7 @@ class Profiler(name: String) {
     out.println("]")
   }
 
-  def printDisc(threshhold: Int, out: PrintStream = System.out): Unit = {
+  def printDisc(threshhold: Double, out: PrintStream = System.out): Unit = {
     if (deltas.find(_ > (threshhold milliseconds)).isDefined)
       print(out)
   }

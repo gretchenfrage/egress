@@ -191,8 +191,14 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     // convert to provider
     val provider = new RenderableProvider {
-      override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit =
-        units.flatMap(_ (interpolation)).foreach(renderables.add)
+      override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit = {
+        val t1 = System.nanoTime()
+        try units.flatMap(_ (interpolation)).foreach(renderables.add)
+        finally {
+          val t2 = System.nanoTime()
+          println("provider.getRenderables took " + ((t2 - t1) / 1000000) + " ms")
+        }
+      }
     }
 
     // render
