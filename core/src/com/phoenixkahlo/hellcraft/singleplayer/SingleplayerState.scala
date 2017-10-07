@@ -78,7 +78,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           driver.enter(new MainMenu(providedResources))
           true
         } else if (keycode == Keys.J) {
-          println(V3F(renderer.cam.direction))
+          println(V3F(renderer.cam.direction).direction)
           true
         } else if (keycode == Keys.P) {
           val camPos = V3F(renderer.cam.position)
