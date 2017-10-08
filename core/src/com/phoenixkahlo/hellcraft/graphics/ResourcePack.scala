@@ -17,6 +17,7 @@ case object BrickTID extends SheetTextureID
 case object GrassTID extends SheetTextureID
 case object CrosshairTID extends SheetTextureID
 case object CursorTID extends SheetTextureID
+case object SoundTID extends SheetTextureID
 case object ErrorTID extends SheetTextureID
 
 sealed trait SoloTextureID
@@ -67,6 +68,7 @@ class DefaultResourcePack extends ResourcePack {
     GrassTID -> 4,
     CrosshairTID -> 5,
     CursorTID -> 6,
+    SoundTID -> 7,
     ErrorTID -> 255
   ) map { case (tid, n) => (tid, new TextureRegion(sheet, (n % 16) * 16, (n - (n % 16)) * 16, 16, 16)) } toMap
 

@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.carbonite.egress
 
 import com.phoenixkahlo.hellcraft.carbonite.{DefaultCarboniteConfig, NodeType}
 import com.phoenixkahlo.hellcraft.core._
-import com.phoenixkahlo.hellcraft.core.entity.{Cube, CubeFrame}
+import com.phoenixkahlo.hellcraft.core.entity.{Cube, CubeFrame, PhysicsCube, SoundCube}
 import com.phoenixkahlo.hellcraft.graphics.StoneTID
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.fields.{ByteField, FractionField, OptionField}
@@ -18,10 +18,12 @@ object EgressCarboniteConfig extends DefaultCarboniteConfig {
   register[AddEntity]()
   register[RemoveEntity]()
   register[ReplaceEntity]()
-  register[SetCubePos]()
+  register[UpdatePhysCubePosVel]()
 
   register[CubeFrame]()
   register[Cube]()
+  register[SoundCube]()
+  register[PhysicsCube]()
 
   register(Air.getClass)
   register(Stone.getClass)

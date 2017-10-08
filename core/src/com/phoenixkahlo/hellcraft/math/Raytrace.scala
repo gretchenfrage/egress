@@ -23,7 +23,8 @@ object Raytrace {
 
     val (nextPos: V3F, nextV: V3I) =
       Seq(xy, yz, xz)
-        .map({ case (plane, block) => (line intersection plane, block) }).minBy { case (point, _) => point dist pos }
+        .flatMap { case (plane, block) => (line intersection plane).map((_, block)) }
+        .minBy { case (point, _) => point dist pos }
 
     nextV #:: voxels(nextV, nextPos, dir)
   }

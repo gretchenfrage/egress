@@ -142,6 +142,10 @@ object V3F {
   def apply(x: Float, y: Float, z: Float): V3F =
     new V3F(x, y, z)
 
+  def tryMake(x: Float, y: Float, z: Float): Option[V3F] =
+    if (x != x || y != y || z != z) None
+    else Some(V3F(x, y, z))
+
   def apply(gdxVec: Vector3): V3F =
     V3F(gdxVec.x, gdxVec.y, gdxVec.z)
 

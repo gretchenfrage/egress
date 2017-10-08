@@ -8,11 +8,11 @@ import com.badlogic.gdx.graphics.g3d._
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.utils.Pool
 import com.badlogic.gdx.{Gdx, InputAdapter, InputMultiplexer}
-import com.phoenixkahlo.hellcraft.core.entity.{CubeFrame, Cube}
+import com.phoenixkahlo.hellcraft.core.entity.{Cube, CubeFrame, PhysicsCube, SoundCube}
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
-import com.phoenixkahlo.hellcraft.graphics.{ChunkOutline, NoInterpolation, ResourcePack, StoneTID}
-import com.phoenixkahlo.hellcraft.math.{Origin, Raytrace, V3F, V3I}
+import com.phoenixkahlo.hellcraft.graphics._
+import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.util.DependencyGraph
 import com.phoenixkahlo.hellcraft.util.audio.AudioUtil
@@ -84,22 +84,34 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           val camPos = V3F(renderer.cam.position)
           val camDir = V3F(renderer.cam.direction)
           val world = infinitum()
-
-          
           mainLoopTasks.add(() => {
-            /*
-            val camChunk = camPos / 16 floor
-            val meshes: Seq[(Seq[Short], Short => V3F)] =
-              camChunk.neighbors.flatMap(world.chunkAt).flatMap(_.terrain.asMeshable).map(meshable => {
-                meshable.indices -> ((i: Short) => meshable.vertices(meshable.vertMap(i)).get.p)
-              })
-            val hit = Raytrace.meshes(camPos, camDir, meshes)
-            */
             val hit = world.rayhit(camPos, camDir)
             println("hit = " + hit)
             if (hit.isDefined)
               infinitum.update(infinitum().chunks.keySet, Seq(AddEntity(new Cube(StoneTID, hit.get, UUID.randomUUID()), UUID.randomUUID())))
 
+          })
+          true
+        } else if (keycode == Keys.H) {
+          val camPos = V3F(renderer.cam.position)
+          val camDir = V3F(renderer.cam.direction)
+          val world = infinitum()
+          mainLoopTasks.add(() => {
+            world.seghit(camPos, camDir, 16).foreach(
+              v => infinitum.update(infinitum().chunks.keySet,
+                Seq(AddEntity(new SoundCube(SnapSID, 60, v, UUID.randomUUID()), UUID.randomUUID())))
+            )
+          })
+          true
+        } else if (keycode == Keys.Y) {
+          val camPos = V3F(renderer.cam.position)
+          val camDir = V3F(renderer.cam.direction)
+          val world = infinitum()
+          mainLoopTasks.add(() => {
+            world.seghit(camPos, camDir, 16).foreach(
+              v => infinitum.update(infinitum().chunks.keySet,
+                Seq(AddEntity(new PhysicsCube(v, Up * 10, UUID.randomUUID()), UUID.randomUUID())))
+            )
           })
           true
         } else false

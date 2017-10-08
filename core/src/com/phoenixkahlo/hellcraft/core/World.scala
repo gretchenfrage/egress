@@ -87,4 +87,18 @@ trait World {
   def rayhit(pos: V3F, dir: V3F): Option[V3F] =
     raycast(pos, dir).headOption
 
+  def segcast(pos: V3F, dir: V3F, dist: Float): Stream[V3F] = {
+    val (min, max) = boundingBox
+    Raytrace.voxels(pos / 16, dir)
+      .takeWhile(p => (p * 16).dist(pos) < (dist + 18))
+      .takeWhile(p => p > min && p < max)
+      .flatMap(chunkAt)
+      .flatMap(_.terrain.asMeshable)
+      .flatMap(meshable => Raytrace.mesh(pos, dir, meshable.indices, i => meshable.vertices(meshable.vertMap(i)).get.p))
+      .takeWhile(_.dist(pos) <= dist)
+  }
+
+  def seghit(pos: V3F, dir: V3F, dist: Float): Option[V3F] =
+    segcast(pos, dir, dist).headOption
+
 }

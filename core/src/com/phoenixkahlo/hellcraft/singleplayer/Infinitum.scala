@@ -80,10 +80,6 @@ class SWorld(
         Math.max(cs.map(_.pos.yi).max, max.map(_.yi).getOrElse(Int.MinValue)),
         Math.max(cs.map(_.pos.zi).max, max.map(_.zi).getOrElse(Int.MinValue))
       ))
-      //Some(V3I.min(cs.map(_.pos).min, min.getOrElse(V3F.MaxValue.toInts))),
-      //Some(V3I.max(cs.map(_.pos).max, max.getOrElse(V3F.MinValue.toInts)))
-      //V3I.min(cs.map(_.pos).min, min),
-      //V3I.max(cs.map(_.pos).max, max)
     )
   }
 
@@ -105,10 +101,6 @@ class SWorld(
         Math.max(c.pos.yi, max.map(_.yi).getOrElse(Int.MinValue)),
         Math.max(c.pos.zi, max.map(_.zi).getOrElse(Int.MinValue))
       ))
-      //Some(V3I.min(c.pos, min.getOrElse(V3F.MaxValue.toInts))),
-      //Some(V3I.max(c.pos, max.getOrElse(V3F.MinValue.toInts)))
-      //V3I.min(c.pos, min),
-      //V3I.max(c.pos, max)
     )
   }
 
