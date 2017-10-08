@@ -151,7 +151,7 @@ case class Vertices(pos: V3I, materials: ByteField, vertices: OptionField[Vert],
         for ((d1, d2, d3) <- deltas) {
           (vertices(v), vertices(v + d1), vertices(v + d2), vertices(v + d3)) match {
             case (Some(vert1), Some(vert2), Some(vert3), Some(vert4)) =>
-              
+
               if (((vert2.p - vert1.p) cross (vert3.p - vert1.p)).magnitude > 0.1f) {
                 if ((((vert2.p - vert1.p) cross (vert3.p - vert1.p)) dot ((vert1.n + vert2.n + vert3.n) / 3).tryNormalize) > 0)
                   indices.append(vertMapInv(v), vertMapInv(v + d1), vertMapInv(v + d2))

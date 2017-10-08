@@ -18,7 +18,7 @@ package object singleplayer {
   type AvatarID = UUID
 
   val WorldRes = 16
-  val LoadDist = V3I(6, 3, 6)
+  val LoadDist = V3I(8, 4, 8)
 
   val DayCycleTime = 20 minutes
   val DayCycleTicks = DayCycleTime.toSeconds * Delta.updatesPerSecond
