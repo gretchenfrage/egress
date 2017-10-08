@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.math.octree
+package com.phoenixkahlo.hellcraft.util.spatial
 
 import java.util
 import java.util.concurrent.locks.ReentrantReadWriteLock

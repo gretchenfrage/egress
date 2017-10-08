@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.math.octree
+package com.phoenixkahlo.hellcraft.util.spatial
 
 import java.io.PrintStream
 

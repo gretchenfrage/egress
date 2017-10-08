@@ -133,6 +133,9 @@ class V3F(val x: Float, val y: Float, val z: Float) {
   def map(func: Float => Float) =
     V3F(func(x), func(y), func(z))
 
+  def incrMag(deltaMag: Float) =
+    this.normalize * (this.magnitude + deltaMag)
+
 }
 
 class Repeated(val s: Float) extends V3F(s, s, s)

@@ -99,7 +99,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           mainLoopTasks.add(() => {
             world.seghit(camPos, camDir, 16).foreach(
               v => infinitum.update(infinitum().chunks.keySet,
-                Seq(AddEntity(new SoundCube(SnapSID, 60, v, UUID.randomUUID()), UUID.randomUUID())))
+                Seq(AddEntity(SoundCube(SnapSID, 60, v, UUID.randomUUID()), UUID.randomUUID())))
             )
           })
           true
@@ -109,8 +109,10 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           val world = infinitum()
           mainLoopTasks.add(() => {
             world.seghit(camPos, camDir, 16).foreach(
-              v => infinitum.update(infinitum().chunks.keySet,
-                Seq(AddEntity(new PhysicsCube(v, Up * 10, UUID.randomUUID()), UUID.randomUUID())))
+              v => {
+                val v2 = (v - camPos).incrMag(-1) + camPos
+                infinitum.update(infinitum().chunks.keySet, Seq(AddEntity(PhysicsCube(v2, Up * 10, UUID.randomUUID()), UUID.randomUUID())))
+              }
             )
           })
           true
