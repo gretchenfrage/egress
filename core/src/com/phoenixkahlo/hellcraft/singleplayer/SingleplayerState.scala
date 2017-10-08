@@ -8,7 +8,7 @@ import com.badlogic.gdx.graphics.g3d._
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.utils.Pool
 import com.badlogic.gdx.{Gdx, InputAdapter, InputMultiplexer}
-import com.phoenixkahlo.hellcraft.core.entity.{Cube, CubeFrame, PhysicsCube, SoundCube}
+import com.phoenixkahlo.hellcraft.core.entity.{Cube, CubeFrame, GlideCube, SoundCube}
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics._
@@ -88,7 +88,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
             val hit = world.rayhit(camPos, camDir)
             println("hit = " + hit)
             if (hit.isDefined)
-              infinitum.update(infinitum().chunks.keySet, Seq(AddEntity(new Cube(StoneTID, hit.get, UUID.randomUUID()), UUID.randomUUID())))
+              infinitum.update(infinitum().chunks.keySet, Seq(PutEntity(new Cube(StoneTID, hit.get, UUID.randomUUID()), UUID.randomUUID())))
 
           })
           true
@@ -99,7 +99,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           mainLoopTasks.add(() => {
             world.seghit(camPos, camDir, 16).foreach(
               v => infinitum.update(infinitum().chunks.keySet,
-                Seq(AddEntity(SoundCube(SnapSID, 60, v, UUID.randomUUID()), UUID.randomUUID())))
+                Seq(PutEntity(SoundCube(SnapSID, 60, v, UUID.randomUUID()), UUID.randomUUID())))
             )
           })
           true
@@ -108,16 +108,13 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           val camDir = V3F(renderer.cam.direction)
           val world = infinitum()
           mainLoopTasks.add(() => {
-            world.seghit(camPos, camDir, 16).foreach(
-              v => {
-                val v2 = (v - camPos).incrMag(-1) + camPos
-                infinitum.update(infinitum().chunks.keySet, Seq(AddEntity(PhysicsCube(v2, Up * 10, UUID.randomUUID()), UUID.randomUUID())))
-              }
+            world.rayhit(camPos, camDir).foreach(
+              v => infinitum.update(infinitum().chunks.keySet,
+                Seq(PutEntity(GlideCube(Ones, v, UUID.randomUUID()), UUID.randomUUID())))
             )
           })
           true
         } else false
-
     })
     controller = new FirstPersonCameraController(renderer.cam)
     multiplexer.addProcessor(controller)

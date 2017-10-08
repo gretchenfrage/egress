@@ -39,6 +39,10 @@ class OptionField[T <: AnyRef] private(private val data: Either[Array[T], Vector
   override def hashCode(): Int =
     Objects.hash(asArray: _*)
 
+  def map[N >: Null <: AnyRef](func: T => N) = new OptionField(Right(asVector.map({
+    case null => null
+    case t => func(t)
+  })), sizeVec)
 
   override def iterator: Iterator[T] =
     Origin.until(sizeVec).iterator.flatMap(apply)

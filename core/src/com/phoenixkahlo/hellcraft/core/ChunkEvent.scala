@@ -4,9 +4,12 @@ import java.util.UUID
 
 import com.phoenixkahlo.hellcraft.carbonite.{CarboniteFields, CarboniteWith}
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
-import com.phoenixkahlo.hellcraft.core.entity.{CubeFrame, Entity, PhysicsCube}
+import com.phoenixkahlo.hellcraft.core.entity.{CubeFrame, Entity, Moveable}
 import com.phoenixkahlo.hellcraft.graphics.SoundID
-import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
+import com.phoenixkahlo.hellcraft.math.{RNG, V3F, V3I}
+import com.phoenixkahlo.hellcraft.singleplayer.EntityID
+
+import scala.reflect.ClassTag
 
 // type for all update effects
 sealed trait UpdateEffect {
@@ -21,8 +24,8 @@ case class SoundEffect(sound: SoundID, pow: Float, pos: V3F) extends UpdateEffec
 case object SoundEffect extends UpdateEffectType
 
 // chunk events
-abstract sealed class ChunkEvent(val target: V3I, val id: UUID) extends UpdateEffect with Comparable[ChunkEvent] {
-  def apply(chunk: Chunk): Chunk
+abstract class ChunkEvent(val target: V3I, val id: UUID) extends UpdateEffect with Comparable[ChunkEvent] {
+  def apply(chunk: Chunk): (Chunk, Seq[UpdateEffect])
 
   override def compareTo(o: ChunkEvent): Int =
     id.compareTo(o.id)
@@ -45,54 +48,36 @@ case object ChunkEvent extends UpdateEffectType
   */
 @CarboniteFields
 case class UpdateTerrain(neu: Terrain, override val id: UUID) extends ChunkEvent(neu.pos, id) {
-  override def apply(chunk: Chunk): Chunk = chunk.updateTerrain(neu)
+  override def apply(chunk: Chunk): (Chunk, Seq[UpdateEffect]) = (chunk.updateTerrain(neu), Seq.empty)
 }
 
 @CarboniteFields
-case class AddEntity(entity: Entity, override val id: UUID) extends ChunkEvent(entity.chunkPos, id) {
-  override def apply(chunk: Chunk): Chunk = chunk.putEntity(entity)
+case class PutEntity(entity: Entity, override val id: UUID) extends ChunkEvent(entity.chunkPos, id) {
+  override def apply(chunk: Chunk): (Chunk, Seq[UpdateEffect]) = (chunk.putEntity(entity), Seq.empty)
 }
 
 @CarboniteFields
 case class RemoveEntity(override val target: V3I, entity: UUID, override val id: UUID) extends ChunkEvent(target, id) {
-  override def apply(chunk: Chunk): Chunk = chunk.removeEntity(entity)
+  override def apply(chunk: Chunk): (Chunk, Seq[UpdateEffect]) = (chunk.removeEntity(entity), Seq.empty)
 }
 
-@CarboniteFields
-case class ReplaceEntity(replacer: Entity, override val id: UUID) extends ChunkEvent(replacer.chunkPos, id) {
-  override def apply(chunk: Chunk): Chunk = {
-    if (!chunk.entities.contains(replacer.id))
-      throw new RuntimeException("no entity to replace")
-    chunk.putEntity(replacer)
-  }
-}
-
-object RemoveEntity {
-  def apply(entity: Entity, id: UUID): RemoveEntity = RemoveEntity(entity.chunkPos, entity.id, id)
-}
-
-abstract class TransformEntity(entityID: UUID, override val target: V3I, override val id: UUID)
+abstract class UpdateEntity[T <: Entity](entityID: EntityID, override val target: V3I, override val id: UUID)
   extends ChunkEvent(target, id) {
+  protected def update(entity: T): Entity
 
-  def transform(entity: Entity): Entity
-
-  override def apply(chunk: Chunk): Chunk =
-    chunk.putEntity(transform(chunk.entities(entityID)))
+  override def apply(chunk: Chunk): (Chunk, Seq[UpdateEffect]) = {
+    chunk.entities.get(entityID) match {
+      case Some(entity) =>
+        val updated = update(entity.asInstanceOf[T])
+        if (updated.chunkPos == entity.chunkPos) (chunk.putEntity(updated), Seq.empty)
+        else (chunk.removeEntity(entityID), Seq(PutEntity(updated, RNG(id.getLeastSignificantBits).nextUUID._2)))
+      case _ => (chunk, Seq.empty)
+    }
+  }
 }
 
 @CarboniteFields
-case class UpdatePhysCubePosVel(cube: PhysicsCube, newPos: V3F, newVel: V3F,
-                                override val id: UUID) extends TransformEntity(cube.id, cube.chunkPos, id)  {
-  override def transform(entity: Entity): Entity =
-    entity.asInstanceOf[PhysicsCube].copy(pos = newPos, vel = newVel)
-}
-
-object UpdatePhysCubePosVel {
-  def apply(cube: PhysicsCube, newPos: V3F, newVel: V3F, ids: Stream[UUID]): Seq[ChunkEvent] = {
-    if (cube.chunkPos == (newPos / 16 floor)) Seq(UpdatePhysCubePosVel(cube, newPos, newVel, ids.head))
-    else Seq(
-      RemoveEntity(cube, ids.head),
-      AddEntity(cube.copy(pos = newPos, vel = newVel), ids.drop(1).head)
-    )
-  }
+case class ShiftEntity(dx: V3F, entityID: EntityID, override val target: V3I, override val id: UUID)
+  extends UpdateEntity[Moveable](entityID, target, id) {
+  override protected def update(entity: Moveable): Entity = entity.updatePos(entity.pos + dx)
 }

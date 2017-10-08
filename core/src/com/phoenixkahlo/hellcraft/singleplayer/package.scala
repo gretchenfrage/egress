@@ -28,6 +28,5 @@ package object singleplayer {
   val mainLoopThreadPriority = 5
   val renderLoopThreadPriority = 10
   val backgroundThreadPriority = 1
-  val useParCollections = false
 
 }

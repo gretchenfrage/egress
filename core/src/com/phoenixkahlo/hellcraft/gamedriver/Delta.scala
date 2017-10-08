@@ -10,5 +10,6 @@ object Delta {
 
   val updatesPerSecond: Int = 20
   var dt: Duration = (1 second) / updatesPerSecond
+  var dtf = 1f / updatesPerSecond
 
 }

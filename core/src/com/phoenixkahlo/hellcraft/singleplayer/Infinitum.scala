@@ -7,8 +7,10 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.graphics.{RenderUnit, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
+import com.phoenixkahlo.hellcraft.util.MergeBinned
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 
+import scala.annotation.tailrec
 import scala.collection.SortedMap
 
 /**
@@ -117,18 +119,16 @@ class SWorld(
     * Integrate the events into the world, assuming the chunks are present, for events which's target modulo mod
     * equals frequency.
     */
-  def integrate(events: Map[V3I, Seq[ChunkEvent]], mod: Int, freq: V3I): SWorld = {
-    val updated =
-      if (useParCollections) {
-        events.par.filterKeys(_ % mod == freq).map({
-          case (p, group) => group.foldLeft(chunks(p)) { case (c, e) => e(c) }
-        }).toSeq.seq
-      } else {
-        events.filterKeys(_ % mod == freq).map({
-          case (p, group) => group.foldLeft(chunks(p)) { case (c, e) => e(c) }
-        }).toSeq
-      }
-    this ++ updated
+  def integrate(events: Map[V3I, Seq[ChunkEvent]], mod: Int, freq: V3I): (SWorld, Seq[UpdateEffect]) = {
+    val (updated: Seq[Chunk], accumulated: Seq[Seq[UpdateEffect]]) =
+      events.filterKeys(_ % mod == freq).map({
+        case (p, group) => group.foldLeft((chunks(p), Seq.empty[UpdateEffect])) {
+          case ((chunk, accumulator), event) => {
+          val (updatedChunk, newEffects) = event(chunk)
+          (updatedChunk, accumulator ++ newEffects)
+        } }
+      }).toSeq.unzip
+    (this ++ updated, accumulated.flatten)
   }
 
   /**
@@ -136,9 +136,13 @@ class SWorld(
     * ensure that chunk transformations are always visible to adjacent chunks while they're being transformed in
     * parallel.
     */
-  def integrate(events: Seq[ChunkEvent]): SWorld = {
+  def integrate(events: Seq[ChunkEvent]): (SWorld, Seq[UpdateEffect]) = {
     val grouped = events.groupBy(_.target)
-    Origin.until(V3I(2, 2, 2)).foldLeft(this) { case (world, freq) => world.integrate(grouped, 2, freq) }
+    Origin.until(V3I(2, 2, 2)).foldLeft((this, Seq.empty[UpdateEffect])) {
+      case ((world, accumulator), freq) => {
+        val (updatedWorld, newEffects) = world.integrate(grouped, 2, freq)
+        (updatedWorld, accumulator ++ newEffects)
+      }}
   }
 
   /**
@@ -192,7 +196,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     * Update the world, and return the effects.
     * This concurrent, imperative logic is probably the most complicated part of this game, so let's Keep It Simple Sweety.
    */
-  def update(loadTarget: Set[V3I], externalEvents: Seq[ChunkEvent] = Seq.empty):
+  def update(loadTarget: Set[V3I], externalEvents: Seq[UpdateEffect] = Seq.empty):
       Map[UpdateEffectType, Seq[UpdateEffect]] = {
     var world = this()
 
@@ -227,8 +231,8 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     }
 
     // get effects and begin to accumulate events
-    val effects = world.effects(dt).groupBy(_.effectType).withDefaultValue(Seq.empty)
-    var events = effects(ChunkEvent).map(_.asInstanceOf[ChunkEvent]) ++ externalEvents
+    val effects = (world.effects(dt) ++ externalEvents).groupBy(_.effectType).withDefaultValue(Seq.empty)
+    var events = effects(ChunkEvent).map(_.asInstanceOf[ChunkEvent])
 
     // pull loaded chunks from the queue and add them to the world if they're valid, also accumulate pending events
     while (loadQueue.size > 0) {
@@ -243,41 +247,58 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       }
     }
 
-    // scan the events for update terrain events, and use them to invalidate upgrade futures
-    val invalidateRange = V3I(-2, -2, -2) to V3I(2, 2, 2)
-    events.flatMap({
-      case UpdateTerrain(t, _) => invalidateRange.map(_ + t.pos)
-      case _ => Seq.empty
-    }).foreach(upgradeMap -= _)
+    var specialEffects = effects - ChunkEvent
 
-    // pull upgraded chunks from the queue and add update terrain events if they're valid
-    while (upgradeQueue.size > 0) {
-      val (terrain, upgradeID) = upgradeQueue.remove()
-      if (upgradeMap.get(terrain.pos).contains(upgradeID)) {
-        upgradeMap -= terrain.pos
-        events +:= UpdateTerrain(terrain, UUID.randomUUID())
+    // recursively modifies the world and specialEffects
+    @tailrec def applyEvents(eventsIn: Seq[ChunkEvent]): Unit = {
+      var events = eventsIn
+
+      // scan the events for update terrain events, and use them to invalidate upgrade futures
+      val invalidateRange = V3I(-2, -2, -2) to V3I(2, 2, 2)
+      events.flatMap({
+        case UpdateTerrain(t, _) => invalidateRange.map(_ + t.pos)
+        case _ => Seq.empty
+      }).foreach(upgradeMap -= _)
+
+      // pull upgraded chunks from the queue and add update terrain events if they're valid
+      while (upgradeQueue.size > 0) {
+        val (terrain, upgradeID) = upgradeQueue.remove()
+        if (upgradeMap.get(terrain.pos).contains(upgradeID)) {
+          upgradeMap -= terrain.pos
+          events +:= UpdateTerrain(terrain, UUID.randomUUID())
+        }
       }
+
+      // partition events by whether they can be integrated immediately
+      val (integrateNow, integrateLater) = events.partition(world.chunks contains _.target)
+
+      // add the events that can't be immediately integrated to the pending event sequence
+      for ((key, seq) <- integrateLater.groupBy(_.target)) {
+        pendingEvents = pendingEvents.updated(key, pendingEvents.getOrElse(key, Seq.empty) ++ seq)
+      }
+
+      // integrate the accumulated events into the world
+      val (integrated, newEffects) = world.integrate(integrateNow)
+      world = integrated
+
+      // recurse
+      val newEffectsGrouped = newEffects.groupBy(_.effectType)
+      specialEffects = MergeBinned(specialEffects, newEffectsGrouped - ChunkEvent)
+      if (newEffectsGrouped.getOrElse(ChunkEvent, Seq.empty).nonEmpty)
+        applyEvents(newEffectsGrouped(ChunkEvent).map(_.asInstanceOf[ChunkEvent]))
     }
 
-    // partition events by whether they can be integrated immediately
-    val (integrateNow, integrateLater) = events.partition(world.chunks contains _.target)
-
-    // add the events that can't be immediately integrated to the pending event sequence
-    //pendingEvents ++= integrateLater.groupBy(_.target)
-    for ((key, seq) <- integrateLater.groupBy(_.target)) {
-      pendingEvents = pendingEvents.updated(key, pendingEvents.getOrElse(key, Seq.empty) ++ seq)
-    }
-
-    // integrate the accumulated events into the world
-    world = world.integrate(integrateNow)
+    // recursively apply the events
+    applyEvents(events)
 
     // increment time
     world = world.incrTime
 
-    // append to history
+    // add to history
     history += world.time -> world
 
-    effects
+    // return the accumulated special effects, with default values
+    specialEffects.withDefaultValue(Seq.empty)
   }
 
 }
