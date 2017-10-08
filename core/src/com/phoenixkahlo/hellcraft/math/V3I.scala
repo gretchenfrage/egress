@@ -110,4 +110,10 @@ object V3I {
   def unapply(v: V3I): Option[(Int, Int, Int)] =
     Some((v.xi, v.yi, v.zi))
 
+  def min(v1: V3I, v2: V3I): V3I =
+    if (v1 < v2) v1 else v2
+
+  def max(v1: V3I, v2: V3I): V3I =
+    if (v1 > v2) v1 else v2
+
 }

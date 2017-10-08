@@ -18,6 +18,8 @@ trait World {
 
   def findEntity(id: UUID): Option[Entity]
 
+  def boundingBox: (V3I, V3I)
+
   /**
     * Uses density grid coordinates, not world coordinates!
     */
@@ -73,5 +75,16 @@ trait World {
       case _ => None
     }).map(_ / 6).map(_.tryNormalize)
   }
+
+  def raycast(pos: V3F, dir: V3F): Stream[V3F] = {
+    val (min, max) = boundingBox
+    Raytrace.voxels(pos / 16, dir).takeWhile(v => v > min && v < max).flatMap(chunkAt).flatMap(_.terrain.asMeshable)
+      .flatMap(meshable => {
+        Raytrace.mesh(pos, dir, meshable.indices, i => meshable.vertices(meshable.vertMap(i)).get.p)
+      })
+  }
+
+  def rayhit(pos: V3F, dir: V3F): Option[V3F] =
+    raycast(pos, dir).headOption
 
 }

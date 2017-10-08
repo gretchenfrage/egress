@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.graphics.{RenderUnit, ResourcePack}
-import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
+import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 
 import scala.collection.SortedMap
@@ -21,7 +21,9 @@ class SWorld(
                   val chunks: Map[V3I, Chunk],
                   val state1: Set[V3I],
                   val state2: Set[V3I],
-                  val state3: Set[V3I]
+                  val state3: Set[V3I],
+                  val min: Option[V3I],
+                  val max: Option[V3I]
                   ) extends World {
 
   override def chunkAt(p: V3I): Option[Chunk] =
@@ -30,28 +32,58 @@ class SWorld(
   override def findEntity(id: EntityID): Option[Entity] =
     chunks.values.flatMap(_.entities.get(id)).headOption
 
+  override def boundingBox: (V3I, V3I) = (min, max) match {
+    case (Some(minP), Some(maxP)) => (minP, maxP)
+    case _ => (Origin, Origin)
+  }
+
+  private def compBoundingBox: SWorld =
+    if (chunks isEmpty)
+      new SWorld(time, res, chunks, state1, state2, state3, None, None)
+    else
+      new SWorld(time, res, chunks, state1, state2, state3,
+        Some(V3I(chunks.keySet.toSeq.map(_.xi).min, chunks.keySet.toSeq.map(_.yi).min, chunks.keySet.toSeq.map(_.zi).min)),
+        Some(V3I(chunks.keySet.toSeq.map(_.xi).max, chunks.keySet.toSeq.map(_.yi).max, chunks.keySet.toSeq.map(_.zi).max))
+      )
+
   /**
     * Remove those chunks from this world,
     */
   def --(ps: Seq[V3I]): SWorld = {
-    new SWorld(time, res, chunks -- ps, state1 -- ps, state2 -- ps, state3 -- ps)
+    new SWorld(time, res, chunks -- ps, state1 -- ps, state2 -- ps, state3 -- ps, None, None).compBoundingBox
   }
 
   def -(p: V3I): SWorld = {
-    new SWorld(time, res, chunks - p, state1 - p, state2 - p, state3 - p)
+    new SWorld(time, res, chunks - p, state1 - p, state2 - p, state3 - p, None, None).compBoundingBox
   }
 
   /**
     * Add those chunks to the world.
     */
   def ++(cs: Seq[Chunk]): SWorld = {
+    if (cs.isEmpty)
+      return this
     val removed = this -- cs.map(_.pos)
     val grouped = cs.groupBy(_.terrain.terrainType).mapValues(_.map(_.pos)).withDefault(_ => Seq.empty)
     new SWorld(time, res,
       removed.chunks ++ cs.map(c => c.pos -> c),
       removed.state1 ++ grouped(Densities),
       removed.state2 ++ grouped(Vertices),
-      removed.state3 ++ grouped(Meshable)
+      removed.state3 ++ grouped(Meshable),
+      Some(V3I(
+        Math.min(cs.map(_.pos.xi).min, min.map(_.xi).getOrElse(Int.MaxValue)),
+        Math.min(cs.map(_.pos.yi).min, min.map(_.yi).getOrElse(Int.MaxValue)),
+        Math.min(cs.map(_.pos.zi).min, min.map(_.zi).getOrElse(Int.MaxValue))
+      )),
+      Some(V3I(
+        Math.max(cs.map(_.pos.xi).max, max.map(_.xi).getOrElse(Int.MinValue)),
+        Math.max(cs.map(_.pos.yi).max, max.map(_.yi).getOrElse(Int.MinValue)),
+        Math.max(cs.map(_.pos.zi).max, max.map(_.zi).getOrElse(Int.MinValue))
+      ))
+      //Some(V3I.min(cs.map(_.pos).min, min.getOrElse(V3F.MaxValue.toInts))),
+      //Some(V3I.max(cs.map(_.pos).max, max.getOrElse(V3F.MinValue.toInts)))
+      //V3I.min(cs.map(_.pos).min, min),
+      //V3I.max(cs.map(_.pos).max, max)
     )
   }
 
@@ -62,7 +94,21 @@ class SWorld(
       removed.chunks + (c.pos -> c),
       if (group == Densities) removed.state1 + c.pos else removed.state1,
       if (group == Vertices) removed.state2 + c.pos else removed.state2,
-      if (group == Meshable) removed.state3 + c.pos else removed.state3
+      if (group == Meshable) removed.state3 + c.pos else removed.state3,
+      Some(V3I(
+        Math.min(c.pos.xi, min.map(_.xi).getOrElse(Int.MaxValue)),
+        Math.min(c.pos.yi, min.map(_.yi).getOrElse(Int.MaxValue)),
+        Math.min(c.pos.zi, min.map(_.zi).getOrElse(Int.MaxValue))
+      )),
+      Some(V3I(
+        Math.max(c.pos.xi, max.map(_.xi).getOrElse(Int.MinValue)),
+        Math.max(c.pos.yi, max.map(_.yi).getOrElse(Int.MinValue)),
+        Math.max(c.pos.zi, max.map(_.zi).getOrElse(Int.MinValue))
+      ))
+      //Some(V3I.min(c.pos, min.getOrElse(V3F.MaxValue.toInts))),
+      //Some(V3I.max(c.pos, max.getOrElse(V3F.MinValue.toInts)))
+      //V3I.min(c.pos, min),
+      //V3I.max(c.pos, max)
     )
   }
 
@@ -107,7 +153,7 @@ class SWorld(
     * Increment the time
     */
   def incrTime: SWorld = {
-    new SWorld(time + 1, res, chunks, state1, state2, state3)
+    new SWorld(time + 1, res, chunks, state1, state2, state3, min, max)
   }
 
   /**
@@ -131,7 +177,8 @@ class SWorld(
   */
 class Infinitum(res: Int, save: AsyncSave, dt: Float) {
 
-  @volatile private var history = SortedMap(0L -> new SWorld(0, res, Map.empty, Set.empty, Set.empty, Set.empty))
+  @volatile private var history =
+    SortedMap(0L -> new SWorld(0, res, Map.empty, Set.empty, Set.empty, Set.empty, None, None))
 
   type LoadID = UUID
   type UpgradeID = UUID

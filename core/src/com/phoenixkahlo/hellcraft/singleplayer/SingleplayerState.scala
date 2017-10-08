@@ -87,12 +87,15 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
           
           mainLoopTasks.add(() => {
+            /*
             val camChunk = camPos / 16 floor
             val meshes: Seq[(Seq[Short], Short => V3F)] =
               camChunk.neighbors.flatMap(world.chunkAt).flatMap(_.terrain.asMeshable).map(meshable => {
                 meshable.indices -> ((i: Short) => meshable.vertices(meshable.vertMap(i)).get.p)
               })
             val hit = Raytrace.meshes(camPos, camDir, meshes)
+            */
+            val hit = world.rayhit(camPos, camDir)
             println("hit = " + hit)
             if (hit.isDefined)
               infinitum.update(infinitum().chunks.keySet, Seq(AddEntity(new Cube(StoneTID, hit.get, UUID.randomUUID()), UUID.randomUUID())))

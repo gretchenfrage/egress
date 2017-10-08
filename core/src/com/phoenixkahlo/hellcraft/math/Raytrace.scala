@@ -6,7 +6,7 @@ import scala.collection.mutable.ArrayBuffer
 
 object Raytrace {
 
-  def voxels(v: V3I, pos: V3F, dir: V3F): Stream[V3I] = {
+  private def voxels(v: V3I, pos: V3F, dir: V3F): Stream[V3I] = {
     if (dir.magnitude == 0) Nil
 
     val line = ParamLine3D(pos, dir)
@@ -27,6 +27,9 @@ object Raytrace {
 
     nextV #:: voxels(nextV, nextPos, dir)
   }
+
+  def voxels(pos: V3F, dir: V3F): Stream[V3I] =
+    (pos floor) #:: voxels(pos floor, pos, dir)
 
   /**
     * The Möller–Trumbore ray-triangle intersection algorithm
