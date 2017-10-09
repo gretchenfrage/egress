@@ -9,7 +9,7 @@ import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 trait Entity {
   def id: UUID
 
-  def update(world: World, ids: Stream[UUID], dt: Float): Seq[UpdateEffect] = Seq.empty
+  def update(world: World, ids: Stream[UUID]): Seq[UpdateEffect] = Seq.empty
 
   def renderables(pack: ResourcePack): Seq[RenderUnit] = Seq.empty
 

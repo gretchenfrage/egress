@@ -25,7 +25,7 @@ case object SoundEffect extends UpdateEffectType
 
 // chunk events
 abstract class ChunkEvent(val target: V3I, val id: UUID) extends UpdateEffect with Comparable[ChunkEvent] {
-  def apply(chunk: Chunk): (Chunk, Seq[UpdateEffect])
+  def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect])
 
   override def compareTo(o: ChunkEvent): Int =
     id.compareTo(o.id)
@@ -48,24 +48,29 @@ case object ChunkEvent extends UpdateEffectType
   */
 @CarboniteFields
 case class UpdateTerrain(neu: Terrain, override val id: UUID) extends ChunkEvent(neu.pos, id) {
-  override def apply(chunk: Chunk): (Chunk, Seq[UpdateEffect]) = (chunk.updateTerrain(neu), Seq.empty)
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = (chunk.updateTerrain(neu), Seq.empty)
 }
 
 @CarboniteFields
 case class PutEntity(entity: Entity, override val id: UUID) extends ChunkEvent(entity.chunkPos, id) {
-  override def apply(chunk: Chunk): (Chunk, Seq[UpdateEffect]) = (chunk.putEntity(entity), Seq.empty)
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = (chunk.putEntity(entity), Seq.empty)
 }
 
 @CarboniteFields
 case class RemoveEntity(override val target: V3I, entity: UUID, override val id: UUID) extends ChunkEvent(target, id) {
-  override def apply(chunk: Chunk): (Chunk, Seq[UpdateEffect]) = (chunk.removeEntity(entity), Seq.empty)
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = (chunk.removeEntity(entity), Seq.empty)
+}
+
+@CarboniteFields
+case class EffectDelayer(effect: UpdateEffect, override val target: V3I, override val id: UUID) extends ChunkEvent(target, id) {
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = (chunk, Seq(effect))
 }
 
 abstract class UpdateEntity[T <: Entity](entityID: EntityID, override val target: V3I, override val id: UUID)
   extends ChunkEvent(target, id) {
   protected def update(entity: T): Entity
 
-  override def apply(chunk: Chunk): (Chunk, Seq[UpdateEffect]) = {
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = {
     chunk.entities.get(entityID) match {
       case Some(entity) =>
         val updated = update(entity.asInstanceOf[T])

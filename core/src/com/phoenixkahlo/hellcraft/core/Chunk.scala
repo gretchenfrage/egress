@@ -7,8 +7,8 @@ import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.graphics.{ChunkMesher, RenderUnit, ResourcePack}
 import com.phoenixkahlo.hellcraft.graphics.RenderUnit
-import com.phoenixkahlo.hellcraft.math.{RNG, V3F, V3I}
-import com.phoenixkahlo.hellcraft.util.fields.{FractionField, OptionField}
+import com.phoenixkahlo.hellcraft.math.{Origin, RNG, V3F, V3I}
+import com.phoenixkahlo.hellcraft.util.fields.{FractionField, FractionFieldBuffer, OptionField}
 
 @CarboniteWith(classOf[FieldNode])
 class Chunk(
@@ -34,11 +34,81 @@ class Chunk(
 
   def updateTerrain(neu: Terrain): Chunk =
     new Chunk(pos, neu, entities, null)
+  /*
+  def massFlow(world: World, ids: Stream[UUID]): Seq[ChunkEvent] = {
+    /*
+    val deltas: Map[V3I, FractionFieldBuffer] =
+      (pos +: pos.touching).map(p => p -> new FractionFieldBuffer(world.resVec)).toMap
 
-  def update(world: World, dt: Float): Seq[UpdateEffect] = {
+    def compDelta(v: V3I): Unit = {
+      // density at terrain sample
+      val density: Float = terrain.densities(v).get
+      // if it wants to flow
+      if (density > 0) {
+        // material at terrain sample
+        val mat: Material = Materials(terrain.materials(v).get)
+        // global terrain sample coordinates
+        val vg: V3I = pos * world.res + v
+        // global terrain coordinates of where it can flow
+        val targets: Seq[V3I] = vg.touching.filter(world.materialGridPoint(_).get == mat)
+        // if it can flow anywhere
+        if (targets nonEmpty) {
+          // for each global terrain coordinate that it can flow into
+          for (target: V3I <- targets) {
+            // chunk coordinates of target
+            val p = target / world.res floor
+            // how much we will transfer
+            val toTransfer: Float = Math.min(density / targets.size, 1 - (world.densityGridPoint(target).get + deltas(p)(target % world.res)))
+          }
+        }
+      }
+    }
+    */
+
+    for (v <- Origin until world.resVec) {
+      compDelta(v)
+    }
+
+    /*
+    var densities = Map.empty[V3I, FractionField].withDefault(_ => FractionField(world.resVec, _ => 0))
+    for (v <- Origin until world.resVec) {
+      val density = terrain.densities(v).get
+      if (density > 0) {
+        val vg = pos * world.res + v
+        val mat = Materials(terrain.materials(v).get)
+        val targets = vg.touching.filter(world.materialGridPoint(_).get == mat)
+        if (targets nonEmpty) {
+          for (target: V3I <- targets) {
+            val p = target / world.res floor;
+            densities = densities.updated(p, densities(p).updated(target % world.res, densities(p)(target % world.res) + ))
+          }
+        }
+      }
+    }
+    */
+
+    /*
+    (Origin until world.resVec).foldLeft(zeroMap)({ case (deltas, v) => {
+      val density: Float = terrain.densities(v).get
+      if (density > 0) {
+        val globalV: V3I = pos * world.res + v
+        val material: Material = Materials(terrain.materials(v).get)
+        val flowTargets: Seq[V3I] = globalV.touching.filter(world.materialGridPoint(_).get == material)
+        if (flowTargets nonEmpty) {
+          flowTargets.foldLeft
+
+          ???
+        } else deltas
+      } else deltas
+    }})
+    */
+  }
+  */
+  def update(world: World): Seq[UpdateEffect] = {
     val seed: Long = (world.time.hashCode().toLong << 32) | pos.hashCode().toLong
     val idss: Stream[Stream[UUID]] = RNG.meta(RNG(seed), RNG.uuids)
-    entities.values.zip(idss).flatMap({ case (entity, ids) => entity.update(world, ids, dt) }).toSeq
+    Flow(pos, idss.head.head) +:
+      entities.values.zip(idss.drop(1)).flatMap({ case (entity, ids) => entity.update(world, ids) }).toSeq
   }
 
   override def hashCode(): Int =

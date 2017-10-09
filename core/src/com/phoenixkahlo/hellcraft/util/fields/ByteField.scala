@@ -7,7 +7,7 @@ import java.util.zip.{Deflater, Inflater}
 
 import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
-class ByteField private(private var data: Either[Array[Byte], Vector[Byte]], private var _size: V3I) extends Externalizable {
+class ByteField private[fields](private var data: Either[Array[Byte], Vector[Byte]], private var _size: V3I) extends Externalizable {
 
   private def this(data: Array[Byte], size: V3I) = this(Left(data), size)
 

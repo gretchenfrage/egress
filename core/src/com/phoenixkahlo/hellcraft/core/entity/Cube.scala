@@ -38,14 +38,14 @@ class Cube(tid: SheetTextureID, override val pos: V3F, override val id: UUID) ex
 
 @CarboniteFields
 case class SoundCube(sid: SoundID, freq: Int, override val pos: V3F, override val id: UUID) extends Cube(SoundTID, pos, id) {
-  override def update(world: World, ids: Stream[UUID], dt: Float): Seq[UpdateEffect] =
+  override def update(world: World, ids: Stream[UUID]): Seq[UpdateEffect] =
     if (world.time % freq == 0) Seq(SoundEffect(sid, 1, pos))
     else Seq.empty
 }
 
 @CarboniteFields
 case class GlideCube(vel: V3F, override val pos: V3F, override val id: UUID) extends Cube(GrassTID, pos, id) with Moveable {
-  override def update(world: World, ids: Stream[UUID], dt: Float): Seq[UpdateEffect] = {
+  override def update(world: World, ids: Stream[UUID]): Seq[UpdateEffect] = {
     Seq(ShiftEntity(vel * Delta.dtf, id, chunkPos, ids.head))
   }
 

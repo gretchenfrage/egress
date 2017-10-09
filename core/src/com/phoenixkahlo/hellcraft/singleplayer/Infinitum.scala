@@ -32,7 +32,7 @@ class SWorld(
     chunks.get(p)
 
   override def findEntity(id: EntityID): Option[Entity] =
-    chunks.values.flatMap(_.entities.get(id)).headOption
+    chunks.values.toStream.flatMap(_.entities.get(id)).headOption
 
   override def boundingBox: (V3I, V3I) = (min, max) match {
     case (Some(minP), Some(maxP)) => (minP, maxP)
@@ -115,6 +115,20 @@ class SWorld(
     up1 ++ up2
   }
 
+  case class WithReplacedChunk(replaced: Chunk) extends World {
+    lazy val nchunks = chunks + (replaced.pos -> replaced)
+
+    override def chunkAt(p: V3I): Option[Chunk] = nchunks.get(p)
+
+    override def time: Long = SWorld.this.time
+
+    override def res: Int = SWorld.this.res
+
+    override def findEntity(id: EntityID): Option[Entity] = nchunks.values.toStream.flatMap(_.entities.get(id)).headOption
+
+    override def boundingBox: (V3I, V3I) = SWorld.this.boundingBox
+  }
+
   /**
     * Integrate the events into the world, assuming the chunks are present, for events which's target modulo mod
     * equals frequency.
@@ -124,9 +138,10 @@ class SWorld(
       events.filterKeys(_ % mod == freq).map({
         case (p, group) => group.foldLeft((chunks(p), Seq.empty[UpdateEffect])) {
           case ((chunk, accumulator), event) => {
-          val (updatedChunk, newEffects) = event(chunk)
-          (updatedChunk, accumulator ++ newEffects)
-        } }
+            val (updatedChunk, newEffects) = event(chunk, WithReplacedChunk(chunk))
+            (updatedChunk, accumulator ++ newEffects)
+          }
+        }
       }).toSeq.unzip
     (this ++ updated, accumulated.flatten)
   }
@@ -156,7 +171,7 @@ class SWorld(
     * Get all effects from chunks with complete terrain
     */
   def effects(dt: Float): Seq[UpdateEffect] = {
-    state3.toSeq.map(chunks(_)).flatMap(_.update(this, dt))
+    state3.toSeq.map(chunks(_)).flatMap(_.update(this))
   }
 
   /**
