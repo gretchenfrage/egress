@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.graphics.{RenderUnit, ResourcePack}
-import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
+import com.phoenixkahlo.hellcraft.math.{Ones, Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.util.MergeBinned
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 
@@ -267,14 +267,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     // recursively modifies the world and specialEffects
     @tailrec def applyEvents(eventsIn: Seq[ChunkEvent]): Unit = {
       var events = eventsIn
-
-      // scan the events for update terrain events, and use them to invalidate upgrade futures
-      val invalidateRange = V3I(-2, -2, -2) to V3I(2, 2, 2)
-      events.flatMap({
-        case UpdateTerrain(t, _) => invalidateRange.map(_ + t.pos)
-        case _ => Seq.empty
-      }).foreach(upgradeMap -= _)
-
+      
       // pull upgraded chunks from the queue and add update terrain events if they're valid
       while (upgradeQueue.size > 0) {
         val (terrain, upgradeID) = upgradeQueue.remove()
@@ -296,9 +289,16 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       val (integrated, newEffects) = world.integrate(integrateNow)
       world = integrated
 
-      // recurse
+      // group
       val newEffectsGrouped = newEffects.groupBy(_.effectType)
       specialEffects = MergeBinned(specialEffects, newEffectsGrouped - ChunkEvent)
+
+      // scan for terrain update effects to invalidate update futures
+      val invalidateRange = Ones.neg to Ones
+      newEffectsGrouped.getOrElse(TerrainChanged, Seq.empty).map(_.asInstanceOf[TerrainChanged].p)
+        .foreach(upgradeMap -= _)
+
+      // recurse
       if (newEffectsGrouped.getOrElse(ChunkEvent, Seq.empty).nonEmpty)
         applyEvents(newEffectsGrouped(ChunkEvent).map(_.asInstanceOf[ChunkEvent]))
     }

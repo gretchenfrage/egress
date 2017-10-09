@@ -9,7 +9,6 @@ import com.phoenixkahlo.hellcraft.graphics.SoundID
 import com.phoenixkahlo.hellcraft.math.{Directions, RNG, V3F, V3I}
 import com.phoenixkahlo.hellcraft.singleplayer.EntityID
 
-import scala.reflect.ClassTag
 
 // type for all update effects
 sealed trait UpdateEffect {
@@ -22,6 +21,15 @@ case class SoundEffect(sound: SoundID, pow: Float, pos: V3F) extends UpdateEffec
   override def effectType: UpdateEffectType = SoundEffect
 }
 case object SoundEffect extends UpdateEffectType
+
+/**
+  * Flag for the driver that a chunk's terrain has been modified. Any chunk event that modifies a chunk's terrain
+  * must emit this event.
+  */
+case class TerrainChanged(p: V3I) extends UpdateEffect {
+  override def effectType: UpdateEffectType = TerrainChanged
+}
+case object TerrainChanged extends UpdateEffectType
 
 // chunk events
 abstract class ChunkEvent(val target: V3I, val id: UUID) extends UpdateEffect with Comparable[ChunkEvent] {
@@ -44,11 +52,14 @@ abstract class ChunkEvent(val target: V3I, val id: UUID) extends UpdateEffect wi
 case object ChunkEvent extends UpdateEffectType
 
 /**
-  * This is the only event that can update terrain
+  * All events that change terrain must be marked with this trait.
   */
+//trait TerrainChanger
+
 @CarboniteFields
 case class UpdateTerrain(neu: Terrain, override val id: UUID) extends ChunkEvent(neu.pos, id) {
-  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = (chunk.updateTerrain(neu), Seq.empty)
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
+    (chunk.updateTerrain(neu), Seq(TerrainChanged(neu.pos)))
 }
 
 @CarboniteFields
