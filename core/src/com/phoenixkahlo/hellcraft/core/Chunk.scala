@@ -107,7 +107,7 @@ class Chunk(
   def update(world: World): Seq[UpdateEffect] = {
     val seed: Long = (world.time.hashCode().toLong << 32) | pos.hashCode().toLong
     val idss: Stream[Stream[UUID]] = RNG.meta(RNG(seed), RNG.uuids)
-    Flow(pos, idss.head.head) +:
+    //Flow(pos, idss.head.head) +:
       entities.values.zip(idss.drop(1)).flatMap({ case (entity, ids) => entity.update(world, ids) }).toSeq
   }
 

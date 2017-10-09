@@ -118,7 +118,8 @@ case class Vertices(pos: V3I, materials: ByteField, vertices: OptionField[Vert],
 
   override def getVertices = Some(vertices)
 
-  def canUpgrade(world: World): Boolean = true
+  def canUpgrade(world: World): Boolean =
+    pos.neighbors.forall(world.chunkAt(_).isDefined)
 
   def upgrade(world: World): Option[Meshable] = {
     if (canUpgrade(world)) {
@@ -151,7 +152,7 @@ case class Vertices(pos: V3I, materials: ByteField, vertices: OptionField[Vert],
         for ((d1, d2, d3) <- deltas) {
           (vertices(v), vertices(v + d1), vertices(v + d2), vertices(v + d3)) match {
             case (Some(vert1), Some(vert2), Some(vert3), Some(vert4)) =>
-
+              /*
               if (((vert2.p - vert1.p) cross (vert3.p - vert1.p)).magnitude > 0.1f) {
                 if ((((vert2.p - vert1.p) cross (vert3.p - vert1.p)) dot ((vert1.n + vert2.n + vert3.n) / 3).tryNormalize) > 0)
                   indices.append(vertMapInv(v), vertMapInv(v + d1), vertMapInv(v + d2))
@@ -171,7 +172,7 @@ case class Vertices(pos: V3I, materials: ByteField, vertices: OptionField[Vert],
                 indices.append(vertMapInv(v), vertMapInv(v + d2), vertMapInv(v + d3))
                 indices.append(vertMapInv(v), vertMapInv(v + d3), vertMapInv(v + d2))
               }
-
+              */
               /*
               if ((((vert2.p - vert1.p) cross (vert3.p - vert1.p)) dot ((vert1.n + vert2.n + vert3.n) / 3).tryNormalize) > 0)
                 indices.append(vertMapInv(v), vertMapInv(v + d1), vertMapInv(v + d2))
@@ -182,7 +183,19 @@ case class Vertices(pos: V3I, materials: ByteField, vertices: OptionField[Vert],
                 indices.append(vertMapInv(v), vertMapInv(v + d2), vertMapInv(v + d3))
               else
                 indices.append(vertMapInv(v), vertMapInv(v + d3), vertMapInv(v + d2))
-              */
+                */
+              if ((((vert2.p - vert1.p) cross (vert3.p - vert1.p)) dot
+                world.sampleDirection((vert1.p + vert2.p + vert3.p) / 3).get.neg) > 0)
+                indices.append(vertMapInv(v), vertMapInv(v + d1), vertMapInv(v + d2))
+              else
+                indices.append(vertMapInv(v), vertMapInv(v + d2), vertMapInv(v + d1))
+
+              if ((((vert3.p - vert1.p) cross (vert4.p - vert1.p)) dot
+                world.sampleDirection((vert1.p + vert3.p + vert4.p) / 3).get.neg) > 0)
+                indices.append(vertMapInv(v), vertMapInv(v + d2), vertMapInv(v + d3))
+              else
+                indices.append(vertMapInv(v), vertMapInv(v + d3), vertMapInv(v + d2))
+
 
             case _ =>
           }
