@@ -6,7 +6,7 @@ import com.phoenixkahlo.hellcraft.carbonite.{CarboniteFields, CarboniteWith}
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.{CubeFrame, Entity, Moveable}
 import com.phoenixkahlo.hellcraft.graphics.SoundID
-import com.phoenixkahlo.hellcraft.math.{RNG, V3F, V3I}
+import com.phoenixkahlo.hellcraft.math.{Directions, RNG, V3F, V3I}
 import com.phoenixkahlo.hellcraft.singleplayer.EntityID
 
 import scala.reflect.ClassTag
@@ -64,6 +64,26 @@ case class RemoveEntity(override val target: V3I, entity: UUID, override val id:
 @CarboniteFields
 case class EffectDelayer(effect: UpdateEffect, override val target: V3I, override val id: UUID) extends ChunkEvent(target, id) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = (chunk, Seq(effect))
+}
+
+@CarboniteFields
+case class IncrDensity(v: V3F, override val id: UUID) extends ChunkEvent(v / 16 floor, id) {
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = {
+    val tc = (v / 16 * world.res floor) % world.res
+    val densities = chunk.terrain.densities
+    val nt = Densities(chunk.pos, chunk.terrain.materials, densities.updated(tc, densities(tc).get + 0.01f))
+    //(chunk.updateTerrain(nt), Seq.empty)
+    (chunk, Seq(UpdateTerrain(nt, RNG(id.getLeastSignificantBits).nextUUID._2)))
+  }
+}
+
+@CarboniteFields
+case class IncrDensityCatalyst(v: V3F, override val id: UUID) extends ChunkEvent(v / 16 floor, id) {
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = {
+    val ids = RNG.uuids(RNG(id.getLeastSignificantBits))
+    val events = Directions().map(_ * 16 / world.res + v).zip(ids).map({ case (v, id) => IncrDensity(v, id) })
+    (chunk, events)
+  }
 }
 
 abstract class UpdateEntity[T <: Entity](entityID: EntityID, override val target: V3I, override val id: UUID)

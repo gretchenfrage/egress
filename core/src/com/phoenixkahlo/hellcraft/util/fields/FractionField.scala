@@ -18,7 +18,6 @@ case class FractionField(bytes: ByteField) {
   def updated(v: V3I, n: Float): FractionField =
     FractionField(bytes.updated(v, (Math.min(n, 1) * 255).toByte))
 
-
   override def toString: String =
     "FractionField(" + Origin.until(size).map(apply(_).get) + ")"
 
