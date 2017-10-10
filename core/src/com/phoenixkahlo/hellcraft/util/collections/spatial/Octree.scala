@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.util.spatial
+package com.phoenixkahlo.hellcraft.util.collections.spatial
 
 import java.io.PrintStream
 

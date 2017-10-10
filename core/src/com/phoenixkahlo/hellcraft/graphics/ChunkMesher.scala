@@ -7,8 +7,8 @@ import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.graphics.shaders.{LineSID, PointSID, TerrainSID}
 import com.phoenixkahlo.hellcraft.math._
-import com.phoenixkahlo.hellcraft.util.ResourceNode
 import com.phoenixkahlo.hellcraft.util.caches.{DisposableParamCache, ParamCache}
+import com.phoenixkahlo.hellcraft.util.collections.ResourceNode
 
 import scala.collection.mutable.ArrayBuffer
 

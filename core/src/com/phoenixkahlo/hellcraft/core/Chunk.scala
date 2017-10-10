@@ -8,7 +8,7 @@ import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.graphics.{ChunkMesher, RenderUnit, ResourcePack}
 import com.phoenixkahlo.hellcraft.graphics.RenderUnit
 import com.phoenixkahlo.hellcraft.math.{Origin, RNG, V3F, V3I}
-import com.phoenixkahlo.hellcraft.util.fields.{FractionField, FractionFieldBuffer, OptionField}
+import com.phoenixkahlo.hellcraft.util.fields.{ByteFractionField, ByteFractionFieldBuffer, OptionField}
 
 @CarboniteWith(classOf[FieldNode])
 class Chunk(

@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.util.spatial
+package com.phoenixkahlo.hellcraft.util.collections.spatial
 
 import com.phoenixkahlo.hellcraft.math.{Origin, Trig, V3F, V3I}
 

@@ -5,7 +5,7 @@ import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue, ThreadFactory}
 import java.util.function.{Consumer, Supplier}
 
 import com.phoenixkahlo.hellcraft.math.{V2F, V3F}
-import com.phoenixkahlo.hellcraft.util.spatial.SpatialHashMapBlockingQueue
+import com.phoenixkahlo.hellcraft.util.collections.spatial.SpatialHashMapBlockingQueue
 
 import scala.collection.mutable.ArrayBuffer
 

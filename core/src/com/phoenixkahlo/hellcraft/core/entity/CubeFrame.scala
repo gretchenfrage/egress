@@ -11,8 +11,8 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.graphics.shaders.{LineSID, TerrainSID}
 import com.phoenixkahlo.hellcraft.math.V3F
-import com.phoenixkahlo.hellcraft.util.ResourceNode
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
+import com.phoenixkahlo.hellcraft.util.collections.ResourceNode
 
 import scala.collection.JavaConverters
 

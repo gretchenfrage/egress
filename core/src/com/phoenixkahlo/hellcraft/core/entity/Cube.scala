@@ -10,8 +10,8 @@ import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.graphics.shaders.{GenericSID, TerrainSID}
 import com.phoenixkahlo.hellcraft.math.{Down, V3F}
-import com.phoenixkahlo.hellcraft.util.ResourceNode
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
+import com.phoenixkahlo.hellcraft.util.collections.ResourceNode
 
 @CarboniteFields
 class Cube(tid: SheetTextureID, override val pos: V3F, override val id: UUID) extends Entity {

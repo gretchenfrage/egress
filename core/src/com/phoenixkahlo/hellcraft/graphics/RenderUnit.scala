@@ -1,7 +1,7 @@
 package com.phoenixkahlo.hellcraft.graphics
 
 import com.badlogic.gdx.graphics.g3d.Renderable
-import com.phoenixkahlo.hellcraft.util.ResourceNode
+import com.phoenixkahlo.hellcraft.util.collections.ResourceNode
 
 trait RenderUnit {
 

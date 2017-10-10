@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.util.spatial
+package com.phoenixkahlo.hellcraft.util.collections.spatial
 
 import java.util
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -9,51 +9,55 @@ import com.phoenixkahlo.hellcraft.math.{Origin, V3F}
 import scala.collection.JavaConverters
 import scala.collection.immutable.Queue
 
-class SpatialHashMapQueue[E](binSize: Float) extends util.AbstractQueue[(V3F, E)] {
+/**
+  * Uses an octree to create a priority queue based of vector/generic pairs based on their proximity to an adjustable
+  * point. This is not thread safe, although internal variables are declared volatile.
+  */
+class OctreePriorityQueue[E] extends util.AbstractQueue[(V3F, E)] {
 
   var point: V3F = Origin
-  var map: SpatialHashMap[E] = SpatialHashMap(binSize)
+  var tree: Octree[E] = EmptyOctree(Origin, Float.MaxValue)
 
   override def poll(): (V3F, E) = {
-    map.closest(point) match {
+    tree.closest(point) match {
       case Some((k, v)) =>
-        map -= k
+        tree -= k
         (k, v)
       case None => null
     }
   }
 
   override def offer(e: (V3F, E)): Boolean = {
-    map += e
+    tree += e
     true
   }
 
   override def peek(): (V3F, E) = {
-    map.closest(point) match {
+    tree.closest(point) match {
       case Some(item) => item
       case None => null
     }
   }
 
   override def iterator(): util.Iterator[(V3F, E)] =
-    JavaConverters.asJavaIterator(map.iterator)
+    JavaConverters.asJavaIterator(tree.iterator)
 
   override def size(): Int =
-    map.size
+    tree.size
 
 }
 
-class SpatialHashMapBinPriorityQueue[E](binSize: Float) extends util.AbstractQueue[(V3F, E)] {
+class OctreeBinPriorityQueue[E] extends util.AbstractQueue[(V3F, E)] {
 
   var point: V3F = Origin
-  var map: SpatialHashMap[Queue[E]] = SpatialHashMap(binSize)
+  var tree: Octree[Queue[E]] = EmptyOctree(Origin, Float.MaxValue)
 
   override def poll(): (V3F, E) = {
-    map.closest(point) match {
+    tree.closest(point) match {
       case Some((key, queue)) =>
         val (value, newQueue) = queue.dequeue
-        if (newQueue isEmpty) map -= key
-        else map += key -> newQueue
+        if (newQueue isEmpty) tree -= key
+        else tree += key -> newQueue
         _size -= 1
         (key, value)
       case None => null
@@ -62,22 +66,22 @@ class SpatialHashMapBinPriorityQueue[E](binSize: Float) extends util.AbstractQue
 
   override def offer(e: (V3F, E)): Boolean = {
     val (key, value) = e
-    val queue = map.getOrElse(key, Queue.empty)
+    val queue = tree.getOrElse(key, Queue.empty)
     val newQueue = queue.enqueue(value)
-    map += key -> newQueue
+    tree += key -> newQueue
     _size += 1
     true
   }
 
   override def peek(): (V3F, E) = {
-    map.closest(point) match {
+    tree.closest(point) match {
       case Some((k, q)) => k -> q.head
       case None => null
     }
   }
 
   override def iterator(): util.Iterator[(V3F, E)] =
-    JavaConverters.asJavaIterator(map.iterator.flatMap({ case (k, q) => q.map(k -> _) }))
+    JavaConverters.asJavaIterator(tree.iterator.flatMap({ case (k, q) => q.map(k -> _) }))
 
   @volatile private var _size: Int = 0
 
@@ -85,8 +89,18 @@ class SpatialHashMapBinPriorityQueue[E](binSize: Float) extends util.AbstractQue
 
 }
 
-class SpatialHashMapBlockingQueue[E](binSize: Float) extends util.AbstractQueue[(V3F, E)] with util.concurrent.BlockingQueue[(V3F, E)] {
-  private val queue = new SpatialHashMapBinPriorityQueue[E](binSize)
+/**
+  * Implements a concurrency layer on top of an OctreePriorityQueue to make it a BlockingQueue.
+  *
+  * This is implemented using a ReentrantReadWriteLock, for reading and writing to the internal queue, and a
+  * LinkedBlockingQueue of "tickets", which only holds references to a "ticket" singleton. Whenever a thread adds an
+  * item to the queue, it then adds a ticket to the ticket queue. Whenever a thread wishes to remove an item from
+  * the queue, it first takes a ticket from the ticket queue. The reading and writing of the wrapped queue
+  * is still protected by the lock, but the ticket taking and giving is not. The purpose of this system is to
+  * delegate the blocking logic a blocking system which is already established to work efficiently.
+  */
+class OctreeBlockingQueue[E] extends util.AbstractQueue[(V3F, E)] with util.concurrent.BlockingQueue[(V3F, E)] {
+  private val queue = new OctreeBinPriorityQueue[E]
   private val lock = new ReentrantReadWriteLock
   private val writeLock = lock.writeLock()
   private val readLock = lock.readLock()
@@ -183,9 +197,9 @@ class SpatialHashMapBlockingQueue[E](binSize: Float) extends util.AbstractQueue[
   }
 }
 
-object SpatialHashMapQueueTest extends App {
+object OctreeQueueTest extends App {
 
-  val queue = new SpatialHashMapBlockingQueue[Int](25)
+  val queue = new OctreeBlockingQueue[Int]
   queue.point = V3F(101, 101, 101)
 
   new Thread(() => {

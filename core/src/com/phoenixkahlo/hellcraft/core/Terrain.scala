@@ -7,7 +7,7 @@ import com.phoenixkahlo.hellcraft.core.Vertices.Vert
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
-import com.phoenixkahlo.hellcraft.util.fields.{ByteField, FractionField, OptionField, ShortFieldBuffer}
+import com.phoenixkahlo.hellcraft.util.fields.{ByteField, ByteFractionField, OptionField, ShortFieldBuffer}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -35,7 +35,7 @@ sealed trait Terrain {
 
   def materials: ByteField
 
-  def densities: FractionField
+  def densities: ByteFractionField
 
   def getVertices: Option[OptionField[Vertices.Vert]] = None
 
@@ -48,7 +48,7 @@ sealed trait Terrain {
 sealed trait TerrainType
 
 @CarboniteFields
-case class Densities(pos: V3I, materials: ByteField, densities: FractionField) extends Terrain {
+case class Densities(pos: V3I, materials: ByteField, densities: ByteFractionField) extends Terrain {
 
   def canUpgrade(world: World): Boolean =
     pos.neighbors.forall(world.chunkAt(_).isDefined)
@@ -112,7 +112,7 @@ case class Densities(pos: V3I, materials: ByteField, densities: FractionField) e
 object Densities extends TerrainType
 
 @CarboniteFields
-case class Vertices(pos: V3I, materials: ByteField, vertices: OptionField[Vert], densities: FractionField) extends Terrain {
+case class Vertices(pos: V3I, materials: ByteField, vertices: OptionField[Vert], densities: ByteFractionField) extends Terrain {
 
   override def getVertices = Some(vertices)
 
@@ -182,7 +182,7 @@ object Vertices extends TerrainType {
 }
 
 @CarboniteFields
-case class Meshable(pos: V3I, materials: ByteField, densities: FractionField, vertices: OptionField[Vert],
+case class Meshable(pos: V3I, materials: ByteField, densities: ByteFractionField, vertices: OptionField[Vert],
                     vertMap: Seq[V3I], indices: Seq[Short]) extends Terrain {
   override def terrainType: TerrainType = Meshable
 

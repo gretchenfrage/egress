@@ -5,6 +5,7 @@ import java.util
 import java.util.Objects
 import java.util.zip.{Deflater, Inflater}
 
+import com.phoenixkahlo.hellcraft.carbonite.CarboniteFields
 import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
 class ByteField private[fields](private var data: Either[Array[Byte], Vector[Byte]], private var _size: V3I) extends Externalizable {
@@ -91,6 +92,7 @@ class ByteField private[fields](private var data: Either[Array[Byte], Vector[Byt
 object ByteField {
 
   private val buffers = new ThreadLocal[Array[Byte]] {
+    // TODO: the size shouldn't be hardcoded in
     override def initialValue(): Array[Byte] = new Array[Byte](8192)
   }
 
@@ -103,5 +105,32 @@ object ByteField {
 
   def apply(size: V3I, const: Byte): ByteField =
     apply(size, _ => const)
+
+}
+
+@CarboniteFields
+case class ByteFractionField(bytes: ByteField) {
+
+  def size: V3I = bytes.size
+
+  def apply(v: V3I): Option[Float] =
+    bytes(v).map(b => (b & 0xFF) / 255f)
+
+  def atMod(v: V3I): Float =
+    (bytes.atMod(v) & 0xFF) / 255f
+
+  def updated(v: V3I, n: Float): ByteFractionField =
+    ByteFractionField(bytes.updated(v, (Math.min(n, 1) * 255).toByte))
+
+  override def toString: String =
+    "FractionField(" + Origin.until(size).map(apply(_).get) + ")"
+
+}
+
+object ByteFractionField {
+
+  def apply(size: V3I, gen: V3I => Float): ByteFractionField = {
+    ByteFractionField(ByteField(size, v => (gen(v) * 255).toByte))
+  }
 
 }

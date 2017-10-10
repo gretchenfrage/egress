@@ -1,10 +1,9 @@
-package com.phoenixkahlo.hellcraft.util
+package com.phoenixkahlo.hellcraft.util.collections
 
-import java.io.{File, FileOutputStream, PrintStream}
+import java.io.{File, PrintStream}
 import java.nio.file.Path
 import java.util.Scanner
 
-import scala.collection.parallel.mutable.ParSet
 import scala.collection.{JavaConverters, mutable}
 
 /**

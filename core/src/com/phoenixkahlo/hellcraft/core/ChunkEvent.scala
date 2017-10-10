@@ -82,8 +82,7 @@ case class IncrDensity(v: V3F, override val id: UUID) extends ChunkEvent(v / 16 
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = {
     val tc = (v / 16 * world.res floor) % world.res
     val densities = chunk.terrain.densities
-    val nt = Densities(chunk.pos, chunk.terrain.materials, densities.updated(tc, densities(tc).get + 0.01f))
-    //(chunk.updateTerrain(nt), Seq.empty)
+    val nt = Densities(chunk.pos, chunk.terrain.materials, densities.updated(tc, densities(tc).get + 0.1f))
     (chunk, Seq(UpdateTerrain(nt, RNG(id.getLeastSignificantBits).nextUUID._2)))
   }
 }
@@ -92,7 +91,7 @@ case class IncrDensity(v: V3F, override val id: UUID) extends ChunkEvent(v / 16 
 case class IncrDensityCatalyst(v: V3F, override val id: UUID) extends ChunkEvent(v / 16 floor, id) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = {
     val ids = RNG.uuids(RNG(id.getLeastSignificantBits))
-    val events = Directions().map(_ * 16 / world.res + v).zip(ids).map({ case (v, id) => IncrDensity(v, id) })
+    val events = Directions().map(_ + v).zip(ids).map({ case (v, id) => IncrDensity(v, id) })
     (chunk, events)
   }
 }
