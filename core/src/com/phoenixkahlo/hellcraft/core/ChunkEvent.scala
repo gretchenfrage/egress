@@ -51,11 +51,6 @@ abstract class ChunkEvent(val target: V3I, val id: UUID) extends UpdateEffect wi
 }
 case object ChunkEvent extends UpdateEffectType
 
-/**
-  * All events that change terrain must be marked with this trait.
-  */
-//trait TerrainChanger
-
 @CarboniteFields
 case class UpdateTerrain(neu: Terrain, override val id: UUID) extends ChunkEvent(neu.pos, id) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
@@ -75,25 +70,6 @@ case class RemoveEntity(override val target: V3I, entity: UUID, override val id:
 @CarboniteFields
 case class EffectDelayer(effect: UpdateEffect, override val target: V3I, override val id: UUID) extends ChunkEvent(target, id) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = (chunk, Seq(effect))
-}
-
-@CarboniteFields
-case class IncrDensity(v: V3F, override val id: UUID) extends ChunkEvent(v / 16 floor, id) {
-  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = {
-    val tc = (v / 16 * world.res floor) % world.res
-    val densities = chunk.terrain.densities
-    val nt = Densities(chunk.pos, chunk.terrain.materials, densities.updated(tc, densities(tc).get + 0.1f))
-    (chunk, Seq(UpdateTerrain(nt, RNG(id.getLeastSignificantBits).nextUUID._2)))
-  }
-}
-
-@CarboniteFields
-case class IncrDensityCatalyst(v: V3F, override val id: UUID) extends ChunkEvent(v / 16 floor, id) {
-  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = {
-    val ids = RNG.uuids(RNG(id.getLeastSignificantBits))
-    val events = Directions().map(_ + v).zip(ids).map({ case (v, id) => IncrDensity(v, id) })
-    (chunk, events)
-  }
 }
 
 abstract class UpdateEntity[T <: Entity](entityID: EntityID, override val target: V3I, override val id: UUID)

@@ -8,7 +8,7 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Cube
 import com.phoenixkahlo.hellcraft.graphics.StoneTID
 import com.phoenixkahlo.hellcraft.math._
-import com.phoenixkahlo.hellcraft.util.fields.{ByteField, ByteFractionField}
+import com.phoenixkahlo.hellcraft.util.fields.{ByteField, ByteFractionField, FloatField}
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 
 import scala.collection.mutable
@@ -71,7 +71,7 @@ class Generator(res: Int) {
           else if (p.flatten % 2 == Origin2D) Stone.id
           else Dirt.id
         }),
-        ByteFractionField(rv3d, i => {
+        FloatField(rv3d, i => {
           val v = p * res + i
           val depth = (p.yi * res + i.yi) - heights(i.flatten)
           if (depth >= 0) 0

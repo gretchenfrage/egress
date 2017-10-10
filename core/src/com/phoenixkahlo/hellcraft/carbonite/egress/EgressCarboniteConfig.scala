@@ -5,7 +5,7 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.{Cube, CubeFrame, SoundCube}
 import com.phoenixkahlo.hellcraft.graphics.{DirtTID, GrassTID, SandTID, StoneTID}
 import com.phoenixkahlo.hellcraft.math._
-import com.phoenixkahlo.hellcraft.util.fields.{ByteField, ByteFractionField, OptionField}
+import com.phoenixkahlo.hellcraft.util.fields._
 
 object EgressCarboniteConfig extends DefaultCarboniteConfig {
 
@@ -55,6 +55,8 @@ object EgressCarboniteConfig extends DefaultCarboniteConfig {
 
   register[ByteField]()
   register[ByteFractionField]()
+  register[FloatField]()
+  register[RefField[_]]()
   register[OptionField[_]]()
 
 }

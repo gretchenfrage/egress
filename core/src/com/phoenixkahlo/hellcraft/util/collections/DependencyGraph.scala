@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.util.collections
 
 import scala.collection.immutable.HashSet
 
-case class DependencyGraph(managing: Set[ResourceNode] = new HashSet) {
+case class DependencyGraph(managing: Set[ResourceNode] = Set.empty) {
 
   type Node = ResourceNode
 
