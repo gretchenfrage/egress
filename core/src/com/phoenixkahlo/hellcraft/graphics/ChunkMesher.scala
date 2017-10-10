@@ -17,14 +17,10 @@ class ChunkMesher(chunk: Chunk, meshable: Meshable) {
   val mesh = new DisposableParamCache[(ResourcePack, World), Renderable]({ case (pack, world) => {
     val vertData = new ArrayBuffer[Float]
 
-    //val (u1, v1) = (pack(StoneTID).getU, pack(StoneTID).getV)
-    //val (u2, v2) = (pack(StoneTID).getU2, pack(StoneTID).getV)
 
     for (v: V3I <- meshable.vertMap) {
       val vert: Vertices.Vert = meshable.vertices(v).get
 
-      //val (texU, texV) = (u1, v1)
-      //val mat = world.materialGridPoint(chunk.pos * world.res + v).get
       val mat = vert.material
       val tex = pack(mat.tid)
       val (texU, texV) = (tex.getU, tex.getV)
@@ -128,8 +124,6 @@ class ChunkMesher(chunk: Chunk, meshable: Meshable) {
     new RenderUnit {
       override def apply(interpolation: Interpolation): Seq[Renderable] =
         Seq(mesh((pack, world)))
-        //Seq(mesh(pack), gradient(()))
-        //Seq(mesh(pack), gradient(()), density(world))
 
       override val resources: Seq[ResourceNode] =
         Seq(new ResourceNode {

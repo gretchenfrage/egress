@@ -52,7 +52,7 @@ abstract class ChunkEvent(val target: V3I, val id: UUID) extends UpdateEffect wi
 case object ChunkEvent extends UpdateEffectType
 
 @CarboniteFields
-case class UpdateTerrain(neu: Terrain, override val id: UUID) extends ChunkEvent(neu.pos, id) {
+case class SetTerrain(neu: Terrain, override val id: UUID) extends ChunkEvent(neu.pos, id) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
     (chunk.updateTerrain(neu), Seq(TerrainChanged(neu.pos)))
 }
@@ -68,8 +68,18 @@ case class RemoveEntity(override val target: V3I, entity: UUID, override val id:
 }
 
 @CarboniteFields
-case class EffectDelayer(effect: UpdateEffect, override val target: V3I, override val id: UUID) extends ChunkEvent(target, id) {
+case class Later(effect: UpdateEffect, override val target: V3I, override val id: UUID) extends ChunkEvent(target, id) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = (chunk, Seq(effect))
+}
+
+@CarboniteFields
+case class Polarize(override val target: V3I, override val id: UUID) extends ChunkEvent(target, id) {
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = (chunk.computePolarity, Seq.empty)
+}
+
+@CarboniteFields
+case class Flow(override val target: V3I, override val id: UUID) extends ChunkEvent(target, id) {
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = (chunk.flow(world), Seq.empty)
 }
 
 abstract class UpdateEntity[T <: Entity](entityID: EntityID, override val target: V3I, override val id: UUID)
@@ -88,7 +98,7 @@ abstract class UpdateEntity[T <: Entity](entityID: EntityID, override val target
 }
 
 @CarboniteFields
-case class ShiftEntity(dx: V3F, entityID: EntityID, override val target: V3I, override val id: UUID)
+case class Shift(dx: V3F, entityID: EntityID, override val target: V3I, override val id: UUID)
   extends UpdateEntity[Moveable](entityID, target, id) {
   override protected def update(entity: Moveable): Entity = entity.updatePos(entity.pos + dx)
 }

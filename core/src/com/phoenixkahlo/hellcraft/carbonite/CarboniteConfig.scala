@@ -131,6 +131,7 @@ class DefaultCarboniteConfig extends CarboniteConfig {
     else if (clazz == classOf[Double] || clazz == classOf[java.lang.Double]) DoubleNode
     // existing classes to use field serialization for
     else if (clazz == classOf[UUID]) new FieldNode(clazz)
+    else if (clazz == classOf[Some[_]]) new FieldNode(clazz)
     // things to use java serialization for
     else if (clazz == classOf[Ordering[_]]) new JavaSerialNode(classOf[Ordering[_]])
     // undefined
@@ -196,6 +197,8 @@ class DefaultCarboniteConfig extends CarboniteConfig {
   register[Array[AnyRef]]()
 
   register[UUID]()
+  register[Some[_]]()
+  register(None.getClass)
 
   register[Ordering[_]]()
 

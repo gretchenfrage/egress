@@ -273,7 +273,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
         val (terrain, upgradeID) = upgradeQueue.remove()
         if (upgradeMap.get(terrain.pos).contains(upgradeID)) {
           upgradeMap -= terrain.pos
-          events +:= UpdateTerrain(terrain, UUID.randomUUID())
+          events +:= SetTerrain(terrain, UUID.randomUUID())
         }
       }
 

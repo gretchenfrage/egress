@@ -7,17 +7,20 @@ import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.graphics.{ChunkMesher, RenderUnit, ResourcePack}
 import com.phoenixkahlo.hellcraft.graphics.RenderUnit
-import com.phoenixkahlo.hellcraft.math.{Origin, RNG, V3F, V3I}
-import com.phoenixkahlo.hellcraft.util.fields.{ByteFractionField, ByteFractionFieldBuffer, OptionField}
+import com.phoenixkahlo.hellcraft.math._
+import com.phoenixkahlo.hellcraft.util.fields.{ByteFractionField, ByteFractionFieldBuffer, FloatField, OptionField}
 
 @CarboniteWith(classOf[FieldNode])
 class Chunk(
-           val pos: V3I,
-           val terrain: Terrain,
-           val entities: Map[UUID, Entity] = Map.empty,
-           @transient lastMesher: ChunkMesher = null
+             val pos: V3I,
+             val terrain: Terrain,
+             val entities: Map[UUID, Entity] = Map.empty,
+             val polarity: Option[FloatField] = None,
+             @transient lastMesher: ChunkMesher = null,
+             @transient lastMesherValid: Boolean = false
            ) {
 
+  /*
   @transient lazy val mesher: Option[ChunkMesher] = Option(lastMesher) match {
     case last if last isDefined => last
     case None => terrain.asMeshable match {
@@ -25,90 +28,63 @@ class Chunk(
       case None => None
     }
   }
+  */
+  @transient lazy val mesher: Option[ChunkMesher] = Option(lastMesher) match {
+    case last if last.isDefined && lastMesherValid => last
+    case last => terrain.asMeshable match {
+      case Some(meshable) => Some(new ChunkMesher(this, meshable))
+      case None if last.isDefined => last
+      case None => None
+    }
+  }
 
   def putEntity(entity: Entity): Chunk =
-    new Chunk(pos, terrain, entities + (entity.id -> entity), mesher.orNull)
+    new Chunk(pos, terrain, entities + (entity.id -> entity), polarity, mesher.orNull, true)
 
   def removeEntity(entity: UUID): Chunk =
-    new Chunk(pos, terrain, entities - entity, mesher.orNull)
+    new Chunk(pos, terrain, entities - entity, polarity, mesher.orNull, true)
 
   def updateTerrain(neu: Terrain): Chunk =
-    new Chunk(pos, neu, entities, null)
-  /*
-  def massFlow(world: World, ids: Stream[UUID]): Seq[ChunkEvent] = {
-    /*
-    val deltas: Map[V3I, FractionFieldBuffer] =
-      (pos +: pos.touching).map(p => p -> new FractionFieldBuffer(world.resVec)).toMap
+    new Chunk(pos, neu, entities, polarity, mesher.orNull, false)
 
-    def compDelta(v: V3I): Unit = {
-      // density at terrain sample
-      val density: Float = terrain.densities(v).get
-      // if it wants to flow
-      if (density > 0) {
-        // material at terrain sample
-        val mat: Material = Materials(terrain.materials(v).get)
-        // global terrain sample coordinates
-        val vg: V3I = pos * world.res + v
-        // global terrain coordinates of where it can flow
-        val targets: Seq[V3I] = vg.touching.filter(world.materialGridPoint(_).get == mat)
-        // if it can flow anywhere
-        if (targets nonEmpty) {
-          // for each global terrain coordinate that it can flow into
-          for (target: V3I <- targets) {
-            // chunk coordinates of target
-            val p = target / world.res floor
-            // how much we will transfer
-            val toTransfer: Float = Math.min(density / targets.size, 1 - (world.densityGridPoint(target).get + deltas(p)(target % world.res)))
-          }
-        }
-      }
-    }
-    */
+  def updatePolarity(neu: Option[FloatField]): Chunk =
+    new Chunk(pos, terrain, entities, neu, mesher.orNull, true)
 
-    for (v <- Origin until world.resVec) {
-      compDelta(v)
-    }
-
-    /*
-    var densities = Map.empty[V3I, FractionField].withDefault(_ => FractionField(world.resVec, _ => 0))
-    for (v <- Origin until world.resVec) {
+  def computePolarity: Chunk = {
+    updatePolarity(Some(FloatField(terrain.densities.size, v => {
       val density = terrain.densities(v).get
-      if (density > 0) {
-        val vg = pos * world.res + v
-        val mat = Materials(terrain.materials(v).get)
-        val targets = vg.touching.filter(world.materialGridPoint(_).get == mat)
-        if (targets nonEmpty) {
-          for (target: V3I <- targets) {
-            val p = target / world.res floor;
-            densities = densities.updated(p, densities(p).updated(target % world.res, densities(p)(target % world.res) + ))
-          }
-        }
-      }
-    }
-    */
 
-    /*
-    (Origin until world.resVec).foldLeft(zeroMap)({ case (deltas, v) => {
-      val density: Float = terrain.densities(v).get
-      if (density > 0) {
-        val globalV: V3I = pos * world.res + v
-        val material: Material = Materials(terrain.materials(v).get)
-        val flowTargets: Seq[V3I] = globalV.touching.filter(world.materialGridPoint(_).get == material)
-        if (flowTargets nonEmpty) {
-          flowTargets.foldLeft
-
-          ???
-        } else deltas
-      } else deltas
-    }})
-    */
+      if (density < 0.5) -density
+      else density
+    })))
   }
-  */
+
+  def dropPolarity: Chunk =
+    updatePolarity(None)
+
+  def flow(world: World): Chunk =
+    polarity match {
+      case None => this
+      case Some(polarity) =>
+        updateTerrain(Densities(pos, terrain.materials, FloatField(terrain.densities.size, v => {
+          val vg = pos * world.res + v
+          val p = polarity(v).get
+          terrain.densities(v).get + Directions().flatMap(d => {
+            world.chunkAt((vg + d) / world.res floor).flatMap(_.polarity).map(p - _.atMod(vg))
+          }).sum
+        }))).dropPolarity
+    }
+
   def update(world: World): Seq[UpdateEffect] = {
     val seed: Long = (world.time.hashCode().toLong << 32) | pos.hashCode().toLong
     val idss: Stream[Stream[UUID]] = RNG.meta(RNG(seed), RNG.uuids)
-    //Flow(pos, idss.head.head) +:
-      entities.values.zip(idss.drop(1)).flatMap({ case (entity, ids) => entity.update(world, ids) }).toSeq
+    var effects = entities.values.zip(idss.drop(1)).flatMap({ case (entity, ids) => entity.update(world, ids) }).toSeq
+    if (world.time % 20 == 0) {
+      effects +:= Polarize(pos, idss.head.head)
+    } else if (world.time % 20 == 10) {
+      effects +:= Flow(pos, idss.head.head)
+    }
+    effects
   }
 
   override def hashCode(): Int =

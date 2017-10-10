@@ -64,19 +64,19 @@ class Generator(res: Int) {
   def genChunk(p: V3I): Fut[Chunk] = {
     heightsAt(p.flatten).map(heights => {
       new Chunk(p, Densities(p,
-        ByteField(rv3d, i => {
-          val v = p * res + i
-          val depth = (p.yi * res + i.yi) - heights(i.flatten)
-          if (depth >= 0) Air.id
-          else if (p.flatten % 2 == Origin2D) Stone.id
-          else Dirt.id
-        }),
-        FloatField(rv3d, i => {
-          val v = p * res + i
-          val depth = (p.yi * res + i.yi) - heights(i.flatten)
-          if (depth >= 0) 0
-          else 1
-        })))
+                    ByteField(rv3d, i => {
+                      val v = p * res + i
+                      val depth = (p.yi * res + i.yi) - heights(i.flatten)
+                      if (depth >= 0) Air.id
+                      else if (p.flatten % 2 == Origin2D) Stone.id
+                      else Dirt.id
+                    }),
+                    FloatField(rv3d, i => {
+                      val v = p * res + i
+                      val depth = (p.yi * res + i.yi) - heights(i.flatten)
+                      if (depth >= 0) 0
+                      else 1
+                    })))
     })
   }
 

@@ -15,9 +15,14 @@ object EgressCarboniteConfig extends DefaultCarboniteConfig {
   register[Vertices.Vert]()
   register[Meshable]()
 
+  register[SetTerrain]()
   register[PutEntity]()
   register[RemoveEntity]()
-  register[ShiftEntity]()
+  register[Shift]()
+  register[Later]()
+  register[Polarize]()
+  register[Flow]()
+  register[Shift]()
 
   register[CubeFrame]()
   register[Cube]()
