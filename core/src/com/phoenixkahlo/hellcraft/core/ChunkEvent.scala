@@ -82,6 +82,12 @@ case class Flow(override val target: V3I, override val id: UUID) extends ChunkEv
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = (chunk.flow(world), Seq.empty)
 }
 
+@CarboniteFields
+case class Deposit(v: V3F, delta: Float, res: Int, override val id: UUID) extends ChunkEvent(v / res floor, id) {
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
+    (chunk.updateTerrain(chunk.terrain.toDensities.incrDensity(v % res floor, delta)), Seq.empty)
+}
+
 abstract class UpdateEntity[T <: Entity](entityID: EntityID, override val target: V3I, override val id: UUID)
   extends ChunkEvent(target, id) {
   protected def update(entity: T): Entity

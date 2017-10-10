@@ -41,6 +41,8 @@ sealed trait Terrain {
 
   def asMeshable: Option[Meshable] = None
 
+  def toDensities: Densities
+
   def terrainType: TerrainType
 
 }
@@ -105,6 +107,14 @@ case class Densities(pos: V3I, materials: ByteField, densities: FloatField) exte
     } else None
   }
 
+  def incrDensity(v: V3I, d: Float): Densities =
+    copy(densities = densities.updated(v, densities(v).get + d))
+
+  def setMat(v: V3I, mat: Material): Densities =
+    copy(materials = materials.updated(v, mat.id))
+
+  override def toDensities: Densities = this
+
   override def terrainType: TerrainType = Densities
 
 }
@@ -113,6 +123,8 @@ object Densities extends TerrainType
 
 @CarboniteFields
 case class Vertices(pos: V3I, materials: ByteField, vertices: OptionField[Vert], densities: FloatField) extends Terrain {
+
+  override def toDensities: Densities = Densities(pos, materials, densities)
 
   override def getVertices = Some(vertices)
 
@@ -189,6 +201,8 @@ case class Meshable(pos: V3I, materials: ByteField, densities: FloatField, verti
   override def getVertices = Some(vertices)
 
   override def asMeshable = Some(this)
+
+  override def toDensities: Densities = Densities(pos, materials, densities)
 }
 
 object Meshable extends TerrainType
