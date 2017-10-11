@@ -33,11 +33,17 @@ class ByteField private[fields](private var data: Either[Array[Byte], Vector[Byt
     new ByteField(asVector.updated(size.compress(v), b), size)
   }
 
-  def apply(v: V3I): Option[Byte] =
+  def get(v: V3I): Option[Byte] =
     if (v >= Origin && v < size) data match {
       case Left(arr) => Some(arr(size.compress(v)))
       case Right(vec) => Some(vec(size.compress(v)))
     } else None
+
+  def apply(v: V3I): Byte =
+    data match {
+      case Left(arr) => arr(size.compress(v))
+      case Right(vec) => vec(size.compress(v))
+    }
 
   def atMod(v: V3I): Byte =
     data match {
@@ -114,7 +120,7 @@ case class ByteFractionField(bytes: ByteField) {
   def size: V3I = bytes.size
 
   def apply(v: V3I): Option[Float] =
-    bytes(v).map(b => (b & 0xFF) / 255f)
+    bytes.get(v).map(b => (b & 0xFF) / 255f)
 
   def atMod(v: V3I): Float =
     (bytes.atMod(v) & 0xFF) / 255f

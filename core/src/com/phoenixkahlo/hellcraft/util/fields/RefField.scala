@@ -26,17 +26,23 @@ class RefField[T <: AnyRef] private(private val data: Either[Array[T], Vector[T]
     new RefField[T](Right(asVector.updated(sizeVec.compress(v), d)), sizeVec)
   }
 
-  def apply(v: V3I): Option[T] =
+  def get(v: V3I): Option[T] =
     if (v >= Origin && v < sizeVec) data match {
-      case Left(arr) => Option(arr(sizeVec.compress(v)))
-      case Right(vec) => Option(vec(sizeVec.compress(v)))
+      case Left(arr) => Some(arr(sizeVec.compress(v)))
+      case Right(vec) => Some(vec(sizeVec.compress(v)))
     } else None
+
+  def apply(v: V3I): T =
+    data match {
+      case Left(arr) => arr(sizeVec.compress(v))
+      case Right(vec) => vec(sizeVec.compress(v))
+    }
 
   override def hashCode(): Int =
     Objects.hash(asArray: _*)
 
   override def iterator: Iterator[T] =
-    Origin.until(sizeVec).iterator.flatMap(apply)
+    Origin.until(sizeVec).iterator.map(apply)
 
   override def equals(obj: scala.Any): Boolean =
     obj match {

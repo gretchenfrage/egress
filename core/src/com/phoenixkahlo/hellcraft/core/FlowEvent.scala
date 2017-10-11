@@ -31,6 +31,6 @@ case class ShiftDensity(delta: ByteFractionField, override val target: V3I, over
 extends ChunkEvent(target, id) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = {
     val newDensities = FloatField(world.resVec, v => chunk.terrain.densities(v).get + delta(v).get)
-    (chunk.updateTerrain(Densities(chunk.pos, chunk.terrain.materials, newDensities)), Seq.empty)
+    (chunk.setTerrain(Densities(chunk.pos, chunk.terrain.materials, newDensities)), Seq.empty)
   }
 }

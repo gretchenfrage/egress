@@ -20,6 +20,46 @@ trait World {
 
   def boundingBox: (V3I, V3I)
 
+  def materialGridPoint(v: V3I): Option[Material] =
+    chunkAt(v / res floor).map(_.terrain.materials.atMod(v))
+
+  def sampleDensity(vWorld: V3F): Option[Float] = {
+    val vGrid = vWorld / 16f * res
+    if (vGrid % 1 == Origin)
+      materialGridPoint(vGrid toInts).map(mat => if (mat == Air) 0f else 1f)
+    else {
+      // trilinear interpolation
+      val v0 = vGrid.floor
+      val v1 = v0 + Ones
+      if (v0.to(v1).map(_ / res floor).forall(chunkAt(_).isDefined)) {
+        // helper function (stands for density grid point)
+        def dgp(x: V3I, y: V3I, z: V3I): Float =
+          if (materialGridPoint(V3I(x.xi, y.yi, z.zi)).get == Air) 0 else 1
+
+        val d = (vGrid - v0) \\ (v1 - v0)
+
+        val c00 = dgp(v0, v0, v0) * (1 - d.x) + dgp(v1, v0, v0) * d.x
+        val c01 = dgp(v0, v0, v1) * (1 - d.x) + dgp(v1, v0, v1) * d.x
+        val c10 = dgp(v0, v1, v0) * (1 - d.x) + dgp(v1, v1, v0) * d.x
+        val c11 = dgp(v0, v1, v1) * (1 - d.x) + dgp(v1, v1, v1) * d.x
+
+        val c0 = c00 * (1 - d.y) + c10 * d.y
+        val c1 = c01 * (1 - d.y) + c11 * d.y
+
+        val c = c0 * (1 - d.z) + c1 * d.z
+
+        Some(c)
+      } else None
+    }
+  }
+
+  def sampleDirection(v: V3F): Option[V3F] =
+    Directions().map(d => sampleDensity(d * 0.01f + v).map(d * _)).fold(Some(Origin))({
+      case (Some(a), Some(b)) => Some(a + b)
+      case _ => None
+    }).map(v => (v / 6).tryNormalize)
+
+  /*
   /**
     * Uses density grid coordinates, not world coordinates!
     */
@@ -100,5 +140,8 @@ trait World {
 
   def seghit(pos: V3F, dir: V3F, dist: Float): Option[V3F] =
     segcast(pos, dir, dist).headOption
+
+
+  */
 
 }

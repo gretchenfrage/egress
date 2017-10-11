@@ -54,7 +54,7 @@ case object ChunkEvent extends UpdateEffectType
 @CarboniteFields
 case class UpdateTerrain(neu: Terrain, override val id: UUID) extends ChunkEvent(neu.pos, id) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
-    (chunk.updateTerrain(neu), Seq(TerrainChanged(neu.pos)))
+    (chunk.setTerrain(neu), Seq(TerrainChanged(neu.pos)))
 }
 
 @CarboniteFields

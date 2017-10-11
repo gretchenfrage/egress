@@ -29,13 +29,18 @@ class FloatField private[fields](private var data: Either[Array[Float], Vector[F
 
   def updated(v: V3I, n: Float): FloatField =
     new FloatField(asVector.updated(size.compress(v), n), size)
-
-
-  def apply(v: V3I): Option[Float] =
+  
+  def get(v: V3I): Option[Float] =
     if (v >= Origin && v < size) data match {
       case Left(arr) => Some(arr(size.compress(v)))
       case Right(vec) => Some(vec(size.compress(v)))
     } else None
+
+  def apply(v: V3I): Float =
+    data match {
+      case Left(arr) => arr(size.compress(v))
+      case Right(vec) => vec(size.compress(v))
+    }
 
   def atMod(v: V3I): Float =
     data match {

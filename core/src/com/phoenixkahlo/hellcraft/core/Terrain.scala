@@ -3,7 +3,7 @@ package com.phoenixkahlo.hellcraft.core
 import com.phoenixkahlo.hellcraft.carbonite
 import com.phoenixkahlo.hellcraft.carbonite._
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
-import com.phoenixkahlo.hellcraft.core.Vertices.Vert
+import com.phoenixkahlo.hellcraft.core.CompleteTerrain.Vert
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
@@ -11,6 +11,61 @@ import com.phoenixkahlo.hellcraft.util.fields._
 
 import scala.collection.mutable.ArrayBuffer
 
+sealed trait Terrain {
+  def pos: V3I
+
+  def materials: IDField[Material]
+
+  def terrainType: TerrainType
+
+  def asComplete: Option[CompleteTerrain]
+}
+sealed trait TerrainType
+
+@CarboniteFields
+case class ProtoTerrain(pos: V3I, materials: IDField[Material]) extends Terrain {
+  override def terrainType: TerrainType = ProtoTerrain
+
+  override def asComplete: Option[CompleteTerrain] = None
+
+  def complete(world: World): Option[CompleteTerrain] =
+    if (pos.neighbors.forall(world.chunkAt(_).isDefined)) {
+
+
+      Some(???)
+    } else None
+}
+object ProtoTerrain extends TerrainType {
+  val edges: Seq[(V3I, V3I)] = Seq(
+    Origin -> (West),
+    Origin -> (Origin + Up),
+    Origin -> (Origin + North),
+
+    (North) -> (West),
+    (West) -> (Origin + V3I(1, 1, 0)),
+    (V3I(1, 0, 1)) -> (Origin + Ones),
+
+    (Up) -> (v + V3I(0, 1, 1)),
+    (Up) -> (v + V3I(1, 1, 0)),
+
+    (v + North) -> (v + V3I(1, 0, 1)),
+    (v + West) -> (v + V3I(1, 0, 1)),
+
+    (v + V3I(0, 1, 1)) -> (v + Ones),
+    (v + V3I(1, 1, 0)) -> (v + Ones)
+  ).map({ case (v1, v2) => (pos * world.res + v1) -> (pos * world.res + v2) })
+}
+
+@CarboniteFields
+case class CompleteTerrain(pos: V3I, materials: IDField[Material],
+                           verts: OptionField[Vert], indices: Seq[Short], indexToVert: Seq[V3I]) extends Terrain {
+  override def terrainType: TerrainType = CompleteTerrain
+
+  override def asComplete: Option[CompleteTerrain] = Some(this)
+}
+object CompleteTerrain extends TerrainType {
+  @CarboniteFields case class Vert(pos: V3F, mat: Material)
+}
 /**
   * Terrain represents the world's terrain at a certain chunk. It is directly owned by a chunk, and encapsulates the
   * iso-surface logic. Terrain can exist in three states, each of which is an upgrade of the former. A Terrain can
@@ -29,6 +84,7 @@ import scala.collection.mutable.ArrayBuffer
   * be queried for its TerrainType. This allows the neat classification (think grouping and filtering) of Terrain
   * objects without using reflection.
   */
+/*
 sealed trait Terrain {
 
   def pos: V3I
@@ -192,3 +248,5 @@ case class Meshable(pos: V3I, materials: ByteField, densities: FloatField, verti
 }
 
 object Meshable extends TerrainType
+*/
+
