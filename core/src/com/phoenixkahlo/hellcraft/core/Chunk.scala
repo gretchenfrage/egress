@@ -59,9 +59,7 @@ class Chunk(
     })))
   }
 
-  def dropPolarity: Chunk =
-    updatePolarity(None)
-
+  /*
   def flow(world: World): Chunk =
     polarity match {
       case None => this
@@ -72,17 +70,37 @@ class Chunk(
           terrain.densities(v).get + Directions().flatMap(d => {
             world.chunkAt((vg + d) / world.res floor).flatMap(_.polarity).map(p - _.atMod(vg))
           }).sum
-        }))).dropPolarity
+        })))
+    }
+    */
+  def flow(world: World, direction: Direction): Chunk =
+    polarity match {
+      case None => this
+      case Some(polarity) =>
+        updateTerrain(Densities(pos, terrain.materials, FloatField(terrain.densities.size, v => {
+          val vg = pos * world.res + v
+          val p = polarity(v).get
+          val d = world.chunkAt((vg + direction) / world.res floor).flatMap(_.polarity).map(p - _.atMod(vg)).getOrElse(0f)
+          terrain.densities(v).get + d
+        })))
     }
 
   def update(world: World): Seq[UpdateEffect] = {
     val seed: Long = (world.time.hashCode().toLong << 32) | pos.hashCode().toLong
     val idss: Stream[Stream[UUID]] = RNG.meta(RNG(seed), RNG.uuids)
     var effects = entities.values.zip(idss.drop(1)).flatMap({ case (entity, ids) => entity.update(world, ids) }).toSeq
+    /*
     if (world.time % 20 == 0) {
       effects +:= Polarize(pos, idss.head.head)
     } else if (world.time % 20 == 10) {
       effects +:= Flow(pos, idss.head.head)
+    }
+    */
+    if (world.time % 70 == 0) {
+      effects +:= Polarize(pos, idss.head.head)
+    } else if (world.time % 10 == 0) {
+      val dir = Directions()((world.time % 70).toInt / 10 - 1)
+      effects +:= Flow(pos, dir, idss.head.head)
     }
     effects
   }

@@ -86,9 +86,9 @@ case class Deposit(v: V3I, delta: Float, res: Int, override val id: UUID) extend
 }
 
 @CarboniteFields
-case class Flow(p: V3I, override val id: UUID) extends TerrainUpdater(p, id) {
+case class Flow(p: V3I, dir: Direction, override val id: UUID) extends TerrainUpdater(p, id) {
   override protected def update(chunk: Chunk, world: World): (Chunk, Set[V3I]) =
-    (chunk.flow(world), p.neighbors.toSet)
+    (chunk.flow(world, dir), p.neighbors.toSet)
 }
 
 @CarboniteFields
