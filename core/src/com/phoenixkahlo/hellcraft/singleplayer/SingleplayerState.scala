@@ -124,7 +124,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           mainLoopTasks.add(() => {
             world.rayhit(camPos, camDir).foreach(
               v => infinitum.update(infinitum().chunks.keySet,
-                Seq(Deposit(v, 1, res, UUID.randomUUID())))
+                v.floor.neighbors.map(vv => Deposit(vv, 1f / (v dist vv), res, UUID.randomUUID())))
+                //Seq(Deposit(v floor, 1, res, UUID.randomUUID())))
             )
           })
         }

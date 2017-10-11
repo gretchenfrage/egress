@@ -273,7 +273,14 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
         val (terrain, upgradeID) = upgradeQueue.remove()
         if (upgradeMap.get(terrain.pos).contains(upgradeID)) {
           upgradeMap -= terrain.pos
-          events +:= SetTerrain(terrain, UUID.randomUUID())
+          //events +:= SetTerrain(terrain, UUID.randomUUID())
+
+          // this is not declared and serializable like the rest of the chunk events because we don't want to produce
+          // the invalidate effect
+          events +:= new ChunkEvent(terrain.pos, UUID.randomUUID()) {
+            override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
+              (chunk.updateTerrain(terrain), Seq.empty)
+          }
         }
       }
 

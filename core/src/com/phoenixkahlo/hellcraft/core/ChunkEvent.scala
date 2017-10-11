@@ -6,7 +6,7 @@ import com.phoenixkahlo.hellcraft.carbonite.{CarboniteFields, CarboniteWith}
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.{CubeFrame, Entity, Moveable}
 import com.phoenixkahlo.hellcraft.graphics.SoundID
-import com.phoenixkahlo.hellcraft.math.{Directions, RNG, V3F, V3I}
+import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.singleplayer.EntityID
 
 
@@ -51,10 +51,44 @@ abstract class ChunkEvent(val target: V3I, val id: UUID) extends UpdateEffect wi
 }
 case object ChunkEvent extends UpdateEffectType
 
+/*
 @CarboniteFields
 case class SetTerrain(neu: Terrain, override val id: UUID) extends ChunkEvent(neu.pos, id) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
     (chunk.updateTerrain(neu), Seq(TerrainChanged(neu.pos)))
+}
+*/
+
+@CarboniteFields
+case class InvalidateTerrain(p: V3I, override val id: UUID) extends ChunkEvent(p, id) {
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
+    (chunk.updateTerrain(chunk.terrain.toDensities), Seq(TerrainChanged(p)))
+}
+
+abstract class TerrainUpdater(p: V3I, override val id: UUID) extends ChunkEvent(p, id) {
+  protected def update(chunk: Chunk, world: World): (Chunk, Set[V3I])
+
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = {
+    val (updated, affected) = update(chunk, world)
+    val invalidators = (affected - p).toSeq.zip(RNG.uuids(RNG(id.getLeastSignificantBits)))
+      .map { case (pos, id) => InvalidateTerrain(pos, id) }
+    (updated, TerrainChanged(p) +: invalidators)
+  }
+}
+
+@CarboniteFields
+case class Deposit(v: V3I, delta: Float, res: Int, override val id: UUID) extends TerrainUpdater(v / res floor, id) {
+  override protected def update(chunk: Chunk, world: World): (Chunk, Set[V3I]) = {
+    val affected = v.neighbors.map(_ / res floor).toSet
+    val updated = chunk.updateTerrain(chunk.terrain.toDensities.incrDensity(v % res, delta))
+    (updated, affected)
+  }
+}
+
+@CarboniteFields
+case class Flow(p: V3I, override val id: UUID) extends TerrainUpdater(p, id) {
+  override protected def update(chunk: Chunk, world: World): (Chunk, Set[V3I]) =
+    (chunk.flow(world), p.neighbors.toSet)
 }
 
 @CarboniteFields
@@ -77,16 +111,20 @@ case class Polarize(override val target: V3I, override val id: UUID) extends Chu
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = (chunk.computePolarity, Seq.empty)
 }
 
+/*
 @CarboniteFields
 case class Flow(override val target: V3I, override val id: UUID) extends ChunkEvent(target, id) {
-  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = (chunk.flow(world), Seq.empty)
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = (chunk.flow(world),
+    Seq(TerrainChanged(target)))
 }
 
 @CarboniteFields
 case class Deposit(v: V3F, delta: Float, res: Int, override val id: UUID) extends ChunkEvent(v / res floor, id) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
-    (chunk.updateTerrain(chunk.terrain.toDensities.incrDensity(v % res floor, delta)), Seq.empty)
+    (chunk.updateTerrain(chunk.terrain.toDensities.incrDensity(v % res floor, delta)),
+      Seq(TerrainChanged(target)))
 }
+*/
 
 abstract class UpdateEntity[T <: Entity](entityID: EntityID, override val target: V3I, override val id: UUID)
   extends ChunkEvent(target, id) {
