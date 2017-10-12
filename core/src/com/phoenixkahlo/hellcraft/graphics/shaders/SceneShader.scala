@@ -8,8 +8,7 @@ import com.badlogic.gdx.graphics.glutils.{GeomShaderProgram, ShaderProgram, Shad
 import com.badlogic.gdx.graphics.{Camera, GL20, PerspectiveCamera, Texture}
 import com.badlogic.gdx.utils.GdxRuntimeException
 
-class TerrainShader(sheet: Texture, light: Camera) extends Shader {
-
+class SceneShader(sheet: Texture, light: Camera) extends Shader {
 
   var program: GeomShaderProgram = _
   var cam: Camera = _

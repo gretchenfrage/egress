@@ -40,7 +40,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
   var skyColor: V3F = V3F(0.5089f, 0.6941f, 1f)
 
-  val terrainShader = new TerrainShader(resources.sheet, lightCam)
+  val terrainShader = new SceneShader(resources.sheet, lightCam)
   terrainShader.init()
   val lineShader = new LineShader
   lineShader.init()

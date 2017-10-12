@@ -1,7 +1,7 @@
 package com.phoenixkahlo.hellcraft.graphics.shaders
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.Camera
+import com.badlogic.gdx.graphics.{Camera, GL20}
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.graphics.g3d.{Renderable, Shader, utils}
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
@@ -31,6 +31,8 @@ class LineShader extends Shader {
     this.context = context
     program.begin()
     program.setUniformMatrix(u_projViewTrans, camera.combined)
+
+    context.setDepthTest(GL20.GL_LEQUAL)
   }
 
   override def render(renderable: Renderable): Unit = {
