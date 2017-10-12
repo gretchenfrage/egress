@@ -8,7 +8,7 @@ import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.graphics.{RenderUnit, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Ones, Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.util.collections.MergeBinned
-import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
+import com.phoenixkahlo.hellcraft.util.threading.{AsyncExecutor, Fut, Promise, UniExecutor}
 
 import scala.annotation.tailrec
 import scala.collection.SortedMap
@@ -200,6 +200,12 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
   def apply(): SWorld = history.last._2
 
   def loading: Set[V3I] = loadMap.keySet
+
+  def finalSave(): Promise = {
+    Promise(() => {
+      save.finalPush(this().chunks).foreach(_.await)
+    }, AsyncExecutor.global.execute)
+  }
 
   /**
     * Update the world, and return the effects.

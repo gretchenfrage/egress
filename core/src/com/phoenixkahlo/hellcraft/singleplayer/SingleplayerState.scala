@@ -223,9 +223,9 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     updateThread.interrupt()
     renderer.dispose()
     updateThread.join()
-    //val saveFuture = history.last._2.pushToSave()
+    val savePromise = infinitum.finalSave()
     vramGraph.managing.foreach(_.dispose())
-    //saveFuture.await
+    savePromise.await
     UniExecutor.deactivate()
   }
 

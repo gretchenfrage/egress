@@ -81,7 +81,6 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
   }
 
   def push(chunks: Map[V3I, Chunk], executor: Option[Runnable => Unit]): Seq[Fut[Unit]] = {
-    //val toSave = chunks.filter({ case (_, c) => !c.freshlyLoaded })
     val toSave = chunks
     if (toSave isEmpty) return Seq.empty
 
