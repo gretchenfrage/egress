@@ -30,35 +30,42 @@ case class ProtoTerrain(pos: V3I, grid: IDField[TerrainUnit]) extends Terrain {
   def canComplete(world: World): Boolean = pos.neighbors.forall(world.chunkAt(_).isDefined)
 
   /**
-    * If all neighboring chunks are defined, this function will upgrade this ProtoTerrain into a CompleteTerrain as per
-    * the surface nets algorithm.
+    * Upgrade. This is a very expensive operation designed to be done in the background.
     */
   def complete(world: World): Option[CompleteTerrain] =
     if (canComplete(world)) {
       val offset = pos * world.res
-      
       // PART 1: generating the terrain mesh with the surface nets algorithm
 
       // generate the vertex field with an overshoot of <1, 1, 1> to connect the chunks
       val verts = OptionField[TVert](world.resVec + Ones, v => {
-        // pairs of grid coords to test
-        val edges = ProtoTerrain.edges map { case (d1, d2) => (offset + v + d1, offset + v + d2) }
-        // build the edge isopoint set as per the surface nets algorithm, no interpolation
-        val isopoints = new ArrayBuffer[V3F]
-        for ((v1, v2) <- edges) {
-          if ((world.terrainGridPoint(v1).get.id > 0) ^ (world.terrainGridPoint(v2).get.id > 0)) {
-            isopoints += ((v1 + v2) / 2)
-          }
-        }
-        if (isopoints isEmpty) None
-        else {
-          // average isopoints and convert to spatial coords
-          val vertPos = (isopoints.fold(Origin)(_ + _) / isopoints.size) / world.res * 16
-          // find the first material you can that's not air
-          val mat = (v to v + Ones).toStream
-            .map(vv => world.terrainGridPoint(offset + vv).get).filterNot(_ == Air).head
+        val corners = (v to v + Ones).map(v => world.terrainGridPoint(offset + v).get)
+        if (corners.exists(_.id < 0)) {
+          // if one of the corners is a block, we must snap to the center
+          // but if none of the corners are terrain, we shouldn't place a vertex at all
+          corners.find(_.id > 0).map(mat => TVert(offset + v + V3F(0.5f, 0.5f, 0.5f), mat))
+        } else {
+          // otherwise, we can do surface nets as normal
 
-          Some(TVert(vertPos, mat))
+          // pairs of grid coords to test
+          val edges = ProtoTerrain.edges map { case (d1, d2) => (offset + v + d1, offset + v + d2) }
+          // build the edge isopoint set as per the surface nets algorithm, no interpolation
+          val isopoints = new ArrayBuffer[V3F]
+          for ((v1, v2) <- edges) {
+            if ((world.terrainGridPoint(v1).get.id > 0) ^ (world.terrainGridPoint(v2).get.id > 0)) {
+              isopoints += ((v1 + v2) / 2)
+            }
+          }
+          if (isopoints isEmpty) None
+          else {
+            // average isopoints and convert to spatial coords
+            val vertPos = (isopoints.fold(Origin)(_ + _) / isopoints.size) / world.res * 16
+            // find a material that's not air
+            val mat = (v to v + Ones).toStream
+              .map(vv => world.terrainGridPoint(offset + vv).get).filterNot(_ == Air).head
+
+            Some(TVert(vertPos, mat))
+          }
         }
       })
 
