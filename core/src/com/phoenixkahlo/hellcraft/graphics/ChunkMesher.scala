@@ -13,13 +13,13 @@ import com.phoenixkahlo.hellcraft.util.collections.ResourceNode
 
 import scala.collection.mutable.ArrayBuffer
 
-class ChunkMesher(chunk: Chunk, meshable: CompleteTerrain) {
+class ChunkMesher(chunk: Chunk, terrain: CompleteTerrain) {
 
   val mesh = new DisposableParamCache[(ResourcePack, World), Renderable]({ case (pack, world) => {
     val vertData = new ArrayBuffer[Float]
 
-    for (v: V3I <- meshable.indexToVert) {
-      val vert: Vert = meshable.verts(v).get
+    for (v: V3I <- terrain.indexToVert) {
+      val vert: Vert = terrain.verts(v).get
 
       val mat = vert.mat
       val tex = pack(mat.tid)
@@ -33,7 +33,7 @@ class ChunkMesher(chunk: Chunk, meshable: CompleteTerrain) {
       )
     }
 
-    val indexData = meshable.indices
+    val indexData = terrain.indices
 
     val mesh = new Mesh(true, vertData.size, indexData.size,
       new VertexAttribute(Usage.Position, 3, "a_position"),

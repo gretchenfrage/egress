@@ -8,6 +8,10 @@ trait IDMapping[T] {
   def lookup(id: Byte): T
 }
 
+/**
+  * Given an enumeration of objects with 256-bit IDs, this object will represent a field of them, backed by a
+  * ByteField.
+  */
 @CarboniteFields
 case class IDField[T] private[fields](bytes: ByteField, mapping: IDMapping[T]) {
 
@@ -27,7 +31,7 @@ case class IDField[T] private[fields](bytes: ByteField, mapping: IDMapping[T]) {
 
 }
 
-object IDFIeld {
+object IDField {
   def apply[T](size: V3I, gen: V3I => T)(implicit mapping: IDMapping[T]): IDField[T] =
     IDField(ByteField(size, gen andThen mapping.id), mapping)
 

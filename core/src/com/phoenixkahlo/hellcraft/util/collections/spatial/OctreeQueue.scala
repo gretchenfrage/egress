@@ -13,6 +13,7 @@ import scala.collection.immutable.Queue
   * Uses an octree to create a priority queue based of vector/generic pairs based on their proximity to an adjustable
   * point. This is not thread safe, although internal variables are declared volatile.
   */
+@deprecated("use SpatialHashMap instead", "N/A")
 class OctreePriorityQueue[E] extends util.AbstractQueue[(V3F, E)] {
 
   var point: V3F = Origin
@@ -47,6 +48,7 @@ class OctreePriorityQueue[E] extends util.AbstractQueue[(V3F, E)] {
 
 }
 
+@deprecated("use SpatialHashMap instead", "N/A")
 class OctreeBinPriorityQueue[E] extends util.AbstractQueue[(V3F, E)] {
 
   var point: V3F = Origin
@@ -99,6 +101,7 @@ class OctreeBinPriorityQueue[E] extends util.AbstractQueue[(V3F, E)] {
   * is still protected by the lock, but the ticket taking and giving is not. The purpose of this system is to
   * delegate the blocking logic a blocking system which is already established to work efficiently.
   */
+@deprecated("use SpatialHashMap instead", "N/A")
 class OctreeBlockingQueue[E] extends util.AbstractQueue[(V3F, E)] with util.concurrent.BlockingQueue[(V3F, E)] {
   private val queue = new OctreeBinPriorityQueue[E]
   private val lock = new ReentrantReadWriteLock
@@ -197,6 +200,7 @@ class OctreeBlockingQueue[E] extends util.AbstractQueue[(V3F, E)] with util.conc
   }
 }
 
+@deprecated("use SpatialHashMap instead", "N/A")
 object OctreeQueueTest extends App {
 
   val queue = new OctreeBlockingQueue[Int]

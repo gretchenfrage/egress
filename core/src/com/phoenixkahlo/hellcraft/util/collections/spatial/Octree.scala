@@ -12,6 +12,7 @@ object Signs {
   def apply(): Seq[V3I] = signs
 }
 
+@deprecated("use SpatialHashMap instead", "N/A")
 sealed trait Octree[+E] extends Map[V3F, E] {
   override def +[V1 >: E](kv: (V3F, V1)): Octree[V1]
 
@@ -27,6 +28,7 @@ sealed trait Octree[+E] extends Map[V3F, E] {
 /**
   * An octree with no contents
   */
+@deprecated("use SpatialHashMap instead", "N/A")
 case class EmptyOctree(center: V3F, range: Float) extends Octree[Nothing] {
   override def +[V1 >: Nothing](kv: (V3F, V1)): Octree[V1] = OctreeLeaf(center, range, kv)
 
@@ -50,6 +52,7 @@ case class EmptyOctree(center: V3F, range: Float) extends Octree[Nothing] {
 /**
   * An octree with one content
   */
+@deprecated("use SpatialHashMap instead", "N/A")
 case class OctreeLeaf[+E](center: V3F, range: Float, elem: (V3F, E)) extends Octree[E] {
   override def +[V1 >: E](kv: (V3F, V1)): Octree[V1] = {
     if (kv._1 == elem._1) OctreeLeaf(center, range, kv)
@@ -84,6 +87,7 @@ case class OctreeLeaf[+E](center: V3F, range: Float, elem: (V3F, E)) extends Oct
   override val depth = 1
 }
 
+@deprecated("use SpatialHashMap instead", "N/A")
 case class OctreeBranch[+E](center: V3F, range: Float, children: Map[V3I, Octree[E]]) extends Octree[E] {
   override def +[V1 >: E](kv: (V3F, V1)): Octree[V1] = {
     val (key, value) = kv
@@ -163,6 +167,7 @@ case class OctreeBranch[+E](center: V3F, range: Float, children: Map[V3I, Octree
   override lazy val depth = children.values.map(_.depth).max + 1
 }
 
+@deprecated("use SpatialHashMap instead", "N/A")
 object OctreeTest extends App {
 
   val t1 = System.nanoTime()

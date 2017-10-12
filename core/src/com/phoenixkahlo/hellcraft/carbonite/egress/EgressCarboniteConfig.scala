@@ -10,10 +10,8 @@ import com.phoenixkahlo.hellcraft.util.fields._
 object EgressCarboniteConfig extends DefaultCarboniteConfig {
 
   register[Chunk]()
-  register[Densities]()
-  register[Vertices]()
-  register[Vertices.Vert]()
-  register[Meshable]()
+  register[ProtoTerrain]()
+  register[CompleteTerrain]()
 
   register[PutEntity]()
   register[RemoveEntity]()
@@ -22,6 +20,8 @@ object EgressCarboniteConfig extends DefaultCarboniteConfig {
   register[CubeFrame]()
   register[Cube]()
   register[SoundCube]()
+
+  register(Materials.getClass)
 
   register(Air.getClass)
   register(Stone.getClass)
@@ -55,6 +55,8 @@ object EgressCarboniteConfig extends DefaultCarboniteConfig {
 
   register[ByteField]()
   register[ByteFractionField]()
+  register[ShortField]()
+  register[IDField[_]]()
   register[FloatField]()
   register[RefField[_]]()
   register[OptionField[_]]()

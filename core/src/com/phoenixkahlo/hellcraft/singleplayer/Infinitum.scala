@@ -7,7 +7,7 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.graphics.{RenderUnit, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Ones, Origin, V3F, V3I}
-import com.phoenixkahlo.hellcraft.util.MergeBinned
+import com.phoenixkahlo.hellcraft.util.collections.MergeBinned
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 
 import scala.annotation.tailrec
@@ -21,9 +21,8 @@ class SWorld(
                   override val time: Long,
                   override val res: Int,
                   val chunks: Map[V3I, Chunk],
-                  val state1: Set[V3I],
-                  val state2: Set[V3I],
-                  val state3: Set[V3I],
+                  val incomplete: Set[V3I],
+                  val complete: Set[V3I],
                   val min: Option[V3I],
                   val max: Option[V3I]
                   ) extends World {
@@ -41,9 +40,9 @@ class SWorld(
 
   private def compBoundingBox: SWorld =
     if (chunks isEmpty)
-      new SWorld(time, res, chunks, state1, state2, state3, None, None)
+      new SWorld(time, res, chunks, incomplete, complete, None, None)
     else
-      new SWorld(time, res, chunks, state1, state2, state3,
+      new SWorld(time, res, chunks, incomplete, complete,
         Some(V3I(chunks.keySet.toSeq.map(_.xi).min, chunks.keySet.toSeq.map(_.yi).min, chunks.keySet.toSeq.map(_.zi).min)),
         Some(V3I(chunks.keySet.toSeq.map(_.xi).max, chunks.keySet.toSeq.map(_.yi).max, chunks.keySet.toSeq.map(_.zi).max))
       )
@@ -52,11 +51,11 @@ class SWorld(
     * Remove those chunks from this world,
     */
   def --(ps: Seq[V3I]): SWorld = {
-    new SWorld(time, res, chunks -- ps, state1 -- ps, state2 -- ps, state3 -- ps, None, None).compBoundingBox
+    new SWorld(time, res, chunks -- ps, incomplete -- ps, complete -- ps, None, None).compBoundingBox
   }
 
   def -(p: V3I): SWorld = {
-    new SWorld(time, res, chunks - p, state1 - p, state2 - p, state3 - p, None, None).compBoundingBox
+    new SWorld(time, res, chunks - p, incomplete - p, complete - p, None, None).compBoundingBox
   }
 
   /**
@@ -66,12 +65,11 @@ class SWorld(
     if (cs.isEmpty)
       return this
     val removed = this -- cs.map(_.pos)
-    val grouped = cs.groupBy(_.terrain.terrainType).mapValues(_.map(_.pos)).withDefault(_ => Seq.empty)
+    val (complete, incomplete) = cs.partition(_.terrain.isComplete)
     new SWorld(time, res,
       removed.chunks ++ cs.map(c => c.pos -> c),
-      removed.state1 ++ grouped(Densities),
-      removed.state2 ++ grouped(Vertices),
-      removed.state3 ++ grouped(Meshable),
+      removed.incomplete ++ incomplete.map(_.pos),
+      removed.complete ++ complete.map(_.pos),
       Some(V3I(
         Math.min(cs.map(_.pos.xi).min, min.map(_.xi).getOrElse(Int.MaxValue)),
         Math.min(cs.map(_.pos.yi).min, min.map(_.yi).getOrElse(Int.MaxValue)),
@@ -87,12 +85,10 @@ class SWorld(
 
   def +(c: Chunk): SWorld = {
     val removed = this - c.pos
-    val group = c.terrain.terrainType
     new SWorld(time, res,
       removed.chunks + (c.pos -> c),
-      if (group == Densities) removed.state1 + c.pos else removed.state1,
-      if (group == Vertices) removed.state2 + c.pos else removed.state2,
-      if (group == Meshable) removed.state3 + c.pos else removed.state3,
+      if (!c.terrain.isComplete) removed.incomplete + c.pos else removed.incomplete,
+      if (c.terrain.isComplete) removed.complete + c.pos else removed.complete,
       Some(V3I(
         Math.min(c.pos.xi, min.map(_.xi).getOrElse(Int.MaxValue)),
         Math.min(c.pos.yi, min.map(_.yi).getOrElse(Int.MaxValue)),
@@ -110,9 +106,7 @@ class SWorld(
     * The chunks which's terrain can be upgraded with this world.
     */
   def upgradeable: Seq[Chunk] = {
-    val up1 = state1.toSeq.map(chunks(_)).filter(_.terrain.asInstanceOf[Densities].canUpgrade(this))
-    val up2 = state2.toSeq.map(chunks(_)).filter(_.terrain.asInstanceOf[Vertices].canUpgrade(this))
-    up1 ++ up2
+    incomplete.toSeq.map(chunks(_)).filter(_.terrain.asInstanceOf[ProtoTerrain].canComplete(this))
   }
 
   case class WithReplacedChunk(replaced: Chunk) extends World {
@@ -164,14 +158,14 @@ class SWorld(
     * Increment the time
     */
   def incrTime: SWorld = {
-    new SWorld(time + 1, res, chunks, state1, state2, state3, min, max)
+    new SWorld(time + 1, res, chunks, incomplete, complete, min, max)
   }
 
   /**
     * Get all effects from chunks with complete terrain
     */
   def effects(dt: Float): Seq[UpdateEffect] = {
-    state3.toSeq.map(chunks(_)).flatMap(_.update(this))
+    complete.toSeq.map(chunks(_)).flatMap(_.update(this))
   }
 
   /**
@@ -189,7 +183,7 @@ class SWorld(
 class Infinitum(res: Int, save: AsyncSave, dt: Float) {
 
   @volatile private var history =
-    SortedMap(0L -> new SWorld(0, res, Map.empty, Set.empty, Set.empty, Set.empty, None, None))
+    SortedMap(0L -> new SWorld(0, res, Map.empty, Set.empty, Set.empty, None, None))
 
   type LoadID = UUID
   type UpgradeID = UUID
@@ -236,11 +230,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       val upgradeID = UUID.randomUUID()
       upgradeMap += chunk.pos -> upgradeID
       UniExecutor.exec(chunk.pos * 16 + V3I(8, 8, 8))(() => {
-        val upgraded = chunk.terrain match {
-          case d: Densities => d.upgrade(upgradeWith).get
-          case v: Vertices => v.upgrade(upgradeWith).get
-          case q: Meshable => ???
-        }
+        val upgraded = chunk.terrain.asInstanceOf[ProtoTerrain].complete(upgradeWith).get
         upgradeQueue.add(upgraded -> upgradeID)
       })
     }

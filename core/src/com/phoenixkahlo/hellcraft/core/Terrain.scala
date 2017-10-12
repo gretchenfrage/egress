@@ -16,54 +16,114 @@ sealed trait Terrain {
 
   def materials: IDField[Material]
 
-  def terrainType: TerrainType
+  def isComplete: Boolean
 
   def asComplete: Option[CompleteTerrain]
 }
-sealed trait TerrainType
 
 @CarboniteFields
 case class ProtoTerrain(pos: V3I, materials: IDField[Material]) extends Terrain {
-  override def terrainType: TerrainType = ProtoTerrain
-
   override def asComplete: Option[CompleteTerrain] = None
 
+  override def isComplete: Boolean = false
+
+  def canComplete(world: World): Boolean = pos.neighbors.forall(world.chunkAt(_).isDefined)
+
+  /**
+    * If all neighboring chunks are defined, this function will upgrade this ProtoTerrain into a CompleteTerrain as per
+    * the surface nets algorithm.
+    */
   def complete(world: World): Option[CompleteTerrain] =
-    if (pos.neighbors.forall(world.chunkAt(_).isDefined)) {
+    if (canComplete(world)) {
+      // generate the vertex field with an overshoot of <1, 1, 1> to connect the chunks
+      val verts = OptionField[Vert](world.resVec + Ones, v => {
+        // pairs of grid coords to test
+        val edges = ProtoTerrain.edges map { case (d1, d2) => (pos * world.res + d1, pos * world.res + d2) }
+        // build the edge isopoint set as per the surface nets algorithm, no interpolation
+        val isopoints = new ArrayBuffer[V3F]
+        for ((v1, v2) <- edges) {
+          if ((world.materialGridPoint(v1).get == Air) ^ (world.materialGridPoint(v2).get == Air))
+            isopoints += ((v1 + v2) / 2)
+        }
+        if (isopoints isEmpty) None
+        else {
+          // average isopoints and convert to spatial coords
+          val pos = (isopoints.fold(Origin)(_ + _) / isopoints.size) / world.res * 16
+          // find the first material you can that's not air
+          val mat = (v to v + Ones).toStream.map(world.materialGridPoint(_).get).filterNot(_ == Air).head
 
+          Some(Vert(pos, mat))
+        }
+      })
 
-      Some(???)
+      // generate the vertex-index maps in both direction
+      val indexToVert = new ArrayBuffer[V3I]
+      val vertToIndex = new ShortFieldBuffer(verts.sizeVec)
+      for ((v, i) <- (Origin until verts.sizeVec).filter(verts(_) isDefined).zipWithIndex) {
+        indexToVert += v
+        vertToIndex(v) = i toShort
+      }
+
+      // find facets and generate the indices
+      val indices = new ArrayBuffer[Short]
+      for {
+        v <- Origin until verts.sizeVec - Ones
+        (d1, d2, d3) <- ProtoTerrain.deltas
+      } yield (verts(v), verts(v + d1), verts(v + d2), verts(v + d3)) match {
+        case (Some(vert1), Some(vert2), Some(vert3), Some(vert4)) =>
+          // verts 1, 2, 3
+          if ((((vert2.pos - vert1.pos) cross (vert3.pos - vert1.pos)) dot
+            world.sampleDirection((vert1.pos + vert2.pos + vert3.pos) / 3).get.neg) > 0)
+            indices.append(vertToIndex(v), vertToIndex(v + d1), vertToIndex(v + d2))
+          else
+            indices.append(vertToIndex(v), vertToIndex(v + d2), vertToIndex(v + d1))
+          // verts 1, 3, 4
+          if ((((vert3.pos - vert1.pos) cross (vert4.pos - vert1.pos)) dot
+            world.sampleDirection((vert1.pos + vert3.pos + vert4.pos) / 3).get.neg) > 0)
+            indices.append(vertToIndex(v), vertToIndex(v + d2), vertToIndex(v + d3))
+          else
+            indices.append(vertToIndex(v), vertToIndex(v + d3), vertToIndex(v + d2))
+
+        case _ =>
+      }
+
+      Some(CompleteTerrain(pos, materials, verts, indices, indexToVert, vertToIndex.immutabilize))
     } else None
 }
-object ProtoTerrain extends TerrainType {
+object ProtoTerrain {
   val edges: Seq[(V3I, V3I)] = Seq(
-    Origin -> (West),
+    Origin -> West,
     Origin -> (Origin + Up),
     Origin -> (Origin + North),
 
-    (North) -> (West),
-    (West) -> (Origin + V3I(1, 1, 0)),
-    (V3I(1, 0, 1)) -> (Origin + Ones),
+    North -> West,
+    West -> (Origin + V3I(1, 1, 0)),
+    V3I(1, 0, 1) -> (Origin + Ones),
 
-    (Up) -> (v + V3I(0, 1, 1)),
-    (Up) -> (v + V3I(1, 1, 0)),
+    Up -> V3I(0, 1, 1),
+    Up -> V3I(1, 1, 0),
 
-    (v + North) -> (v + V3I(1, 0, 1)),
-    (v + West) -> (v + V3I(1, 0, 1)),
+    North -> V3I(1, 0, 1),
+    West -> V3I(1, 0, 1),
 
-    (v + V3I(0, 1, 1)) -> (v + Ones),
-    (v + V3I(1, 1, 0)) -> (v + Ones)
-  ).map({ case (v1, v2) => (pos * world.res + v1) -> (pos * world.res + v2) })
+    V3I(0, 1, 1) -> Ones,
+    V3I(1, 1, 0) -> Ones
+  )
+  val deltas = Seq(
+    (North, North + West, West),
+    (Up, Up + North, North),
+    (Up, Up + West, West)
+  )
 }
 
 @CarboniteFields
 case class CompleteTerrain(pos: V3I, materials: IDField[Material],
-                           verts: OptionField[Vert], indices: Seq[Short], indexToVert: Seq[V3I]) extends Terrain {
-  override def terrainType: TerrainType = CompleteTerrain
+                           verts: OptionField[Vert], indices: Seq[Short], indexToVert: Seq[V3I], vertToIndex: ShortField) extends Terrain {
+  override def isComplete: Boolean = true
 
   override def asComplete: Option[CompleteTerrain] = Some(this)
 }
-object CompleteTerrain extends TerrainType {
+object CompleteTerrain {
   @CarboniteFields case class Vert(pos: V3F, mat: Material)
 }
 /**

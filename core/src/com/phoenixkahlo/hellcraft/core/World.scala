@@ -59,6 +59,32 @@ trait World {
       case _ => None
     }).map(v => (v / 6).tryNormalize)
 
+  def raycast(pos: V3F, dir: V3F): Stream[V3F] = {
+    val (min, max) = boundingBox
+    Raytrace.voxels(pos / 16, dir)
+      .takeWhile(p => p > min && p < (max + Ones))
+      .flatMap(chunkAt)
+      .flatMap(_.terrain.asComplete)
+      .flatMap(terrain => Raytrace.mesh(pos, dir, terrain.indices, i => terrain.verts(terrain.indexToVert(i)).get.pos))
+  }
+
+  def rayhit(pos: V3F, dir: V3F): Option[V3F] =
+    raycast(pos, dir).headOption
+
+  def segcast(pos: V3F, dir: V3F, dist: Float): Stream[V3F] = {
+    val (min, max) = boundingBox
+    Raytrace.voxels(pos / 16, dir)
+      .takeWhile(p => (p * 16).dist(pos) < (dist + 28)) // magic number 28 is a little greater than diagonal chunk size
+      .takeWhile(p => p > min && p < (max + Ones))
+      .flatMap(chunkAt)
+      .flatMap(_.terrain.asComplete)
+      .flatMap(terrain => Raytrace.mesh(pos, dir, terrain.indices, i => terrain.verts(terrain.indexToVert(i)).get.pos))
+      .takeWhile(_.dist(pos) <= dist)
+  }
+
+  def seghit(pos: V3F, dir: V3F, dist: Float): Option[V3F] =
+    segcast(pos, dir, dist).headOption
+
   /*
   /**
     * Uses density grid coordinates, not world coordinates!

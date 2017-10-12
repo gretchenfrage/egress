@@ -8,12 +8,14 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Cube
 import com.phoenixkahlo.hellcraft.graphics.StoneTID
 import com.phoenixkahlo.hellcraft.math._
-import com.phoenixkahlo.hellcraft.util.fields.{ByteField, ByteFractionField, FloatField}
+import com.phoenixkahlo.hellcraft.util.fields.{ByteField, ByteFractionField, FloatField, IDField}
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 
 import scala.collection.mutable
 
 class Generator(res: Int) {
+
+  implicit val materials = Materials
 
   val rv2d = V2I(res, res)
   val rv3d = V3I(res, res, res)
@@ -63,6 +65,13 @@ class Generator(res: Int) {
 
   def genChunk(p: V3I): Fut[Chunk] = {
     heightsAt(p.flatten).map(heights => {
+      new Chunk(p, ProtoTerrain(p, IDField[Material](rv3d, (i: V3I) => {
+        val depth = (p.yi * res + i.yi) - heights(i.flatten)
+        if (depth >= 0) Air
+        else if (p.flatten % 2 == Origin2D) Stone
+        else Dirt
+      })))
+      /*
       new Chunk(p, Densities(p,
         ByteField(rv3d, i => {
           val v = p * res + i
@@ -77,6 +86,7 @@ class Generator(res: Int) {
           if (depth >= 0) 0
           else 1
         })))
+        */
     })
   }
 

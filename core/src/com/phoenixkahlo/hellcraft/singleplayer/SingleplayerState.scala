@@ -116,19 +116,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           true
         } else false
 
-      override def touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean = {
-        println("touch down: " + button)
-        if (button == 1) {
-          val camPos = V3F(renderer.cam.position)
-          val camDir = V3F(renderer.cam.direction)
-          mainLoopTasks.add(() => {
-            infinitum().rayhit(camPos, camDir).foreach(v => {
-              infinitum.update(infinitum().chunks.keySet, Seq(IncrDensityCatalyst(v, UUID.randomUUID())))
-            })
-          })
-        }
-        true
-      }
     })
     controller = new FirstPersonCameraController(renderer.cam)
     multiplexer.addProcessor(controller)
@@ -196,9 +183,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     // add debug units
     if (Gdx.input.isKeyPressed(Keys.ALT_LEFT)) {
       toRender.chunks.values.map(_.terrain).foreach {
-        case Densities(p, _, _) => units +:= new ChunkOutline(p, Color.RED)
-        case Vertices(p, _, _, _) => units +:= new ChunkOutline(p, Color.BLUE)
-        case Meshable(p, _, _, _, _, _) => units +:= new ChunkOutline(p, Color.GREEN)
+        case t: ProtoTerrain => units +:= new ChunkOutline(t.pos, Color.RED)
+        case t: CompleteTerrain => units +:= new ChunkOutline(t.pos, Color.GREEN)
       }
       infinitum.loading.foreach(p => {
         units +:= new ChunkOutline(p, Color.WHITE)

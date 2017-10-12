@@ -21,3 +21,11 @@ case class DependencyGraph(managing: Set[ResourceNode] = Set.empty) {
   }
 
 }
+
+trait ResourceNode {
+
+  def dependencies: Seq[ResourceNode]
+
+  def dispose(): Unit
+
+}
