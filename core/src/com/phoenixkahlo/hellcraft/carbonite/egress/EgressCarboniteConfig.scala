@@ -12,6 +12,7 @@ object EgressCarboniteConfig extends DefaultCarboniteConfig {
   register[Chunk]()
   register[ProtoTerrain]()
   register[CompleteTerrain]()
+  register[CompleteTerrain.Vert]()
 
   register[PutEntity]()
   register[RemoveEntity]()

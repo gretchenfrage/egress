@@ -58,7 +58,7 @@ class ShortField private[fields](private var data: Either[Array[Short], Vector[S
     }
 
   override def toString: String =
-    "FractionField(" + java.util.Arrays.toString(asArray) + ")"
+    "ShortField(" + java.util.Arrays.toString(asArray) + ")"
 
   override def writeExternal(out: ObjectOutput): Unit = {
     // write size

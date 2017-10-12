@@ -33,5 +33,5 @@ object Materials extends IDMapping[Material] {
 
   override def id(item: Material): Byte = item.id
 
-  override def lookup(id: Byte): Material = this(id)
+  override def lookup(id: Byte): Material = map(id)
 }

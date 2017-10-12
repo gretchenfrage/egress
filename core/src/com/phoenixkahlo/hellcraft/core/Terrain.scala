@@ -38,21 +38,26 @@ case class ProtoTerrain(pos: V3I, materials: IDField[Material]) extends Terrain 
       // generate the vertex field with an overshoot of <1, 1, 1> to connect the chunks
       val verts = OptionField[Vert](world.resVec + Ones, v => {
         // pairs of grid coords to test
-        val edges = ProtoTerrain.edges map { case (d1, d2) => (pos * world.res + d1, pos * world.res + d2) }
+        val edges = ProtoTerrain.edges map { case (d1, d2) => (pos * world.res + v + d1, pos * world.res + v + d2) }
         // build the edge isopoint set as per the surface nets algorithm, no interpolation
         val isopoints = new ArrayBuffer[V3F]
         for ((v1, v2) <- edges) {
-          if ((world.materialGridPoint(v1).get == Air) ^ (world.materialGridPoint(v2).get == Air))
+          if (v1.yi < 0 && v1.yi >= 0) {
+            println((v1, v2) + " == " + (world.materialGridPoint(v1), world.materialGridPoint(v2)))
+          }
+          if ((world.materialGridPoint(v1).get == Air) ^ (world.materialGridPoint(v2).get == Air)) {
             isopoints += ((v1 + v2) / 2)
+          }
         }
         if (isopoints isEmpty) None
         else {
           // average isopoints and convert to spatial coords
-          val pos = (isopoints.fold(Origin)(_ + _) / isopoints.size) / world.res * 16
+          val vertPos = (isopoints.fold(Origin)(_ + _) / isopoints.size) / world.res * 16
           // find the first material you can that's not air
-          val mat = (v to v + Ones).toStream.map(world.materialGridPoint(_).get).filterNot(_ == Air).head
+          val mat = (v to v + Ones).toStream
+            .map(vv => world.materialGridPoint(pos * world.res + vv).get).filterNot(_ == Air).head
 
-          Some(Vert(pos, mat))
+          Some(Vert(vertPos, mat))
         }
       })
 
