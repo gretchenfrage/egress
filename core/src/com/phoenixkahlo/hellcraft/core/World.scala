@@ -123,6 +123,12 @@ trait World {
       hit => terrainRay(hit + Repeated(0.5f), dir.neg).find({ case (_, t) => t == Air }).map({ case (v, _) => v }))
   }
 
+  def placeMat(pos: V3F, dir: V3F, dist: Float): Option[V3I] = {
+    seghit(pos, dir, dist).flatMap(
+      hit => terrainRay(hit, dir.neg).find({ case (_, t) => t == Air }).map({ case (v, _) => v })
+    )
+  }
+
 
 
 }
