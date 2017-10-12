@@ -65,7 +65,10 @@ trait World {
       .takeWhile(p => p > min && p < (max + Ones))
       .flatMap(chunkAt)
       .flatMap(_.terrain.asComplete)
-      .flatMap(terrain => Raytrace.mesh(pos, dir, terrain.indices, i => terrain.verts(terrain.indexToVert(i)).get.pos))
+      .flatMap(terrain => Raytrace.meshes(pos, dir, Seq(
+        (terrain.indices, i => terrain.verts(terrain.indexToVert(i)).get.pos),
+        (terrain.bindices, i => terrain.bverts(i).pos)
+      )))
   }
 
   def rayhit(pos: V3F, dir: V3F): Option[V3F] =
@@ -78,14 +81,18 @@ trait World {
       .takeWhile(p => p > min && p < (max + Ones))
       .flatMap(chunkAt)
       .flatMap(_.terrain.asComplete)
-      .flatMap(terrain => Raytrace.mesh(pos, dir, terrain.indices, i => terrain.verts(terrain.indexToVert(i)).get.pos))
+      .flatMap(terrain => Raytrace.meshes(pos, dir, Seq(
+        (terrain.indices, i => terrain.verts(terrain.indexToVert(i)).get.pos),
+        (terrain.bindices, i => terrain.bverts(i).pos)
+      )))
       .takeWhile(_.dist(pos) <= dist)
   }
 
   def seghit(pos: V3F, dir: V3F, dist: Float): Option[V3F] =
     segcast(pos, dir, dist).headOption
 
-  def rayMats(pos: V3F, dir: V3F): Stream[(V3I, TerrainUnit)] = {
+  /*
+  def terrainRay(pos: V3F, dir: V3F): Stream[(V3I, TerrainUnit)] = {
     val (min, max) = boundingBox
     Raytrace.voxels(pos, dir)
       .takeWhile(v => (v / 16) > min && (v / 16) < (max + Ones))
@@ -93,10 +100,29 @@ trait World {
       .map(v => (v, terrainGridPoint(v).get))
   }
 
-  def segMats(pos: V3F, dir: V3F, dist: Float): Stream[(V3I, TerrainUnit)] =
-    rayMats(pos, dir).takeWhile({ case (v, _) => v.dist(pos) <= dist })
+  def terrainSeg(pos: V3F, dir: V3F, dist: Float): Stream[(V3I, TerrainUnit)] =
+    terrainRay(pos, dir).takeWhile({ case (v, _) => v.dist(pos) <= dist })
 
   def placeMat(pos: V3F, dir: V3F, dist: Float): Option[V3I] =
-    segMats(pos, dir, dist).takeWhile({ case (_, mat) => mat == Air }).lastOption.map({ case (v, _) => v })
+    terrainSeg(pos, dir, dist).takeWhile({ case (_, mat) => mat == Air }).lastOption.map({ case (v, _) => v })
+
+  def placeBlock(pos: V3F, dir: V3F, dist: Float): Option[V3I] =
+    placeMat(pos + V3F(0.5f, 0.5f, 0.5f), dir, dist)
+    */
+
+  def terrainRay(pos: V3F, dir: V3F): Stream[(V3I, TerrainUnit)] = {
+    val (min, max) = boundingBox
+    Raytrace.voxels(pos, dir)
+      .takeWhile(v => (v / 16) > min && (v / 16) < (max + Ones))
+      .takeWhile(v => chunkAt(v / 16 floor) isDefined)
+      .map(v => (v, terrainGridPoint(v).get))
+  }
+
+  def placeBlock(pos: V3F, dir: V3F, dist: Float): Option[V3I] = {
+    seghit(pos, dir, dist).flatMap(
+      hit => terrainRay(hit + Repeated(0.5f), dir.neg).find({ case (_, t) => t == Air }).map({ case (v, _) => v }))
+  }
+
+
 
 }

@@ -12,8 +12,8 @@ import com.phoenixkahlo.hellcraft.util.caches.KeyParamPool
   * Created by kahlo on 8/21/2017.
   */
 object BlockOutlineModel extends KeyParamPool[Color,Color,Model](color => {
-  val n = 0 - 1e-3f
-  val p = 1 + 1e-3f
+  val n = -0.5f - 1e-3f
+  val p = 0.5f + 1e-3f
   val verts: Array[Float] = Array[Float](
     n, n, n, color toFloatBits,
     p, n, n, color toFloatBits,
