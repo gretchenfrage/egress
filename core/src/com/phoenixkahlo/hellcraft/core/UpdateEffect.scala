@@ -68,8 +68,26 @@ case class RemoveEntity(override val target: V3I, entity: UUID, override val id:
 }
 
 @CarboniteFields
-case class EffectDelayer(effect: UpdateEffect, override val target: V3I, override val id: UUID) extends ChunkEvent(target, id) {
+case class Later(effect: UpdateEffect, override val target: V3I, override val id: UUID) extends ChunkEvent(target, id) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = (chunk, Seq(effect))
+}
+
+@CarboniteFields
+case class Invalidate(p: V3I, override val id: UUID) extends ChunkEvent(p, id) {
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
+    (chunk.setTerrain(ProtoTerrain(chunk.pos, chunk.terrain.materials)), Seq(TerrainChanged(p)))
+}
+
+@CarboniteFields
+case class SetMat(v: V3I, mat: Material, res: Int, override val id: UUID) extends ChunkEvent(v / res floor, id) {
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
+    (
+      chunk.setTerrain(ProtoTerrain(chunk.pos, chunk.terrain.materials.updated(v % res, mat))), {
+      val invalidators = (v.neighbors.map(_ / res floor).toSet - target).toSeq
+        .zip(RNG.uuids(RNG(id.getLeastSignificantBits)))
+        .map({ case (p, id) => Invalidate(p, id) })
+      TerrainChanged(target) +: invalidators
+    })
 }
 
 abstract class UpdateEntity[T <: Entity](entityID: EntityID, override val target: V3I, override val id: UUID)
@@ -88,7 +106,7 @@ abstract class UpdateEntity[T <: Entity](entityID: EntityID, override val target
 }
 
 @CarboniteFields
-case class ShiftEntity(dx: V3F, entityID: EntityID, override val target: V3I, override val id: UUID)
+case class Shift(dx: V3F, entityID: EntityID, override val target: V3I, override val id: UUID)
   extends UpdateEntity[Moveable](entityID, target, id) {
   override protected def update(entity: Moveable): Entity = entity.updatePos(entity.pos + dx)
 }

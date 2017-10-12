@@ -85,4 +85,18 @@ trait World {
   def seghit(pos: V3F, dir: V3F, dist: Float): Option[V3F] =
     segcast(pos, dir, dist).headOption
 
+  def rayMats(pos: V3F, dir: V3F): Stream[(V3I, Material)] = {
+    val (min, max) = boundingBox
+    Raytrace.voxels(pos, dir)
+      .takeWhile(v => (v / 16) > min && (v / 16) < (max + Ones))
+      .takeWhile(v => chunkAt(v / 16 floor) isDefined)
+      .map(v => (v, materialGridPoint(v).get))
+  }
+
+  def segMats(pos: V3F, dir: V3F, dist: Float): Stream[(V3I, Material)] =
+    rayMats(pos, dir).takeWhile({ case (v, _) => v.dist(pos) <= dist })
+
+  def placeMat(pos: V3F, dir: V3F, dist: Float): Option[V3I] =
+    segMats(pos, dir, dist).takeWhile({ case (_, mat) => mat == Air }).lastOption.map({ case (v, _) => v })
+
 }

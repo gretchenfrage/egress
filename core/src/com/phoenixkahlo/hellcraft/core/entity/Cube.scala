@@ -5,7 +5,7 @@ import java.util.UUID
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.Renderable
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteFields
-import com.phoenixkahlo.hellcraft.core.{ShiftEntity, SoundEffect, UpdateEffect, World}
+import com.phoenixkahlo.hellcraft.core.{Shift, SoundEffect, UpdateEffect, World}
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.graphics.shaders.{GenericSID, TerrainSID}
@@ -46,7 +46,7 @@ case class SoundCube(sid: SoundID, freq: Int, override val pos: V3F, override va
 @CarboniteFields
 case class GlideCube(vel: V3F, override val pos: V3F, override val id: UUID) extends Cube(GrassTID, pos, id) with Moveable {
   override def update(world: World, ids: Stream[UUID]): Seq[UpdateEffect] = {
-    Seq(ShiftEntity(vel * Delta.dtf, id, chunkPos, ids.head))
+    Seq(Shift(vel * Delta.dtf, id, chunkPos, ids.head))
   }
 
   override def updatePos(newPos: V3F): Entity = copy(pos = newPos)

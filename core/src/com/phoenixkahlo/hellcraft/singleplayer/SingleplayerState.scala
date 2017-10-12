@@ -116,6 +116,20 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           true
         } else false
 
+      override def touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean = {
+        if (button == 1) {
+          val camPos = V3F(renderer.cam.position)
+          val camDir = V3F(renderer.cam.direction)
+          val world = infinitum()
+          mainLoopTasks.add(() => {
+            for (v <- world.placeMat(camPos, camDir, 16)) {
+              infinitum.update(infinitum().chunks.keySet,
+                Seq(SetMat(v, Stone, WorldRes, UUID.randomUUID())))
+            }
+          })
+        }
+        true
+      }
     })
     controller = new FirstPersonCameraController(renderer.cam)
     multiplexer.addProcessor(controller)
@@ -223,9 +237,9 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     updateThread.interrupt()
     renderer.dispose()
     updateThread.join()
-    val savePromise = infinitum.finalSave()
+    println("saving...")
+    infinitum.finalSave().onComplete(() => println("...saved!"))
     vramGraph.managing.foreach(_.dispose())
-    savePromise.await
     UniExecutor.deactivate()
   }
 

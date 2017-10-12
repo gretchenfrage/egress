@@ -42,9 +42,6 @@ case class ProtoTerrain(pos: V3I, materials: IDField[Material]) extends Terrain 
         // build the edge isopoint set as per the surface nets algorithm, no interpolation
         val isopoints = new ArrayBuffer[V3F]
         for ((v1, v2) <- edges) {
-          if (v1.yi < 0 && v1.yi >= 0) {
-            println((v1, v2) + " == " + (world.materialGridPoint(v1), world.materialGridPoint(v2)))
-          }
           if ((world.materialGridPoint(v1).get == Air) ^ (world.materialGridPoint(v2).get == Air)) {
             isopoints += ((v1 + v2) / 2)
           }
