@@ -8,6 +8,7 @@ import com.phoenixkahlo.hellcraft.carbonite.CarboniteFields
 import com.phoenixkahlo.hellcraft.core.{Shift, SoundEffect, UpdateEffect, World}
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.graphics._
+import com.phoenixkahlo.hellcraft.graphics.models.FreeCubeMesh
 import com.phoenixkahlo.hellcraft.graphics.shaders.{GenericSID, TerrainSID}
 import com.phoenixkahlo.hellcraft.math.{Down, V3F}
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache

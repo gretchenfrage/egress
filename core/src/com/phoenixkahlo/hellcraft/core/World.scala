@@ -20,13 +20,13 @@ trait World {
 
   def boundingBox: (V3I, V3I)
 
-  def materialGridPoint(v: V3I): Option[Material] =
-    chunkAt(v / res floor).map(_.terrain.materials.atMod(v))
+  def terrainGridPoint(v: V3I): Option[TerrainUnit] =
+    chunkAt(v / res floor).map(_.terrain.grid.atMod(v))
 
   def sampleDensity(vWorld: V3F): Option[Float] = {
     val vGrid = vWorld / 16f * res
     if (vGrid % 1 == Origin)
-      materialGridPoint(vGrid toInts).map(mat => if (mat == Air) 0f else 1f)
+      terrainGridPoint(vGrid toInts).map(mat => if (mat.id <= 0) 0f else 1f)
     else {
       // trilinear interpolation
       val v0 = vGrid.floor
@@ -34,7 +34,7 @@ trait World {
       if (v0.to(v1).map(_ / res floor).forall(chunkAt(_).isDefined)) {
         // helper function (stands for density grid point)
         def dgp(x: V3I, y: V3I, z: V3I): Float =
-          if (materialGridPoint(V3I(x.xi, y.yi, z.zi)).get == Air) 0 else 1
+          if (terrainGridPoint(V3I(x.xi, y.yi, z.zi)).get.id <= 0) 0 else 1
 
         val d = (vGrid - v0) \\ (v1 - v0)
 
@@ -85,15 +85,15 @@ trait World {
   def seghit(pos: V3F, dir: V3F, dist: Float): Option[V3F] =
     segcast(pos, dir, dist).headOption
 
-  def rayMats(pos: V3F, dir: V3F): Stream[(V3I, Material)] = {
+  def rayMats(pos: V3F, dir: V3F): Stream[(V3I, TerrainUnit)] = {
     val (min, max) = boundingBox
     Raytrace.voxels(pos, dir)
       .takeWhile(v => (v / 16) > min && (v / 16) < (max + Ones))
       .takeWhile(v => chunkAt(v / 16 floor) isDefined)
-      .map(v => (v, materialGridPoint(v).get))
+      .map(v => (v, terrainGridPoint(v).get))
   }
 
-  def segMats(pos: V3F, dir: V3F, dist: Float): Stream[(V3I, Material)] =
+  def segMats(pos: V3F, dir: V3F, dist: Float): Stream[(V3I, TerrainUnit)] =
     rayMats(pos, dir).takeWhile({ case (v, _) => v.dist(pos) <= dist })
 
   def placeMat(pos: V3F, dir: V3F, dist: Float): Option[V3I] =

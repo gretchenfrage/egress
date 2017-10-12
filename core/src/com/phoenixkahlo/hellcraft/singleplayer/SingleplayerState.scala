@@ -12,6 +12,7 @@ import com.phoenixkahlo.hellcraft.core.entity.{Cube, CubeFrame, GlideCube, Sound
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics._
+import com.phoenixkahlo.hellcraft.graphics.models.{BlockOutline, ChunkOutline}
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.util.audio.AudioUtil
@@ -58,10 +59,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     println("instantiating history")
     infinitum = new Infinitum(res, save, 1f / 20f)
-    //infinitum.update(Set.empty, Seq(AddEntity(Cube(Color.PURPLE, V3F(0, 25, 0), UUID.randomUUID()), UUID.randomUUID())))
-    //for (v <- Origin until V3I(10, 10, 1)) {
-    //  infinitum.update(Set.empty, Seq(AddEntity(Cube(Color.PURPLE, v, UUID.randomUUID()), UUID.randomUUID())))
-    //}
 
     println("loading resources")
     resources = providedResources()
@@ -124,7 +121,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           mainLoopTasks.add(() => {
             for (v <- world.placeMat(camPos, camDir, 16)) {
               infinitum.update(infinitum().chunks.keySet,
-                Seq(SetMat(v, Stone, WorldRes, UUID.randomUUID())))
+                Seq(SetMat(v, Blocks.Stone, WorldRes, UUID.randomUUID())))
             }
           })
         }
@@ -203,6 +200,11 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       infinitum.loading.foreach(p => {
         units +:= new ChunkOutline(p, Color.WHITE)
       })
+    }
+
+    // draw a cube where you're pointing
+    for (v <- toRender.placeMat(V3F(renderer.cam.position), V3F(renderer.cam.direction), 16)) {
+      units +:= new BlockOutline(v, Color.WHITE)
     }
 
     // do memory management

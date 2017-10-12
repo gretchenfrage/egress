@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.graphics
+package com.phoenixkahlo.hellcraft.graphics.models
 
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
@@ -8,19 +8,21 @@ import com.badlogic.gdx.graphics.g3d.{Material, Model}
 import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.phoenixkahlo.hellcraft.util.caches.KeyParamPool
 
-object ChunkOutlineModel extends KeyParamPool[Color, Color, Model](color => {
-  val n = 0.5f
-  val p = 16 - 1e-3f
-  val c = color.toFloatBits
-  val verts = Array[Float](
-    n, n, n, c,
-    p, n, n, c,
-    p, n, p, c,
-    n, n, p, c,
-    n, p, n, c,
-    p, p, n, c,
-    p, p, p, c,
-    n, p, p, c
+/**
+  * Created by kahlo on 8/21/2017.
+  */
+object BlockOutlineModel extends KeyParamPool[Color,Color,Model](color => {
+  val n = 0 - 1e-3f
+  val p = 1 + 1e-3f
+  val verts: Array[Float] = Array[Float](
+    n, n, n, color toFloatBits,
+    p, n, n, color toFloatBits,
+    p, n, p, color toFloatBits,
+    n, n, p, color toFloatBits,
+    n, p, n, color toFloatBits,
+    p, p, n, color toFloatBits,
+    p, p, p, color toFloatBits,
+    n, p, p, color toFloatBits
   )
   val indices: Array[Short] = Array[Short](
     0, 1,
@@ -54,4 +56,5 @@ object ChunkOutlineModel extends KeyParamPool[Color, Color, Model](color => {
   builder.begin()
   builder.part(meshPart, material)
   builder.end()
+
 })

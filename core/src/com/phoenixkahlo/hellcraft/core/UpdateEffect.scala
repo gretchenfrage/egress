@@ -75,14 +75,14 @@ case class Later(effect: UpdateEffect, override val target: V3I, override val id
 @CarboniteFields
 case class Invalidate(p: V3I, override val id: UUID) extends ChunkEvent(p, id) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
-    (chunk.setTerrain(ProtoTerrain(chunk.pos, chunk.terrain.materials)), Seq(TerrainChanged(p)))
+    (chunk.setTerrain(ProtoTerrain(chunk.pos, chunk.terrain.grid)), Seq(TerrainChanged(p)))
 }
 
 @CarboniteFields
-case class SetMat(v: V3I, mat: Material, res: Int, override val id: UUID) extends ChunkEvent(v / res floor, id) {
+case class SetMat(v: V3I, mat: TerrainUnit, res: Int, override val id: UUID) extends ChunkEvent(v / res floor, id) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
     (
-      chunk.setTerrain(ProtoTerrain(chunk.pos, chunk.terrain.materials.updated(v % res, mat))), {
+      chunk.setTerrain(ProtoTerrain(chunk.pos, chunk.terrain.grid.updated(v % res, mat))), {
       val invalidators = ((v - V3I(2, 2, 2) to v + V3I(2, 2, 2)).map(_ / res floor).toSet - target).toSeq
         .zip(RNG.uuids(RNG(id.getLeastSignificantBits)))
         .map({ case (p, id) => Invalidate(p, id) })

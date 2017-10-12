@@ -3,7 +3,7 @@ package com.phoenixkahlo.hellcraft.core
 import com.phoenixkahlo.hellcraft.carbonite
 import com.phoenixkahlo.hellcraft.carbonite._
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
-import com.phoenixkahlo.hellcraft.core.CompleteTerrain.Vert
+import com.phoenixkahlo.hellcraft.core.CompleteTerrain.{BVert, TVert}
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
@@ -14,7 +14,7 @@ import scala.collection.mutable.ArrayBuffer
 sealed trait Terrain {
   def pos: V3I
 
-  def materials: IDField[Material]
+  def grid: IDField[TerrainUnit]
 
   def isComplete: Boolean
 
@@ -22,7 +22,7 @@ sealed trait Terrain {
 }
 
 @CarboniteFields
-case class ProtoTerrain(pos: V3I, materials: IDField[Material]) extends Terrain {
+case class ProtoTerrain(pos: V3I, grid: IDField[TerrainUnit]) extends Terrain {
   override def asComplete: Option[CompleteTerrain] = None
 
   override def isComplete: Boolean = false
@@ -35,14 +35,18 @@ case class ProtoTerrain(pos: V3I, materials: IDField[Material]) extends Terrain 
     */
   def complete(world: World): Option[CompleteTerrain] =
     if (canComplete(world)) {
+      val offset = pos * world.res
+      
+      // PART 1: generating the terrain mesh with the surface nets algorithm
+
       // generate the vertex field with an overshoot of <1, 1, 1> to connect the chunks
-      val verts = OptionField[Vert](world.resVec + Ones, v => {
+      val verts = OptionField[TVert](world.resVec + Ones, v => {
         // pairs of grid coords to test
-        val edges = ProtoTerrain.edges map { case (d1, d2) => (pos * world.res + v + d1, pos * world.res + v + d2) }
+        val edges = ProtoTerrain.edges map { case (d1, d2) => (offset + v + d1, offset + v + d2) }
         // build the edge isopoint set as per the surface nets algorithm, no interpolation
         val isopoints = new ArrayBuffer[V3F]
         for ((v1, v2) <- edges) {
-          if ((world.materialGridPoint(v1).get == Air) ^ (world.materialGridPoint(v2).get == Air)) {
+          if ((world.terrainGridPoint(v1).get.id > 0) ^ (world.terrainGridPoint(v2).get.id > 0)) {
             isopoints += ((v1 + v2) / 2)
           }
         }
@@ -52,9 +56,9 @@ case class ProtoTerrain(pos: V3I, materials: IDField[Material]) extends Terrain 
           val vertPos = (isopoints.fold(Origin)(_ + _) / isopoints.size) / world.res * 16
           // find the first material you can that's not air
           val mat = (v to v + Ones).toStream
-            .map(vv => world.materialGridPoint(pos * world.res + vv).get).filterNot(_ == Air).head
+            .map(vv => world.terrainGridPoint(offset + vv).get).filterNot(_ == Air).head
 
-          Some(Vert(vertPos, mat))
+          Some(TVert(vertPos, mat))
         }
       })
 
@@ -89,7 +93,72 @@ case class ProtoTerrain(pos: V3I, materials: IDField[Material]) extends Terrain 
         case _ =>
       }
 
-      Some(CompleteTerrain(pos, materials, verts, indices, indexToVert, vertToIndex.immutabilize))
+      // PART 2: generating the blocks mesh
+      val n = -0.5f
+      val p = 0.5f
+
+      val bverts = new ArrayBuffer[BVert]
+      val bindices = new ArrayBuffer[Short]
+      var bindex = 0
+      for {
+        v <- Origin until world.resVec
+        d <- Directions()
+      } yield{
+        val visible = (grid(v).id, world.terrainGridPoint(offset + v + d).get.id) match {
+          case (t, c) if t >= 0 => false // if target isn't block, isn't visible
+          case (t, c) if c < 0 => false // if cover is block, isn't visible
+          case _ => true // in all other cases, block is visisble
+        }
+        if (visible) {
+          val block = grid(v).asInstanceOf[Block]
+          d match {
+            case South =>
+              bverts += BVert(offset + v + V3F(n, n, n), block, V2I(1, 0), d)
+              bverts += BVert(offset + v + V3F(p, n, n), block, V2I(0, 0), d)
+              bverts += BVert(offset + v + V3F(p, p, n), block, V2I(0, 1), d)
+              bverts += BVert(offset + v + V3F(n, p, n), block, V2I(1, 1), d)
+              bindices.append(Seq(2, 1, 0, 3, 2, 0).map(i => (i + bindex).toShort): _*)
+              bindex += 4
+            case North =>
+              bverts += BVert(offset + v + V3F(n, n, p), block, V2I(0, 0), d)
+              bverts += BVert(offset + v + V3F(p, n, p), block, V2I(1, 0), d)
+              bverts += BVert(offset + v + V3F(p, p, p), block, V2I(1, 1), d)
+              bverts += BVert(offset + v + V3F(n, p, p), block, V2I(0, 1), d)
+              bindices.append(Seq(1, 2, 0, 2, 3, 0).map(i => (i + bindex).toShort): _*)
+              bindex += 4
+            case West =>
+              bverts += BVert(offset + v + V3F(p, n, n), block, V2I(1, 0), d)
+              bverts += BVert(offset + v + V3F(p, n, p), block, V2I(0, 0), d)
+              bverts += BVert(offset + v + V3F(p, p, p), block, V2I(0, 1), d)
+              bverts += BVert(offset + v + V3F(p, p, n), block, V2I(1, 1), d)
+              bindices.append(Seq(2, 1, 0, 3, 2, 0).map(i => (i + bindex).toShort): _*)
+              bindex += 4
+            case East =>
+              bverts += BVert(offset + v + V3F(n, n, n), block, V2I(0, 0), d)
+              bverts += BVert(offset + v + V3F(n, n, p), block, V2I(1, 0), d)
+              bverts += BVert(offset + v + V3F(n, p, p), block, V2I(1, 1), d)
+              bverts += BVert(offset + v + V3F(n, p, n), block, V2I(0, 1), d)
+              bindices.append(Seq(1, 2, 0, 2, 3, 0).map(i => (i + bindex).toShort): _*)
+              bindex += 4
+            case Up =>
+              bverts += BVert(offset + v + V3F(n, p, n), block, V2I(1, 0), d)
+              bverts += BVert(offset + v + V3F(p, p, n), block, V2I(0, 0), d)
+              bverts += BVert(offset + v + V3F(p, p, p), block, V2I(0, 1), d)
+              bverts += BVert(offset + v + V3F(n, p, p), block, V2I(1, 1), d)
+              bindices.append(Seq(2, 1, 0, 3, 2, 0).map(i => (i + bindex).toShort): _*)
+              bindex += 4
+            case Down =>
+              bverts += BVert(offset + v + V3F(n, n, n), block, V2I(1, 1), d)
+              bverts += BVert(offset + v + V3F(p, n, n), block, V2I(0, 1), d)
+              bverts += BVert(offset + v + V3F(p, n, p), block, V2I(0, 0), d)
+              bverts += BVert(offset + v + V3F(n, n, p), block, V2I(1, 0), d)
+              bindices.append(Seq(1, 2, 0, 2, 3, 0).map(i => (i + bindex).toShort): _*)
+              bindex += 4
+          }
+        }
+      }
+
+      Some(CompleteTerrain(pos, grid, verts, indices, indexToVert, vertToIndex.immutabilize, bverts, bindices))
     } else None
 }
 object ProtoTerrain {
@@ -119,12 +188,15 @@ object ProtoTerrain {
 }
 
 @CarboniteFields
-case class CompleteTerrain(pos: V3I, materials: IDField[Material],
-                           verts: OptionField[Vert], indices: Seq[Short], indexToVert: Seq[V3I], vertToIndex: ShortField) extends Terrain {
+case class CompleteTerrain(pos: V3I, grid: IDField[TerrainUnit],
+                           verts: OptionField[TVert], indices: Seq[NodeTypeID], indexToVert: Seq[V3I], vertToIndex: ShortField,
+                           bverts: Seq[BVert], bindices: Seq[Short]
+                          ) extends Terrain {
   override def isComplete: Boolean = true
 
   override def asComplete: Option[CompleteTerrain] = Some(this)
 }
 object CompleteTerrain {
-  @CarboniteFields case class Vert(pos: V3F, mat: Material)
+  @CarboniteFields case class TVert(pos: V3F, mat: TerrainUnit)
+  @CarboniteFields case class BVert(pos: V3F, block: Block, uvDelta: V2I, nor: V3F)
 }

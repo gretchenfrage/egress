@@ -12,7 +12,8 @@ object EgressCarboniteConfig extends DefaultCarboniteConfig {
   register[Chunk]()
   register[ProtoTerrain]()
   register[CompleteTerrain]()
-  register[CompleteTerrain.Vert]()
+  register[CompleteTerrain.TVert]()
+  register[CompleteTerrain.BVert]()
 
   register[PutEntity]()
   register[RemoveEntity]()
@@ -22,11 +23,13 @@ object EgressCarboniteConfig extends DefaultCarboniteConfig {
   register[Cube]()
   register[SoundCube]()
 
-  register(Materials.getClass)
+  register(TerrainUnits.getClass)
 
   register(Air.getClass)
-  register(Stone.getClass)
-  register(Dirt.getClass)
+  register(Blocks.Stone.getClass)
+  register(Blocks.Dirt.getClass)
+  register(Materials.Stone.getClass)
+  register(Materials.Dirt.getClass)
 
   register[V3F]()
   register[V3I]()

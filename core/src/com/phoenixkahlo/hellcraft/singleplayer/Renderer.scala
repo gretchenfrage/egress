@@ -3,6 +3,7 @@ package com.phoenixkahlo.hellcraft.singleplayer
 import com.badlogic.gdx.{Gdx, utils}
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics._
+import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d.shaders.DefaultShader
 import com.badlogic.gdx.graphics.g3d._
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
@@ -11,7 +12,7 @@ import com.badlogic.gdx.graphics.g3d.utils.{DefaultShaderProvider, ShaderProvide
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.math.{Matrix4, Quaternion}
 import com.badlogic.gdx.utils.{Disposable, Pool}
-import com.phoenixkahlo.hellcraft.graphics.{ResourcePack, SunModel, SunTID}
+import com.phoenixkahlo.hellcraft.graphics.{DefaultHUD, ResourcePack, SunModel, SunTID}
 import com.phoenixkahlo.hellcraft.graphics.shaders._
 import com.phoenixkahlo.hellcraft.math._
 
@@ -83,11 +84,14 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
   val depthBatch = new ModelBatch(new ShaderProvider {
     override def getShader(renderable: Renderable): Shader =
-      if (renderable.userData == LineSID) depthLineShader
+      if (renderable.userData == LineSID) DontRenderShader
       else depthShader
 
     override def dispose(): Unit = ()
   })
+
+  val hud = new DefaultHUD
+  val spriteBatch = new SpriteBatch()
 
   def setupSunlight(world: SWorld): Unit = {
     val cycle = world.time.toFloat / DayCycleTicks.toFloat % 1
@@ -193,6 +197,12 @@ class Renderer(resources: ResourcePack) extends Disposable {
       depthBatch.render(toRender, environment)
       depthBatch.end()
     }
+
+    spriteBatch.begin()
+    for (comp <- hud.components(resources)) {
+      comp.draw(spriteBatch)
+    }
+    spriteBatch.end()
   }
 
   override def dispose(): Unit = {

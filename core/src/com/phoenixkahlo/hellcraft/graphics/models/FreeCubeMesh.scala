@@ -1,8 +1,8 @@
-package com.phoenixkahlo.hellcraft.graphics
+package com.phoenixkahlo.hellcraft.graphics.models
 
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
 import com.badlogic.gdx.graphics.{Color, Mesh, VertexAttribute}
-import com.badlogic.gdx.graphics.g3d.Model
+import com.phoenixkahlo.hellcraft.graphics.{ResourcePack, SheetTextureID}
 import com.phoenixkahlo.hellcraft.util.caches.KeyParamPool
 
 object FreeCubeMesh extends KeyParamPool[SheetTextureID, (SheetTextureID, ResourcePack), Mesh]({ case (tid, pack) => {
