@@ -83,7 +83,7 @@ case class SetMat(v: V3I, mat: Material, res: Int, override val id: UUID) extend
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
     (
       chunk.setTerrain(ProtoTerrain(chunk.pos, chunk.terrain.materials.updated(v % res, mat))), {
-      val invalidators = (v.neighbors.map(_ / res floor).toSet - target).toSeq
+      val invalidators = ((v - V3I(2, 2, 2) to v + V3I(2, 2, 2)).map(_ / res floor).toSet - target).toSeq
         .zip(RNG.uuids(RNG(id.getLeastSignificantBits)))
         .map({ case (p, id) => Invalidate(p, id) })
       TerrainChanged(target) +: invalidators
