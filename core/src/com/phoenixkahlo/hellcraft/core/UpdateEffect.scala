@@ -85,21 +85,45 @@ case class Later(effect: UpdateEffect, override val target: V3I, override val id
 }
 
 @CarboniteFields
-case class Invalidate(p: V3I, override val id: UUID) extends ChunkEvent(p, id) {
-  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
-    (chunk.invalidate, Seq(TerrainChanged(p)))
+case class Invalidate(p: V3I, override val id: EntityID, revalTerrain: Boolean = false, revalBlocks: Boolean = false)
+  extends ChunkEvent(p, id) {
+
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = {
+    var c = chunk.invalidate
+    if (revalTerrain)
+      for (soup <- TerrainSoup(c.terrain, world))
+        c = c.setTerrainSoup(soup)
+    if (revalBlocks)
+      for (soup <- BlockSoup(c.terrain, world))
+        c = c.setBlockSoup(soup)
+    (c, Seq(TerrainChanged(p)))
+  }
+    //(chunk.invalidate, Seq(TerrainChanged(p)))
 }
 
 @CarboniteFields
-case class SetMat(v: V3I, mat: TerrainUnit, res: Int, override val id: UUID) extends ChunkEvent(v / res floor, id) {
+case class SetMat(v: V3I, mat: TerrainUnit, res: Int, override val id: UUID,
+                  revalTerrain: Boolean = false, revalBlocks: Boolean = false) extends ChunkEvent(v / res floor, id) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
     (
       chunk.setTerrain(Terrain(chunk.pos, chunk.terrain.grid.updated(v % res, mat))),
       (v - V3I(2, 2, 2) to v + V3I(2, 2, 2)).map(_ / res floor).toSet.toSeq
         .zip(RNG.uuids(RNG(id.getLeastSignificantBits)))
-        .map({ case (p, id) => Invalidate(p, id) })
+        .map({ case (p, id) => Invalidate(p, id, revalTerrain, revalBlocks) })
     )
 }
+
+/*
+@CarboniteFields
+case class SoupBlocks(p: V3I, override val id: UUID) extends ChunkEvent(p, id) {
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = {
+    BlockSoup(chunk.terrain, world) match {
+      case Some(soup) => (chunk.setBlockSoup(soup), Seq.empty)
+      case None => (chunk, Seq.empty)
+    }
+  }
+}
+*/
 
 abstract class UpdateEntity[T <: Entity](entityID: EntityID, override val target: V3I, override val id: UUID)
   extends ChunkEvent(target, id) {

@@ -118,11 +118,12 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         if (button == 1) {
           val camPos = V3F(renderer.cam.position)
           val camDir = V3F(renderer.cam.direction)
+          val p = camPos / 16 floor
           val world = infinitum()
           mainLoopTasks.add(() => {
             for (v <- world.placeBlock(camPos, camDir, 16)) {
               infinitum.update(infinitum().chunks.keySet,
-                Seq(SetMat(v, Blocks.Stone, WorldRes, UUID.randomUUID())))
+                Seq(SetMat(v, Blocks.Stone, WorldRes, UUID.randomUUID(), revalBlocks = true)))
             }
           })
         }

@@ -17,18 +17,26 @@ class Chunk(
              val terrainSoup: Option[TerrainSoup] = None,
              val blockSoup: Option[BlockSoup] = None,
              @transient lastTerrainMesher: TerrainMesher = null,
-             @transient lastBlockMesher: BlockMesher = null
+             @transient lastBlockMesher: BlockMesher = null,
+             @transient lastTerrainValid: Boolean = true,
+             @transient lastBlockValid: Boolean = true
            ) {
 
 
   @transient lazy val terrainMesher: Option[TerrainMesher] = Option(lastTerrainMesher) match {
-    case last if last isDefined => last
-    case None => terrainSoup.map(new TerrainMesher(this, _))
+    case last if last.isDefined && lastTerrainValid => last
+    case last => terrainSoup.map(new TerrainMesher(this, _)) match {
+      case neu if neu isDefined => neu
+      case _ => last
+    }
   }
 
   @transient lazy val blockMesher: Option[BlockMesher] = Option(lastBlockMesher) match {
-    case last if last isDefined => last
-    case None => blockSoup.map(new BlockMesher(this, _))
+    case last if last.isDefined && lastBlockValid => last
+    case last => blockSoup.map(new BlockMesher(this, _)) match {
+      case neu if neu isDefined => neu
+      case _ => last
+    }
   }
 
   def putEntity(entity: Entity): Chunk =
@@ -38,7 +46,7 @@ class Chunk(
     new Chunk(pos, terrain, entities - entity, terrainSoup, blockSoup, terrainMesher.orNull, blockMesher.orNull)
 
   def setTerrain(neu: Terrain): Chunk =
-    new Chunk(pos, neu, entities, None, None, null, null)
+    new Chunk(pos, neu, entities, None, None, terrainMesher.orNull, blockMesher.orNull)
 
   def setTerrainSoup(ts: TerrainSoup): Chunk =
     new Chunk(pos, terrain, entities, Some(ts), blockSoup, null, blockMesher.orNull)
@@ -47,7 +55,7 @@ class Chunk(
     new Chunk(pos, terrain, entities, terrainSoup, Some(bs), terrainMesher.orNull, null)
 
   def invalidate: Chunk =
-    new Chunk(pos, terrain, entities, None, None, null, null)
+    new Chunk(pos, terrain, entities, None, None, terrainMesher.orNull, blockMesher.orNull, false, false)
 
   def isComplete: Boolean =
     terrainSoup.isDefined && blockSoup.isDefined
