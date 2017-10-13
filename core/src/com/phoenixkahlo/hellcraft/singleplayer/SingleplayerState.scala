@@ -119,9 +119,9 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           val camDir = V3F(renderer.cam.direction)
           val world = infinitum()
           mainLoopTasks.add(() => {
-            for (v <- world.placeMat(camPos, camDir, 16)) {
+            for (v <- world.placeBlock(camPos, camDir, 16)) {
               infinitum.update(infinitum().chunks.keySet,
-                Seq(SetMat(v, Materials.Stone, WorldRes, UUID.randomUUID())))
+                Seq(SetMat(v, Blocks.Stone, WorldRes, UUID.randomUUID())))
             }
           })
         }
@@ -203,8 +203,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     }
 
     // draw a cube where you're pointing
-    for (v <- toRender.placeMat(V3F(renderer.cam.position), V3F(renderer.cam.direction), 16)) {
-      units +:= new BlockOutline(v + Repeated(0.5f), Color.WHITE)
+    for (v <- toRender.placeBlock(V3F(renderer.cam.position), V3F(renderer.cam.direction), 16)) {
+      units +:= new BlockOutline(v / WorldRes * 16, Color.WHITE, scale = 16f / WorldRes)
     }
 
     // do memory management

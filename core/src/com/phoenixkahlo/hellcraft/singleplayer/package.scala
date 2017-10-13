@@ -17,7 +17,7 @@ package object singleplayer {
   type EventID = UUID
   type AvatarID = UUID
 
-  val WorldRes = 16
+  val WorldRes = 8
   val LoadDist = V3I(8, 4, 8)
 
   val DayCycleTime = 20 minutes

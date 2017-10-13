@@ -43,7 +43,7 @@ case class ProtoTerrain(pos: V3I, grid: IDField[TerrainUnit]) extends Terrain {
         if (corners.exists(_.id < 0)) {
           // if one of the corners is a block, we must snap to the center
           // but if none of the corners are terrain, we shouldn't place a vertex at all
-          corners.find(_.id > 0).map(mat => TVert(offset + v + V3F(0.5f, 0.5f, 0.5f), mat))
+          corners.find(_.id > 0).map(mat => TVert((offset + v + V3F(0.5f, 0.5f, 0.5f)) / world.res * 16, mat))
         } else {
           // otherwise, we can do surface nets as normal
 
@@ -118,49 +118,62 @@ case class ProtoTerrain(pos: V3I, grid: IDField[TerrainUnit]) extends Terrain {
         }
         if (visible) {
           val block = grid(v).asInstanceOf[Block]
+          def mesh(x1: Float, y1: Float, z1: Float, u1: Int, v1: Int,
+                   x2: Float, y2: Float, z2: Float, u2: Int, v2: Int,
+                   x3: Float, y3: Float, z3: Float, u3: Int, v3: Int,
+                   x4: Float, y4: Float, z4: Float, u4: Int, v4: Int,
+                   i1: Int, i2: Int, i3: Int, i4: Int, i5: Int, i6: Int): Unit = {
+            bverts += BVert((offset + v + V3F(x1, y1, z1)) / world.res * 16, block, V2I(u1, v1), d)
+            bverts += BVert((offset + v + V3F(x2, y2, z2)) / world.res * 16, block, V2I(u2, v2), d)
+            bverts += BVert((offset + v + V3F(x3, y3, z3)) / world.res * 16, block, V2I(u3, v3), d)
+            bverts += BVert((offset + v + V3F(x4, y4, z4)) / world.res * 16, block, V2I(u4, v4), d)
+            bindices.append((bindex + i1).toShort, (bindex + i2).toShort, (bindex + i3).toShort)
+            bindices.append((bindex + i4).toShort, (bindex + i5).toShort, (bindex + i6).toShort)
+            bindex += 4
+          }
           d match {
-            case South =>
-              bverts += BVert(offset + v + V3F(n, n, n), block, V2I(1, 0), d)
-              bverts += BVert(offset + v + V3F(p, n, n), block, V2I(0, 0), d)
-              bverts += BVert(offset + v + V3F(p, p, n), block, V2I(0, 1), d)
-              bverts += BVert(offset + v + V3F(n, p, n), block, V2I(1, 1), d)
-              bindices.append(Seq(2, 1, 0, 3, 2, 0).map(i => (i + bindex).toShort): _*)
-              bindex += 4
-            case North =>
-              bverts += BVert(offset + v + V3F(n, n, p), block, V2I(0, 0), d)
-              bverts += BVert(offset + v + V3F(p, n, p), block, V2I(1, 0), d)
-              bverts += BVert(offset + v + V3F(p, p, p), block, V2I(1, 1), d)
-              bverts += BVert(offset + v + V3F(n, p, p), block, V2I(0, 1), d)
-              bindices.append(Seq(1, 2, 0, 2, 3, 0).map(i => (i + bindex).toShort): _*)
-              bindex += 4
-            case West =>
-              bverts += BVert(offset + v + V3F(p, n, n), block, V2I(1, 0), d)
-              bverts += BVert(offset + v + V3F(p, n, p), block, V2I(0, 0), d)
-              bverts += BVert(offset + v + V3F(p, p, p), block, V2I(0, 1), d)
-              bverts += BVert(offset + v + V3F(p, p, n), block, V2I(1, 1), d)
-              bindices.append(Seq(2, 1, 0, 3, 2, 0).map(i => (i + bindex).toShort): _*)
-              bindex += 4
-            case East =>
-              bverts += BVert(offset + v + V3F(n, n, n), block, V2I(0, 0), d)
-              bverts += BVert(offset + v + V3F(n, n, p), block, V2I(1, 0), d)
-              bverts += BVert(offset + v + V3F(n, p, p), block, V2I(1, 1), d)
-              bverts += BVert(offset + v + V3F(n, p, n), block, V2I(0, 1), d)
-              bindices.append(Seq(1, 2, 0, 2, 3, 0).map(i => (i + bindex).toShort): _*)
-              bindex += 4
-            case Up =>
-              bverts += BVert(offset + v + V3F(n, p, n), block, V2I(1, 0), d)
-              bverts += BVert(offset + v + V3F(p, p, n), block, V2I(0, 0), d)
-              bverts += BVert(offset + v + V3F(p, p, p), block, V2I(0, 1), d)
-              bverts += BVert(offset + v + V3F(n, p, p), block, V2I(1, 1), d)
-              bindices.append(Seq(2, 1, 0, 3, 2, 0).map(i => (i + bindex).toShort): _*)
-              bindex += 4
-            case Down =>
-              bverts += BVert(offset + v + V3F(n, n, n), block, V2I(1, 1), d)
-              bverts += BVert(offset + v + V3F(p, n, n), block, V2I(0, 1), d)
-              bverts += BVert(offset + v + V3F(p, n, p), block, V2I(0, 0), d)
-              bverts += BVert(offset + v + V3F(n, n, p), block, V2I(1, 0), d)
-              bindices.append(Seq(1, 2, 0, 2, 3, 0).map(i => (i + bindex).toShort): _*)
-              bindex += 4
+            case South => mesh(
+              n, n, n,    1, 0,
+              p, n, n,    0, 0,
+              p, p, n,    0, 1,
+              n, p, n,    1, 1,
+              2, 1, 0, 3, 2, 0
+            )
+            case North => mesh(
+              n, n, p,    0, 0,
+              p, n, p,    1, 0,
+              p, p, p,    1, 1,
+              n, p, p,    0, 1,
+              1, 2, 0, 2, 3, 0
+            )
+            case West => mesh(
+              p, n, n,    1, 0,
+              p, n, p,    0, 0,
+              p, p, p,    0, 1,
+              p, p, n,    1, 1,
+              2, 1, 0, 3, 2, 0
+            )
+            case East => mesh(
+              n, n, n,    0, 0,
+              n, n, p,    1, 0,
+              n, p, p,    1, 1,
+              n, p, n,    0, 1,
+              1, 2, 0, 2, 3, 0
+            )
+            case Up => mesh(
+              n, p, n,    1, 0,
+              p, p, n,    0, 0,
+              p, p, p,    0, 1,
+              n, p, p,    1, 1,
+              2, 1, 0, 3, 2, 0
+            )
+            case Down => mesh(
+              n, n, n,    1, 1,
+              p, n, n,    0, 1,
+              p, n, p,    0, 0,
+              n, n, p,    1, 0,
+              1, 2, 0, 2, 3, 0
+            )
           }
         }
       }

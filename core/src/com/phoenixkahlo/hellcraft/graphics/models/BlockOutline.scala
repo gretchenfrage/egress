@@ -10,11 +10,13 @@ import com.phoenixkahlo.hellcraft.util.collections.ResourceNode
 
 import scala.collection.JavaConverters
 
-class BlockOutline(v: V3F, color: Color) extends RenderUnit {
+class BlockOutline(v: V3F, color: Color, scale: Float = 1) extends RenderUnit {
   override def apply(interpolation: Interpolation): Seq[Renderable] = {
     // get model instance
     val instance = new ModelInstance(BlockOutlineModel(color, color))
+    instance.transform.scale(scale, scale, scale)
     instance.transform.setTranslation(v toGdx)
+
     // extract renderables
     val array = new com.badlogic.gdx.utils.Array[Renderable]()
     val pool = new Pool[Renderable]() {

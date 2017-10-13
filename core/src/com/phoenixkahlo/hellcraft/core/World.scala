@@ -112,9 +112,9 @@ trait World {
 
   def terrainRay(pos: V3F, dir: V3F): Stream[(V3I, TerrainUnit)] = {
     val (min, max) = boundingBox
-    Raytrace.voxels(pos, dir)
-      .takeWhile(v => (v / 16) > min && (v / 16) < (max + Ones))
-      .takeWhile(v => chunkAt(v / 16 floor) isDefined)
+    Raytrace.voxels(pos / 16 * res, dir)
+      .takeWhile(v => (v / res) > min && (v / res) < (max + Ones))
+      .takeWhile(v => chunkAt(v / res floor) isDefined)
       .map(v => (v, terrainGridPoint(v).get))
   }
 
