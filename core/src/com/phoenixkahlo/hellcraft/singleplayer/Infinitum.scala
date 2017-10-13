@@ -18,14 +18,15 @@ import scala.collection.SortedMap
   * which categorize which chunks are in which terrain state.
   */
 class SWorld(
-                  override val time: Long,
-                  override val res: Int,
-                  val chunks: Map[V3I, Chunk],
-                  val incomplete: Set[V3I],
-                  val complete: Set[V3I],
-                  val min: Option[V3I],
-                  val max: Option[V3I]
-                  ) extends World {
+              override val time: Long,
+              override val res: Int,
+              val chunks: Map[V3I, Chunk],
+              val complete: Set[V3I],
+              val missingTerrSoup: Set[V3I],
+              val missingBlockSoup: Set[V3I],
+              val min: Option[V3I],
+              val max: Option[V3I]
+            ) extends World {
 
   override def chunkAt(p: V3I): Option[Chunk] =
     chunks.get(p)
@@ -40,9 +41,9 @@ class SWorld(
 
   private def compBoundingBox: SWorld =
     if (chunks isEmpty)
-      new SWorld(time, res, chunks, incomplete, complete, None, None)
+      new SWorld(time, res, chunks, complete, missingTerrSoup, missingBlockSoup, None, None)
     else
-      new SWorld(time, res, chunks, incomplete, complete,
+      new SWorld(time, res, chunks, complete, missingTerrSoup, missingBlockSoup,
         Some(V3I(chunks.keySet.toSeq.map(_.xi).min, chunks.keySet.toSeq.map(_.yi).min, chunks.keySet.toSeq.map(_.zi).min)),
         Some(V3I(chunks.keySet.toSeq.map(_.xi).max, chunks.keySet.toSeq.map(_.yi).max, chunks.keySet.toSeq.map(_.zi).max))
       )
@@ -51,11 +52,11 @@ class SWorld(
     * Remove those chunks from this world,
     */
   def --(ps: Seq[V3I]): SWorld = {
-    new SWorld(time, res, chunks -- ps, incomplete -- ps, complete -- ps, None, None).compBoundingBox
+    new SWorld(time, res, chunks -- ps, complete -- ps, missingTerrSoup -- ps, missingBlockSoup -- ps, None, None).compBoundingBox
   }
 
   def -(p: V3I): SWorld = {
-    new SWorld(time, res, chunks - p, incomplete - p, complete - p, None, None).compBoundingBox
+    new SWorld(time, res, chunks - p, complete - p, missingTerrSoup - p, missingBlockSoup - p, None, None).compBoundingBox
   }
 
   /**
@@ -65,48 +66,57 @@ class SWorld(
     if (cs.isEmpty)
       return this
     val removed = this -- cs.map(_.pos)
-    val (complete, incomplete) = cs.partition(_.terrain.isComplete)
-    new SWorld(time, res,
-      removed.chunks ++ cs.map(c => c.pos -> c),
-      removed.incomplete ++ incomplete.map(_.pos),
+    //val (complete, incomplete) = cs.partition(_.terrain.isComplete)
+    val complete = cs.filter(_.isComplete)
+    val mts = cs.filter(_.terrainSoup.isEmpty)
+    val mbs = cs.filter(_.blockSoup.isEmpty)
+    new SWorld(time, res, removed.chunks ++ cs.map(c => c.pos -> c),
       removed.complete ++ complete.map(_.pos),
+      removed.missingTerrSoup ++ mts.map(_.pos),
+      removed.missingBlockSoup ++ mbs.map(_.pos),
       Some(V3I(
-        Math.min(cs.map(_.pos.xi).min, min.map(_.xi).getOrElse(Int.MaxValue)),
-        Math.min(cs.map(_.pos.yi).min, min.map(_.yi).getOrElse(Int.MaxValue)),
-        Math.min(cs.map(_.pos.zi).min, min.map(_.zi).getOrElse(Int.MaxValue))
-      )),
-      Some(V3I(
-        Math.max(cs.map(_.pos.xi).max, max.map(_.xi).getOrElse(Int.MinValue)),
-        Math.max(cs.map(_.pos.yi).max, max.map(_.yi).getOrElse(Int.MinValue)),
-        Math.max(cs.map(_.pos.zi).max, max.map(_.zi).getOrElse(Int.MinValue))
-      ))
-    )
+            Math.min(cs.map(_.pos.xi).min, min.map(_.xi).getOrElse(Int.MaxValue)),
+            Math.min(cs.map(_.pos.yi).min, min.map(_.yi).getOrElse(Int.MaxValue)),
+            Math.min(cs.map(_.pos.zi).min, min.map(_.zi).getOrElse(Int.MaxValue))
+          )), Some(V3I(
+            Math.max(cs.map(_.pos.xi).max, max.map(_.xi).getOrElse(Int.MinValue)),
+            Math.max(cs.map(_.pos.yi).max, max.map(_.yi).getOrElse(Int.MinValue)),
+            Math.max(cs.map(_.pos.zi).max, max.map(_.zi).getOrElse(Int.MinValue))
+          )))
   }
 
   def +(c: Chunk): SWorld = {
     val removed = this - c.pos
-    new SWorld(time, res,
-      removed.chunks + (c.pos -> c),
-      if (!c.terrain.isComplete) removed.incomplete + c.pos else removed.incomplete,
-      if (c.terrain.isComplete) removed.complete + c.pos else removed.complete,
+    new SWorld(time, res, removed.chunks + (c.pos -> c),
+      if (c.isComplete) removed.complete + c.pos else removed.complete,
+      if (c.terrainSoup.isEmpty) removed.missingTerrSoup + c.pos else removed.missingTerrSoup,
+      if (c.blockSoup.isEmpty) removed.missingBlockSoup + c.pos else removed.missingBlockSoup,
       Some(V3I(
         Math.min(c.pos.xi, min.map(_.xi).getOrElse(Int.MaxValue)),
         Math.min(c.pos.yi, min.map(_.yi).getOrElse(Int.MaxValue)),
         Math.min(c.pos.zi, min.map(_.zi).getOrElse(Int.MaxValue))
-      )),
-      Some(V3I(
+      )), Some(V3I(
         Math.max(c.pos.xi, max.map(_.xi).getOrElse(Int.MinValue)),
         Math.max(c.pos.yi, max.map(_.yi).getOrElse(Int.MinValue)),
         Math.max(c.pos.zi, max.map(_.zi).getOrElse(Int.MinValue))
-      ))
-    )
+      )))
   }
 
   /**
     * The chunks which's terrain can be upgraded with this world.
     */
+  /*
   def upgradeable: Seq[Chunk] = {
     incomplete.toSeq.map(chunks(_)).filter(_.terrain.asInstanceOf[ProtoTerrain].canComplete(this))
+  }
+  */
+
+  def terrainSoupable: Seq[Chunk] = {
+    missingTerrSoup.toSeq.filter(Terrain.canComplete(_, this)).map(chunks(_))
+  }
+
+  def blockSoupable: Seq[Chunk] = {
+    missingBlockSoup.toSeq.filter(Terrain.canComplete(_, this)).map(chunks(_))
   }
 
   case class WithReplacedChunk(replaced: Chunk) extends World {
@@ -158,7 +168,7 @@ class SWorld(
     * Increment the time
     */
   def incrTime: SWorld = {
-    new SWorld(time + 1, res, chunks, incomplete, complete, min, max)
+    new SWorld(time + 1, res, chunks, complete, missingTerrSoup, missingBlockSoup, min, max)
   }
 
   /**
@@ -183,18 +193,22 @@ class SWorld(
 class Infinitum(res: Int, save: AsyncSave, dt: Float) {
 
   @volatile private var history =
-    SortedMap(0L -> new SWorld(0, res, Map.empty, Set.empty, Set.empty, None, None))
+    SortedMap(0L -> new SWorld(0, res, Map.empty, Set.empty, Set.empty, Set.empty, None, None))
 
   type LoadID = UUID
-  type UpgradeID = UUID
+  type TerrainSoupID = UUID
+  type BlockSoupID = UUID
 
   private val loadQueue = new ConcurrentLinkedQueue[(Chunk, LoadID)]
   private var loadMap = Map.empty[V3I, LoadID]
 
   private var pendingEvents = Map.empty[V3I, Seq[ChunkEvent]]
 
-  private val upgradeQueue = new ConcurrentLinkedQueue[(Terrain, UpgradeID)]
-  private var upgradeMap = Map.empty[V3I, UpgradeID]
+  private val terrainSoupQueue = new ConcurrentLinkedQueue[(TerrainSoup, TerrainSoupID)]
+  private var terrainSoupMap = Map.empty[V3I, TerrainSoupID]
+
+  private val blockSoupQueue = new ConcurrentLinkedQueue[(BlockSoup, BlockSoupID)]
+  private var blockSoupMap = Map.empty[V3I, BlockSoupID]
 
   def apply(t: Long): Option[SWorld] = history.get(t)
   def apply(): SWorld = history.last._2
@@ -230,14 +244,37 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     }
 
     // create upgrade futures
+    /*
     val upgradeWith = world
-    val upgradeable = world.upgradeable.filterNot(upgradeMap contains _.pos)
+    val upgradeable = world.upgradeable.filterNot(terrainSoupMap contains _.pos)
     for (chunk <- upgradeable) {
       val upgradeID = UUID.randomUUID()
-      upgradeMap += chunk.pos -> upgradeID
+      terrainSoupMap += chunk.pos -> upgradeID
       UniExecutor.exec(chunk.pos * 16 + V3I(8, 8, 8))(() => {
         val upgraded = chunk.terrain.asInstanceOf[ProtoTerrain].complete(upgradeWith).get
-        upgradeQueue.add(upgraded -> upgradeID)
+        terrainSoupQueue.add(upgraded -> upgradeID)
+      })
+    }
+    */
+    val upgradeWith = world
+    // for terrain soup
+    val terrainSoupable = world.terrainSoupable.filterNot(terrainSoupMap contains _.pos)
+    for (chunk <- terrainSoupable) {
+      val upgradeID = UUID.randomUUID()
+      terrainSoupMap += chunk.pos -> upgradeID
+      UniExecutor.exec(chunk.pos * 16 + V3I(8, 8, 8))(() => {
+        val soup = TerrainSoup(chunk.terrain, upgradeWith).get
+        terrainSoupQueue.add(soup -> upgradeID)
+      })
+    }
+    // for block soup
+    val blockSoupable = world.blockSoupable.filterNot(blockSoupMap contains _.pos)
+    for (chunk <- blockSoupable) {
+      val upgradeID = UUID.randomUUID()
+      blockSoupMap += chunk.pos -> upgradeID
+      UniExecutor.exec(chunk.pos * 16 + V3I(8, 8, 8))(() => {
+        val soup = BlockSoup(chunk.terrain, upgradeWith).get
+        blockSoupQueue.add(soup -> upgradeID)
       })
     }
 
@@ -265,11 +302,29 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       var events = eventsIn
       
       // pull upgraded chunks from the queue and add update terrain events if they're valid
-      while (upgradeQueue.size > 0) {
-        val (terrain, upgradeID) = upgradeQueue.remove()
-        if (upgradeMap.get(terrain.pos).contains(upgradeID)) {
-          upgradeMap -= terrain.pos
-          events +:= UpdateTerrain(terrain, UUID.randomUUID())
+      /*
+      while (terrainSoupQueue.size > 0) {
+        val (terrain, upgradeID) = terrainSoupQueue.remove()
+        if (terrainSoupMap.get(terrain.pos).contains(upgradeID)) {
+          terrainSoupMap -= terrain.pos
+          events +:= SetTerrain(terrain, UUID.randomUUID())
+        }
+      }
+      */
+      // for terrain soup
+      while (terrainSoupQueue.size > 0) {
+        val (soup, upgradeID) = terrainSoupQueue.remove()
+        if (terrainSoupMap.get(soup.pos).contains(upgradeID)) {
+          terrainSoupMap -= soup.pos
+          events +:= SetTerrainSoup(soup, UUID.randomUUID())
+        }
+      }
+      // for block soup
+      while (blockSoupQueue.size > 0) {
+        val (soup, upgradeID) = blockSoupQueue.remove()
+        if (blockSoupMap.get(soup.pos).contains(upgradeID)) {
+          blockSoupMap -= soup.pos
+          events +:= SetBlockSoup(soup, UUID.randomUUID())
         }
       }
 
@@ -292,7 +347,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       // scan for terrain update effects to invalidate update futures
       val invalidateRange = Ones.neg to Ones
       newEffectsGrouped.getOrElse(TerrainChanged, Seq.empty).map(_.asInstanceOf[TerrainChanged].p)
-        .foreach(upgradeMap -= _)
+        .foreach(terrainSoupMap -= _)
 
       // recurse
       if (newEffectsGrouped.getOrElse(ChunkEvent, Seq.empty).nonEmpty)

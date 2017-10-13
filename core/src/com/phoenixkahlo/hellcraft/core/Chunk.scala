@@ -5,35 +5,58 @@ import java.util.{Objects, UUID}
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.Entity
-import com.phoenixkahlo.hellcraft.graphics.{ChunkMesher, RenderUnit, ResourcePack}
-import com.phoenixkahlo.hellcraft.graphics.RenderUnit
+import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.math.{Origin, RNG, V3F, V3I}
 import com.phoenixkahlo.hellcraft.util.fields.{ByteFractionField, ByteFractionFieldBuffer, OptionField}
 
 @CarboniteWith(classOf[FieldNode])
 class Chunk(
-           val pos: V3I,
-           val terrain: Terrain,
-           val entities: Map[UUID, Entity] = Map.empty,
-           @transient lastMesher: ChunkMesher = null
+             val pos: V3I,
+             val terrain: Terrain,
+             val entities: Map[UUID, Entity] = Map.empty,
+             val terrainSoup: Option[TerrainSoup] = None,
+             val blockSoup: Option[BlockSoup] = None,
+             @transient lastTerrainMesher: TerrainMesher = null,
+             @transient lastBlockMesher: BlockMesher = null
            ) {
 
-  @transient lazy val mesher: Option[ChunkMesher] = Option(lastMesher) match {
+
+  @transient lazy val terrainMesher: Option[TerrainMesher] = Option(lastTerrainMesher) match {
     case last if last isDefined => last
-    case None => terrain.asComplete match {
-      case Some(meshable) => Some(new ChunkMesher(this, meshable))
-      case None => None
-    }
+    case None => terrainSoup.map(new TerrainMesher(this, _))
+  }
+
+  @transient lazy val blockMesher: Option[BlockMesher] = Option(lastBlockMesher) match {
+    case last if last isDefined => last
+    case None => blockSoup.map(new BlockMesher(this, _))
   }
 
   def putEntity(entity: Entity): Chunk =
-    new Chunk(pos, terrain, entities + (entity.id -> entity), mesher.orNull)
+    new Chunk(pos, terrain, entities + (entity.id -> entity), terrainSoup, blockSoup, terrainMesher.orNull, blockMesher.orNull)
 
   def removeEntity(entity: UUID): Chunk =
-    new Chunk(pos, terrain, entities - entity, mesher.orNull)
+    new Chunk(pos, terrain, entities - entity, terrainSoup, blockSoup, terrainMesher.orNull, blockMesher.orNull)
 
   def setTerrain(neu: Terrain): Chunk =
-    new Chunk(pos, neu, entities, null)
+    new Chunk(pos, neu, entities, None, None, null, null)
+
+  def setTerrainSoup(ts: TerrainSoup): Chunk =
+    new Chunk(pos, terrain, entities, Some(ts), blockSoup, null, blockMesher.orNull)
+
+  def setBlockSoup(bs: BlockSoup): Chunk =
+    new Chunk(pos, terrain, entities, terrainSoup, Some(bs), terrainMesher.orNull, null)
+
+  def invalidate: Chunk =
+    new Chunk(pos, terrain, entities, None, None, null, null)
+
+  def isComplete: Boolean =
+    terrainSoup.isDefined && blockSoup.isDefined
+
+  def makeComplete(world: World): Chunk = {
+    val ts = TerrainSoup(terrain, world).get
+    val bs = BlockSoup(terrain, world).get
+    new Chunk(pos, terrain, entities, Some(ts), Some(bs), null, null)
+  }
 
   def update(world: World): Seq[UpdateEffect] = {
     val seed: Long = (world.time.hashCode().toLong << 32) | pos.hashCode().toLong
@@ -51,7 +74,9 @@ class Chunk(
     }
 
   def renderables(pack: ResourcePack, world: World): Seq[RenderUnit] = {
-    entities.values.flatMap(_.renderables(pack)).toSeq ++ mesher.map(_(world, pack)).getOrElse(Seq.empty)
+    entities.values.flatMap(_.renderables(pack)).toSeq ++
+      terrainMesher.map(_(world, pack)).getOrElse(Seq.empty) ++
+      blockMesher.map(_(world, pack)).getOrElse(Seq.empty)
   }
 
 }

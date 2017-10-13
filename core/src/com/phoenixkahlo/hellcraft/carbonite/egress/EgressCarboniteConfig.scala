@@ -10,16 +10,19 @@ import com.phoenixkahlo.hellcraft.util.fields._
 object EgressCarboniteConfig extends DefaultCarboniteConfig {
 
   register[Chunk]()
-  register[ProtoTerrain]()
-  register[CompleteTerrain]()
-  register[CompleteTerrain.TVert]()
-  register[CompleteTerrain.BVert]()
+  register[Terrain]()
+  register[TerrainSoup]()
+  register[TerrainSoup.Vert]()
+  register[BlockSoup]()
+  register[BlockSoup.Vert]()
 
+  /*
   register[PutEntity]()
   register[RemoveEntity]()
   register[Shift]()
   register[Invalidate]()
   register[Revalidate]()
+  */
 
   register[CubeFrame]()
   register[Cube]()

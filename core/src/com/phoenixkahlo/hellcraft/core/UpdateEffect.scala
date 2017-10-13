@@ -52,9 +52,21 @@ abstract class ChunkEvent(val target: V3I, val id: UUID) extends UpdateEffect wi
 case object ChunkEvent extends UpdateEffectType
 
 @CarboniteFields
-case class UpdateTerrain(neu: Terrain, override val id: UUID) extends ChunkEvent(neu.pos, id) {
+case class SetTerrain(neu: Terrain, override val id: UUID) extends ChunkEvent(neu.pos, id) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
     (chunk.setTerrain(neu), Seq(TerrainChanged(neu.pos)))
+}
+
+@CarboniteFields
+case class SetTerrainSoup(ts: TerrainSoup, override val id: UUID) extends ChunkEvent(ts.pos, id) {
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
+    (chunk.setTerrainSoup(ts), Seq.empty)
+}
+
+@CarboniteFields
+case class SetBlockSoup(bs: BlockSoup, override val id: UUID) extends ChunkEvent(bs.pos, id) {
+  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
+    (chunk.setBlockSoup(bs), Seq.empty)
 }
 
 @CarboniteFields
@@ -75,25 +87,17 @@ case class Later(effect: UpdateEffect, override val target: V3I, override val id
 @CarboniteFields
 case class Invalidate(p: V3I, override val id: UUID) extends ChunkEvent(p, id) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
-    (chunk.setTerrain(ProtoTerrain(chunk.pos, chunk.terrain.grid)), Seq(TerrainChanged(p)))
+    (chunk.invalidate, Seq(TerrainChanged(p)))
 }
 
 @CarboniteFields
-case class Revalidate(p: V3I, override val id: UUID) extends ChunkEvent(p, id) {
-  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = {
-    val proto = ProtoTerrain(chunk.pos, chunk.terrain.grid)
-    (chunk.setTerrain(proto.complete(world).getOrElse(proto)), Seq(TerrainChanged(p)))
-  }
-}
-
-@CarboniteFields
-case class SetMat(v: V3I, mat: TerrainUnit, res: Int, override val id: UUID, revalidate: Boolean = false) extends ChunkEvent(v / res floor, id) {
+case class SetMat(v: V3I, mat: TerrainUnit, res: Int, override val id: UUID) extends ChunkEvent(v / res floor, id) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
     (
-      chunk.setTerrain(ProtoTerrain(chunk.pos, chunk.terrain.grid.updated(v % res, mat))),
+      chunk.setTerrain(Terrain(chunk.pos, chunk.terrain.grid.updated(v % res, mat))),
       (v - V3I(2, 2, 2) to v + V3I(2, 2, 2)).map(_ / res floor).toSet.toSeq
         .zip(RNG.uuids(RNG(id.getLeastSignificantBits)))
-        .map({ case (p, id) => if (revalidate) Revalidate(p, id) else Invalidate(p, id) })
+        .map({ case (p, id) => Invalidate(p, id) })
     )
 }
 

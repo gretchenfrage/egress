@@ -1,5 +1,6 @@
 package com.phoenixkahlo.hellcraft.graphics
 
+/*
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.{Material, Renderable}
@@ -118,3 +119,4 @@ class ChunkMesher(chunk: Chunk, terrain: CompleteTerrain) {
   }
 
 }
+*/

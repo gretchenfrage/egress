@@ -89,6 +89,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
           })
           true
+
         } else if (keycode == Keys.H) {
           val camPos = V3F(renderer.cam.position)
           val camDir = V3F(renderer.cam.direction)
@@ -121,7 +122,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           mainLoopTasks.add(() => {
             for (v <- world.placeBlock(camPos, camDir, 16)) {
               infinitum.update(infinitum().chunks.keySet,
-                Seq(SetMat(v, Blocks.Stone, WorldRes, UUID.randomUUID(), revalidate = true)))
+                Seq(SetMat(v, Blocks.Stone, WorldRes, UUID.randomUUID())))
             }
           })
         }
@@ -193,6 +194,21 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     // add debug units
     if (Gdx.input.isKeyPressed(Keys.ALT_LEFT)) {
+      val (complete, incomplete) = toRender.chunks.values.partition(_.isComplete)
+      for (chunk <- complete) {
+        units +:= new ChunkOutline(chunk.pos, Color.GREEN)
+      }
+      for (chunk <- incomplete) {
+        units +:= new ChunkOutline(chunk.pos, Color.RED)
+      }
+    }
+
+    // draw a cube where you're pointing
+    for (v <- toRender.placeBlock(V3F(renderer.cam.position), V3F(renderer.cam.direction), 16)) {
+      units +:= new BlockOutline(v / WorldRes * 16, Color.WHITE, scale = 16f / WorldRes)
+    }
+    /*
+    if (Gdx.input.isKeyPressed(Keys.ALT_LEFT)) {
       toRender.chunks.values.map(_.terrain).foreach {
         case t: ProtoTerrain => units +:= new ChunkOutline(t.pos, Color.RED)
         case t: CompleteTerrain => units +:= new ChunkOutline(t.pos, Color.GREEN)
@@ -202,10 +218,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       })
     }
 
-    // draw a cube where you're pointing
-    for (v <- toRender.placeBlock(V3F(renderer.cam.position), V3F(renderer.cam.direction), 16)) {
-      units +:= new BlockOutline(v / WorldRes * 16, Color.WHITE, scale = 16f / WorldRes)
-    }
+
+    */
 
     // do memory management
     val nodes = units.par.flatMap(_.resources).seq
