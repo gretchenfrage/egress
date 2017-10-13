@@ -1,6 +1,6 @@
 package com.phoenixkahlo.hellcraft.math
 
-import com.badlogic.gdx.math.Vector3
+import com.badlogic.gdx.math.{Matrix4, Vector3}
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 
@@ -135,6 +135,10 @@ class V3F(val x: Float, val y: Float, val z: Float) {
 
   def incrMag(deltaMag: Float) =
     this.normalize * (this.magnitude + deltaMag)
+
+  def rotate(axis: V3F, theta: Float) = {
+    V3F(toGdx.mul(new Matrix4().setToRotation(axis toGdx, theta)))
+  }
 
 }
 

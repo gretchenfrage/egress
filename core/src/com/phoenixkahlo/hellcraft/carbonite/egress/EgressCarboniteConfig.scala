@@ -18,6 +18,8 @@ object EgressCarboniteConfig extends DefaultCarboniteConfig {
   register[PutEntity]()
   register[RemoveEntity]()
   register[Shift]()
+  register[Invalidate]()
+  register[Revalidate]()
 
   register[CubeFrame]()
   register[Cube]()

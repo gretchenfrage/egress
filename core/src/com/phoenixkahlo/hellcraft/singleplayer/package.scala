@@ -17,12 +17,12 @@ package object singleplayer {
   type EventID = UUID
   type AvatarID = UUID
 
-  val WorldRes = 8
+  val WorldRes = 16
   val LoadDist = V3I(8, 4, 8)
 
-  val DayCycleTime = 20 minutes
+  val DayCycleTime = 20 seconds
   val DayCycleTicks = DayCycleTime.toSeconds * Delta.updatesPerSecond
-  val ShadowPixelDensity = 10
+  val ShadowPixelDensity = 20
 
   val auxBackgroundThreads = 0//Runtime.getRuntime.availableProcessors() - 2
   val mainLoopThreadPriority = 5

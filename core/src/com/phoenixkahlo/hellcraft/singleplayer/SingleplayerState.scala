@@ -121,7 +121,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           mainLoopTasks.add(() => {
             for (v <- world.placeBlock(camPos, camDir, 16)) {
               infinitum.update(infinitum().chunks.keySet,
-                Seq(SetMat(v, Blocks.Stone, WorldRes, UUID.randomUUID())))
+                Seq(SetMat(v, Blocks.Stone, WorldRes, UUID.randomUUID(), revalidate = true)))
             }
           })
         }

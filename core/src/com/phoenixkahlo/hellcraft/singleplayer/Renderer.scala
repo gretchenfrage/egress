@@ -32,12 +32,13 @@ class Renderer(resources: ResourcePack) extends Disposable {
   cam.up.set(0, 1, 0)
 
   val worldBoxRad = LoadDist.fold(Math.max) * 16
-  val sunlightRes = (worldBoxRad * 3 * ShadowPixelDensity) toInt
+  val overshootFactor = 2f
+  val sunlightRes = (worldBoxRad * overshootFactor * ShadowPixelDensity) toInt
   val lightBuffer = new FrameBuffer(Pixmap.Format.RGBA8888, sunlightRes, sunlightRes, true)
-  val lightCam = new OrthographicCamera(worldBoxRad * 3, worldBoxRad * 3)
+  val lightCam = new OrthographicCamera(worldBoxRad * overshootFactor, worldBoxRad * overshootFactor)
   lightCam.up.set(V3F(0.0001f, 1, 0).normalize.toGdx)
   lightCam.near = 1
-  lightCam.far = worldBoxRad * 3
+  lightCam.far = worldBoxRad * overshootFactor * 2
 
   var skyColor: V3F = V3F(0.5089f, 0.6941f, 1f)
 
@@ -95,11 +96,13 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
   def setupSunlight(world: SWorld): Unit = {
     val cycle = world.time.toFloat / DayCycleTicks.toFloat % 1
+    val rotation = 15
     val sunDir = V3F(-Trig.cos(cycle * 360), Trig.sin(cycle * 360), 0)
     val worldCenter = (V3F(cam.position) / 32 floor) * 32
-    val sunPos = worldCenter + (sunDir * worldBoxRad * 1.5f)
+    val sunPos = (worldCenter + (sunDir * worldBoxRad * 1.5f)).rotate(Up, rotation)
 
     lightCam.position.set(sunPos toGdx)
+    lightCam.up.set(Up toGdx)
     lightCam.lookAt(worldCenter.toGdx)
     lightCam.update()
 
@@ -150,6 +153,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
       0, 0, 1, 0,
       0, 0, 0, 1
     ))
+    sunModel.renderable.worldTransform.rotate(Up toGdx, rotation)
     sunModel.renderable.worldTransform
       .translate(((East * sunDist * Trig.cos(cycle * 360)) + (Up * sunDist * Trig.sin(cycle * 360))) toGdx)
     sunModel.renderable.worldTransform.rotate(South toGdx, cycle * 360)
