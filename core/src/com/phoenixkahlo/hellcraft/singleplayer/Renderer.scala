@@ -32,8 +32,6 @@ class Renderer(resources: ResourcePack) extends Disposable {
   lineShader.init()
   val basicShader = new BasicShader(resources.sheet, TerrainSID)
   basicShader.init()
-  val sunShader = new BasicShader(resources.solo(SunTID), null)
-  sunShader.init()
   val pointShader = new PointShader
   pointShader.init()
   val genericShader = new GenericShader(resources.sheet)
@@ -64,36 +62,94 @@ class Renderer(resources: ResourcePack) extends Disposable {
   val spriteBatch = new SpriteBatch()
 
   def render(world: SWorld, units: Seq[RenderUnit], interpolation: Interpolation): Unit = {
-    // convert to provider
-    val provider = new RenderableProvider {
-      override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit = {
-        units.flatMap(_(interpolation)).foreach(renderables.add)
-      }
-    }
-
     // set up sunlight
     val cycle = world.time.toFloat / DayCycleTicks.toFloat % 1
     val sunDir = V3F(-Trig.cos(cycle * 360), Trig.sin(cycle * 360), 0)
     val sunPos = V3F(cam.position) + (sunDir * LoadDist.fold(Math.max) * 20)
+    val moonPos = V3F(cam.position) + (sunDir.neg * LoadDist.fold(Math.max) * 20)
 
-    terrainShader.lightPos = sunPos
-    genericShader.lightPos = sunPos
+    val sunMoon = ParticleFactory(resources,
+      ParticleType((V3F(cam.position) dist sunPos) / 8, SunTID) -> sunPos,
+      ParticleType((V3F(cam.position) dist moonPos) / 8, MoonTID) -> moonPos
+    )
 
+
+    // compute sky color
     val dayColor = V3F(0.5089f, 0.6941f, 1f)
     val nightColor = V3F(0.0039f, 0.0471f, 0.1843f)
+    val transFrac = 0.04f
 
-    Gdx.gl.glClearColor(0.5089f, 0.6941f, 1f, 1f)
+    var trans: Float = 0
+    var from: V3F = null
+    var to: V3F = null
+    if (cycle < transFrac / 2 || cycle > 1 - transFrac / 2) {
+      // sunrise
+      trans = (cycle + transFrac / 2) % 1 / transFrac
+      from = nightColor
+      to = dayColor
+    } else if (cycle > 0.5f - transFrac / 2 && cycle < 0.5f + transFrac / 2) {
+      // sunset
+      trans = (cycle + transFrac / 2 - 0.5f) / transFrac
+      from = dayColor
+      to = nightColor
+    } else if (cycle < 0.5f) {
+      // day
+      from = dayColor
+      to = dayColor
+    } else {
+      // night
+      from = nightColor
+      to = nightColor
+    }
+    val skyColor = ((to - from) * trans) + from
+
+    // compute sun power
+    val fromPow = if (from == dayColor) 1 else -1
+    val toPow = if (to == dayColor) 1 else -1
+    val lightPow = ((toPow - fromPow) * trans) + fromPow
+    if (lightPow > 0) {
+      terrainShader.lightPow = lightPow
+      genericShader.lightPow = lightPow
+
+      terrainShader.lightPos = sunPos
+      genericShader.lightPos = sunPos
+    } else {
+      val moonPow = 1f / 10f
+
+      terrainShader.lightPow = -lightPow * moonPow
+      genericShader.lightPow = -lightPow * moonPow
+
+
+      terrainShader.lightPos = moonPos
+      genericShader.lightPos = moonPos
+
+    }
+
+    // clear
+    Gdx.gl.glClearColor(skyColor.x, skyColor.y, skyColor.z, 1f)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
 
+    // convert to provider
+    val provider = new RenderableProvider {
+      override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit = {
+        (units :+ sunMoon).flatMap(_(interpolation)).foreach(renderables.add)
+      }
+    }
+
+    // render scene
     batch.begin(cam)
     batch.render(provider, environment)
     batch.end()
 
+    // render HUD
     spriteBatch.begin()
     for (comp <- hud.components(resources)) {
       comp.draw(spriteBatch)
     }
     spriteBatch.end()
+
+    // dispose of render-local resources
+    sunMoon.resources.foreach(_.dispose())
 
     /*
     val toRender: lang.Iterable[RenderableProvider] = JavaConverters.asJavaIterable(providers)
@@ -257,7 +313,6 @@ class Renderer(resources: ResourcePack) extends Disposable {
     terrainShader.dispose()
     lineShader.dispose()
     basicShader.dispose()
-    sunShader.dispose()
     sunModel.dispose()
     genericShader.dispose()
   }

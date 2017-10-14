@@ -23,4 +23,9 @@ object Trig {
   def atan2(y: Float, x: Float): Float =
     Math.toDegrees(Math.atan2(y, x)).toFloat
 
+  def clamp(n: Float, min: Float, max: Float): Float =
+    if (n < min) min
+    else if (n > max) max
+    else n
+
 }

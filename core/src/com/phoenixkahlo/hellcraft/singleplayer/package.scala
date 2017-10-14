@@ -20,7 +20,7 @@ package object singleplayer {
   val WorldRes = 16
   val LoadDist = V3I(8, 4, 8)
 
-  val DayCycleTime = 20 seconds
+  val DayCycleTime = 20 minutes
   val DayCycleTicks = DayCycleTime.toSeconds * Delta.updatesPerSecond
   val ShadowPixelDensity = 20
 

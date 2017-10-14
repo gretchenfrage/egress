@@ -18,12 +18,13 @@ case object GrassTID extends SheetTextureID
 case object CrosshairTID extends SheetTextureID
 case object CursorTID extends SheetTextureID
 case object SoundTID extends SheetTextureID
+case object SunTID extends SheetTextureID
+case object MoonTID extends SheetTextureID
 case object ErrorTID extends SheetTextureID
 
 sealed trait SoloTextureID
 case object ButtonTID extends SoloTextureID
 case object ButtonActiveTID extends SoloTextureID
-case object SunTID extends SoloTextureID
 
 sealed trait PixmapID
 case object MenuPatchPID extends PixmapID
@@ -69,6 +70,8 @@ class DefaultResourcePack extends ResourcePack {
     CrosshairTID -> 5,
     CursorTID -> 6,
     SoundTID -> 7,
+    SunTID -> 8,
+    MoonTID -> 9,
     ErrorTID -> 255
   ) map { case (tid, n) => (tid, new TextureRegion(sheet, (n % 16) * 16, (n - (n % 16)) * 16, 16, 16)) } toMap
 
@@ -77,8 +80,7 @@ class DefaultResourcePack extends ResourcePack {
 
   val solos: Map[SoloTextureID, Texture] = Seq(
     ButtonTID -> "button.png",
-    ButtonActiveTID -> "button_active.png",
-    SunTID -> "sun.png"
+    ButtonActiveTID -> "button_active.png"
   ) map { case (tid, path) => (tid, new Texture(Gdx.files.internal(path))) } toMap
 
   override def solo(texID: SoloTextureID): Texture =
