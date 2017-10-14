@@ -7,8 +7,9 @@ import com.badlogic.gdx.graphics.glutils.GeomShaderProgram.ShaderPart
 import com.badlogic.gdx.graphics.glutils.{GeomShaderProgram, ShaderProgram, ShaderStage}
 import com.badlogic.gdx.graphics.{Camera, GL20, PerspectiveCamera, Texture}
 import com.badlogic.gdx.utils.GdxRuntimeException
+import com.phoenixkahlo.hellcraft.math.{Origin, V3F}
 
-class GenericShader(sheet: Texture, light: Camera) extends Shader {
+class GenericShader(sheet: Texture) extends Shader {
 
 
   var program: GeomShaderProgram = _
@@ -18,14 +19,12 @@ class GenericShader(sheet: Texture, light: Camera) extends Shader {
   var u_worldTrans: Int = _
   var u_viewTrans: Int = _
   var u_projTrans: Int = _
-  var u_shadowProjViewTrans: Int = _
   var u_lightPos: Int = _
   var u_texture: Int = _
-  var u_depthMap: Int = _
   var u_lightPow: Int = _
 
-  var depthMap: Texture = _
   var lightPow: Float = 1
+  var lightPos: V3F = Origin
 
   override def canRender(instance: Renderable): Boolean = {
     instance.userData == GenericSID
@@ -47,10 +46,8 @@ class GenericShader(sheet: Texture, light: Camera) extends Shader {
     u_worldTrans = program.getUniformLocation("u_worldTrans")
     u_viewTrans = program.getUniformLocation("u_viewTrans")
     u_projTrans = program.getUniformLocation("u_projTrans")
-    u_shadowProjViewTrans = program.getUniformLocation("u_shadowProjViewTrans")
     u_lightPos = program.getUniformLocation("u_lightPos")
     u_texture = program.getUniformLocation("u_texture")
-    u_depthMap = program.getUniformLocation("u_depthMap")
     u_lightPow = program.getUniformLocation("u_lightPow")
   }
 
@@ -64,13 +61,9 @@ class GenericShader(sheet: Texture, light: Camera) extends Shader {
 
     program.setUniformMatrix(u_viewTrans, cam.view)
     program.setUniformMatrix(u_projTrans, cam.projection)
-    program.setUniformMatrix(u_shadowProjViewTrans, light.combined)
-    program.setUniform3fv(u_lightPos, Array(light.position.x, light.position.y, light.position.z), 0, 3)
+    program.setUniform3fv(u_lightPos, Array(lightPos.x, lightPos.y, lightPos.z), 0, 3)
     sheet.bind(0)
     program.setUniformi(u_texture, 0)
-    depthMap.bind(1)
-    program.setUniformi(u_depthMap, 1)
-    program.setUniformf(u_lightPow, lightPow)
 
     context.setDepthTest(GL20.GL_LEQUAL)
     context.setCullFace(GL20.GL_BACK)

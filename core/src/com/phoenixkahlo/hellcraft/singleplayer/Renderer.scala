@@ -1,28 +1,19 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
-import java.lang
-
-import com.badlogic.gdx.{Gdx, utils}
-import com.badlogic.gdx.Input.Keys
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics._
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import com.badlogic.gdx.graphics.g3d.shaders.DefaultShader
 import com.badlogic.gdx.graphics.g3d._
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
-import com.badlogic.gdx.graphics.g3d.utils.{DefaultShaderProvider, ShaderProvider}
-import com.badlogic.gdx.graphics.glutils.FrameBuffer
-import com.badlogic.gdx.math.{Matrix4, Quaternion}
+import com.badlogic.gdx.graphics.g3d.utils.ShaderProvider
 import com.badlogic.gdx.utils.{Disposable, Pool}
-import com.phoenixkahlo.hellcraft.graphics.{DefaultHUD, ResourcePack, SunModel, SunTID}
+import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.graphics.shaders._
 import com.phoenixkahlo.hellcraft.math._
 
-import scala.collection.JavaConverters
 
 class Renderer(resources: ResourcePack) extends Disposable {
-
-  var g: Int = 0
 
   val environment = new Environment
   environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1))
@@ -35,62 +26,33 @@ class Renderer(resources: ResourcePack) extends Disposable {
   cam.lookAt(0, 25, 0)
   cam.up.set(0, 1, 0)
 
-  val worldBoxRad = LoadDist.fold(Math.max) * 16
-  val overshootFactor = 2.5f
-  val sunlightRes = (worldBoxRad * overshootFactor * ShadowPixelDensity) toInt
-  val lightBuffer = new FrameBuffer(Pixmap.Format.RGBA8888, sunlightRes, sunlightRes, true)
-  val lightCam = new OrthographicCamera(worldBoxRad * overshootFactor, worldBoxRad * overshootFactor)
-  lightCam.up.set(V3F(0.0001f, 1, 0).normalize.toGdx)
-  lightCam.near = 1
-  lightCam.far = worldBoxRad * overshootFactor * 2
-
-  var skyColor: V3F = V3F(0.5089f, 0.6941f, 1f)
-
-  val terrainShader = new SceneShader(resources.sheet, lightCam)
+  val terrainShader = new TerrainShader(resources.sheet)
   terrainShader.init()
   val lineShader = new LineShader
   lineShader.init()
-  val depthShader = new DepthShader
-  depthShader.init()
-  val depthLineShader = new DepthLineShader
-  depthLineShader.init()
   val basicShader = new BasicShader(resources.sheet, TerrainSID)
   basicShader.init()
   val sunShader = new BasicShader(resources.solo(SunTID), null)
   sunShader.init()
   val pointShader = new PointShader
   pointShader.init()
-  val genericShader = new GenericShader(resources.sheet, lightCam)
+  val genericShader = new GenericShader(resources.sheet)
   genericShader.init()
 
   val sunModel = new SunModel
 
   val batch = new ModelBatch(new ShaderProvider {
     override def getShader(renderable: Renderable): Shader =
-      if (renderable.userData == null) {
-        if (renderable.shader != null) renderable.shader
-        else {
-          println("warning: generating default shader")
-          val shader = new DefaultShader(renderable)
-          shader.init()
-          renderable.shader = shader
-          shader
-        }
-      } else renderable.userData.asInstanceOf[ShaderID] match {
+      renderable.userData match {
         case TerrainSID => terrainShader
         case LineSID => lineShader
         case PointSID => pointShader
         case BasicSID => basicShader
         case GenericSID => genericShader
+        case _ =>
+          println("failed to generate shader for " + renderable + " with userData + " + renderable.userData)
+          DontRenderShader
       }
-
-    override def dispose(): Unit = ()
-  })
-
-  val depthBatch = new ModelBatch(new ShaderProvider {
-    override def getShader(renderable: Renderable): Shader =
-      if (renderable.userData == LineSID) DontRenderShader
-      else depthShader
 
     override def dispose(): Unit = ()
   })
@@ -98,6 +60,62 @@ class Renderer(resources: ResourcePack) extends Disposable {
   val hud = new DefaultHUD
   val spriteBatch = new SpriteBatch()
 
+  def render(world: SWorld, units: Seq[RenderUnit], interpolation: Interpolation): Unit = {
+    // convert to provider
+    val provider = new RenderableProvider {
+      override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit = {
+        units.flatMap(_(interpolation)).foreach(renderables.add)
+      }
+    }
+
+    // set up sunlight
+    val cycle = world.time.toFloat / DayCycleTicks.toFloat % 1
+    val sunDir = V3F(-Trig.cos(cycle * 360), Trig.sin(cycle * 360), 0)
+    val sunPos = V3F(cam.position) + (sunDir * LoadDist.fold(Math.max) * 20)
+
+    terrainShader.lightPos = sunPos
+    genericShader.lightPos = sunPos
+
+    val dayColor = V3F(0.5089f, 0.6941f, 1f)
+    val nightColor = V3F(0.0039f, 0.0471f, 0.1843f)
+
+    Gdx.gl.glClearColor(0.5089f, 0.6941f, 1f, 1f)
+    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
+
+    batch.begin(cam)
+    batch.render(provider, environment)
+    batch.end()
+
+    /*
+    val toRender: lang.Iterable[RenderableProvider] = JavaConverters.asJavaIterable(providers)
+    setupSunlight(world, toRender)
+
+    Gdx.gl.glClearColor(skyColor.x, skyColor.y, skyColor.z, 1f)
+    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
+    Gdx.gl.glEnable(GL20.GL_TEXTURE_2D)
+
+    if (!Gdx.input.isKeyPressed(Keys.M)) {
+      batch.begin(cam)
+      batch.render(JavaConverters.asJavaIterable(providers), environment)
+      batch.render(sunModel, environment, sunShader)
+      batch.end()
+    } else {
+      depthBatch.begin(lightCam)
+      depthBatch.render(toRender, environment)
+      depthBatch.end()
+    }
+
+    spriteBatch.begin()
+    for (comp <- hud.components(resources)) {
+      comp.draw(spriteBatch)
+    }
+    spriteBatch.end()
+
+    g += 1
+     */
+  }
+
+  /*
   def setupSunlight(world: SWorld, toRender: lang.Iterable[RenderableProvider]): Unit = {
     if (g % 1 != 0)
       return
@@ -217,6 +235,13 @@ class Renderer(resources: ResourcePack) extends Disposable {
     spriteBatch.end()
 
     g += 1
+  }
+  */
+
+  def onResize(width: Int, height: Int): Unit = {
+    cam.viewportWidth = width
+    cam.viewportHeight = height
+    cam.update()
   }
 
   override def dispose(): Unit = {

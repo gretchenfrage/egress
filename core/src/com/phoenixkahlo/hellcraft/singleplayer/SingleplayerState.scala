@@ -234,15 +234,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       })
     })
 
-    // convert to provider
-    val provider = new RenderableProvider {
-      override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit = {
-        units.flatMap(_ (interpolation)).foreach(renderables.add)
-      }
-    }
-
     // render
-    renderer.render(toRender, Seq(provider))
+    renderer.render(toRender, units, interpolation)
   }
 
   override def onResize(width: Int, height: Int): Unit = {
