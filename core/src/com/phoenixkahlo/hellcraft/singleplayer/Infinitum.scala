@@ -22,6 +22,7 @@ class SWorld(
               override val res: Int,
               val chunks: Map[V3I, Chunk],
               val complete: Set[V3I],
+              val active: Set[V3I],
               val missingTerrSoup: Set[V3I],
               val missingBlockSoup: Set[V3I],
               val min: Option[V3I],
@@ -41,9 +42,9 @@ class SWorld(
 
   private def compBoundingBox: SWorld =
     if (chunks isEmpty)
-      new SWorld(time, res, chunks, complete, missingTerrSoup, missingBlockSoup, None, None)
+      new SWorld(time, res, chunks, complete, active, missingTerrSoup, missingBlockSoup, None, None)
     else
-      new SWorld(time, res, chunks, complete, missingTerrSoup, missingBlockSoup,
+      new SWorld(time, res, chunks, complete, active, missingTerrSoup, missingBlockSoup,
         Some(V3I(chunks.keySet.toSeq.map(_.xi).min, chunks.keySet.toSeq.map(_.yi).min, chunks.keySet.toSeq.map(_.zi).min)),
         Some(V3I(chunks.keySet.toSeq.map(_.xi).max, chunks.keySet.toSeq.map(_.yi).max, chunks.keySet.toSeq.map(_.zi).max))
       )
@@ -52,11 +53,11 @@ class SWorld(
     * Remove those chunks from this world,
     */
   def --(ps: Seq[V3I]): SWorld = {
-    new SWorld(time, res, chunks -- ps, complete -- ps, missingTerrSoup -- ps, missingBlockSoup -- ps, None, None).compBoundingBox
+    new SWorld(time, res, chunks -- ps, complete -- ps, active -- ps, missingTerrSoup -- ps, missingBlockSoup -- ps, None, None).compBoundingBox
   }
 
   def -(p: V3I): SWorld = {
-    new SWorld(time, res, chunks - p, complete - p, missingTerrSoup - p, missingBlockSoup - p, None, None).compBoundingBox
+    new SWorld(time, res, chunks - p, complete - p, active - p, missingTerrSoup - p, missingBlockSoup - p, None, None).compBoundingBox
   }
 
   /**
@@ -70,25 +71,29 @@ class SWorld(
     val complete = cs.filter(_.isComplete)
     val mts = cs.filter(_.terrainSoup.isEmpty)
     val mbs = cs.filter(_.blockSoup.isEmpty)
-    new SWorld(time, res, removed.chunks ++ cs.map(c => c.pos -> c),
+    new SWorld(time, res,
+      removed.chunks ++ cs.map(c => c.pos -> c),
       removed.complete ++ complete.map(_.pos),
+      removed.active ++ cs.filter(_ isActive).map(_.pos),
       removed.missingTerrSoup ++ mts.map(_.pos),
       removed.missingBlockSoup ++ mbs.map(_.pos),
       Some(V3I(
-            Math.min(cs.map(_.pos.xi).min, min.map(_.xi).getOrElse(Int.MaxValue)),
-            Math.min(cs.map(_.pos.yi).min, min.map(_.yi).getOrElse(Int.MaxValue)),
-            Math.min(cs.map(_.pos.zi).min, min.map(_.zi).getOrElse(Int.MaxValue))
-          )), Some(V3I(
-            Math.max(cs.map(_.pos.xi).max, max.map(_.xi).getOrElse(Int.MinValue)),
-            Math.max(cs.map(_.pos.yi).max, max.map(_.yi).getOrElse(Int.MinValue)),
-            Math.max(cs.map(_.pos.zi).max, max.map(_.zi).getOrElse(Int.MinValue))
-          )))
+        Math.min(cs.map(_.pos.xi).min, min.map(_.xi).getOrElse(Int.MaxValue)),
+        Math.min(cs.map(_.pos.yi).min, min.map(_.yi).getOrElse(Int.MaxValue)),
+        Math.min(cs.map(_.pos.zi).min, min.map(_.zi).getOrElse(Int.MaxValue))
+      )), Some(V3I(
+        Math.max(cs.map(_.pos.xi).max, max.map(_.xi).getOrElse(Int.MinValue)),
+        Math.max(cs.map(_.pos.yi).max, max.map(_.yi).getOrElse(Int.MinValue)),
+        Math.max(cs.map(_.pos.zi).max, max.map(_.zi).getOrElse(Int.MinValue))
+      )))
   }
 
   def +(c: Chunk): SWorld = {
     val removed = this - c.pos
-    new SWorld(time, res, removed.chunks + (c.pos -> c),
+    new SWorld(time, res,
+      removed.chunks + (c.pos -> c),
       if (c.isComplete) removed.complete + c.pos else removed.complete,
+      if (c.isActive) removed.active + c.pos else removed.active,
       if (c.terrainSoup.isEmpty) removed.missingTerrSoup + c.pos else removed.missingTerrSoup,
       if (c.blockSoup.isEmpty) removed.missingBlockSoup + c.pos else removed.missingBlockSoup,
       Some(V3I(
@@ -101,15 +106,6 @@ class SWorld(
         Math.max(c.pos.zi, max.map(_.zi).getOrElse(Int.MinValue))
       )))
   }
-
-  /**
-    * The chunks which's terrain can be upgraded with this world.
-    */
-  /*
-  def upgradeable: Seq[Chunk] = {
-    incomplete.toSeq.map(chunks(_)).filter(_.terrain.asInstanceOf[ProtoTerrain].canComplete(this))
-  }
-  */
 
   def terrainSoupable: Seq[Chunk] = {
     missingTerrSoup.toSeq.filter(Terrain.canComplete(_, this)).map(chunks(_))
@@ -168,14 +164,14 @@ class SWorld(
     * Increment the time
     */
   def incrTime: SWorld = {
-    new SWorld(time + 1, res, chunks, complete, missingTerrSoup, missingBlockSoup, min, max)
+    new SWorld(time + 1, res, chunks, complete, active, missingTerrSoup, missingBlockSoup, min, max)
   }
 
   /**
     * Get all effects from chunks with complete terrain
     */
   def effects(dt: Float): Seq[UpdateEffect] = {
-    complete.toSeq.map(chunks(_)).flatMap(_.update(this))
+    active.toSeq.filter(complete(_)).map(chunks(_)).flatMap(_.update(this))
   }
 
   /**
@@ -193,7 +189,7 @@ class SWorld(
 class Infinitum(res: Int, save: AsyncSave, dt: Float) {
 
   @volatile private var history =
-    SortedMap(0L -> new SWorld(0, res, Map.empty, Set.empty, Set.empty, Set.empty, None, None))
+    SortedMap(0L -> new SWorld(0, res, Map.empty, Set.empty, Set.empty, Set.empty, Set.empty, None, None))
 
   type LoadID = UUID
   type TerrainSoupID = UUID
@@ -244,18 +240,6 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     }
 
     // create upgrade futures
-    /*
-    val upgradeWith = world
-    val upgradeable = world.upgradeable.filterNot(terrainSoupMap contains _.pos)
-    for (chunk <- upgradeable) {
-      val upgradeID = UUID.randomUUID()
-      terrainSoupMap += chunk.pos -> upgradeID
-      UniExecutor.exec(chunk.pos * 16 + V3I(8, 8, 8))(() => {
-        val upgraded = chunk.terrain.asInstanceOf[ProtoTerrain].complete(upgradeWith).get
-        terrainSoupQueue.add(upgraded -> upgradeID)
-      })
-    }
-    */
     val upgradeWith = world
     // for terrain soup
     val terrainSoupable = world.terrainSoupable.filterNot(terrainSoupMap contains _.pos)
@@ -302,15 +286,6 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       var events = eventsIn
       
       // pull upgraded chunks from the queue and add update terrain events if they're valid
-      /*
-      while (terrainSoupQueue.size > 0) {
-        val (terrain, upgradeID) = terrainSoupQueue.remove()
-        if (terrainSoupMap.get(terrain.pos).contains(upgradeID)) {
-          terrainSoupMap -= terrain.pos
-          events +:= SetTerrain(terrain, UUID.randomUUID())
-        }
-      }
-      */
       // for terrain soup
       while (terrainSoupQueue.size > 0) {
         val (soup, upgradeID) = terrainSoupQueue.remove()

@@ -1,5 +1,7 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
+import java.lang
+
 import com.badlogic.gdx.{Gdx, utils}
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics._
@@ -20,6 +22,8 @@ import scala.collection.JavaConverters
 
 class Renderer(resources: ResourcePack) extends Disposable {
 
+  var g: Int = 0
+
   val environment = new Environment
   environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1))
   environment.add(new DirectionalLight().set(1, 1, 1, 0, -1, 0))
@@ -32,7 +36,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
   cam.up.set(0, 1, 0)
 
   val worldBoxRad = LoadDist.fold(Math.max) * 16
-  val overshootFactor = 2f
+  val overshootFactor = 2.5f
   val sunlightRes = (worldBoxRad * overshootFactor * ShadowPixelDensity) toInt
   val lightBuffer = new FrameBuffer(Pixmap.Format.RGBA8888, sunlightRes, sunlightRes, true)
   val lightCam = new OrthographicCamera(worldBoxRad * overshootFactor, worldBoxRad * overshootFactor)
@@ -94,12 +98,16 @@ class Renderer(resources: ResourcePack) extends Disposable {
   val hud = new DefaultHUD
   val spriteBatch = new SpriteBatch()
 
-  def setupSunlight(world: SWorld): Unit = {
+  def setupSunlight(world: SWorld, toRender: lang.Iterable[RenderableProvider]): Unit = {
+    if (g % 1 != 0)
+      return
+
     val cycle = world.time.toFloat / DayCycleTicks.toFloat % 1
     val rotation = 15
     val sunDir = V3F(-Trig.cos(cycle * 360), Trig.sin(cycle * 360), 0)
     val worldCenter = (V3F(cam.position) / 32 floor) * 32
     val sunPos = (worldCenter + (sunDir * worldBoxRad * 1.5f)).rotate(Up, rotation)
+    //val sunPos = V3F(worldBoxRad, worldBoxRad * 0.5f, 0)
 
     lightCam.position.set(sunPos toGdx)
     lightCam.up.set(Up toGdx)
@@ -137,13 +145,13 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
     skyColor = ((to - from) * trans) + from
 
-    /*
-    val fromPow = if (from == dayColor) 1 else 0
-    val toPow = if (to == dayColor) 1 else 0
-    val lightPow = ((toPow - fromPow) * trans) + fromPow
-    sceneShader.lightPow = lightPow
-    */
-    terrainShader.lightPow = 1
+    val fromPow = if (from == dayColor) 1 else -1
+    val toPow = if (to == dayColor) 1 else -1
+    val lightPow = Math.max(((toPow - fromPow) * trans) + fromPow, 0)
+    terrainShader.lightPow = lightPow
+    genericShader.lightPow = lightPow
+
+    //terrainShader.lightPow = 1
 
     val sunDist = cam.far * 0.9f
     val scale = 50
@@ -160,19 +168,6 @@ class Renderer(resources: ResourcePack) extends Disposable {
     sunModel.renderable.worldTransform.rotate(Down toGdx, 90)
     sunModel.renderable.worldTransform.scale(scale, scale, scale)
 
-  }
-
-  def onResize(width: Int, height: Int): Unit = {
-    cam.viewportWidth = width
-    cam.viewportHeight = height
-    cam.update()
-  }
-
-  def render(world: SWorld, providers: Seq[RenderableProvider]): Unit = {
-    setupSunlight(world)
-
-    val toRender = JavaConverters.asJavaIterable(providers)
-
     lightBuffer.begin()
 
     Gdx.gl.glClearColor(1, 1, 1, 1)
@@ -186,6 +181,18 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
     terrainShader.depthMap = lightBuffer.getColorBufferTexture
     genericShader.depthMap = lightBuffer.getColorBufferTexture
+
+  }
+
+  def onResize(width: Int, height: Int): Unit = {
+    cam.viewportWidth = width
+    cam.viewportHeight = height
+    cam.update()
+  }
+
+  def render(world: SWorld, providers: Seq[RenderableProvider]): Unit = {
+    val toRender: lang.Iterable[RenderableProvider] = JavaConverters.asJavaIterable(providers)
+    setupSunlight(world, toRender)
 
     Gdx.gl.glClearColor(skyColor.x, skyColor.y, skyColor.z, 1f)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
@@ -207,6 +214,8 @@ class Renderer(resources: ResourcePack) extends Disposable {
       comp.draw(spriteBatch)
     }
     spriteBatch.end()
+
+    g += 1
   }
 
   override def dispose(): Unit = {

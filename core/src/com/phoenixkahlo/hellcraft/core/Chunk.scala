@@ -60,6 +60,9 @@ class Chunk(
   def isComplete: Boolean =
     terrainSoup.isDefined && blockSoup.isDefined
 
+  def isActive: Boolean =
+    entities nonEmpty
+
   def makeComplete(world: World): Chunk = {
     val ts = TerrainSoup(terrain, world).get
     val bs = BlockSoup(terrain, world).get

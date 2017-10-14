@@ -206,7 +206,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     // draw a cube where you're pointing
     for (v <- toRender.placeBlock(V3F(renderer.cam.position), V3F(renderer.cam.direction), 16)) {
-      units +:= new BlockOutline(v / WorldRes * 16, Color.WHITE, scale = 16f / WorldRes)
+      units +:= new BlockOutline(v / WorldRes * 16, Color.WHITE, scale = 16f / WorldRes * 0.95f)
     }
     /*
     if (Gdx.input.isKeyPressed(Keys.ALT_LEFT)) {
