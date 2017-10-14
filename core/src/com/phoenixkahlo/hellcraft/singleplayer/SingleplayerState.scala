@@ -3,7 +3,8 @@ package com.phoenixkahlo.hellcraft.singleplayer
 import java.util.UUID
 
 import com.badlogic.gdx.Input.Keys
-import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.VertexAttributes.Usage
+import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.graphics.g3d._
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.utils.Pool
@@ -13,11 +14,12 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.graphics.models.{BlockOutline, ChunkOutline}
+import com.phoenixkahlo.hellcraft.graphics.shaders.ParticleSID
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.util.audio.AudioUtil
 import com.phoenixkahlo.hellcraft.util.caches.Cache
-import com.phoenixkahlo.hellcraft.util.collections.DependencyGraph
+import com.phoenixkahlo.hellcraft.util.collections.{DependencyGraph, ResourceNode}
 import com.phoenixkahlo.hellcraft.util.threading.UniExecutor
 import other.AppDirs
 
@@ -207,7 +209,46 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     // draw a cube where you're pointing
     for (v <- toRender.placeBlock(V3F(renderer.cam.position), V3F(renderer.cam.direction), 16)) {
       units +:= new BlockOutline(v / WorldRes * 16, Color.WHITE, scale = 16f / WorldRes * 0.95f)
+
+      // draw a particle where you're pointing
+      units +:= new RenderUnit {
+        val tex = SingleplayerState.this.resources.sheetRegion(StoneTID)
+
+        val verts = Array[Float](
+          v.x, v.y, v.z,
+          Color.WHITE.toFloatBits,
+          2,
+          tex.getU, tex.getV,
+          tex.getU2, tex.getV2
+        )
+        val indices = Array[Short](0)
+        val mesh = new Mesh(true, verts.length, indices.length,
+          new VertexAttribute(Usage.Generic, 3, "a_position"),
+          new VertexAttribute(Usage.ColorPacked, 4, "a_color"),
+          new VertexAttribute(Usage.Generic, 1, "a_size"),
+          new VertexAttribute(Usage.Generic, 2, "a_texCoord0"),
+          new VertexAttribute(Usage.Generic, 2, "a_texCoord1")
+        )
+        mesh.setVertices(verts)
+        mesh.setIndices(indices)
+
+        val renderable = new Renderable
+        renderable.meshPart.mesh = mesh
+        renderable.material = new com.badlogic.gdx.graphics.g3d.Material
+        renderable.meshPart.offset = 0
+        renderable.meshPart.size = indices.size
+        renderable.meshPart.primitiveType = GL20.GL_POINTS
+        renderable.userData = ParticleSID
+
+        override def apply(interpolation: Interpolation): Seq[Renderable] = Seq(renderable)
+
+        override def resources: Seq[ResourceNode] = Seq.empty
+      }
+
     }
+
+
+
     /*
     if (Gdx.input.isKeyPressed(Keys.ALT_LEFT)) {
       toRender.chunks.values.map(_.terrain).foreach {

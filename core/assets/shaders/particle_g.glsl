@@ -24,24 +24,27 @@ void main() {
     //  1|/____________|
     //    4             6
 
-    gl_Position = gl_in[0].gl_Position + vec4(-size, -size, 0, 0);
+    gl_Position = gl_in[0].gl_Position + vec4(-v_size[0], -v_size[0], 0, 0);
     f_texCoord0 = v_texCoord0[0];
     EmitVertex();
-    gl_Position = gl_in[0].gl_Position + vec4(-size, +size, 0, 0);
-    f_texCoord0 = vec2(v_texCoord0[0].x, v_texCoord1[0].y);
-    EmitVertex();
-    gl_Position = gl_in[0].gl_Position + vec4(+size, +size, 0, 0);
+    gl_Position = gl_in[0].gl_Position + vec4(+v_size[0], +v_size[0], 0, 0);
     f_texCoord0 = v_texCoord1[0];
+    EmitVertex();
+    gl_Position = gl_in[0].gl_Position + vec4(-v_size[0], +v_size[0], 0, 0);
+    f_texCoord0 = vec2(v_texCoord0[0].x, v_texCoord1[0].y);
     EmitVertex();
     EndPrimitive();
 
-    gl_Position = gl_in[0].gl_Position + vec4(-size, -size, 0, 0);
+    gl_Position = gl_in[0].gl_Position + vec4(-v_size[0], -v_size[0], 0, 0);
     f_texCoord0 = v_texCoord0[0];
     EmitVertex();
-    gl_Position = gl_in[0].gl_Position + vec4(+size, +size, 0, 0);
+    gl_Position = gl_in[0].gl_Position + vec4(+v_size[0], -v_size[0], 0, 0);
+    f_texCoord0 = vec2(v_texCoord1[0].x, v_texCoord0[0].y);
+    EmitVertex();
+    gl_Position = gl_in[0].gl_Position + vec4(+v_size[0], +v_size[0], 0, 0);
     f_texCoord0 = v_texCoord1[0];
     EmitVertex();
-    gl_Positoin = gl_in[0].gl_Position + vec4(+size, -size, 0, 0);
+    gl_Position = gl_in[0].gl_Position + vec4(+v_size[0], -v_size[0], 0, 0);
     f_texCoord0 = vec2(v_texCoord1[0].x, v_texCoord0[0].y);
     EmitVertex();
     EndPrimitive();
