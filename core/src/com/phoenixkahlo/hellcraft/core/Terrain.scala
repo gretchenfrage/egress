@@ -34,7 +34,12 @@ object Terrain {
 case class TerrainSoup(pos: V3I, verts: OptionField[TerrainSoup.Vert], indices: Seq[Short], indexToVert: Seq[V3I],
                        vertToIndex: ShortField) extends Iterable[(V3F, V3F, V3F)] {
   override def iterator: Iterator[(V3F, V3F, V3F)] =
-    indices.iterator.sliding(3, 3).map(_.map(i => verts(indexToVert(i)).get.pos)).map(seq => (seq(0), seq(1), seq(2)))
+    Range(0, indices.size, 3).iterator
+      .map(i => (
+        verts(indexToVert(indices(i + 0))).get.pos,
+        verts(indexToVert(indices(i + 1))).get.pos,
+        verts(indexToVert(indices(i + 2))).get.pos
+      ))
 }
 object TerrainSoup {
   @CarboniteFields case class Vert(pos: V3F, mat: Material, nor: V3F)

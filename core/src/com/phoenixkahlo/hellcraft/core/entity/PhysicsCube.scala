@@ -278,7 +278,6 @@ case class PhysCube(vel: V3F, override val pos: V3F, override val id: UUID) exte
     }
 
     var events = new ArrayBuffer[UpdateEffect]
-    var ids = RNG.uuids(RNG(id.getLeastSignificantBits))
     if (colPackage.foundCollision) {
       events += PutEntity(new Cube(GrassTID, colPackage.intersectionPoint, ids.head), ids.drop(1).head)
     }
