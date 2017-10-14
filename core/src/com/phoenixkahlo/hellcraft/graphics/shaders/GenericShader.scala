@@ -60,6 +60,7 @@ class GenericShader(sheet: Texture) extends Shader {
     program.begin()
 
     program.setUniformMatrix(u_viewTrans, cam.view)
+    program.setUniformf(u_lightPow, lightPow)
     program.setUniformMatrix(u_projTrans, cam.projection)
     program.setUniform3fv(u_lightPos, Array(lightPos.x, lightPos.y, lightPos.z), 0, 3)
     sheet.bind(0)

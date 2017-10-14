@@ -38,6 +38,8 @@ class Renderer(resources: ResourcePack) extends Disposable {
   pointShader.init()
   val genericShader = new GenericShader(resources.sheet)
   genericShader.init()
+  val particleShader = new ParticleShader(resources.sheet)
+  particleShader.init()
 
   val sunModel = new SunModel
 
@@ -49,6 +51,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
         case PointSID => pointShader
         case BasicSID => basicShader
         case GenericSID => genericShader
+        case ParticleSID => particleShader
         case _ =>
           println("failed to generate shader for " + renderable + " with userData + " + renderable.userData)
           DontRenderShader
@@ -85,6 +88,12 @@ class Renderer(resources: ResourcePack) extends Disposable {
     batch.begin(cam)
     batch.render(provider, environment)
     batch.end()
+
+    spriteBatch.begin()
+    for (comp <- hud.components(resources)) {
+      comp.draw(spriteBatch)
+    }
+    spriteBatch.end()
 
     /*
     val toRender: lang.Iterable[RenderableProvider] = JavaConverters.asJavaIterable(providers)

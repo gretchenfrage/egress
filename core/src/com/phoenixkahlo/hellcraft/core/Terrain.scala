@@ -72,7 +72,7 @@ object TerrainSoup {
         // but if none of the corners are terrain, we shouldn't place a vertex at all
         corners.find(_.id > 0).map(mat => {
           val pos = (offset + v + V3F(0.5f, 0.5f, 0.5f)) / world.res * 16
-          Vert(pos, mat.asInstanceOf[Material], world.sampleDirection(pos).get)
+          Vert(pos, mat.asInstanceOf[Material], world.sampleDirection(pos).get.neg)
         })
       } else {
         // otherwise, we can do surface nets as normal
@@ -94,7 +94,7 @@ object TerrainSoup {
           val mat = (v to v + Ones).toStream
             .map(vv => world.terrainGridPoint(offset + vv).get).filterNot(_ == Air).head
 
-          Some(TerrainSoup.Vert(vertPos, mat.asInstanceOf[Material], world.sampleDirection(vertPos).get))
+          Some(TerrainSoup.Vert(vertPos, mat.asInstanceOf[Material], world.sampleDirection(vertPos).get.neg))
         }
       }
     })
