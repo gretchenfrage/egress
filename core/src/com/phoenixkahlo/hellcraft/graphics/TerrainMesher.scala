@@ -27,7 +27,7 @@ class TerrainMesher(chunk: Chunk, soup: TerrainSoup) {
         vert.pos.x, vert.pos.y, vert.pos.z,
         Color.WHITE.toFloatBits,
         texU, texV,
-        Float.NaN, Float.NaN, Float.NaN
+        vert.nor.x, vert.nor.y, vert.nor.z
       )
     }
 

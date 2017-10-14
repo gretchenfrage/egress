@@ -32,6 +32,7 @@ out vec3 f_lightDirCamSpace;
 out vec3 f_camDirCamSpace;
 
 void main() {
+    /*
     vec3 avg_normal = normalize((v_normalWorldSpace[0] + v_normalWorldSpace[1] + v_normalWorldSpace[2]) / 3.0);
     vec3 normal = normalize(cross(v_pos[1] - v_pos[0], v_pos[2] - v_pos[0]));
 
@@ -39,14 +40,14 @@ void main() {
         normal *= -1;
 
     vec3 normalCamSpace = (u_viewTrans * u_worldTrans * vec4(normal, 0)).xyz;
-
+    */
 
     f_pos =                           v_pos[0];
     f_texCoord0 =               v_texCoord0[0];
     f_color =                 vec4(1, 0, 0, 1);
     f_shadowCoord =           v_shadowCoord[0];
-    f_normalWorldSpace =                normal;
-    f_normalCamSpace =          normalCamSpace;
+    f_normalWorldSpace = v_normalWorldSpace[0];//normal;
+    f_normalCamSpace =     v_normalCamSpace[0];//normalCamSpace;
     f_lightDirCamSpace = v_lightDirCamSpace[0];
     f_camDirCamSpace =     v_camDirCamSpace[0];
     gl_Position =                     gl_in[0].gl_Position;
@@ -56,8 +57,8 @@ void main() {
     f_texCoord0 =               v_texCoord0[0] + vec2(0, 1.0 / 16.0);
     f_color =                 vec4(0, 1, 0, 1);
     f_shadowCoord =           v_shadowCoord[1];
-    f_normalWorldSpace =                normal;
-    f_normalCamSpace =          normalCamSpace;
+    f_normalWorldSpace = v_normalWorldSpace[1];//normal;
+    f_normalCamSpace =     v_normalCamSpace[1];//normalCamSpace;
     f_lightDirCamSpace = v_lightDirCamSpace[1];
     f_camDirCamSpace =     v_camDirCamSpace[1];
     gl_Position =                     gl_in[1].gl_Position;
@@ -67,8 +68,8 @@ void main() {
     f_texCoord0 =               v_texCoord0[0] + vec2(1.0 / 16.0, 0);
     f_color =                 vec4(0, 0, 1, 1);
     f_shadowCoord =           v_shadowCoord[2];
-    f_normalWorldSpace =                normal;
-    f_normalCamSpace =          normalCamSpace;
+    f_normalWorldSpace = v_normalWorldSpace[2];//normal;
+    f_normalCamSpace =     v_normalCamSpace[2];//normalCamSpace;
     f_lightDirCamSpace = v_lightDirCamSpace[2];
     f_camDirCamSpace =     v_camDirCamSpace[2];
     gl_Position =                     gl_in[2].gl_Position;

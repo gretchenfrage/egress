@@ -111,7 +111,8 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
     lightCam.position.set(sunPos toGdx)
     lightCam.up.set(Up toGdx)
-    lightCam.lookAt(worldCenter.toGdx)
+    //lightCam.lookAt(worldCenter.toGdx)
+    lightCam.direction.set(sunDir.neg.toGdx)
     lightCam.update()
 
     //skyColor = V3F(0.5089f, 0.6941f, 1f)

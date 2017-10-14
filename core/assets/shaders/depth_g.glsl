@@ -15,6 +15,7 @@ void main() {
     EmitVertex();
     EndPrimitive();
 
+    /*
     f_isBackfaceColluder = 1;
     gl_Position = gl_in[2].gl_Position;
     EmitVertex();
@@ -23,4 +24,5 @@ void main() {
     gl_Position = gl_in[0].gl_Position;
     EmitVertex();
     EndPrimitive();
+    */
 }

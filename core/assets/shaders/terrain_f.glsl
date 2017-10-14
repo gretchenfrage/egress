@@ -52,6 +52,7 @@ void main() {
     float specularStrength = pow(cosAlpha, 5) * u_lightPow;
 
     // compute visibility
+    /*
     float bias = 0.005 * tan(acos(cosTheta));
     bool visible = true;
     if (f_shadowCoord.z < 0) {
@@ -69,6 +70,7 @@ void main() {
         diffuseStrength = 0;
         specularStrength = 0;
     }
+    */
 
     // compute the color
     vec3 col =
