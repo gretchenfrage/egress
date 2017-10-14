@@ -14,7 +14,8 @@ class ParticleShader(sheet: Texture) extends Shader {
   var cam: Camera = _
   var context: utils.RenderContext = _
 
-  var u_MVP: Int = _
+  var u_MV: Int = _
+  var u_P: Int = _
   var u_texture: Int = _
 
   override def init(): Unit = {
@@ -30,7 +31,8 @@ class ParticleShader(sheet: Texture) extends Shader {
     if (!(program isCompiled))
       throw new GdxRuntimeException(program.getLog)
 
-    u_MVP = program.getUniformLocation("u_MVP")
+    u_MV = program.getUniformLocation("u_MV")
+    u_P = program.getUniformLocation("u_P")
     u_texture = program.getUniformLocation("u_texture")
   }
 
@@ -47,7 +49,8 @@ class ParticleShader(sheet: Texture) extends Shader {
   }
 
   override def render(renderable: Renderable): Unit = {
-    program.setUniformMatrix(u_MVP, renderable.worldTransform.cpy().mulLeft(cam.combined))
+    program.setUniformMatrix(u_MV, renderable.worldTransform.cpy().mulLeft(cam.view))
+    program.setUniformMatrix(u_P, cam.projection)
     renderable.meshPart.render(program)
   }
 

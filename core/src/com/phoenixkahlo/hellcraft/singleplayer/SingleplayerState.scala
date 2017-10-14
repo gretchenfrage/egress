@@ -31,7 +31,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var save: AsyncSave = _
   private var clock: GametimeClock = _
   private var infinitum: Infinitum = _
-  private var resources: ResourcePack = _
+  private var resourcePack: ResourcePack = _
   private var renderer: Renderer = _
   private var controller: FirstPersonCameraController = _
   private var vramGraph: DependencyGraph = _
@@ -63,10 +63,10 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     infinitum = new Infinitum(res, save, 1f / 20f)
 
     println("loading resources")
-    resources = providedResources()
+    resourcePack = providedResources()
 
     println("creating renderer")
-    renderer = new Renderer(resources)
+    renderer = new Renderer(resourcePack)
 
     println("instantiating controller")
     val multiplexer = new InputMultiplexer
@@ -166,7 +166,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
         // process effects
         effects(SoundEffect).map(_.asInstanceOf[SoundEffect])
-          .foreach(AudioUtil.play(resources, V3F(renderer.cam.position)))
+          .foreach(AudioUtil.play(resourcePack, V3F(renderer.cam.position)))
 
         // manage time
         if (clock.timeSince(time) > (500 milliseconds)) {
@@ -193,7 +193,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     controller.update()
 
     // get render units
-    var units = toRender.renderables(resources)
+    var units = toRender.renderables(resourcePack)
 
     // add debug units
     if (Gdx.input.isKeyPressed(Keys.ALT_LEFT)) {
@@ -210,7 +210,10 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     for (v <- toRender.placeBlock(V3F(renderer.cam.position), V3F(renderer.cam.direction), 16)) {
       units +:= new BlockOutline(v / WorldRes * 16, Color.WHITE, scale = 16f / WorldRes * 0.95f)
 
+      //units +:= ParticleFactory(resourcePack, ParticleType(V3F(renderer.cam.position) dist v, StoneTID) -> v)
+
       // draw a particle where you're pointing
+      /*
       units +:= new RenderUnit {
         val tex = SingleplayerState.this.resources.sheetRegion(StoneTID)
 
@@ -244,6 +247,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
         override def resources: Seq[ResourceNode] = Seq.empty
       }
+      */
 
     }
 
