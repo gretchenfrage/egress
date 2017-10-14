@@ -20,6 +20,7 @@ case object CursorTID extends SheetTextureID
 case object SoundTID extends SheetTextureID
 case object SunTID extends SheetTextureID
 case object MoonTID extends SheetTextureID
+case object PhysTID extends SheetTextureID
 case object ErrorTID extends SheetTextureID
 
 sealed trait SoloTextureID
@@ -72,6 +73,7 @@ class DefaultResourcePack extends ResourcePack {
     SoundTID -> 7,
     SunTID -> 8,
     MoonTID -> 9,
+    PhysTID -> 10,
     ErrorTID -> 255
   ) map { case (tid, n) => (tid, new TextureRegion(sheet, (n % 16) * 16, (n - (n % 16)) * 16, 16, 16)) } toMap
 

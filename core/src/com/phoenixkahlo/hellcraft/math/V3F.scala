@@ -76,6 +76,9 @@ class V3F(val x: Float, val y: Float, val z: Float) {
   lazy val magnitude =
     Math.sqrt(x * x + y * y + z * z).toFloat
 
+  lazy val magnitudeSqrd =
+    x * x + y * y + z * z
+
   def dist(v: V3F) =
     (this - v).magnitude
 

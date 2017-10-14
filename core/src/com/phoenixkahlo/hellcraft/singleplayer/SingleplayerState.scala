@@ -9,7 +9,7 @@ import com.badlogic.gdx.graphics.g3d._
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.utils.Pool
 import com.badlogic.gdx.{Gdx, InputAdapter, InputMultiplexer}
-import com.phoenixkahlo.hellcraft.core.entity.{Cube, CubeFrame, GlideCube, SoundCube}
+import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics._
@@ -114,6 +114,18 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
             )
           })
           true
+        } else if (keycode == Keys.L) {
+          val camPos = V3F(renderer.cam.position)
+          val camDir = V3F(renderer.cam.direction)
+          val world = infinitum()
+          mainLoopTasks.add(() => {
+            for (v <- world.rayhit(camPos, camDir)) {
+              infinitum.update(infinitum().chunks.keySet, Seq(
+                PutEntity(PhysCube(camDir.normalize / 5, v + (Up * 10), UUID.randomUUID()), UUID.randomUUID())
+              ))
+            }
+          })
+          true
         } else false
 
       override def touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean = {
@@ -209,63 +221,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     // draw a cube where you're pointing
     for (v <- toRender.placeBlock(V3F(renderer.cam.position), V3F(renderer.cam.direction), 16)) {
       units +:= new BlockOutline(v / WorldRes * 16, Color.WHITE, scale = 16f / WorldRes * 0.95f)
-
-      //units +:= ParticleFactory(resourcePack, ParticleType(V3F(renderer.cam.position) dist v, StoneTID) -> v)
-
-      // draw a particle where you're pointing
-      /*
-      units +:= new RenderUnit {
-        val tex = SingleplayerState.this.resources.sheetRegion(StoneTID)
-
-        val verts = Array[Float](
-          v.x, v.y, v.z,
-          Color.WHITE.toFloatBits,
-          2,
-          tex.getU, tex.getV,
-          tex.getU2, tex.getV2
-        )
-        val indices = Array[Short](0)
-        val mesh = new Mesh(true, verts.length, indices.length,
-          new VertexAttribute(Usage.Generic, 3, "a_position"),
-          new VertexAttribute(Usage.ColorPacked, 4, "a_color"),
-          new VertexAttribute(Usage.Generic, 1, "a_size"),
-          new VertexAttribute(Usage.Generic, 2, "a_texCoord0"),
-          new VertexAttribute(Usage.Generic, 2, "a_texCoord1")
-        )
-        mesh.setVertices(verts)
-        mesh.setIndices(indices)
-
-        val renderable = new Renderable
-        renderable.meshPart.mesh = mesh
-        renderable.material = new com.badlogic.gdx.graphics.g3d.Material
-        renderable.meshPart.offset = 0
-        renderable.meshPart.size = indices.size
-        renderable.meshPart.primitiveType = GL20.GL_POINTS
-        renderable.userData = ParticleSID
-
-        override def apply(interpolation: Interpolation): Seq[Renderable] = Seq(renderable)
-
-        override def resources: Seq[ResourceNode] = Seq.empty
-      }
-      */
-
     }
-
-
-
-    /*
-    if (Gdx.input.isKeyPressed(Keys.ALT_LEFT)) {
-      toRender.chunks.values.map(_.terrain).foreach {
-        case t: ProtoTerrain => units +:= new ChunkOutline(t.pos, Color.RED)
-        case t: CompleteTerrain => units +:= new ChunkOutline(t.pos, Color.GREEN)
-      }
-      infinitum.loading.foreach(p => {
-        units +:= new ChunkOutline(p, Color.WHITE)
-      })
-    }
-
-
-    */
 
     // do memory management
     val nodes = units.par.flatMap(_.resources).seq
