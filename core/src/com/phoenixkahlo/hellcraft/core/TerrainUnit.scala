@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.core
 
 import com.phoenixkahlo.hellcraft.carbonite._
 import com.phoenixkahlo.hellcraft.core.Materials.seq
-import com.phoenixkahlo.hellcraft.graphics.{DirtTID, ErrorTID, SheetTextureID, StoneTID}
+import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.util.fields.IDMapping
 
 sealed trait TerrainUnit {
@@ -27,7 +27,11 @@ object Materials {
     override val id: Byte = 2
     override val tid: SheetTextureID = DirtTID
   }
-  val seq = Seq(Stone, Dirt)
+  case object Grass extends Material {
+    override def id: Byte = 3
+    override def tid: SheetTextureID = GrassTID
+  }
+  val seq = Seq(Stone, Dirt, Grass)
 }
 
 object Blocks {
@@ -39,7 +43,11 @@ object Blocks {
     override def id: Byte = -2
     override def tid: SheetTextureID = DirtTID
   }
-  val seq = Seq(Stone, Dirt)
+  case object Brick extends Block {
+    override def id: Byte = -3
+    override def tid: SheetTextureID = BrickTID
+  }
+  val seq = Seq(Stone, Dirt, Brick)
 }
 
 object TerrainUnits extends IDMapping[TerrainUnit] {

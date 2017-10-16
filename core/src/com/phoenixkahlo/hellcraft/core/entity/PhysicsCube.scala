@@ -10,27 +10,132 @@ import com.phoenixkahlo.hellcraft.math._
 
 import scala.collection.mutable.ArrayBuffer
 
-case class Plane(equation: Array[Float], origin: V3F, normal: V3F) {
-  def isFrontFacingTo(direction: V3F): Boolean =
-    (normal dot direction) <= 0
+object Physics {
 
-  def signedDistanceTo(point: V3F): Float =
-    (point dot normal) + equation(3)
+  def checkPointInTriangle(p: V3F, a: V3F, b: V3F, c: V3F): Boolean = {
+    def sameSide(p1: V3F, p2: V3F, a: V3F, b: V3F): Boolean = {
+      val cp1 = (b - a) cross (p1 - a)
+      val cp2 = (b - a) cross (p2 - a)
+      (cp1 dot cp2) >= 0
+    }
+    sameSide(p, a, b, c) && sameSide(p, b, a, c) && sameSide(p, c, a, b)
+  }
+
+  def getLowestRoot(a: Float, b: Float, c: Float, max: Float): Option[Float] = {
+    val determinant = b * b - 4 * a * c
+    if (determinant < 0) None
+    else {
+      val sqrtd = Math.sqrt(determinant).toFloat
+      val r1 = (-b - sqrtd) / (2 * a)
+      val r2 = (-b + sqrtd) / (2 * a)
+      Some(Math.min(r1, r2)).filter(_ > 0).filter(_ < max)
+    }
+  }
+
+  case class Collision(dist: Float, point: V3F)
+  def checkTriangle(xi: V3F, dx: V3F, p1: V3F, p2: V3F, p3: V3F): Option[Collision] = {
+    val plane = Plane(p1, p2, p3)
+    if (plane frontFacingTo dx.normalize) {
+      {
+        val range: Option[(Float, Float)] = {
+          val signedDist = plane signedDistanceTo xi
+          val norDotVel = plane.nor dot dx
+          if (norDotVel == 0) {
+            if (Math.abs(signedDist) >= 1) return None
+            else None
+          } else {
+            val a = (-1 - signedDist) / norDotVel
+            val b = (+1 - signedDist) / norDotVel
+            val t0 = Math.min(a, b)
+            val t1 = Math.max(a, b)
+            if (t0 > 1 || t1 < 0) return None
+            else Some((Trig.clamp(t0, 0, 1), Trig.clamp(t1, 0, 1)))
+          }
+        }
+
+        if (range isDefined) {
+          val (t0, t1) = range.get
+          val point = (xi - plane.nor) + (dx * t0)
+          if (checkPointInTriangle(point, p1, p2, p3)) {
+            println("face collision")
+            val dist = t0 * dx.magnitude
+            return Some(Collision(dist, point))
+          }
+        }
+      }
+
+      // check for edge and vertex collisions
+      val velMagSqr = dx.magnitudeSqrd
+
+      var t = 0f
+      var found = false
+      var point: V3F = Origin
+      var message: String = ""
+
+      // vertex collisions
+      for (p <- Seq(p1, p2, p3)) {
+        val a = velMagSqr
+        val b = 2 * (dx dot (xi - p))
+        val c = (p - xi).magnitudeSqrd - 1
+        for (root <- getLowestRoot(a, b, c, t)) {
+          t = root
+          point = p
+          found =  true
+          message = "vertex collision"
+        }
+      }
+
+      // edge collisions
+      for ((e1, e2) <- Seq(p1 -> p2, p2 -> p3, p3 -> p1)) {
+        val edge = e2 - p1
+        val xiToVert = e1 - xi
+
+        val edgeMagSqrd = edge.magnitudeSqrd
+        val edgeDotDX = edge dot dx
+        val edgeDotXIToVert = edge dot xiToVert
+
+        val a = edgeMagSqrd * -velMagSqr + edgeDotDX * edgeDotDX
+        val b = edgeMagSqrd * (2 * (dx dot xiToVert)) - 2 * edgeDotDX * edgeDotXIToVert
+        val c = edgeMagSqrd * (1 - xiToVert.magnitudeSqrd) + edgeDotXIToVert * edgeDotXIToVert
+
+        for (root <- getLowestRoot(a, b, c, t)) {
+          val f = (edgeDotDX * root - edgeDotXIToVert) / edgeMagSqrd
+          if (f >= 0 && f <= 1) {
+            t = root
+            found = true
+            point = e1 + (edge * f)
+            message = "edge collision"
+          }
+        }
+      }
+
+      if (found) {
+        println(message)
+        val dist = t * dx.magnitude
+        Some(Collision(dist, point))
+      } else None
+    } else None
+  }
 }
 
-object Plane {
-  def apply(origin: V3F, normal: V3F): Plane =
-    Plane(Array(
-      normal.x,
-      normal.y,
-      normal.z,
-      -(normal.x * origin.x + normal.y * origin.y + normal.z + origin.z)
-    ), origin, normal)
+@CarboniteFields
+case class PhysCube(vel: V3F, override val pos: V3F, override val id: UUID) extends Cube(PhysTID, pos, id) with Moveable {
+  override def updatePos(newPos: V3F): Entity = copy(pos = newPos)
 
-  def apply(p1: V3F, p2: V3F, p3: V3F): Plane =
-    Plane(p1, (p2 - p1) cross (p3 - p1) normalize)
+  override def update(world: World, ids: Stream[UUID]): Seq[UpdateEffect] = {
+    val collisions: Seq[Physics.Collision] =
+      chunkPos.neighbors.flatMap(world.chunkAt).flatMap(_.terrainSoup).flatMap(_.iterator)
+        .flatMap({ case (p1, p2, p3) => Physics.checkTriangle(pos, vel * Delta.dtf, p1, p2, p3) })
+
+    if (collisions nonEmpty)
+      println(collisions)
+
+    Seq(Shift(vel * Delta.dtf, id, chunkPos, ids.head)) ++
+      collisions.sortBy(_.dist).headOption.map(c => PutEntity(new Cube(GrassTID, c.point, ids.drop(1).head), ids.drop(1).head))
+  }
 }
 
+/*
 object CheckPointInTriangle {
   def sameSide(p1: V3F, p2: V3F, a: V3F, b: V3F): Boolean = {
     val cp1 = (b - a) cross (p1 - a)
@@ -65,7 +170,9 @@ object GetLowestRoot {
     }
   }
 }
+*/
 
+/*
 @CarboniteFields
 case class PhysCube(vel: V3F, override val pos: V3F, override val id: UUID) extends Cube(PhysTID, pos, id) with Moveable {
   override def updatePos(newPos: V3F): Entity = copy(pos = newPos)
@@ -82,7 +189,7 @@ case class PhysCube(vel: V3F, override val pos: V3F, override val id: UUID) exte
       val trianglePlane = Plane(p1, p2, p3)
 
       // is triangle front-facing to the velocity vector?
-      if (trianglePlane isFrontFacingTo vel.normalize) {
+      if (trianglePlane frontFacingTo vel.normalize) {
         // get interval of plane intersection
         var t0 = 0f
         var t1 = 0f
@@ -92,7 +199,7 @@ case class PhysCube(vel: V3F, override val pos: V3F, override val id: UUID) exte
         val signedDistToTrianglePlane = trianglePlane signedDistanceTo pos
 
         // cache this as we're going to use it a few times below
-        val normalDotVel = trianglePlane.normal dot vel
+        val normalDotVel = trianglePlane.nor dot vel
 
         // if sphere is travelling parallel to the plane
         if (normalDotVel == 0) {
@@ -144,7 +251,7 @@ case class PhysCube(vel: V3F, override val pos: V3F, override val id: UUID) exte
         // of the triangle plane. Note, this can only happen if
         // the sphere is not embedded in the triangle plane.
         if (!embeddedInPlane) {
-          val planeIntersectionPoint = (pos - trianglePlane.normal) + (vel * t0)
+          val planeIntersectionPoint = (pos - trianglePlane.nor) + (vel * t0)
 
           if (CheckPointInTriangle(planeIntersectionPoint, p1, p2, p3)) {
             foundCollision = true
@@ -290,3 +397,4 @@ case class PhysCube(vel: V3F, override val pos: V3F, override val id: UUID) exte
 object PhysCube {
   val gravity = Down * 9.8f * Delta.dtf
 }
+*/

@@ -21,6 +21,8 @@ case object SoundTID extends SheetTextureID
 case object SunTID extends SheetTextureID
 case object MoonTID extends SheetTextureID
 case object PhysTID extends SheetTextureID
+case object GrayTID extends SheetTextureID
+case object StarTID extends SheetTextureID
 case object ErrorTID extends SheetTextureID
 
 sealed trait SoloTextureID
@@ -62,6 +64,7 @@ class DefaultResourcePack extends ResourcePack {
 
   val sheet = new Texture(Gdx.files.internal("textures.png"))
 
+  val rsize = sheet.getWidth / 16
   val regions: Map[SheetTextureID, TextureRegion] = Seq(
     StoneTID -> 0,
     DirtTID -> 1,
@@ -74,8 +77,10 @@ class DefaultResourcePack extends ResourcePack {
     SunTID -> 8,
     MoonTID -> 9,
     PhysTID -> 10,
+    GrayTID -> 11,
+    StarTID -> 12,
     ErrorTID -> 255
-  ) map { case (tid, n) => (tid, new TextureRegion(sheet, (n % 16) * 16, (n - (n % 16)) * 16, 16, 16)) } toMap
+  ) map { case (tid, n) => (tid, new TextureRegion(sheet, (n % 16) * rsize, (n - (n % 16)) * rsize, rsize, rsize)) } toMap
 
   override def apply(texID: SheetTextureID): TextureRegion =
     regions(texID)

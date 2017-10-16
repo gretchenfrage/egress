@@ -338,6 +338,9 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     // add to history
     history += world.time -> world
 
+    // prune history
+    history = history.rangeImpl(Some(history.lastKey - 20), None)
+
     // return the accumulated special effects, with default values
     specialEffects.withDefaultValue(Seq.empty)
   }

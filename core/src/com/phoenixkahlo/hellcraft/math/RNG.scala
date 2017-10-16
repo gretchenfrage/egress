@@ -13,29 +13,50 @@ case class RNG(seed: Long) {
   }
 
   def nextFloat: (RNG, Float) =
-    nextInt match { case (rng, n) => (rng, java.lang.Float.intBitsToFloat(n)) }
+    nextInt match {
+      case (rng, n) => (rng, java.lang.Float.intBitsToFloat(n)) match {
+        case (rng, f) if f != f => rng.nextFloat
+        case (rng, f) => (rng, f)
+      }
+    }
 
   def nextLong: (RNG, Long) =
-    nextInt match { case (rng1, n1) => rng1.nextInt match { case (rng2, n2) => (rng2, n1.toLong << 32 | n2.toLong) } }
+    nextInt match {
+      case (rng1, n1) => rng1.nextInt match {
+        case (rng2, n2) => (rng2, n1.toLong << 32 | n2.toLong)
+      }
+    }
 
   def nextUUID: (RNG, UUID) =
-    nextLong match { case (rng1, n1) => rng1.nextLong match { case (rng2, n2) => (rng2, new UUID(n1, n2)) } }
+    nextLong match {
+      case (rng1, n1) => rng1.nextLong match {
+        case (rng2, n2) => (rng2, new UUID(n1, n2))
+      }
+    }
 
 }
 
 object RNG {
 
   def ints(rng: RNG): Stream[Int] =
-    rng.nextInt match { case (nrng, n) => Stream.cons(n, ints(nrng)) }
+    rng.nextInt match {
+      case (nrng, n) => Stream.cons(n, ints(nrng))
+    }
 
   def floats(rng: RNG): Stream[Float] =
-    rng.nextFloat match { case (nrng, n) => Stream.cons(n, floats(nrng)) }
+    rng.nextFloat match {
+      case (nrng, n) => Stream.cons(n, floats(nrng))
+    }
 
   def longs(rng: RNG): Stream[Long] =
-    rng.nextLong match { case (nrng, n) => Stream.cons(n, longs(nrng)) }
+    rng.nextLong match {
+      case (nrng, n) => Stream.cons(n, longs(nrng))
+    }
 
   def uuids(rng: RNG): Stream[UUID] =
-    rng.nextUUID match { case (nrng, uuid) => Stream.cons(uuid, uuids(nrng)) }
+    rng.nextUUID match {
+      case (nrng, uuid) => Stream.cons(uuid, uuids(nrng))
+    }
 
   def meta[T](metaRNG: RNG, f: RNG => Stream[T]): Stream[Stream[T]] = {
     metaRNG.nextLong match {

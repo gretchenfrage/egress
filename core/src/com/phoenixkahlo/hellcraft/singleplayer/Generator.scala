@@ -63,15 +63,24 @@ class Generator(res: Int) {
     fut
   }
 
+
+
   def genChunk(p: V3I): Fut[Chunk] = {
     heightsAt(p.flatten).map(heights => {
       new Chunk(p, Terrain(p, IDField[TerrainUnit](rv3d, (i: V3I) => {
               val depth = (p.yi * res + i.yi) - heights(i.flatten)
               if (depth >= 0) Air
               else if (p.flatten % 2 == Origin2D) Materials.Stone
-              else Materials.Dirt
+              else Materials.Grass
             })))
-    })
+    }, UniExecutor.exec(p * 16 + Repeated(8)))
   }
+  /*
+  val noise = Simplex(0.1f, 1)
+  def genChunk(p: V3I): Fut[Chunk] =
+    Fut[Chunk](new Chunk(p, Terrain(p, IDField[TerrainUnit](rv3d, (i: V3I) => {
+      if (noise(p * 16 + i) > 0.5f) Materials.Stone else Air
+    }))), UniExecutor.exec(p * 16 + Repeated(8)))
+    */
 
 }

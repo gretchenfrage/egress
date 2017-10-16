@@ -121,12 +121,14 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           mainLoopTasks.add(() => {
             for (v <- world.rayhit(camPos, camDir)) {
               infinitum.update(infinitum().chunks.keySet, Seq(
-                PutEntity(PhysCube(camDir.normalize / 5, v + (Up * 10), UUID.randomUUID()), UUID.randomUUID())
+                PutEntity(PhysCube(camDir.normalize, v + (Up * 10), UUID.randomUUID()), UUID.randomUUID())
               ))
             }
           })
           true
         } else false
+
+
 
       override def touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean = {
         if (button == 1) {
@@ -137,7 +139,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           mainLoopTasks.add(() => {
             for (v <- world.placeBlock(camPos, camDir, 16)) {
               infinitum.update(infinitum().chunks.keySet,
-                Seq(SetMat(v, Blocks.Stone, WorldRes, UUID.randomUUID(), revalBlocks = true)))
+                Seq(SetMat(v, Blocks.Brick, WorldRes, UUID.randomUUID(), revalBlocks = true)))
             }
           })
         }
