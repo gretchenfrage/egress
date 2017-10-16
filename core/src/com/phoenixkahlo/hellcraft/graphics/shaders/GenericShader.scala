@@ -68,6 +68,8 @@ class GenericShader(sheet: Texture) extends Shader {
 
     context.setDepthTest(GL20.GL_LEQUAL)
     context.setCullFace(GL20.GL_BACK)
+    Gdx.gl.glEnable(GL20.GL_BLEND)
+    Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
   }
 
   override def render(renderable: Renderable): Unit = {

@@ -126,6 +126,18 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
             }
           })
           true
+        } else if (keycode == Keys.G) {
+          val camPos = V3F(renderer.cam.position)
+          val camDir = V3F(renderer.cam.direction)
+          val world = infinitum()
+          mainLoopTasks.add(() => {
+            for (v <- world.rayhit(camPos, camDir)) {
+              infinitum.update(infinitum().chunks.keySet, Seq(
+                PutEntity(GhostCube(v, UUID.randomUUID()), UUID.randomUUID())
+              ))
+            }
+          })
+          true
         } else false
 
 

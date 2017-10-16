@@ -1,12 +1,12 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
-import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.{Gdx, utils}
 import com.badlogic.gdx.graphics._
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d._
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
-import com.badlogic.gdx.graphics.g3d.utils.ShaderProvider
+import com.badlogic.gdx.graphics.g3d.utils.{RenderableSorter, ShaderProvider}
 import com.badlogic.gdx.utils.{Disposable, Pool}
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.graphics.shaders._
@@ -57,6 +57,8 @@ class Renderer(resources: ResourcePack) extends Disposable {
       }
 
     override def dispose(): Unit = ()
+  }, new RenderableSorter {
+    override def sort(camera: Camera, renderables: utils.Array[Renderable]): Unit = ()
   })
 
   val hud = new DefaultHUD
@@ -65,12 +67,13 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
   def render(world: SWorld, units: Seq[RenderUnit], interpolation: Interpolation): Unit = {
     val skyDistance = LoadDist.fold(Math.max) * 20
+    val camPos = V3F(cam.position)
 
     // set up sunlight
     val cycle = world.time.toFloat / DayCycleTicks.toFloat % 1
     val sunDir = V3F(-Trig.cos(cycle * 360), Trig.sin(cycle * 360), 0)
-    val sunPos = V3F(cam.position) + (sunDir * skyDistance)
-    val moonPos = V3F(cam.position) + (sunDir.neg * skyDistance)
+    val sunPos = camPos + (sunDir * skyDistance)
+    val moonPos = camPos + (sunDir.neg * skyDistance)
 
     val sunMoon = ParticleFactory(resources,
       ParticleType(skyDistance / 8, SunTID) -> sunPos,
@@ -141,17 +144,38 @@ class Renderer(resources: ResourcePack) extends Disposable {
         z
       ).rotate(South, cycle * 360)
     }
-    val starData = starDirs.map(dir => starType -> (V3F(cam.position) + (dir * skyDistance)))
+    val starData = starDirs.map(dir => starType -> (camPos + (dir * skyDistance)))
     val stars = ParticleFactory(resources, starData: _*)
 
     // clear
     Gdx.gl.glClearColor(skyColor.x, skyColor.y, skyColor.z, 1f)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
 
+    // sort and render
+    val (translucent, opaque) = units.partition(_.locationIfTransparent.isDefined)
+    val opaqueSeq: Seq[Renderable] = (opaque :+ sunMoon :+ stars).flatMap(_(interpolation)).sortBy(_.userData.hashCode())
+    val transSeq = translucent.sortBy(_.locationIfTransparent.get dist camPos * -1).flatMap(_(interpolation))
+    val renderSeq = opaqueSeq ++ transSeq
+
+    val provider = new RenderableProvider {
+      override def getRenderables(renderables: utils.Array[Renderable], pool: Pool[Renderable]): Unit =
+        renderSeq.foreach(renderables.add)
+    }
+
+    batch.begin(cam)
+    batch.render(provider)
+    batch.end()
+
+    /*
+    val (translucent, opaque) = units.partition(_.locationIfTransparent.isDefined)
+    val renderSeq = ((sunMoon +: opaque) :+ stars) ++
+      translucent.sortBy(_.locationIfTransparent.get dist camPos).reverse
+
     // convert to provider
+    /*
     val provider = new RenderableProvider {
       override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit = {
-        (units :+ sunMoon :+ stars).flatMap(_ (interpolation)).foreach(renderables.add)
+        renderSeq.flatMap(_ (interpolation)).foreach(renderables.add)
       }
     }
 
@@ -159,6 +183,8 @@ class Renderer(resources: ResourcePack) extends Disposable {
     batch.begin(cam)
     batch.render(provider, environment)
     batch.end()
+    */
+    */
 
     // render HUD
     spriteBatch.begin()

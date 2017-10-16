@@ -20,7 +20,7 @@ void main() {
     vec3 lightCol = vec3(1, 1, 1);
 
     // material properties
-    vec3 diffuseCol = texture2D(u_texture, f_texCoord0).rgb;
+    vec3 diffuseCol = texture2D(u_texture, f_texCoord0).rgb * f_color.rgb;
     //vec3 diffuseCol = vec3(v_texCoord0, 1);
     vec3 ambientCol = vec3(0.5) * diffuseCol;
     vec3 specularCol = vec3(1, 1, 1) * 0.05;
@@ -45,5 +45,5 @@ void main() {
         diffuseCol * lightCol * diffuseStrength +
         specularCol * lightCol * specularStrength;
 
-    gl_FragColor = vec4(col, 1);// * f_color;
+    gl_FragColor = vec4(col, f_color.a);
 }

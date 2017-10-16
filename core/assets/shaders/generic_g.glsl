@@ -34,7 +34,7 @@ out vec3 f_camDirCamSpace;
 void main() {
     f_pos =                           v_pos[0];
     f_texCoord0 =               v_texCoord0[0];
-    f_color =                 vec4(1, 0, 0, 1);
+    f_color =                       v_color[0];
     f_shadowCoord =           v_shadowCoord[0];
     f_normalWorldSpace = v_normalWorldSpace[0];
     f_normalCamSpace =     v_normalCamSpace[0];
@@ -45,7 +45,7 @@ void main() {
 
     f_pos =                           v_pos[1];
     f_texCoord0 =               v_texCoord0[1];
-    f_color =                 vec4(0, 1, 0, 1);
+    f_color =                       v_color[1];
     f_shadowCoord =           v_shadowCoord[1];
     f_normalWorldSpace = v_normalWorldSpace[1];
     f_normalCamSpace =     v_normalCamSpace[1];
@@ -56,7 +56,7 @@ void main() {
 
     f_pos =                           v_pos[2];
     f_texCoord0 =               v_texCoord0[2];
-    f_color =                 vec4(0, 0, 1, 1);
+    f_color =                       v_color[2];
     f_shadowCoord =           v_shadowCoord[2];
     f_normalWorldSpace = v_normalWorldSpace[2];
     f_normalCamSpace =     v_normalCamSpace[2];
