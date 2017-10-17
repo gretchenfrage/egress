@@ -14,11 +14,16 @@ case class RNG(seed: Long) {
 
   def nextFloat: (RNG, Float) =
     nextInt match {
+      case (rng, i) => (rng, Math.abs(i.toFloat / Int.MaxValue))
+    }
+  /*
+    nextInt match {
       case (rng, n) => (rng, java.lang.Float.intBitsToFloat(n)) match {
         case (rng, f) if f != f => rng.nextFloat
         case (rng, f) => (rng, f)
       }
     }
+    */
 
   def nextLong: (RNG, Long) =
     nextInt match {
@@ -31,6 +36,15 @@ case class RNG(seed: Long) {
     nextLong match {
       case (rng1, n1) => rng1.nextLong match {
         case (rng2, n2) => (rng2, new UUID(n1, n2))
+      }
+    }
+
+  def nextV3F: (RNG, V3F) =
+    nextFloat match {
+      case (rng1, n1) => rng1.nextFloat match {
+        case (rng2, n2) => rng2.nextFloat match {
+          case (rng3, n3) => (rng3, V3F(n1, n2, n3))
+        }
       }
     }
 
@@ -56,6 +70,11 @@ object RNG {
   def uuids(rng: RNG): Stream[UUID] =
     rng.nextUUID match {
       case (nrng, uuid) => Stream.cons(uuid, uuids(nrng))
+    }
+
+  def v3fs(rng: RNG): Stream[V3F] =
+    rng.nextV3F match {
+      case (nrng, v3f) => Stream.cons(v3f, v3fs(nrng))
     }
 
   def meta[T](metaRNG: RNG, f: RNG => Stream[T]): Stream[Stream[T]] = {

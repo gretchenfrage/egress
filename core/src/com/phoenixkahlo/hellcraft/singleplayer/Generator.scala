@@ -63,8 +63,32 @@ class Generator(res: Int) {
     fut
   }
 
+  val range = V3I(70, 40, 80)
+  val seed = 98746513214983L//987465216454653L
+  val balls = RNG.v3fs(RNG(seed)).map(_ ** range).take(15).to[Vector]
+  println(balls)
+  val rad = 7
+
+  def meta(v: V3F): Float =
+    balls.map(b => (rad * rad) / (v - b).magnitudeSqrd).sum
+
+  val noise = Simplex(0.1f, 1)
+
+  val simpFrac = 1.5f
+  def simp(v: V3F): Float =
+    noise(v) / simpFrac + (1f - 1f / simpFrac)
+
+  def genChunk(p: V3I): Fut[Chunk] =
+    Fut[Chunk](new Chunk(p, Terrain(p, IDField[TerrainUnit](rv3d, (i: V3I) => {
+      val v = p * 16 + i
+      val factor = V3F(1, 1.5f, 1)
+      if (simp(v ** factor) * meta(v ** factor) > 0.5f) {
+        Materials.Stone
+      } else Air
+    }))), UniExecutor.exec(p * 16 + Repeated(8)))
 
 
+  /*
   def genChunk(p: V3I): Fut[Chunk] = {
     heightsAt(p.flatten).map(heights => {
       new Chunk(p, Terrain(p, IDField[TerrainUnit](rv3d, (i: V3I) => {
@@ -75,6 +99,7 @@ class Generator(res: Int) {
             })))
     }, UniExecutor.exec(p * 16 + Repeated(8)))
   }
+  */
   /*
   val noise = Simplex(0.1f, 1)
   def genChunk(p: V3I): Fut[Chunk] =

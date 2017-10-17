@@ -12,18 +12,6 @@ import com.phoenixkahlo.hellcraft.util.fields._
 
 import scala.collection.mutable.ArrayBuffer
 
-/*
-sealed trait Terrain {
-  def pos: V3I
-
-  def grid: IDField[TerrainUnit]
-
-  def isComplete: Boolean
-
-  def asComplete: Option[CompleteTerrain]
-}
-*/
-
 @CarboniteFields
 case class Terrain(pos: V3I, grid: IDField[TerrainUnit])
 object Terrain {
