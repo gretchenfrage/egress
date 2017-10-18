@@ -2,6 +2,7 @@ package com.phoenixkahlo.hellcraft.desktop;
 
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
+import com.phoenixkahlo.hellcraft.core.entity.CloudGenerator;
 import com.phoenixkahlo.hellcraft.gamedriver.GameDriver;
 import com.phoenixkahlo.hellcraft.menu.MainMenu;
 
@@ -16,5 +17,6 @@ public class DesktopLauncher {
 		config.height = (int) (screenSize.height * factor);
 		config.title = "egress";
 		new LwjglApplication(new GameDriver(new MainMenu()), config);
+		//new LwjglApplication(new CloudGenerator());
 	}
 }

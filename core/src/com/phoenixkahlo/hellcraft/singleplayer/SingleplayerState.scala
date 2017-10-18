@@ -1,6 +1,7 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
 import java.util.UUID
+import java.util.concurrent.ThreadLocalRandom
 
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
@@ -134,6 +135,31 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
             for (v <- world.rayhit(camPos, camDir)) {
               infinitum.update(infinitum().chunks.keySet, Seq(
                 PutEntity(GhostCube(v, UUID.randomUUID()), UUID.randomUUID())
+              ))
+            }
+          })
+          true
+        } else if (keycode == Keys.F) {
+          val camPos = V3F(renderer.cam.position)
+          val camDir = V3F(renderer.cam.direction)
+          val world = infinitum()
+          mainLoopTasks.add(() => {
+            for (v <- world.rayhit(camPos, camDir)) {
+              infinitum.update(infinitum().chunks.keySet, Seq(
+                PutEntity(PreGenCloud(v, ThreadLocalRandom.current().nextInt(), UUID.randomUUID()), UUID.randomUUID())
+              ))
+            }
+          })
+          true
+        } else if (keycode == Keys.R) {
+          val camPos = V3F(renderer.cam.position)
+          val camDir = V3F(renderer.cam.direction)
+          val world = infinitum()
+          mainLoopTasks.add(() => {
+            for (v <- world.rayhit(camPos, camDir)) {
+              infinitum.update(infinitum().chunks.keySet, Seq(
+                PutEntity(new ProceduralCloud(v, ThreadLocalRandom.current().nextLong(),
+                  V3I(20, 15, 30), 0.7f, UUID.randomUUID(), 3.5f, 6f, 15, null), UUID.randomUUID())
               ))
             }
           })

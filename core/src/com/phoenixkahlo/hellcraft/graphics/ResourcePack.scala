@@ -1,13 +1,22 @@
 package com.phoenixkahlo.hellcraft.graphics
 
+import java.io.DataInputStream
+
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.audio.Sound
+import com.badlogic.gdx.graphics.VertexAttributes.Usage
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter
 import com.badlogic.gdx.graphics.g2d.{BitmapFont, SpriteBatch, TextureRegion}
+import com.badlogic.gdx.graphics.g3d.{Material, Model}
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
+import com.badlogic.gdx.graphics.g3d.model.MeshPart
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
-import com.badlogic.gdx.graphics.{Pixmap, Texture}
+import com.badlogic.gdx.graphics._
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
+
+import scala.collection.mutable.ArrayBuffer
 
 sealed trait SheetTextureID
 case object StoneTID extends SheetTextureID
@@ -57,6 +66,8 @@ trait ResourcePack {
   def pixmap(pixmapID: PixmapID): Pixmap
 
   def sound(soundID: SoundID): Sound
+
+  def cloud(i: Int): Model
 
 }
 
@@ -125,4 +136,79 @@ class DefaultResourcePack extends ResourcePack {
 
   override def sound(soundID: SoundID): Sound =
     sounds(soundID)
+
+  /*
+  val clouds: Seq[Model] = (0 until 10) map (i => {
+    val vertIn = new DataInputStream(Gdx.files.internal("clouds/" + i + "_verts.dat").read())
+    val verts = new ArrayBuffer[Float]
+    while (vertIn.available() > 0)
+      verts += vertIn.readFloat()
+    vertIn.close()
+
+    val indexIn = new DataInputStream(Gdx.files.internal("clouds/" + i + "_indices.dat").read())
+    val indices = new ArrayBuffer[Short]
+    while (indexIn.available() > 0)
+      indices += indexIn.readShort()
+    indexIn.close()
+
+    val m = new Mesh(true, verts.size, indices.size,
+      new VertexAttribute(Usage.Position, 3, "a_position"),
+      new VertexAttribute(Usage.ColorPacked, 4, "a_color"),
+      new VertexAttribute(Usage.TextureCoordinates, 2, "a_texCoord0"),
+      new VertexAttribute(Usage.Normal, 3, "a_normal")
+    )
+    m.setVertices(verts.toArray)
+    m.setIndices(indices.toArray)
+
+    val material = new Material()
+    material.set(ColorAttribute.createDiffuse(Color.WHITE))
+
+    val meshPart = new MeshPart("outline", m, 0, m.getNumIndices, GL20.GL_TRIANGLES)
+
+    val builder = new ModelBuilder()
+    builder.begin()
+    builder.part(meshPart, material)
+    builder.end()
+  })
+  */
+  val clouds: Seq[Model] =
+    Stream.iterate(0)(_ + 1)
+      .map(i => Gdx.files.internal("clouds/" + i + "_verts.dat") -> Gdx.files.internal("clouds/" + i + "_indices.dat"))
+      .takeWhile({ case (f1, f2) => f1.exists() && f2.exists() })
+      .map({ case (f1, f2) => {
+        val vertIn = new DataInputStream(f1.read())
+        val verts = new ArrayBuffer[Float]
+        while (vertIn.available() > 0)
+          verts += vertIn.readFloat()
+        vertIn.close()
+
+        val indexIn = new DataInputStream(f2.read())
+        val indices = new ArrayBuffer[Short]
+        while (indexIn.available() > 0)
+          indices += indexIn.readShort()
+        indexIn.close()
+
+        val m = new Mesh(true, verts.size, indices.size,
+          new VertexAttribute(Usage.Position, 3, "a_position"),
+          new VertexAttribute(Usage.ColorPacked, 4, "a_color"),
+          new VertexAttribute(Usage.TextureCoordinates, 2, "a_texCoord0"),
+          new VertexAttribute(Usage.Normal, 3, "a_normal")
+        )
+        m.setVertices(verts.toArray)
+        m.setIndices(indices.toArray)
+
+        val material = new Material()
+        material.set(ColorAttribute.createDiffuse(Color.WHITE))
+
+        val meshPart = new MeshPart("outline", m, 0, m.getNumIndices, GL20.GL_TRIANGLES)
+
+        val builder = new ModelBuilder()
+        builder.begin()
+        builder.part(meshPart, material)
+        builder.end()
+      }})
+    .to[Vector]
+
+  override def cloud(i: Int): Model =
+    clouds(Math.abs(i) % clouds.size)
 }
