@@ -25,10 +25,10 @@ class Renderer(resources: ResourcePack) extends Disposable {
   val cam = new PerspectiveCamera(90, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
   cam.near = 0.1f
   cam.far = 1000
-  //cam.position.set(30, 30, 30)
-  //cam.lookAt(0, 25, 0)
-  cam.position.set(0, 0, 0)
-  cam.lookAt(1, 1, 1)
+  cam.position.set(30, 30, 30)
+  cam.lookAt(0, 25, 0)
+  //cam.position.set(0, 0, 0)
+  //cam.lookAt(1, 1, 1)
   cam.up.set(0, 1, 0)
 
   val terrainShader = new TerrainShader(resources.sheet)

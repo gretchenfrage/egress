@@ -10,7 +10,7 @@ import com.badlogic.gdx.graphics.g3d.{ModelInstance, Renderable}
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteFields
 import com.phoenixkahlo.hellcraft.core.TerrainSoup
-import com.phoenixkahlo.hellcraft.graphics.shaders.{GenericSID, LineSID}
+import com.phoenixkahlo.hellcraft.graphics.shaders.{GenericSID, LineSID, TerrainSID}
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.caches.{DisposableParamCache, ParamCache}
@@ -26,14 +26,14 @@ import scala.util.Random
 @CarboniteFields
 case class PreGenCloud(pos: V3F, i: Int, id: UUID) extends Entity with Moveable {
   @transient private lazy val renderUnit =
-    new ParamCache[ResourcePack, Seq[RenderUnit]](pack => Seq(new CloudUnit(pos, Ones, i, pack)))
+    new ParamCache[ResourcePack, Seq[RenderUnit]](pack => Seq(new CloudUnit(pos, i, pack)))
 
   override def updatePos(newPos: V3F): Entity = copy(pos = newPos)
 
   override def renderables(pack: ResourcePack): Seq[RenderUnit] = renderUnit(pack)
 }
 
-class CloudUnit(pos: V3F, scale: V3F, index: Int, pack: ResourcePack) extends RenderUnit {
+class CloudUnit(pos: V3F, index: Int, pack: ResourcePack) extends RenderUnit {
   val renderables = {
     val instance = new ModelInstance(pack.cloud(index))
     instance.transform.setTranslation(pos toGdx)
@@ -44,7 +44,7 @@ class CloudUnit(pos: V3F, scale: V3F, index: Int, pack: ResourcePack) extends Re
     }
     instance.getRenderables(array, pool)
     for (renderable <- JavaConverters.iterableAsScalaIterable(array)) {
-      renderable.userData = GenericSID
+      renderable.userData = TerrainSID
     }
 
     JavaConverters.iterableAsScalaIterable(array).toSeq
@@ -55,57 +55,20 @@ class CloudUnit(pos: V3F, scale: V3F, index: Int, pack: ResourcePack) extends Re
   override def resources: Seq[ResourceNode] = Seq.empty
 }
 
-/*
-object CloudUnit {
-  def apply(pos: V3F, pack: ResourcePack) = {
-
-    val instance = new ModelInstance(pack.cloud(i))
-    instance.transform.setTranslation(pos toGdx)
-
-    val array = new com.badlogic.gdx.utils.Array[Renderable]()
-    val pool = new Pool[Renderable]() {
-      override def newObject(): Renderable = new Renderable
-    }
-    instance.getRenderables(array, pool)
-    for (renderable <- JavaConverters.iterableAsScalaIterable(array)) {
-      renderable.userData = GenericSID
-    }
-
-    val renderables = JavaConverters.iterableAsScalaIterable(array).toSeq
-
-    Seq(new RenderUnit {
-      override def apply(interpolation: Interpolation): Seq[Renderable] = renderables
-
-      override def resources: Seq[ResourceNode] = Seq.empty
-    })
-  }
-}
-
-*/
 @CarboniteFields
-class ProceduralCloud(override val pos: V3F, val seed: Long, val size: V3I, val iso: Float, override val id: UUID,
-                      val minRad: Float, val maxRad: Float, val balls: Int,
-                      @transient lastRenderer: CloudRenderer) extends Entity with Moveable {
+class ProceduralCloud(override val pos: V3F, val seed: Long, val size: V3I, val iso: Float, override val id: UUID, val minRad: Float, val maxRad: Float, val balls: Int, val scale: V3F, @transient lastRenderer: CloudRenderer) extends Entity with Moveable {
   val renderer: CloudRenderer =
     if (lastRenderer != null) lastRenderer
     else new CloudRenderer(this)
 
   override def updatePos(newPos: V3F): Entity =
-    new ProceduralCloud(newPos, seed, size, iso, id, minRad, maxRad, balls, renderer)
+    new ProceduralCloud(newPos, seed, size, iso, id, minRad, maxRad, balls, Ones, renderer)
 
   override def renderables(pack: ResourcePack): Seq[RenderUnit] =
     renderer(pack)
 }
 
 class CloudGenerator extends ApplicationAdapter {
-
-
-  /*
-  infinitum.update(infinitum().chunks.keySet, Seq(
-                PutEntity(new ProceduralCloud(v, ThreadLocalRandom.current().nextLong(),
-                  V3I(20, 15, 30), 0.7f, UUID.randomUUID(), 3.5f, 6f, 15, null), UUID.randomUUID())
-              ))
-   */
 
   override def create(): Unit = {
     UniExecutor.activate(0, new Thread(_), _.printStackTrace(), 1000000)
@@ -115,14 +78,7 @@ class CloudGenerator extends ApplicationAdapter {
     for (i <- Stream.iterate(0)(_ + 1)) {
       println("generating cloud " + i)
 
-      val cloud = new ProceduralCloud(
-        Origin,
-        rand.nextLong(),
-        V3I(rand.nextInt(30) + 10, rand.nextInt(20) + 5, rand.nextInt(30) + 10),
-        0.7f,
-        UUID.randomUUID(),
-        3.5f, 6f, 15, null
-      )
+      val cloud = new ProceduralCloud(Origin, rand.nextLong(), V3I(rand.nextInt(30) + 10, rand.nextInt(20) + 5, rand.nextInt(30) + 10), 0.7f, UUID.randomUUID(), 3.5f, 6f, 15, Ones, null)
 
       println("generated verts and indices")
       val (verts, indices) = cloud.renderer.mesh(pack).await
@@ -171,20 +127,17 @@ class CloudRenderer(cloud: ProceduralCloud) {
     def simplex(v: V3F): Float =
       noise(v) / simpFrac + (1f - 1f / simpFrac)
 
-    /*val scrunch = V3F(1, 1.5f, 1)
-    def density(v: V3F): Float =
-      simplex(v ** scrunch) * metaball(v ** scrunch)
-      */
+    val a = 1
+    val b = cloud.size * 1.5f
+    val c = cloud.size
+    def gaussian(v: V3F): Float =
+      a * Math.pow(Math.E, -Math.pow(v.x - b.x, 2) / (2 * c.x * c.x)).toFloat *
+      a * Math.pow(Math.E, -Math.pow(v.y - b.y, 2) / (2 * c.y * c.y)).toFloat *
+      a * Math.pow(Math.E, -Math.pow(v.z - b.z, 2) / (2 * c.z * c.z)).toFloat
 
     def density(v: V3F): Float =
-      simplex(v) * metaball(v)
+      simplex(v) * metaball(v) * gaussian(v)
 
-    /*
-    def contained(v: V3F): Boolean = {
-      if (v < cloud.size || v > cloud.size * 3) false
-      else density(v) > cloud.iso
-    }
-    */
     def contained(v: V3F): Boolean =
       density(v) > cloud.iso
 
@@ -249,8 +202,9 @@ class CloudRenderer(cloud: ProceduralCloud) {
     val vertices = new ArrayBuffer[Float]
     for (v <- indexToVert) {
       val vert = vertField(v).get
+      val pos = vert.pos ** cloud.scale - (cloud.size ** cloud.scale *  1.5f)
       vertices.append(
-        vert.pos.x, vert.pos.y, vert.pos.z,
+        pos.x, pos.y, pos.z,
         color,
         u1, v1,
         vert.nor.x, vert.nor.y, vert.nor.z
@@ -278,7 +232,7 @@ class CloudRenderer(cloud: ProceduralCloud) {
     r.meshPart.offset = 0
     r.meshPart.size = indices.size
     r.meshPart.primitiveType = GL20.GL_TRIANGLES
-    r.userData = GenericSID
+    r.userData = TerrainSID
     r
   }, _.meshPart.mesh.dispose())
 

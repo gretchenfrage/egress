@@ -1,10 +1,6 @@
 #version 150
 
-in vec3 f_pos;
-
 in vec2 f_texCoord0;
-in vec4 f_color;
-in vec4 f_shadowCoord;
 
 in vec3 f_normalWorldSpace;
 in vec3 f_normalCamSpace;
@@ -16,9 +12,6 @@ uniform float u_lightPow;
 uniform sampler2D u_texture;
 
 void main() {
-    // constants
-    vec3 lightCol = vec3(1, 1, 1);
-
     // material properties
     vec3 diffuseCol = texture2D(u_texture, f_texCoord0).rgb;
     vec3 ambientCol = vec3(0.5) * diffuseCol;
@@ -44,5 +37,5 @@ void main() {
         diffuseCol * lightCol * diffuseStrength +
         specularCol * lightCol * specularStrength;
 
-    gl_FragColor = vec4(col, 1);// * f_color;
+    gl_FragColor = vec4(col, 1);
 }

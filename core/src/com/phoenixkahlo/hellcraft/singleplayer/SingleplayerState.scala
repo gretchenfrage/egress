@@ -158,8 +158,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           mainLoopTasks.add(() => {
             for (v <- world.rayhit(camPos, camDir)) {
               infinitum.update(infinitum().chunks.keySet, Seq(
-                PutEntity(new ProceduralCloud(v, ThreadLocalRandom.current().nextLong(),
-                  V3I(20, 15, 30), 0.7f, UUID.randomUUID(), 3.5f, 6f, 15, null), UUID.randomUUID())
+                PutEntity(new ProceduralCloud(v, ThreadLocalRandom.current().nextLong(), V3I(20, 15, 30), 0.7f, UUID.randomUUID(), 3.5f, 6f, 15, Repeated(1.5f), null), UUID.randomUUID())
               ))
             }
           })
