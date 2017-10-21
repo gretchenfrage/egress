@@ -78,7 +78,7 @@ class CloudGenerator extends ApplicationAdapter {
     for (i <- Stream.iterate(0)(_ + 1)) {
       println("generating cloud " + i)
 
-      val cloud = new ProceduralCloud(Origin, rand.nextLong(), V3I(rand.nextInt(30) + 10, rand.nextInt(20) + 5, rand.nextInt(30) + 10), 0.7f, UUID.randomUUID(), 3.5f, 6f, 15, Ones, null)
+      val cloud = new ProceduralCloud(Origin, rand.nextLong(), V3I(rand.nextInt(30) + 10, rand.nextInt(20) + 5, rand.nextInt(30) + 10), 0.7f, UUID.randomUUID(), 3.5f, 6f, 15, V3F(10, 5, 10), null)
 
       println("generated verts and indices")
       val (verts, indices) = cloud.renderer.mesh(pack).await

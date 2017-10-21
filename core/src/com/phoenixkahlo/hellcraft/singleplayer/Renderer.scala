@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.utils.{RenderableSorter, ShaderProvider}
 import com.badlogic.gdx.utils.{Disposable, Pool}
+import com.phoenixkahlo.hellcraft.core.entity.CloudUnit
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.graphics.shaders._
 import com.phoenixkahlo.hellcraft.math._
@@ -24,11 +25,9 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
   val cam = new PerspectiveCamera(90, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
   cam.near = 0.1f
-  cam.far = 1000
+  cam.far = 3000
   cam.position.set(30, 30, 30)
   cam.lookAt(0, 25, 0)
-  //cam.position.set(0, 0, 0)
-  //cam.lookAt(1, 1, 1)
   cam.up.set(0, 1, 0)
 
   val terrainShader = new TerrainShader(resources.sheet)
@@ -43,6 +42,8 @@ class Renderer(resources: ResourcePack) extends Disposable {
   genericShader.init()
   val particleShader = new ParticleShader(resources.sheet)
   particleShader.init()
+
+  var clouds: Seq[(V3F, Int)] = Seq.empty
 
   val batch = new ModelBatch(new ShaderProvider {
     override def getShader(renderable: Renderable): Shader =
@@ -70,6 +71,18 @@ class Renderer(resources: ResourcePack) extends Disposable {
   def render(world: SWorld, units: Seq[RenderUnit], interpolation: Interpolation): Unit = {
     val skyDistance = LoadDist.fold(Math.max) * 20
     val camPos = V3F(cam.position)
+
+    // remove old clouds and add new clouds
+    val numClouds = 50
+    val cloudDist = Repeated(3000)
+    val rand = new Random()
+    clouds = clouds.filter({ case (pos, _) => pos > camPos - cloudDist && pos < camPos + cloudDist })
+    clouds ++= RNG.v3fs(RNG(rand.nextLong)).map(p => ((p * 2 - Ones) * cloudDist.x).copy(y = 400))
+      .zip(RNG.ints(RNG(rand.nextLong)).take(numClouds - clouds.size))
+    // move clouds
+    clouds = clouds.map({ case (pos, i) => (pos + (East * 0.05f), i) })
+    // generate clouds units
+    val cloudUnits: Seq[RenderUnit] = clouds.map({ case (pos, i) => new CloudUnit(pos, i, resources) })
 
     // set up sunlight
     val cycle = world.time.toFloat / DayCycleTicks.toFloat % 1
@@ -155,7 +168,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
     // sort and render
     val (translucent, opaque) = units.partition(_.locationIfTransparent.isDefined)
-    val opaqueSeq: Seq[Renderable] = (opaque :+ sunMoon :+ stars).flatMap(_(interpolation)).sortBy(_.userData.hashCode())
+    val opaqueSeq: Seq[Renderable] = (opaque ++ cloudUnits :+ sunMoon :+ stars).flatMap(_(interpolation)).sortBy(_.userData.hashCode())
     val transSeq = translucent.sortBy(_.locationIfTransparent.get dist camPos * -1).flatMap(_(interpolation))
     val renderSeq = opaqueSeq ++ transSeq
 
@@ -167,26 +180,6 @@ class Renderer(resources: ResourcePack) extends Disposable {
     batch.begin(cam)
     batch.render(provider)
     batch.end()
-
-    /*
-    val (translucent, opaque) = units.partition(_.locationIfTransparent.isDefined)
-    val renderSeq = ((sunMoon +: opaque) :+ stars) ++
-      translucent.sortBy(_.locationIfTransparent.get dist camPos).reverse
-
-    // convert to provider
-    /*
-    val provider = new RenderableProvider {
-      override def getRenderables(renderables: com.badlogic.gdx.utils.Array[Renderable], pool: Pool[Renderable]): Unit = {
-        renderSeq.flatMap(_ (interpolation)).foreach(renderables.add)
-      }
-    }
-
-    // render scene
-    batch.begin(cam)
-    batch.render(provider, environment)
-    batch.end()
-    */
-    */
 
     // render HUD
     spriteBatch.begin()
