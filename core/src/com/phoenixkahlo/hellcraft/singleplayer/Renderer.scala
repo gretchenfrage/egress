@@ -69,12 +69,13 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
 
   def render(world: SWorld, units: Seq[RenderUnit], interpolation: Interpolation): Unit = {
-    val skyDistance = LoadDist.fold(Math.max) * 20
+    //val skyDistance = LoadDist.fold(Math.max) * 20
+    val skyDistance = cam.far - 1
     val camPos = V3F(cam.position)
 
     // remove old clouds and add new clouds
     val numClouds = 50
-    val cloudDist = Repeated(3000)
+    val cloudDist = Repeated(skyDistance - 10)
     val rand = new Random()
     clouds = clouds.filter({ case (pos, _) => pos > camPos - cloudDist && pos < camPos + cloudDist })
     clouds ++= RNG.v3fs(RNG(rand.nextLong)).map(p => ((p * 2 - Ones) * cloudDist.x).copy(y = 400))

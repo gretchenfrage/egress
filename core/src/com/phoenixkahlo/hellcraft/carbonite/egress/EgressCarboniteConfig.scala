@@ -28,6 +28,7 @@ object EgressCarboniteConfig extends DefaultCarboniteConfig {
   register(Air.getClass)
   register(Blocks.Stone.getClass)
   register(Blocks.Dirt.getClass)
+  register(Blocks.Brick.getClass)
   register(Materials.Stone.getClass)
   register(Materials.Dirt.getClass)
   register(Materials.Grass.getClass)

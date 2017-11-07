@@ -4,7 +4,7 @@ import java.util.UUID
 
 import com.phoenixkahlo.hellcraft.carbonite.{CarboniteFields, CarboniteWith}
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
-import com.phoenixkahlo.hellcraft.core.entity.{CubeFrame, Entity, Moveable}
+import com.phoenixkahlo.hellcraft.core.entity.{CubeFrame, Entity, Moveable, PhysCube}
 import com.phoenixkahlo.hellcraft.graphics.SoundID
 import com.phoenixkahlo.hellcraft.math.{Directions, RNG, V3F, V3I}
 import com.phoenixkahlo.hellcraft.singleplayer.EntityID
@@ -98,7 +98,6 @@ case class Invalidate(p: V3I, override val id: EntityID, revalTerrain: Boolean =
         c = c.setBlockSoup(soup)
     (c, Seq(TerrainChanged(p)))
   }
-    //(chunk.invalidate, Seq(TerrainChanged(p)))
 }
 
 @CarboniteFields
@@ -113,26 +112,14 @@ case class SetMat(v: V3I, mat: TerrainUnit, res: Int, override val id: UUID,
     )
 }
 
-/*
-@CarboniteFields
-case class SoupBlocks(p: V3I, override val id: UUID) extends ChunkEvent(p, id) {
-  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = {
-    BlockSoup(chunk.terrain, world) match {
-      case Some(soup) => (chunk.setBlockSoup(soup), Seq.empty)
-      case None => (chunk, Seq.empty)
-    }
-  }
-}
-*/
-
 abstract class UpdateEntity[T <: Entity](entityID: EntityID, override val target: V3I, override val id: UUID)
   extends ChunkEvent(target, id) {
-  protected def update(entity: T): Entity
+  protected def update(entity: T, world: World): Entity
 
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = {
     chunk.entities.get(entityID) match {
       case Some(entity) =>
-        val updated = update(entity.asInstanceOf[T])
+        val updated = update(entity.asInstanceOf[T], world)
         if (updated.chunkPos == entity.chunkPos) (chunk.putEntity(updated), Seq.empty)
         else (chunk.removeEntity(entityID), Seq(PutEntity(updated, RNG(id.getLeastSignificantBits).nextUUID._2)))
       case _ => (chunk, Seq.empty)
@@ -143,5 +130,11 @@ abstract class UpdateEntity[T <: Entity](entityID: EntityID, override val target
 @CarboniteFields
 case class Shift(dx: V3F, entityID: EntityID, override val target: V3I, override val id: UUID)
   extends UpdateEntity[Moveable](entityID, target, id) {
-  override protected def update(entity: Moveable): Entity = entity.updatePos(entity.pos + dx)
+  override protected def update(entity: Moveable, world: World): Entity = entity.updatePos(entity.pos + dx)
+}
+
+@CarboniteFields
+case class DoPhysics(entityID: EntityID, override val target: V3I, override val id: UUID)
+  extends UpdateEntity[PhysCube](entityID, target, id) {
+  override protected def update(entity: PhysCube, world: World): Entity = entity.doPhysics(world)
 }

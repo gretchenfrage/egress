@@ -28,4 +28,17 @@ object Trig {
     else if (n > max) max
     else n
 
+  def clamp(n: Double, min: Double, max: Double): Double =
+    if (n < min) min
+    else if (n > max) max
+    else n
+
+  def sort(range: (Float, Float)): (Float, Float) =
+    if (range._1 <= range._2) range
+    else (range._2, range._1)
+
+  def sortDoubles(range: (Double, Double)): (Double, Double) =
+    if (range._1 <= range._2) range
+    else (range._2, range._1)
+
 }
