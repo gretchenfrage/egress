@@ -12,21 +12,18 @@ import com.phoenixkahlo.hellcraft.math.physics.{ComplexCollider, Triangle}
 import scala.collection.mutable.ArrayBuffer
 
 @CarboniteFields
-case class PhysCube(vel: V3F, override val pos: V3F, override val id: UUID) extends Cube(PhysTID, pos, id) with Moveable {
-  override def updatePos(newPos: V3F): Entity = copy(pos = newPos)
+case class PhysCube(vel: V3F, override val pos: V3F, override val id: UUID, walk: V3F) extends Cube(PhysTID, pos, id) with Moveable {
+  override def updatePos(newPos: V3F): Entity = copy(pos = newPos, walk = Origin)
 
   def doPhysics(world: World): PhysCube = {
     val meshes: Seq[Seq[Triangle]] =
       chunkPos.neighbors.flatMap(world.chunkAt).flatMap(_.terrainSoup).map(
         _.iterator.map({ case (p1, p2, p3) => Triangle(p1, p2, p3) }).toSeq)
 
-    var collider = ComplexCollider(pos, vel + (Down * Delta.dtf), Repeated(0.5f), 1000, Delta.dtf, 1)
+    var collider = ComplexCollider(pos, vel + (Down * Delta.dtf), Repeated(0.5f), 1000, Delta.dtf, 1, walk)
     collider = collider.update(meshes)
 
-    copy(
-      pos = collider.pos,
-      vel = collider.vel
-    )
+    copy(vel = collider.vel, pos = collider.pos, walk = Origin)
   }
 
   override def update(world: World, ids: Stream[UUID]): Seq[UpdateEffect] =

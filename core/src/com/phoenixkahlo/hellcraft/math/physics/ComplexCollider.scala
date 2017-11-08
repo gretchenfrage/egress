@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.math.physics
 
 import com.phoenixkahlo.hellcraft.math.{Origin, Repeated, V3F}
 
-case class ComplexCollider(pos: V3F, vel: V3F, rad: V3F, scale: Float, dt: Float, friction: Float) {
+case class ComplexCollider(pos: V3F, vel: V3F, rad: V3F, scale: Float, dt: Float, friction: Float, walk: V3F) {
 
 
   def update(meshes: Seq[Seq[Triangle]]): ComplexCollider = {
@@ -24,16 +24,18 @@ case class ComplexCollider(pos: V3F, vel: V3F, rad: V3F, scale: Float, dt: Float
     simple = updated
 
     // apply friction
+    // natural velocity
+    val natVel = ((walk * scale) \\ sRad) * dt
     // normal force over mass
     val nom = vel dot normal.neg
     // coefficient of friction, transformed into simple spacetime (which means it must become a vector)
     val cof = ((Repeated(friction) * scale) \\ sRad) * dt
     // change in velocity due to friction
-    val fdv = ((simple.vel.normalize ** cof) * nom) * -1
+    val fdv = (((simple.vel - natVel).normalize ** cof) * nom) * -1
     // apply friction, but don't overshoot
     var vaf = simple.vel + fdv
-    if ((vaf dot simple.vel) < 0)
-      vaf = Origin
+    if (((vaf - natVel) dot (simple.vel - natVel)) < 0)
+      vaf = natVel
     // update the collider
     simple = simple.copy(vel = vaf)
 
@@ -47,7 +49,7 @@ case class ComplexCollider(pos: V3F, vel: V3F, rad: V3F, scale: Float, dt: Float
     fVel = fVel / scale
 
     // update the complex collider
-    copy(pos = fPos, vel = fVel, friction = 1)
+    copy(pos = fPos, vel = fVel, friction = 1, walk = Origin)
   }
 
 }
