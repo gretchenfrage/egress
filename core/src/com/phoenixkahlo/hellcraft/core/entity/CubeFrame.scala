@@ -22,12 +22,6 @@ case class CubeFrame(color: Color, override val pos: V3F, override val id: UUID)
   @transient private lazy val renderUnit = Seq(new CubeFrameRenderer(this))
 
   override def renderables(pack: ResourcePack): Seq[RenderUnit] = renderUnit
-  /*
-  override def update(world: World, ids: Stream[UUID], dt: Float): Seq[UpdateEffect] = {
-    if (world.time % 60 == 0) Seq(SoundEffect(SnapSID, 1, pos))
-    else Seq.empty
-  }
-  */
 }
 
 class CubeFrameRenderer(cube: CubeFrame) extends RenderUnit {

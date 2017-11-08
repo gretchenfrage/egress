@@ -20,7 +20,7 @@ case class PhysCube(vel: V3F, override val pos: V3F, override val id: UUID) exte
       chunkPos.neighbors.flatMap(world.chunkAt).flatMap(_.terrainSoup).map(
         _.iterator.map({ case (p1, p2, p3) => Triangle(p1, p2, p3) }).toSeq)
 
-    var collider = ComplexCollider(pos, vel + (Down * Delta.dtf), Repeated(0.5f), 1000, Delta.dtf)
+    var collider = ComplexCollider(pos, vel + (Down * Delta.dtf), Repeated(0.5f), 1000, Delta.dtf, 1)
     collider = collider.update(meshes)
 
     copy(
