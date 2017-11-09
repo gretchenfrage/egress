@@ -2,10 +2,17 @@ package com.phoenixkahlo.hellcraft.math.physics
 
 import com.phoenixkahlo.hellcraft.math.{Origin, Repeated, V3F}
 
+case class MeshRequest(scale: Float, sRad: V3F)
+
 case class ComplexCollider(pos: V3F, vel: V3F, rad: V3F, scale: Float, dt: Float, friction: Float, walk: V3F) {
 
+  def updateSlow(meshes: Seq[Seq[Triangle]]): ComplexCollider = {
+    update(meshes.map(rawTris => (request: MeshRequest) => {
+      rawTris.map(_.map(point => (point * request.scale) \\ request.sRad))
+    }))
+  }
 
-  def update(meshes: Seq[Seq[Triangle]]): ComplexCollider = {
+  def update(meshes: Seq[MeshRequest => Seq[Triangle]]): ComplexCollider = {
     // convert to scaled space
     var ePos = pos * scale
     var eVel = vel * scale
@@ -16,7 +23,9 @@ case class ComplexCollider(pos: V3F, vel: V3F, rad: V3F, scale: Float, dt: Float
     // convert the velocity to delta time units
     eVel = eVel.normalize * (eVel.magnitude * dt)
     // convert the meshes to scaled, elliptical space
-    val eMeshes = meshes.map(_.map(_.map(p => (p * scale) \\ sRad)))
+    //val eMeshes = meshes.map(_.map(_.map(p => (p * scale) \\ sRad)))
+    val request = MeshRequest(scale, sRad)
+    val eMeshes = meshes.map(_ apply request)
 
     // create the simple collider and update it to the final simple collider
     var simple = SimpleCollider(ePos, eVel)
@@ -31,7 +40,7 @@ case class ComplexCollider(pos: V3F, vel: V3F, rad: V3F, scale: Float, dt: Float
     // coefficient of friction, transformed into simple spacetime (which means it must become a vector)
     val cof = ((Repeated(friction) * scale) \\ sRad) * dt
     // change in velocity due to friction
-    val fdv = (((simple.vel - natVel).normalize ** cof) * nom) * -1
+    val fdv = (((simple.vel - natVel).tryNormalize ** cof) * nom) * -1
     // apply friction, but don't overshoot
     var vaf = simple.vel + fdv
     if (((vaf - natVel) dot (simple.vel - natVel)) < 0)

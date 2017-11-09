@@ -6,6 +6,7 @@ import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.BlockSoup.Vert
 import com.phoenixkahlo.hellcraft.core.TerrainSoup.Vert
 import com.phoenixkahlo.hellcraft.math._
+import com.phoenixkahlo.hellcraft.math.physics.Triangle
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 import com.phoenixkahlo.hellcraft.util.fields._
@@ -20,10 +21,10 @@ object Terrain {
 
 @CarboniteFields
 case class TerrainSoup(pos: V3I, verts: OptionField[TerrainSoup.Vert], indices: Seq[Short], indexToVert: Seq[V3I],
-                       vertToIndex: ShortField) extends Iterable[(V3F, V3F, V3F)] {
-  override def iterator: Iterator[(V3F, V3F, V3F)] =
+                       vertToIndex: ShortField) extends Iterable[Triangle] {
+  override def iterator: Iterator[Triangle] =
     Range(0, indices.size, 3).iterator
-      .map(i => (
+      .map(i => Triangle(
         verts(indexToVert(indices(i + 0))).get.pos,
         verts(indexToVert(indices(i + 1))).get.pos,
         verts(indexToVert(indices(i + 2))).get.pos
@@ -130,7 +131,15 @@ object TerrainSoup {
 }
 
 @CarboniteFields
-case class BlockSoup(pos: V3I, verts: Seq[BlockSoup.Vert], indices: Seq[NodeTypeID])
+case class BlockSoup(pos: V3I, verts: Seq[BlockSoup.Vert], indices: Seq[NodeTypeID]) extends Iterable[Triangle] {
+  override def iterator: Iterator[Triangle] =
+    Range(0, indices.size, 3).iterator
+    .map(i => Triangle(
+      verts(indices(i + 0)).pos,
+      verts(indices(i + 1)).pos,
+      verts(indices(i + 2)).pos
+    ))
+}
 object BlockSoup {
   @CarboniteFields case class Vert(pos: V3F, block: Block, uvDelta: V2I, nor: V3F)
 

@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.util.collections.spatial
+package com.phoenixkahlo.hellcraft.util.collections
 
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
