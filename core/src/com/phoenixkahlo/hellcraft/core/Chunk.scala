@@ -49,23 +49,12 @@ class Chunk(
   }
   @transient lazy val broadphase: Broadphase = Option(lastBroadphase).getOrElse({
     (terrainSoup, blockSoup) match {
-      case (Some(ts), Some(bs)) => new OctreeBroadphase(ts.iterator ++ bs.iterator, pos * 16 + Repeated(8), 64)
+      case (Some(ts), Some(bs)) =>
+        val triangles = ts.iterator.toSeq ++ bs.iterator.toSeq
+        new OctreeBroadphase(triangles.iterator, pos * 16 + Repeated(8), 64)
       case _ => EmptyBroadphase
     }
   })
-  /*
-  @transient val physicsSoup: MeshRequest => Seq[Triangle] = Option(lastBroadphase).getOrElse(
-    rawPhysicsSoup
-      .map(raw =>
-        new MemoFunc[MeshRequest, Seq[Triangle]](
-          request => {
-            println("computing mesh request for " + pos)
-            raw.map(_.map(p => (p * request.scale) \\ request.sRad))
-          }
-        )
-      ).getOrElse((_: MeshRequest) => Seq.empty)
-  )
-  */
 
   def putEntity(entity: Entity): Chunk =
     new Chunk(pos, terrain, entities + (entity.id -> entity), terrainSoup, blockSoup, broadphase, terrainMesher.orNull, blockMesher.orNull)

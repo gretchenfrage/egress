@@ -6,10 +6,7 @@ import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 case class SimpleCollider(pos: V3F, vel: V3F) {
 
   def update(meshes: Seq[Seq[Triangle]]): (SimpleCollider, V3F) = {
-    val p = Profiler("simple collider update")
     val veryCloseDistance = 0.005f
-
-    println("colliding with " + meshes.map(_.size).sum + " triangles")
 
     def collideWithWorld(pos: V3F, vel: V3F, depth: Int, normals: List[(V3F, Float)]): (V3F, V3F, List[(V3F, Float)]) = {
       if (depth == 0) (pos, vel, normals)
@@ -50,10 +47,6 @@ case class SimpleCollider(pos: V3F, vel: V3F) {
 
     val (finalPos, finalVel, normals) = collideWithWorld(pos, vel, 5, Nil)
     val avgNormal = normals.foldLeft[V3F](Origin)({ case (accum, (neu, weight)) => accum + (neu * weight) }).tryNormalize
-
-    p.log()
-    p.print()
-
     (SimpleCollider(finalPos, finalVel), avgNormal)
   }
 
