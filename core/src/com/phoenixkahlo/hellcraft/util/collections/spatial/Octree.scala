@@ -78,7 +78,7 @@ case class Octant(center: V3F, range: Float) {
   def maxdist(v: V3F): Float =
     Signs.signs.toSeq.map(sign => center + (sign * range)).map(_ dist v).max
 
-  def contains(point: V3F, within: Float): Boolean = {
+  def couldContain(point: V3F, within: Float): Boolean = {
     val md = maxdist(point)
     if (md == Float.PositiveInfinity) true
     else if (point >= (center - Repeated(range)) && point <= (center + Repeated(range))) true
@@ -111,6 +111,8 @@ private case class Empty(octant: Octant) extends Octree[Nothing] {
 
 private case class Leaf[+E](elem: (V3F, E), octant: Octant) extends Octree[E] {
   override def +[V1 >: E](kv: (V3F, V1)): Octree[V1] = {
+    if (!octant.contains(kv._1)) throw new IllegalArgumentException(kv + " out of range " + octant)
+
     if (kv._1 == elem._1) Leaf(kv, octant)
     else Branch(octant.children.map(Empty(_)), octant) + elem + kv
   }
@@ -147,6 +149,8 @@ private case class Leaf[+E](elem: (V3F, E), octant: Octant) extends Octree[E] {
 
 private case class Branch[+E](children: Seq[Octree[E]], octant: Octant) extends Octree[E] {
   override def +[V1 >: E](kv: (V3F, V1)): Branch[V1] = {
+    if (!octant.contains(kv._1)) throw new IllegalArgumentException(kv + " out of range " + octant)
+
     val (key, value) = kv
     val sign = octant.subsign(key)
     val index = Signs.indexOf(sign)
@@ -161,7 +165,7 @@ private case class Branch[+E](children: Seq[Octree[E]], octant: Octant) extends 
 
   override def closest(point: V3F, within: Float): Option[(V3F, E)] = {
     val searchPattern: List[Octree[E]] = children
-      .filter(_.octant contains (point, within))
+      .filter(_.octant couldContain (point, within))
       .sortBy(_.octant.center dist point)
       .toList
     def search(pattern: List[Octree[E]], within: Float): List[(V3F, E)] = pattern match {
@@ -176,7 +180,7 @@ private case class Branch[+E](children: Seq[Octree[E]], octant: Octant) extends 
 
   override def within(point: V3F, within: Float) =
     children
-      .filter(_.octant contains (point, within))
+      .filter(_.octant couldContain (point, within))
       .flatMap(_ within (point, within))
 
   override def get(key: V3F): Option[E] = {

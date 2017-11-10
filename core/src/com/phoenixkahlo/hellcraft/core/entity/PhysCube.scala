@@ -7,7 +7,7 @@ import com.phoenixkahlo.hellcraft.core.{DoPhysics, PutEntity, Shift, TerrainSoup
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.graphics.{GrassTID, PhysTID}
 import com.phoenixkahlo.hellcraft.math._
-import com.phoenixkahlo.hellcraft.math.physics.{ComplexCollider, MeshRequest, Triangle}
+import com.phoenixkahlo.hellcraft.math.physics.{ComplexCollider, EmptyBroadphase, MeshRequest, Triangle}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -16,10 +16,11 @@ case class PhysCube(vel: V3F, override val pos: V3F, override val id: UUID, walk
   override def updatePos(newPos: V3F): Entity = copy(pos = newPos)
 
   def doPhysics(world: World): PhysCube = {
-    val meshes: Seq[MeshRequest => Seq[Triangle]] = chunkPos.neighbors.flatMap(world.chunkAt).map(_.physicsSoup)
+    //val meshes: Seq[MeshRequest => Seq[Triangle]] = chunkPos.neighbors.flatMap(world.chunkAt).map(_.physicsSoup)
+    val broadphase = chunkPos.neighbors.flatMap(world.chunkAt).map(_.broadphase).fold(EmptyBroadphase)(_ + _)
 
     var collider = ComplexCollider(pos, vel + (Down * 9.8f * Delta.dtf), Repeated(0.5f), 1000, Delta.dtf, 100, walk)
-    collider = collider.update(meshes)
+    collider = collider.update(broadphase)
 
     copy(vel = collider.vel, pos = collider.pos)
   }

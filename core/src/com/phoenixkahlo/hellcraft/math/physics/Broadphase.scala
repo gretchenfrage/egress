@@ -24,15 +24,19 @@ class BroadphaseCombination(a: Broadphase, b: Broadphase) extends Broadphase {
   override def +(other: Broadphase) = new BroadphaseCombination(this, other)
 }
 
-class OctreeMemoBroadphase(source: Iterator[Triangle], center: V3F, range: Float) extends Broadphase {
+class OctreeBroadphase(source: Iterator[Triangle], center: V3F, range: Float) extends Broadphase {
   val trees: ((Float, V3F)) => (Octree[Triangle], Float) = new MemoFunc[(Float, V3F), (Octree[Triangle], Float)]({
     case (scale, sRad) =>
-      (
-        source
-          .map(_.map(p => (p * scale) \\ sRad))
-          .foldLeft(Octree.empty[Triangle](center, range))((tree, tri) => tree + (tri.center -> tri)),
-        source.map(_.maxDimension).max
-      )
+      val triangles = source
+        .map(_.map(p => (p * scale) \\ sRad))
+        .foldLeft(Octree.empty[Triangle](
+          (center * scale) \\ sRad,
+          (range * scale) / sRad.monoidFold(Math.min))
+        )((tree, tri) => tree + (tri.center -> tri))
+      val maxDim =
+        if (source.nonEmpty) source.map(_.maxDimension).max
+        else 0
+      (triangles, maxDim)
   })
 
   override def apply(request: MeshRequest): Seq[Triangle] = {

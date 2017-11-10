@@ -6,8 +6,8 @@ import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.graphics._
-import com.phoenixkahlo.hellcraft.math.physics.{MeshRequest, Triangle}
-import com.phoenixkahlo.hellcraft.math.{Origin, RNG, V3F, V3I}
+import com.phoenixkahlo.hellcraft.math.physics._
+import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
 import com.phoenixkahlo.hellcraft.util.fields.{ByteFractionField, ByteFractionFieldBuffer, OptionField}
 
@@ -18,7 +18,7 @@ class Chunk(
              val entities: Map[UUID, Entity] = Map.empty,
              val terrainSoup: Option[TerrainSoup] = None,
              val blockSoup: Option[BlockSoup] = None,
-             @transient lastPhysicsSoup: MeshRequest => Seq[Triangle] = null,
+             @transient lastBroadphase: Broadphase = null,
              @transient lastTerrainMesher: TerrainMesher = null,
              @transient lastBlockMesher: BlockMesher = null,
              @transient lastTerrainValid: Boolean = true,
@@ -47,7 +47,14 @@ class Chunk(
     case (Some(ts), Some(bs)) => Some(ts.iterator.toSeq ++: bs.iterator.toSeq)
     case _ => None
   }
-  @transient val physicsSoup: MeshRequest => Seq[Triangle] = Option(lastPhysicsSoup).getOrElse(
+  @transient lazy val broadphase: Broadphase = Option(lastBroadphase).getOrElse({
+    (terrainSoup, blockSoup) match {
+      case (Some(ts), Some(bs)) => new OctreeBroadphase(ts.iterator ++ bs.iterator, pos * 16 + Repeated(8), 64)
+      case _ => EmptyBroadphase
+    }
+  })
+  /*
+  @transient val physicsSoup: MeshRequest => Seq[Triangle] = Option(lastBroadphase).getOrElse(
     rawPhysicsSoup
       .map(raw =>
         new MemoFunc[MeshRequest, Seq[Triangle]](
@@ -58,15 +65,16 @@ class Chunk(
         )
       ).getOrElse((_: MeshRequest) => Seq.empty)
   )
+  */
 
   def putEntity(entity: Entity): Chunk =
-    new Chunk(pos, terrain, entities + (entity.id -> entity), terrainSoup, blockSoup, physicsSoup, terrainMesher.orNull, blockMesher.orNull)
+    new Chunk(pos, terrain, entities + (entity.id -> entity), terrainSoup, blockSoup, broadphase, terrainMesher.orNull, blockMesher.orNull)
 
   def removeEntity(entity: UUID): Chunk =
-    new Chunk(pos, terrain, entities - entity, terrainSoup, blockSoup, physicsSoup, terrainMesher.orNull, blockMesher.orNull)
+    new Chunk(pos, terrain, entities - entity, terrainSoup, blockSoup, broadphase, terrainMesher.orNull, blockMesher.orNull)
 
   def setTerrain(neu: Terrain): Chunk =
-    new Chunk(pos, neu, entities, None, None, lastPhysicsSoup, terrainMesher.orNull, blockMesher.orNull)
+    new Chunk(pos, neu, entities, None, None, lastBroadphase, terrainMesher.orNull, blockMesher.orNull)
 
   def setTerrainSoup(ts: TerrainSoup): Chunk =
     new Chunk(pos, terrain, entities, Some(ts), blockSoup, null, null, blockMesher.orNull)
@@ -75,7 +83,7 @@ class Chunk(
     new Chunk(pos, terrain, entities, terrainSoup, Some(bs), null, terrainMesher.orNull, null)
 
   def invalidate: Chunk =
-    new Chunk(pos, terrain, entities, None, None, physicsSoup, terrainMesher.orNull, blockMesher.orNull, false, false)
+    new Chunk(pos, terrain, entities, None, None, broadphase, terrainMesher.orNull, blockMesher.orNull, false, false)
 
   def isComplete: Boolean =
     terrainSoup.isDefined && blockSoup.isDefined
