@@ -28,9 +28,9 @@ class BroadphaseCombination(a: Broadphase, b: Broadphase) extends Broadphase {
 }
 
 class OctreeBroadphase(source: Iterator[Triangle], center: V3F, range: Float) extends Broadphase {
-  val triangles = source.to[ArrayBuffer]
-  val tree = triangles.foldLeft(Octree.empty[Triangle](center, range))((tree, tri) => tree + (tri.center -> tri))
-  val maxDim =
+  private val triangles = source.to[ArrayBuffer]
+  private val tree = triangles.foldLeft(Octree.empty[Triangle](center, range))((tree, tri) => tree + (tri.center -> tri))
+  private val maxDim =
     if (triangles nonEmpty) triangles.map(_.maxDimension).max
     else 0
 

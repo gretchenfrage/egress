@@ -4,7 +4,7 @@ import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 
 @CarboniteWith(classOf[FieldNode])
-case class V4F(x: Float, y: Float, z: Float, w: Float) {
+class V4F(val x: Float, val y: Float, val z: Float, w: Float) {
 
   def +(o: V4F): V4F =
     V4F(x + o.x, y + o.y, z + o.z, w + o.w)
@@ -23,6 +23,18 @@ case class V4F(x: Float, y: Float, z: Float, w: Float) {
 
   def flatten: V3F =
     V3F(x, y, z)
+  
+  def >(o: V4F): Boolean =
+    x > o.x && y > o.y && z > o.z && w > o.w
+
+  def <(o: V4F): Boolean =
+    x < o.x && y < o.y && z < o.z && w < o.w
+
+  def >=(o: V4F): Boolean =
+    x >= o.x && y >= o.y && z >= o.z && w >= o.w
+
+  def <=(o: V4F): Boolean =
+    x <= o.x && y <= o.y && z <= o.z && w <= o.w
 
   def magnitude: Float =
     Math.sqrt(x * x + y * y + z * z + w * w).toFloat
@@ -39,4 +51,16 @@ case class V4F(x: Float, y: Float, z: Float, w: Float) {
   def fold(f: (Float, Float) => Float): Float =
     f(f(x, y), f(z, w))
 
+  protected def toIntsStrategy: V4I =
+    V4I(x.toInt, y.toInt, z.toInt, w.toInt)
+  lazy val toInts = toIntsStrategy
+
+}
+
+object V4F {
+  def apply(x: Float, y: Float, z: Float, w: Float): V4F =
+    new V4F(x, y, z, w)
+
+  def unapply(v: V4F): Option[(Float, Float, Float, Float)] =
+    Some((v.x, v.y, v.z, v.w))
 }

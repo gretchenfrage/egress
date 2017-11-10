@@ -47,16 +47,6 @@ private object Signs {
     diff.map(n => if (n > 0) 1 else -1).toInts
 }
 
-case class Sphere(center: V3F, radius: Float) {
-  def inside(plane: Plane): Boolean =
-    -plane.signedDistanceTo(center) > radius
-
-  def outside(plane: Plane): Boolean =
-    plane.signedDistanceTo(center) > radius
-
-  def intersects(plane: Plane): Boolean =
-    Math.abs(plane.signedDistanceTo(center)) <= radius
-}
 
 case class Octant(center: V3F, range: Float) {
   val min: V3F = center - Repeated(range)
