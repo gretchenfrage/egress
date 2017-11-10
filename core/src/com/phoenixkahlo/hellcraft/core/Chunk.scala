@@ -43,10 +43,6 @@ class Chunk(
     }
   }
 
-  @transient private lazy val rawPhysicsSoup: Option[Seq[Triangle]] = (terrainSoup, blockSoup) match {
-    case (Some(ts), Some(bs)) => Some(ts.iterator.toSeq ++: bs.iterator.toSeq)
-    case _ => None
-  }
   @transient lazy val broadphase: Broadphase = Option(lastBroadphase).getOrElse({
     (terrainSoup, blockSoup) match {
       case (Some(ts), Some(bs)) =>
