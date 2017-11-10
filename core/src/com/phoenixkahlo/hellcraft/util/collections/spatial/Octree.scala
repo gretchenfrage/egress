@@ -6,146 +6,190 @@ import com.phoenixkahlo.hellcraft.math._
 
 import scala.collection.mutable.ArrayBuffer
 
-object Signs {
-  val signs = Seq(V3I(1, 1, 1), V3I(-1, 1, 1), V3I(1, -1, 1), V3I(1, 1, -1), V3I(1, -1, -1), V3I(-1, 1, -1),
-    V3I(-1, -1, 1), V3I(-1, -1, -1))
-  def apply(): Seq[V3I] = signs
-}
-
-@deprecated("use SpatialHashMap instead", "N/A")
 sealed trait Octree[+E] extends Map[V3F, E] {
   override def +[V1 >: E](kv: (V3F, V1)): Octree[V1]
 
   override def -(key: V3F): Octree[E]
 
-  def closest(point: V3F): Option[(V3F, E)]
+  def closest(point: V3F, within: Float): Option[(V3F, E)]
+
+  def within(point: V3F, within: Float): Seq[(V3F, E)]
+
+  override def size: Int
+
+  def octant: Octant
 
   def prettyPrint(indentation: Int = 0, out: PrintStream = System.out): Unit
-
-  def depth: Int
 }
 
-/**
-  * An octree with no contents
-  */
-@deprecated("use SpatialHashMap instead", "N/A")
-case class EmptyOctree(center: V3F, range: Float) extends Octree[Nothing] {
-  override def +[V1 >: Nothing](kv: (V3F, V1)): Octree[V1] = OctreeLeaf(center, range, kv)
+object Octree {
+  def empty[E](center: V3F, range: Float): Octree[E] = Empty(Octant(center, range))
+}
 
-  override def get(key: V3F): Option[Nothing] = None
+private object Signs {
+  def indexOf(sign: V3I): Int = {
+    ((sign.xi & 0x2) >> 1) | (sign.yi & 0x2) | ((sign.zi & 0x2) << 1)
+  }
 
-  override def iterator: Iterator[(V3F, Nothing)] = Iterator.empty
+  val signs = new Array[V3I](8)
+  for (sign <- Seq(
+    V3I(1, 1, 1),
+    V3I(-1, 1, 1),
+    V3I(1, -1, 1),
+    V3I(1, 1, -1),
+    V3I(1, -1, -1),
+    V3I(-1, 1, -1),
+    V3I(-1, -1, 1),
+    V3I(-1, -1, -1)
+  )) signs(indexOf(sign)) = sign
+
+  def signOf(diff: V3F): V3I =
+    diff.map(n => if (n > 0) 1 else -1).toInts
+}
+
+case class Sphere(center: V3F, radius: Float) {
+  def inside(plane: Plane): Boolean =
+    -plane.signedDistanceTo(center) > radius
+
+  def outside(plane: Plane): Boolean =
+    plane.signedDistanceTo(center) > radius
+
+  def intersects(plane: Plane): Boolean =
+    Math.abs(plane.signedDistanceTo(center)) <= radius
+}
+
+case class Octant(center: V3F, range: Float) {
+  val min: V3F = center - Repeated(range)
+  val max: V3F = center + Repeated(range)
+  val diagonal: Float = Math.sqrt(range * range * 12).toFloat
+
+  def contains(v: V3F): Boolean =
+    v >= min && v <= max
+
+  def children: Seq[Octant] =
+    Signs.signs.toSeq.map(suboctant)
+
+  def subsign(v: V3F): V3I =
+    Signs.signOf(v - center)
+
+  def suboctant(subSign: V3I): Octant =
+    Octant(center + (subSign * range / 2), range / 2)
+
+  def maxdist(v: V3F): Float =
+    Signs.signs.toSeq.map(sign => center + (sign * range)).map(_ dist v).max
+
+  def contains(point: V3F, within: Float): Boolean = {
+    val md = maxdist(point)
+    if (md == Float.PositiveInfinity) true
+    else if (point >= (center - Repeated(range)) && point <= (center + Repeated(range))) true
+    else md - diagonal <= within
+  }
+}
+
+private case class Empty(octant: Octant) extends Octree[Nothing] {
+  override def +[V1 >: Nothing](kv: (V3F, V1)): Leaf[V1] = {
+    if (octant contains kv._1) Leaf(kv, octant)
+    else throw new IllegalArgumentException(kv + " out of range " + octant)
+  }
 
   override def -(key: V3F): Octree[Nothing] = this
 
-  override def size: Int = 0
+  override def closest(point: V3F, within: Float): Option[(V3F, Nothing)] = None
 
-  override def closest(point: V3F): Option[(V3F, Nothing)] = None
+  override def within(point: V3F, within: Float): Seq[Nothing] = Seq.empty
+
+  override def get(key: V3F): Option[Nothing] = None
+
+  override def iterator: Iterator[Nothing] = Iterator.empty
+
+  override def size: Int = 0
 
   override def prettyPrint(indentation: Int, out: PrintStream): Unit = {
     out.println("()")
   }
-
-  override val depth = 0
 }
 
-/**
-  * An octree with one content
-  */
-@deprecated("use SpatialHashMap instead", "N/A")
-case class OctreeLeaf[+E](center: V3F, range: Float, elem: (V3F, E)) extends Octree[E] {
+private case class Leaf[+E](elem: (V3F, E), octant: Octant) extends Octree[E] {
   override def +[V1 >: E](kv: (V3F, V1)): Octree[V1] = {
-    if (kv._1 == elem._1) OctreeLeaf(center, range, kv)
-    else {
-      val children = Signs().map(sign => sign -> EmptyOctree(center + (sign * range / 2), range / 2)).toMap
-      OctreeBranch(center, range, children) + elem + kv
-    }
+    if (kv._1 == elem._1) Leaf(kv, octant)
+    else Branch(octant.children.map(Empty(_)), octant) + elem + kv
   }
 
-  override def get(key: V3F): Option[E] =
-    elem match {
-      case (v, e) if v == key => Some(e)
-      case _ => None
-    }
+  override def -(key: V3F): Octree[E] = {
+    if (key == elem._1) Empty(octant)
+    else this
+  }
 
-  override def iterator: Iterator[(V3F, E)] = Iterator(elem)
+  override def closest(point: V3F, within: Float): Option[(V3F, E)] = {
+    if ((elem._1 dist point) <= within) Some(elem)
+    else None
+  }
 
-  override def -(key: V3F): Octree[E] =
-    elem match {
-      case (v, _) if v == key => EmptyOctree(center, range)
-      case _ => this
-    }
+  override def within(point: V3F, within: Float): Seq[(V3F, E)] =
+    if((elem._1 dist point) <= within) Seq(elem)
+    else Seq.empty
+
+  override def get(key: V3F): Option[E] = {
+    if (key == elem._1) Some(elem._2)
+    else None
+  }
+
+  override def iterator = Iterator(elem)
 
   override def size: Int = 1
-
-  override def closest(point: V3F): Option[(V3F, E)] = Some(elem)
 
   override def prettyPrint(indentation: Int, out: PrintStream): Unit = {
     out.println(elem)
   }
-
-  override val depth = 1
 }
 
-@deprecated("use SpatialHashMap instead", "N/A")
-case class OctreeBranch[+E](center: V3F, range: Float, children: Map[V3I, Octree[E]]) extends Octree[E] {
-  override def +[V1 >: E](kv: (V3F, V1)): Octree[V1] = {
+
+
+private case class Branch[+E](children: Seq[Octree[E]], octant: Octant) extends Octree[E] {
+  override def +[V1 >: E](kv: (V3F, V1)): Branch[V1] = {
     val (key, value) = kv
-    val sign = (key - center).map(n => if (n >= 0) 1 else -1).toInts
-    OctreeBranch(center, range, children.updated(sign, children(sign) + kv))
+    val sign = octant.subsign(key)
+    val index = Signs.indexOf(sign)
+    Branch(children.updated(index, children(index) + kv), octant)
   }
 
+  override def -(key: V3F): Branch[E] = {
+    val sign = octant.subsign(key)
+    val index = Signs.indexOf(sign)
+    Branch(children.updated(index, children(index) - key), octant)
+  }
+
+  override def closest(point: V3F, within: Float): Option[(V3F, E)] = {
+    val searchPattern: List[Octree[E]] = children
+      .filter(_.octant contains (point, within))
+      .sortBy(_.octant.center dist point)
+      .toList
+    def search(pattern: List[Octree[E]], within: Float): List[(V3F, E)] = pattern match {
+      case curr :: next => curr.closest(point, within) match {
+        case Some(kv) => kv :: search(next, kv._1 dist point)
+        case None => search(next, within)
+      }
+      case Nil => Nil
+    }
+    search(searchPattern, within).sortBy(_._1 dist point).headOption
+  }
+
+  override def within(point: V3F, within: Float) =
+    children
+      .filter(_.octant contains (point, within))
+      .flatMap(_ within (point, within))
+
   override def get(key: V3F): Option[E] = {
-    val sign = (key - center).map(n => if (n >= 0) 1 else -1).toInts
-    children(sign).get(key)
+    val sign = octant.subsign(key)
+    val index = Signs.indexOf(sign)
+    children(index).get(key)
   }
 
   override def iterator: Iterator[(V3F, E)] =
-    children.values.flatten.iterator
+    children.flatten.iterator
 
-  override def -(key: V3F): Octree[E] = {
-    val sign = (key - center).map(n => if (n >= 0) 1 else -1).toInts
-    OctreeBranch(center, range, children.updated(sign, children(sign) - key))
-  }
-
-  override def size: Int = children.values.map(_.size).sum
-
-  override def closest(point: V3F): Option[(V3F, E)] = {
-    Signs().flatMap(children(_).closest(point)).sortBy(_._1 dist point).headOption
-
-    /*
-    val pmc = point - center
-    val sign = V3I(
-      if (pmc.x > 0) 1 else -1,
-      if (pmc.y > 0) 1 else -1,
-      if (pmc.z > 0) 1 else -1
-    )
-    Stream(
-      sign,
-      V3I(-sign.xi, sign.yi, sign.zi), V3I(sign.xi, -sign.yi, sign.zi), V3I(sign.xi, sign.yi, -sign.zi),
-      V3I(sign.xi, -sign.yi, -sign.zi), V3I(-sign.xi, sign.yi, -sign.zi), V3I(-sign.xi, -sign.yi, sign.zi),
-      sign.neg
-    ).flatMap(children(_).closest(point)).headOption
-    */
-    /*
-    if (point == center) Signs().flatMap(children(_).closest(point)).sortBy(_._1 dist point).headOption
-    else {
-      val pmc = point - center
-      val sign = V3I(
-        if (pmc.x > 0) 1 else -1,
-        if (pmc.y > 0) 1 else -1,
-        if (pmc.z > 0) 1 else -1
-      )
-      Stream(
-        sign,
-        V3I(-sign.xi, sign.yi, sign.zi), V3I(sign.xi, -sign.yi, sign.zi), V3I(sign.xi, sign.yi, -sign.zi),
-        V3I(sign.xi, -sign.yi, -sign.zi), V3I(-sign.xi, sign.yi, -sign.zi), V3I(-sign.xi, -sign.yi, sign.zi),
-        sign.neg
-      ).flatMap(children(_).closest(point)).headOption
-    }
-    */
-
-  }
+  override def toSeq: Seq[(V3F, E)] =
+    children.flatten
 
   override def prettyPrint(indentation: Int, out: PrintStream): Unit = {
     def justify(v: V3I): String = {
@@ -156,51 +200,35 @@ case class OctreeBranch[+E](center: V3F, range: Float, children: Map[V3I, Octree
     }
 
     println('{')
-    for ((sign, child) <- children) {
+    for ((sign, child) <- Signs.signs.zip(children)) {
       for (_ <- 1 to (indentation + 2)) print(' ')
       print(justify(sign) + " -> ")
       child.prettyPrint(indentation + 2, out)
     }
     for (_ <- 1 to indentation) print(' '); println('}')
   }
-
-  override lazy val depth = children.values.map(_.depth).max + 1
 }
 
-@deprecated("use SpatialHashMap instead", "N/A")
-object OctreeTest extends App {
+object OctTest extends App {
 
-  val t1 = System.nanoTime()
-
-  var octree: Octree[Unit] = EmptyOctree(Origin, Float.MaxValue)
-  /*
-  for (n <- 1 to 100) {
-    octree += ((V3I(n, n, -n), n))
+  var octree: Octree[Unit] = Empty(Octant(Repeated(64), 64))
+  for (i <- 1 to 100) {
+    octree += Repeated(i) -> ()
   }
-  */
-  for (_ <- 1 to 10000) {
-    octree += ((V3F(
-      Math.random().toFloat * 1000000 - 500000,
-      Math.random().toFloat * 1000000 - 500000,
-      Math.random().toFloat * 1000000 - 500000
-    ), ()))
-  }
-  println(octree)
+  //octree.prettyPrint()
   println("size = " + octree.size)
-  println("depth = " + octree.depth)
+  val point = Origin
+  val within = octree.within(point, 10)
+  println(within.zip(within.map(_._1 dist point)))
+  /*
   val pos = Origin
   val buffer = new ArrayBuffer[V3F]
-  while (octree nonEmpty) {
-    val item = octree.closest(pos).get
+  while (octree nonEmpty){
+    val item = octree.closest(pos, 10000).get
     buffer += item._1
     octree -= item._1
   }
   println(buffer)
-
-  val t2 = System.nanoTime()
-  println("construction and deconstruction took " + (t2 - t1) / 1000000 + " ms")
-
-  val sorted = buffer.to[Vector].sortBy(_ dist Origin)
-  println("is sorted = " + (buffer.to[Vector] == sorted))
+  */
 
 }

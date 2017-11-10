@@ -2,7 +2,6 @@ package com.phoenixkahlo.hellcraft.math.physics
 
 import com.phoenixkahlo.hellcraft.math.{Origin, Repeated, V3F}
 
-case class MeshRequest(scale: Float, sRad: V3F)
 
 case class ComplexCollider(pos: V3F, vel: V3F, rad: V3F, scale: Float, dt: Float, friction: Float, walk: V3F) {
 
@@ -24,7 +23,7 @@ case class ComplexCollider(pos: V3F, vel: V3F, rad: V3F, scale: Float, dt: Float
     eVel = eVel.normalize * (eVel.magnitude * dt)
     // convert the meshes to scaled, elliptical space
     //val eMeshes = meshes.map(_.map(_.map(p => (p * scale) \\ sRad)))
-    val request = MeshRequest(scale, sRad)
+    val request = MeshRequest(scale, sRad, ???, ???)
     val eMeshes = meshes.map(_ apply request)
 
     // create the simple collider and update it to the final simple collider

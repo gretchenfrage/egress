@@ -1,6 +1,6 @@
 package com.phoenixkahlo.hellcraft.math
 
-case class Plane(origin: V3F, nor: V3F, equation: Array[Float]) {
+case class Plane private(origin: V3F, nor: V3F, equation: Array[Float]) {
   def frontFacingTo(direction: V3F): Boolean =
     (nor dot direction) <= 0
 

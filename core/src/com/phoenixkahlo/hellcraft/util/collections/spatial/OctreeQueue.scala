@@ -17,7 +17,7 @@ import scala.collection.immutable.Queue
 class OctreePriorityQueue[E] extends util.AbstractQueue[(V3F, E)] {
 
   var point: V3F = Origin
-  var tree: Octree[E] = EmptyOctree(Origin, Float.MaxValue)
+  var tree: OldOctree[E] = EmptyOctree(Origin, Float.MaxValue)
 
   override def poll(): (V3F, E) = {
     tree.closest(point) match {
@@ -52,7 +52,7 @@ class OctreePriorityQueue[E] extends util.AbstractQueue[(V3F, E)] {
 class OctreeBinPriorityQueue[E] extends util.AbstractQueue[(V3F, E)] {
 
   var point: V3F = Origin
-  var tree: Octree[Queue[E]] = EmptyOctree(Origin, Float.MaxValue)
+  var tree: OldOctree[Queue[E]] = EmptyOctree(Origin, Float.MaxValue)
 
   override def poll(): (V3F, E) = {
     tree.closest(point) match {
