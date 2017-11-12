@@ -5,7 +5,7 @@ import java.io.PrintStream
 import com.phoenixkahlo.hellcraft.math._
 
 import scala.collection.mutable.ArrayBuffer
-
+/*
 sealed trait Octree[+E] extends Map[V3F, E] {
   override def +[V1 >: E](kv: (V3F, V1)): Octree[V1]
 
@@ -226,3 +226,4 @@ object OctTest extends App {
   */
 
 }
+*/

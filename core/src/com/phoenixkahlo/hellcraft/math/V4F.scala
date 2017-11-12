@@ -4,13 +4,13 @@ import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 
 @CarboniteWith(classOf[FieldNode])
-class V4F(val x: Float, val y: Float, val z: Float, w: Float) {
+class V4F(val x: Float, val y: Float, val z: Float, val w: Float) {
 
   def +(o: V4F): V4F =
     V4F(x + o.x, y + o.y, z + o.z, w + o.w)
 
   def -(o: V4F): V4F =
-    V4F(x - o.x, y - o.y, z + o.z, w + o.w)
+    V4F(x - o.x, y - o.y, z - o.z, w - o.w)
 
   def neg: V4F =
     V4F(-x, -y, -z, -w)
@@ -55,6 +55,18 @@ class V4F(val x: Float, val y: Float, val z: Float, w: Float) {
     V4I(x.toInt, y.toInt, z.toInt, w.toInt)
   lazy val toInts = toIntsStrategy
 
+  override def hashCode(): Int =
+    (x, y, z, w).hashCode()
+
+
+  override def equals(obj: scala.Any): Boolean =
+    obj match {
+      case V4F(xx, yy, zz, ww) => x == xx && y == yy && z == zz && w == ww
+      case _ => false
+    }
+
+  override def toString: String =
+    "<" + x + ", " + y + ", " + z + ", " + w + ">"
 }
 
 object V4F {

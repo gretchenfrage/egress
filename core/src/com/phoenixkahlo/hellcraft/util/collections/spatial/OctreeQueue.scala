@@ -13,7 +13,8 @@ import scala.collection.immutable.Queue
   * Uses an octree to create a priority queue based of vector/generic pairs based on their proximity to an adjustable
   * point. This is not thread safe, although internal variables are declared volatile.
   */
-@deprecated("use SpatialHashMap instead", "N/A")
+//@deprecated("use SpatialHashMap instead", "N/A")
+/*
 class OctreePriorityQueue[E] extends util.AbstractQueue[(V3F, E)] {
 
   var point: V3F = Origin
@@ -221,4 +222,4 @@ object OctreeQueueTest extends App {
     }
   }).start()
 
-}
+}*/

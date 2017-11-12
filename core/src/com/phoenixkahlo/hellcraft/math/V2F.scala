@@ -73,6 +73,9 @@ case class V2F(x: Float, y: Float) extends Serializable {
     bestVec.get
   }
 
+  protected def toIntsStrategy: V2I = V2I(x.toInt, y.toInt)
+  lazy val toInts = toIntsStrategy
+
   def abs: V2F =
     V2F(Math.abs(x), Math.abs(y))
 
@@ -91,6 +94,9 @@ case class V2F(x: Float, y: Float) extends Serializable {
         if ((v1 dot direction) >= 0) v1
         else v2
     }
+
+  def map(func: Float => Float) =
+    V2F(func(x), func(y))
 
   def angleWith(v: V2F): Float =
     Trig.acos(this.normalize dot v.normalize)

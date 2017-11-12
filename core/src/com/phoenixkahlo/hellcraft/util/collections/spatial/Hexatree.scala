@@ -1,7 +1,7 @@
 package com.phoenixkahlo.hellcraft.util.collections.spatial
 
 import com.phoenixkahlo.hellcraft.math.{V3F, V4F, V4I}
-
+/*
 sealed trait Hexatree[+E] extends Map[V4F, E] {
   override def +[V1 >: E](kv: (V4F, V1)): Hexatree[V1]
 
@@ -52,4 +52,4 @@ case class Hexant(center: V4F, range: Float) {
 
   def maxdist(v: V4F): Float =
     HexaSigns.signs.toSeq.map(sign => )
-}
+}*/

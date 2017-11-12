@@ -22,6 +22,8 @@ class V2I(val xi: Int, val yi: Int) extends V2F(xi, yi) {
   def inflate(height: Int): V3I =
     V3I(xi, height, yi)
 
+  override protected def toIntsStrategy: V2I = this
+
   def until(o: V2I) =
     for {
       x <- xi until o.xi
