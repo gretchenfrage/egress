@@ -5,17 +5,16 @@ import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue, ThreadFactory}
 import java.util.function.{Consumer, Supplier}
 
 import com.phoenixkahlo.hellcraft.math.{V2F, V3F}
-import com.phoenixkahlo.hellcraft.util.collections.spatial.{SpatialHashMapBlockingQueue, SpatialTemporalPriorityQueue}
+import com.phoenixkahlo.hellcraft.util.collections.spatial._
 
 import scala.concurrent.duration._
-
 import scala.collection.mutable.ArrayBuffer
 
 class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: Consumer[Throwable], binSize: Float) {
 
   private val seqQueue = new LinkedBlockingQueue[Runnable]
-  private val octQueue = new SpatialTemporalPriorityQueue[Runnable](1 second)
-  private val quadQueue = new SpatialHashMapBlockingQueue[Runnable](binSize)
+  private val octQueue = new SpatialTemporalQueue3D[Runnable](SpatialTemporalQueue.secondEqualsMeter)
+  private val quadQueue = new SpatialTemporalQueue2D[Runnable](SpatialTemporalQueue.secondEqualsMeter)
 
   private val ticketQueue = new LinkedBlockingQueue[Supplier[Option[Runnable]]]
   private val workers = new ArrayBuffer[Thread]
@@ -54,7 +53,7 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
   }
 
   def exec(pos: V2F)(task: Runnable): Unit = {
-    quadQueue.add(pos.inflate(0) -> task)
+    quadQueue.add(pos -> task)
     ticketQueue.add(() => Option(quadQueue.poll()).map(_._2))
   }
 
@@ -62,7 +61,7 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
 
   def point_=(p: V3F): Unit = {
     octQueue.point = p
-    quadQueue.point = p.copy(y = 0)
+    quadQueue.point = p.flatten
   }
 
   def start(): Unit =

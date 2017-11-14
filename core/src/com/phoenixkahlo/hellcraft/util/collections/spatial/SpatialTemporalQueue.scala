@@ -5,7 +5,33 @@ import java.util.PriorityQueue
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
+import com.phoenixkahlo.hellcraft.math.{Origin, V2F, V3F, V4F}
+
 import scala.collection.immutable.Queue
+
+class SpatialTemporalQueue3D[E](timeToSpace: Long => Float) extends SpatialTemporalQueue[V3F, V4F, E](timeToSpace) {
+  override protected def emptyTree = HexadecaTree.empty(V4F(0, 0, 0, 0), Float.MaxValue)
+
+  override protected def startPoint = Origin
+
+  override protected def inflate(k: V3F, s: Float) = k.inflate(s)
+
+  override protected def flatten(h: V4F) = h.flatten
+}
+
+class SpatialTemporalQueue2D[E](timeToSpace: Long => Float) extends SpatialTemporalQueue[V2F, V3F, E](timeToSpace) {
+  override protected def emptyTree = Octree.empty(Origin, Float.MaxValue)
+
+  override protected def startPoint = V2F(0, 0)
+
+  override protected def inflate(k: V2F, s: Float) = k.inflate(s)
+
+  override protected def flatten(h: V3F) = h.flatten
+}
+
+object SpatialTemporalQueue {
+  val secondEqualsMeter: Long => Float = _ / 1000000000f
+}
 
 abstract class SpatialTemporalQueue[K, H, E](timeToSpace: Long => Float) extends util.AbstractQueue[(K, E)]
     with util.concurrent.BlockingQueue[(K, E)] {
@@ -13,7 +39,7 @@ abstract class SpatialTemporalQueue[K, H, E](timeToSpace: Long => Float) extends
   private val startTime = System.nanoTime()
 
   protected def emptyTree: DimTree[Queue[E], _, H]
-  protected def startPoint: H
+  protected def startPoint: K
   protected def inflate(k: K, s: Float): H
   protected def flatten(h: H): K
 
@@ -22,7 +48,7 @@ abstract class SpatialTemporalQueue[K, H, E](timeToSpace: Long => Float) extends
 
   private def now(kv: (K, E)): (H, E) = inflate(kv, timeToSpace(System.nanoTime() - startTime))
 
-  private val queue = new SpatialPriorityQueue(emptyTree, startPoint)
+  private val queue = new SpatialPriorityQueue(emptyTree, inflate(startPoint, timeToSpace(startTime)))
   private val minTime = new PriorityQueue[Float]
   private val lock = new ReentrantReadWriteLock
   private val writeLock = lock.writeLock()
