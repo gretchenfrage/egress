@@ -1,0 +1,135 @@
+package com.phoenixkahlo.hellcraft.util.collections.spatial
+
+import java.util
+import java.util.PriorityQueue
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
+import java.util.concurrent.locks.ReentrantReadWriteLock
+
+import scala.collection.immutable.Queue
+
+abstract class SpatialTemporalQueue[K, H, E](timeToSpace: Long => Float) extends util.AbstractQueue[(K, E)]
+    with util.concurrent.BlockingQueue[(K, E)] {
+
+  private val startTime = System.nanoTime()
+
+  protected def emptyTree: DimTree[Queue[E], _, H]
+  protected def startPoint: H
+  protected def inflate(k: K, s: Float): H
+  protected def flatten(h: H): K
+
+  private def inflate(kv: (K, E), s: Float): (H, E) = (inflate(kv._1, s), kv._2)
+  private def flatten(kv: (H, E)): (K, E) = (flatten(kv._1), kv._2)
+
+  private def now(kv: (K, E)): (H, E) = inflate(kv, timeToSpace(System.nanoTime() - startTime))
+
+  private val queue = new SpatialPriorityQueue(emptyTree, startPoint)
+  private val minTime = new PriorityQueue[Float]
+  private val lock = new ReentrantReadWriteLock
+  private val writeLock = lock.writeLock()
+  private val readLock = lock.readLock()
+  private object Ticket
+  private val tickets = new LinkedBlockingQueue[AnyRef]
+
+  def point: K = {
+    try {
+      readLock.lock()
+      flatten(queue.point)
+    } finally readLock.unlock()
+  }
+
+  def point_=(p: K): Unit = {
+    try {
+      writeLock.lock()
+      queue.point = inflate(p, minTime.peek())
+    } finally writeLock.unlock()
+  }
+
+  /**
+    * This function does not itself lock anything.
+    * You should only need to retime after removing a value, not after adding one.
+    */
+  private def retime(): Unit = {
+    queue.point = inflate(flatten(queue.point), minTime.peek())
+  }
+
+  override def poll(): (K, E) = {
+    if (tickets.poll() == null) null
+    else try {
+      writeLock.lock()
+      flatten(queue.remove())
+    } finally {
+      retime()
+      writeLock.unlock()
+    }
+  }
+
+  override def poll(timeout: Long, unit: TimeUnit) = poll()
+
+  override def add(e: (K, E)) = {
+    try {
+      writeLock.lock()
+      queue.add(now(e))
+    } finally writeLock.unlock()
+    tickets.add(Ticket)
+  }
+
+  override def put(e: (K, E)) = add(e)
+
+  override def offer(e: (K, E)) = add(e)
+
+  override def offer(e: (K, E), timeout: Long, unit: TimeUnit) = add(e)
+
+  override def drainTo(c: util.Collection[_ >: (K, E)], maxElements: Int) = {
+    try {
+      readLock.lock()
+      var item: (K, E) = null
+      var count = 0
+      while (count < maxElements && {item = poll(); item} != null) {
+        c.add(item)
+        count += 1
+      }
+      count
+    } finally readLock.unlock()
+  }
+
+  override def drainTo(c: util.Collection[_ >: (K, E)]) = drainTo(c, Int.MaxValue)
+
+  override def take() = {
+    tickets.take()
+    try {
+      writeLock.lock()
+      flatten(queue.remove())
+    } finally {
+      retime()
+      writeLock.unlock()
+    }
+  }
+
+  override def remainingCapacity() = Int.MaxValue
+
+  override def peek() = {
+    try {
+      readLock.lock()
+      Option(queue.peek()).map(flatten).orNull
+    } finally readLock.unlock()
+  }
+
+  override def iterator() = {
+    try {
+      readLock.lock()
+      val iter = queue.iterator()
+      new util.Iterator[(K, E)] {
+        override def next(): (K, E) = flatten(iter.next())
+
+        override def hasNext: Boolean = iter.hasNext
+      }
+    } finally readLock.unlock()
+  }
+
+  override def size() = {
+    try {
+      readLock.lock()
+      queue.size()
+    } finally readLock.unlock()
+  }
+}

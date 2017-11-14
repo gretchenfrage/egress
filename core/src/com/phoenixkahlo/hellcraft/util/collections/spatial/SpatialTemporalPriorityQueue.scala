@@ -7,6 +7,7 @@ import com.phoenixkahlo.hellcraft.math.{V3F, V4F}
 
 import scala.concurrent.duration.Duration
 
+/*
 class SpatialTemporalPriorityQueue[E](timePerMeter: Duration) extends java.util.AbstractQueue[(V3F, E)] with java.util.concurrent.BlockingQueue[(V3F, E)] {
   private val nanosPerMeter: Long = timePerMeter.toNanos
   private val beginNanos: Long = System.nanoTime()
@@ -93,3 +94,4 @@ class SpatialTemporalPriorityQueue[E](timePerMeter: Duration) extends java.util.
     Option(blocking.peek()).map({ case (k, v) => k.flatten -> v }).orNull
   }
 }
+*/

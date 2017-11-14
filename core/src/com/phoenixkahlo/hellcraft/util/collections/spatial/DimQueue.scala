@@ -1,12 +1,13 @@
 package com.phoenixkahlo.hellcraft.util.collections.spatial
 
 import java.util
+import java.util.PriorityQueue
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F}
 
-import scala.collection.JavaConverters
+import scala.collection.{JavaConverters, mutable}
 import scala.collection.immutable.Queue
 
 class SpatialPriorityQueue[K, E](empty: DimTree[Queue[E], _, K], spoint: K) extends java.util.AbstractQueue[(K, E)] {
@@ -53,8 +54,8 @@ class SpatialBlockingQueue[K, E](empty: DimTree[Queue[E], _, K], spoint: K) exte
   private val lock = new ReentrantReadWriteLock
   private val writeLock = lock.writeLock()
   private val readLock = lock.readLock()
-  private val tickets = new LinkedBlockingQueue[Option[Unit]]
-  private val ticket: Some[Unit] = Some(())
+  private val tickets = new LinkedBlockingQueue[AnyRef]
+  private val ticket = new Object
 
   def point = {
     try {
@@ -71,7 +72,7 @@ class SpatialBlockingQueue[K, E](empty: DimTree[Queue[E], _, K], spoint: K) exte
   }
 
   override def poll(): (K, E) = {
-    if (tickets.poll() == None) null
+    if (tickets.poll() == null) null
     else try {
       writeLock.lock()
       queue.remove()

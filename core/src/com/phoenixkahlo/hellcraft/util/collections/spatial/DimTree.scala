@@ -270,7 +270,7 @@ object HexadecaTree extends TreeDim[V4I, V4F] {
   def empty[E](center: V4F, range: Float): HexadecaTree[E] =
     Empty(Domain(center, range, this))(this)
 }
-
+/*
 object QuadTest extends App {
   var tree: QuadTree[Unit] = QuadTree.empty(V2F(64, 64), 64)
   for (i <- 1 to 100) {
@@ -318,3 +318,4 @@ object HexadecaTest extends App {
   }
   println(buffer)
 }
+*/

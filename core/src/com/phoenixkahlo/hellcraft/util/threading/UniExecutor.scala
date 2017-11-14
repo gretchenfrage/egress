@@ -5,16 +5,17 @@ import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue, ThreadFactory}
 import java.util.function.{Consumer, Supplier}
 
 import com.phoenixkahlo.hellcraft.math.{V2F, V3F}
-import com.phoenixkahlo.hellcraft.util.collections.spatial.SpatialHashMapBlockingQueue
+import com.phoenixkahlo.hellcraft.util.collections.spatial.{SpatialHashMapBlockingQueue, SpatialTemporalPriorityQueue}
+
+import scala.concurrent.duration._
 
 import scala.collection.mutable.ArrayBuffer
 
 class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: Consumer[Throwable], binSize: Float) {
 
   private val seqQueue = new LinkedBlockingQueue[Runnable]
-  private val octQueue = new SpatialHashMapBlockingQueue[Runnable](binSize)
+  private val octQueue = new SpatialTemporalPriorityQueue[Runnable](1 second)
   private val quadQueue = new SpatialHashMapBlockingQueue[Runnable](binSize)
-  private val meshQueue = new SpatialHashMapBlockingQueue[Runnable](binSize)
 
   private val ticketQueue = new LinkedBlockingQueue[Supplier[Option[Runnable]]]
   private val workers = new ArrayBuffer[Thread]
@@ -41,7 +42,6 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
   workers += threadFactory.newThread(Worker(() => seqQueue.take().run()))
   workers += threadFactory.newThread(Worker(() => octQueue.take()._2.run()))
   workers += threadFactory.newThread(Worker(() => quadQueue.take()._2.run()))
-  workers += threadFactory.newThread(Worker(() => meshQueue.take()._2.run()))
 
   def exec(task: Runnable): Unit = {
     seqQueue.add(task)
@@ -58,17 +58,11 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
     ticketQueue.add(() => Option(quadQueue.poll()).map(_._2))
   }
 
-  def mesh(pos: V3F)(task: Runnable): Unit = {
-    meshQueue.add(pos -> task)
-    ticketQueue.add(() => Option(meshQueue.poll()).map(_._2))
-  }
-
   def point: V3F = octQueue.point
 
   def point_=(p: V3F): Unit = {
     octQueue.point = p
     quadQueue.point = p.copy(y = 0)
-    meshQueue.point = p
   }
 
   def start(): Unit =
@@ -88,8 +82,6 @@ object UniExecutor {
   def exec(pos: V3F)(task: Runnable): Unit = service.exec(pos)(task)
 
   def exec(pos: V2F)(task: Runnable): Unit = service.exec(pos)(task)
-
-  def mesh(pos: V3F)(task: Runnable): Unit = service.mesh(pos)(task)
 
   def point: V3F = service.point
 
