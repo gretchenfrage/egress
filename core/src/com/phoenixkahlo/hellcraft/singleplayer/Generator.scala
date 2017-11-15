@@ -8,15 +8,51 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Cube
 import com.phoenixkahlo.hellcraft.graphics.StoneTID
 import com.phoenixkahlo.hellcraft.math._
-import com.phoenixkahlo.hellcraft.util.fields.{ByteField, ByteFractionField, FloatField, IDField}
+import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
+import com.phoenixkahlo.hellcraft.util.fields._
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 
 import scala.collection.mutable
 
 class Generator(res: Int) {
 
-  implicit val mapping = TerrainUnits
+  implicit val mapping: IDMapping[TerrainUnit] = TerrainUnits
 
+  private val noise = Simplex(1f / 8f, 15f)
+
+  val heightAt = new MemoFunc[V2I, Fut[FloatField]](v =>
+    Fut(FloatField(V3I(res, 1, res),
+      i => noise(v * res + i.flatten)
+    ), UniExecutor.exec(v * 16))
+  )
+
+  val chunkAt = new MemoFunc[V3I, Fut[Chunk]](p =>
+    heightAt(p.flatten).map(
+      height => new Chunk(p,
+        Terrain(p, IDField[TerrainUnit](V3I(res, res, res), (i: V3I) => {
+          val depth = (p.yi * res + i.yi) - height(V3I(i.xi, 0, i.zi))
+          if (depth >= 0) Air
+          else if (p.flatten % 2 == Origin2D) Materials.Stone
+          else Materials.Grass
+        }))
+      )
+    , UniExecutor.exec(p * 16))
+  )
+
+  /*
+  def genChunk(p: V3I): Fut[Chunk] = {
+    heightsAt(p.flatten).map(heights => {
+      new Chunk(p, Terrain(p, IDField[TerrainUnit](rv3d, (i: V3I) => {
+                    val depth = (p.yi * res + i.yi) - heights(i.flatten)
+                    if (depth >= 0) Air
+                    else if (p.flatten % 2 == Origin2D) Materials.Stone
+                    else Materials.Grass
+                  })))
+    }, UniExecutor.exec(p * 16 + Repeated(8)))
+  }
+   */
+
+  /*
   val rv2d = V2I(res, res)
   val rv3d = V3I(res, res, res)
 
@@ -110,5 +146,5 @@ class Generator(res: Int) {
       if (noise(p * 16 + i) > 0.5f) Materials.Stone else Air
     }))), UniExecutor.exec(p * 16 + Repeated(8)))
     */
-
+  */
 }

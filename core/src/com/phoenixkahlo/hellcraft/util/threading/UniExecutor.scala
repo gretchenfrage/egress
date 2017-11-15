@@ -22,7 +22,9 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
   new Thread(() => {
     while (true) {
       Thread.sleep(1000)
+      println("3D queue size = " + octQueue.size)
       println("3D queue height = " + octQueue.height)
+      println("2D queue size = " + quadQueue.size)
       println("2D queue height = " + quadQueue.height)
     }
   }).start()

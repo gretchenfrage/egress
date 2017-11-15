@@ -4,7 +4,6 @@ import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.collections.spatial.BiTree.BiTree
 import com.phoenixkahlo.hellcraft.util.collections.spatial.HexadecaTree.HexadecaTree
 import com.phoenixkahlo.hellcraft.util.collections.spatial.Octree.Octree
-import com.phoenixkahlo.hellcraft.util.collections.spatial.QuadTest.tree
 import com.phoenixkahlo.hellcraft.util.collections.spatial.QuadTree.QuadTree
 
 import scala.annotation.tailrec
@@ -241,60 +240,6 @@ private case class Branch[+E, VI, VF](children: Seq[DimTree[E, VI, VF]], domains
   override def domain = domains.last
 }
 
-/*
-private case class LongBranch[+E, VI, VF](child: DimTree[E, VI, VF], domains: Seq[Domain[VI, VF]])(implicit dim: TreeDim[VI, VF]) extends DimTree[E, VI, VF] {
-  // domain sequences are stored from the bottom up
-
-  override def +[V1 >: E](kv: (VF, V1)): DimTree[V1, VI, VF] = {
-    if (!domains.head.contains(kv._1)) throw new IllegalArgumentException(kv + " out of range " + domains.head)
-
-    val (k, v) = kv
-    if (domains.head.contains(kv._1)) {
-      val kSign = domains.head.subsign(k)
-      val fork = Branch(domains.head.children.map(domain =>
-        if (domain.sign.get == kSign) Leaf(kv, domain)
-        else if (domain.sign.get == child.domain.sign.get) child
-        else Empty(domain)
-      ), domains.head)
-      LongBranch(fork, domains.dropRight(1))
-    } else {
-      @tailrec def foo(trace: Seq[Domain[VI, VF]], upcoming: Seq[Domain[VI, VF]]): DimTree[V1, VI, VF] = {
-        val dom = upcoming.head
-        if (dom.contains(k)) {
-          val kSign = dom.subsign(k)
-          val fork = Branch(dom.children.map(d =>
-            if (d.sign.get == kSign) Leaf(kv, d)
-            else if (d.sign.get == trace.last.sign.get) LongBranch(child, trace)
-            else Empty(d)
-          ), dom)
-          LongBranch(fork, upcoming.drop(1))
-        } else {
-          foo(trace :+ dom, upcoming.drop(1))
-        }
-      }
-      foo(Seq(domains.head), domains.drop(1))
-    }
-  }
-
-  override def -(key: VF): DimTree[E, VI, VF] = {
-    child - key match {
-      case _: Empty[_, _] => Empty(domains.last)
-      case newChild => LongBranch(newChild, domains)
-    }
-  }
-
-  override def closest(point: VF, within: Float) = ???
-
-  override def within(point: VF, within: Float) = ???
-
-  override def domain = domains.last
-
-  override def get(key: VF) = ???
-
-  override def iterator = ???
-}
-*/
-
 /**
   * Degenerate case in which this essentially becomes a binary search tree.
   * This is generally for debugging purposes.
@@ -431,7 +376,7 @@ object HexadecaTree extends TreeDim[V4I, V4F] {
   def empty[E](center: V4F, range: Float): HexadecaTree[E] =
     Empty(Domain(center, range, None, this))(this)
 }
-
+/*
 object BiTest extends App {
   var tree: BiTree[Unit] = BiTree.empty(0, Float.MaxValue)
   for (i <- 1 to 100) {
@@ -499,3 +444,4 @@ object HexadecaTest extends App {
   }
   println(buffer)
 }
+*/

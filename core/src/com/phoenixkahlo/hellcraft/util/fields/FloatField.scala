@@ -14,8 +14,18 @@ class FloatField private[fields](private var data: Either[Array[Float], Vector[F
 
   def size: V3I = _size
 
-  if (size.xi != size.yi || size.yi != size.zi)
-    throw new IllegalArgumentException("float field must have equal dimensions")
+  lazy val min: Float = data match {
+    case Left(arr) => arr.min
+    case Right(vec) => vec.min
+  }
+
+  lazy val max: Float = data match {
+    case Left(arr) => arr.max
+    case Right(vec) => vec.max
+  }
+
+  //if (size.xi != size.yi || size.yi != size.zi)
+  //  throw new IllegalArgumentException("float field must have equal dimensions")
 
   private def asVector: Vector[Float] = data match {
     case Left(arr) => arr.to[Vector]
