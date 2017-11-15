@@ -47,6 +47,8 @@ class SpatialPriorityQueue[K, E](empty: DimTree[Queue[E], _, K], spoint: K) exte
     JavaConverters.asJavaIterator(tree.iterator.flatMap({ case (k, q) => q.map(k -> _) }))
 
   override def size(): Int = _size
+
+  def height: Int = tree.height
 }
 
 class SpatialBlockingQueue[K, E](empty: DimTree[Queue[E], _, K], spoint: K) extends java.util.AbstractQueue[(K, E)] with util.concurrent.BlockingQueue[(K, E)] {

@@ -56,6 +56,13 @@ abstract class SpatialTemporalQueue[K, H, E](timeToSpace: Long => Float) extends
   private object Ticket
   private val tickets = new LinkedBlockingQueue[AnyRef]
 
+  def height: Int = {
+    try {
+      readLock.lock()
+      queue.height
+    } finally readLock.unlock()
+  }
+
   def point: K = {
     try {
       readLock.lock()
