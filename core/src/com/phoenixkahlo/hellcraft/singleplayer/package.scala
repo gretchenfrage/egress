@@ -7,6 +7,7 @@ import com.phoenixkahlo.hellcraft.gamedriver.Delta
 
 import scala.concurrent.duration._
 import com.phoenixkahlo.hellcraft.math.V3I
+import com.phoenixkahlo.hellcraft.util.Env
 
 import scala.reflect.ClassTag
 
@@ -24,7 +25,7 @@ package object singleplayer {
   val DayCycleTicks = DayCycleTime.toSeconds * Delta.updatesPerSecond
   val ShadowPixelDensity = 20
 
-  val auxBackgroundThreads = 4
+  val auxBackgroundThreads = Env.physicalProcessors - 4
   val mainLoopThreadPriority = 5
   val renderLoopThreadPriority = 10
   val backgroundThreadPriority = 3
