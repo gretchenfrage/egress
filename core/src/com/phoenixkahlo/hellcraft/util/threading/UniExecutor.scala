@@ -19,6 +19,7 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
   private val ticketQueue = new LinkedBlockingQueue[Supplier[Option[Runnable]]]
   private val workers = new ArrayBuffer[Thread]
 
+  /*
   new Thread(() => {
     while (true) {
       Thread.sleep(1000)
@@ -28,6 +29,7 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
       println("2D queue height = " + quadQueue.height)
     }
   }).start()
+  */
 
   case class Worker(work: Runnable) extends Runnable {
     override def run(): Unit = {

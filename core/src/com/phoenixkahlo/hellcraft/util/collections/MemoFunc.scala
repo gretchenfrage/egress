@@ -8,13 +8,13 @@ import scala.collection.parallel
   * Memoizing function.
   */
 class MemoFunc[I, O](func: I => O) extends (I => O) {
-  private val creators = new parallel.mutable.ParHashMap[I, Runnable]
-  private val map = new ParGenMutHashMap[I, Fut[O]](i => Fut(func(i), creators.put(i, _)))
+  private val map = new ParGenMutHashMap[(I, Runnable => Unit), Fut[O]]({ case (i, e) => Fut(func(i), e) })
 
   override def apply(input: I): O = {
-    val fut = map(input)
-    creators.get(input).foreach(_.run())
-    creators.remove(input)
+    var creator: Runnable = null
+    val fut = map((input, task => creator = task))
+    if (creator != null)
+      creator.run()
     fut.query.get
   }
 }

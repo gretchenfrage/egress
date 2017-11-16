@@ -238,7 +238,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     g += 1
 
     // interpolation
-    val (toRender, interpolation) = (infinitum(), NoInterpolation)
+    val (toRender: SWorld, interpolation: Interpolation) = (infinitum(), NoInterpolation)
 
     // update controller
     controller.update()

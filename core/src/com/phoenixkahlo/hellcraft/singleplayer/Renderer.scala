@@ -205,6 +205,8 @@ class Renderer(resources: ResourcePack) extends Disposable {
     lineShader.dispose()
     basicShader.dispose()
     genericShader.dispose()
+    pointShader.dispose()
+    particleShader.dispose()
   }
 
 }
