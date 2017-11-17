@@ -1,5 +1,7 @@
 package com.phoenixkahlo.hellcraft.math
 
+import java.io.{ByteArrayOutputStream, DataOutputStream}
+
 import com.badlogic.gdx.graphics.Color
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
@@ -76,6 +78,15 @@ class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
     val z = (i % (xi * zi)) / xi
     val x = i % xi
     V3I(x, y, z)
+  }
+
+  lazy val toByteArray: Array[Byte] = {
+    val baos = new ByteArrayOutputStream(12)
+    val dos = new DataOutputStream(baos)
+    dos.writeInt(xi)
+    dos.writeInt(yi)
+    dos.writeInt(zi)
+    baos.toByteArray
   }
 
   override lazy val flatten: V2I =

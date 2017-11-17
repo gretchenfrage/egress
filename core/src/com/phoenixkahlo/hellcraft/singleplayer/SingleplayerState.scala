@@ -56,7 +56,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     println("instantiating save")
     val generator = new Generator(res)
-    save = new RegionGenAsyncSave(AppDirs.dataDir("egress").resolve("single"), new CarboniteSerialService, generator.chunkAt)
+    //save = new RegionGenAsyncSave(AppDirs.dataDir("egress").resolve("single"), new CarboniteSerialService, generator.chunkAt)
+    save = new LevelDBSave(AppDirs.dataDir("egress").resolve("single"), generator.chunkAt)
 
     clock = new GametimeClock
 
