@@ -82,6 +82,10 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
   def close(): Unit =
     workers.foreach(_.interrupt())
 
+  def getSpatialTasks: (Seq[V3F], Seq[V2F]) = {
+    (octQueue.toSeq.map(_._1), quadQueue.toSeq.map(_._1))
+  }
+
 }
 
 object UniExecutor {
@@ -97,6 +101,8 @@ object UniExecutor {
   def point: V3F = service.point
 
   def point_=(p: V3F): Unit = service.point = p
+
+  def getService: UniExecutor = service
 
   def activate(threadCount: Int, threadFactory: ThreadFactory, failHandler: Consumer[Throwable], binSize: Float): Unit =
     this.synchronized {

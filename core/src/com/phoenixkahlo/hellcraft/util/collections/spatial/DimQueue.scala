@@ -27,6 +27,10 @@ class SpatialPriorityQueue[K, E](empty: DimTree[Queue[E], _, K], spoint: K) exte
     }
   }
 
+  def toSeq: Seq[(K, E)] = {
+    tree.toSeq.flatMap({ case (k, queue) => queue.map(e => k -> e) })
+  }
+
   override def offer(e: (K, E)): Boolean = {
     val (key, value) = e
     val queue = tree.getOrElse(key, Queue.empty)

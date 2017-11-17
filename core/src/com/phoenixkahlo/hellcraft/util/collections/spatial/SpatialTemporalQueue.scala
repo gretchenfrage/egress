@@ -63,6 +63,13 @@ abstract class SpatialTemporalQueue[K, H, E](timeToSpace: Long => Float) extends
     } finally readLock.unlock()
   }
 
+  def toSeq: Seq[(K, E)] = {
+    try {
+      readLock.lock()
+      queue.toSeq.map({ case (h, e) => flatten(h) -> e })
+    } finally readLock.unlock()
+  }
+
   def point: K = {
     try {
       readLock.lock()

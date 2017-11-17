@@ -256,6 +256,14 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         units +:= new ChunkOutline(chunk.pos, Color.RED)
       }
     }
+    val (tasks3D, tasks2D) = UniExecutor.getService.getSpatialTasks
+    for (p <- tasks3D) {
+      units +:= CubeRenderer(GrayTID, Color.WHITE, p)(resourcePack)
+    }
+    for (p <- tasks2D.map(_.inflate(0))) {
+      units +:= CubeRenderer(GrayTID, Color.BLUE, p)(resourcePack)
+    }
+
 
     // draw a cube where you're pointing
     for (v <- toRender.placeBlock(V3F(renderer.cam.position), V3F(renderer.cam.direction), 16)) {
