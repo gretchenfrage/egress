@@ -34,7 +34,7 @@ case class ComplexCollider(pos: V3F, vel: V3F, rad: V3F, scale: Float, dt: Float
     // coefficient of friction, transformed into simple spacetime (which means it must become a vector)
     val cof = ((Repeated(friction) * scale) \\ sRad) * dt
     // change in velocity due to friction
-    val fdv = (((simple.vel - natVel).tryNormalize ** cof) * nom) * -1
+    val fdv = (((simple.vel - natVel).normalize ** cof) * nom) * -1
     // apply friction, but don't overshoot
     var vaf = simple.vel + fdv
     if (((vaf - natVel) dot (simple.vel - natVel)) < 0)
@@ -43,7 +43,7 @@ case class ComplexCollider(pos: V3F, vel: V3F, rad: V3F, scale: Float, dt: Float
     simple = simple.copy(vel = vaf)
 
     // convert the velocity back into real time units
-    var fVel = simple.vel.tryNormalize * (simple.vel.magnitude / dt)
+    var fVel = simple.vel.normalize * (simple.vel.magnitude / dt)
     // convert back into non-elliptical space
     var fPos = simple.pos ** sRad
     fVel = fVel ** sRad

@@ -236,7 +236,7 @@ private class FlatMapFut[S, R](source: Fut[S], func: S => Fut[R]) extends Fut[R]
 }
 
 case class PromiseFold(sources: Seq[Fut[_]]) extends Fut[Unit] {
-  private var waiting: Set[V3I] = sources.indices.toSet
+  private var waiting: Set[Int] = sources.indices.toSet
   private val waitingMonitor = new Object
   @volatile private var done = false
   private val listeners = new ArrayBuffer[Runnable]

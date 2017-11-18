@@ -46,7 +46,7 @@ case class SimpleCollider(pos: V3F, vel: V3F) {
     }
 
     val (finalPos, finalVel, normals) = collideWithWorld(pos, vel, 5, Nil)
-    val avgNormal = normals.foldLeft[V3F](Origin)({ case (accum, (neu, weight)) => accum + (neu * weight) }).tryNormalize
+    val avgNormal = normals.foldLeft[V3F](Origin)({ case (accum, (neu, weight)) => accum + (neu * weight) }).normalize
     (SimpleCollider(finalPos, finalVel), avgNormal)
   }
 

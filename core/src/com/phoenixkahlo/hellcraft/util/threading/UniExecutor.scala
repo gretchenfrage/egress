@@ -21,6 +21,7 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
   private val ticketQueue = new LinkedBlockingQueue[Supplier[Option[Runnable]]]
   private val workers = new ArrayBuffer[Thread]
 
+  /*
   workers += new Thread(() => {
     try {
       while (true) {
@@ -37,6 +38,7 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
       case e: InterruptedException =>
     }
   })
+  */
 
   case class Worker(work: Runnable) extends Runnable {
     override def run(): Unit = {

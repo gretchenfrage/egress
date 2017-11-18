@@ -124,11 +124,12 @@ class V3F(val x: Float, val y: Float, val z: Float) extends Serializable {
     else (V3F(x % s, y % s, z % s) + V3F(s, s, s)) % s
 
   def normalize =
-    this / magnitude
-
-  def tryNormalize =
     if (this == Origin) Origin
-    else this.normalize
+    else this / magnitude
+
+  def pureNormalize: Option[V3F] =
+    if (this == Origin) None
+    else Some(this / magnitude)
 
   def angleWith(v: V3F) =
     Trig.acos(this.normalize dot v.normalize)

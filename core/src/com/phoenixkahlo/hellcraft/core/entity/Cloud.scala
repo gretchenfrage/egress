@@ -142,7 +142,7 @@ class CloudRenderer(cloud: ProceduralCloud) {
       density(v) > cloud.iso
 
     def direction(v: V3F): V3F =
-      Directions().map(d => d * density(d * 0.01f + v)).fold(Origin)(_ + _)./(6).tryNormalize.neg
+      Directions().map(d => d * density(d * 0.01f + v)).fold(Origin)(_ + _)./(6).normalize.neg
 
     // generate vertex field
     case class Vert(pos: V3F, nor: V3F)

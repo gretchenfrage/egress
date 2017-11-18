@@ -57,7 +57,7 @@ trait World {
     Directions().map(d => sampleDensity(d * 0.01f + v).map(d * _)).fold(Some(Origin))({
       case (Some(a), Some(b)) => Some(a + b)
       case _ => None
-    }).map(v => (v / 6).tryNormalize)
+    }).map(v => (v / 6).normalize)
 
   def raycast(pos: V3F, dir: V3F): Stream[V3F] = {
     val (min, max) = boundingBox
