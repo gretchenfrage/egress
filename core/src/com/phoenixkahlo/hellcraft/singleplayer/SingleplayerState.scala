@@ -34,16 +34,15 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var save: AsyncSave = _
   private var clock: GametimeClock = _
   private var infinitum: Infinitum = _
-  private var resourcePack: ResourcePack = _
+  private var pack: ResourcePack = _
   private var renderer: Renderer = _
-  private var controller: InputProcessor = _
+  private var processor: InputProcessor = _
   @volatile private var loadTarget = Set.empty[V3I]
-  //private var controller: FirstPersonCameraController = _
-  private var clientLogic: ClientLogic = GodClient(Set.empty)
+  private var clientLogic: ClientLogic = _//GodClientMenu(Set.empty)//GodClientMain(Set.empty)
   private val clientLogicQueue = new ConcurrentLinkedQueue[ClientLogic => ((World, ClientLogic.Input) => ClientLogic.Output)]
   private val worldEffectQueue = new ConcurrentLinkedQueue[UpdateEffect]
   private var vramGraph: DependencyGraph = _
-  private var mainLoopTasks: java.util.Queue[Runnable] = _
+  private var mainLoopTasks = new java.util.concurrent.ConcurrentLinkedQueue[Runnable]
   private var updateThread: Thread = _
   private var g = 0
 
@@ -62,23 +61,27 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       driver.enter(new MainMenu(providedResources))
     }, 4)
 
+    println("creating client logic")
+    clientLogic = GodClientMenu(Set.empty)
+    //clientLogic = GodClientMain(Set.empty)
+
     println("instantiating save")
     val generator = new DefaultGenerator(res)
-    //save = new RegionGenAsyncSave(AppDirs.dataDir("egress").resolve("single"), new CarboniteSerialService, generator.chunkAt)
     save = new LevelDBSave(AppDirs.dataDir("egress").resolve("single"), generator)
 
+    println("instantiating clock")
     clock = new GametimeClock
 
     println("instantiating history")
     infinitum = new Infinitum(res, save, 1f / 20f)
 
     println("loading resources")
-    resourcePack = providedResources()
+    pack = providedResources()
 
     println("creating renderer")
-    renderer = new Renderer(resourcePack)
+    renderer = new Renderer(pack)
 
-    println("instantiating controller")
+    println("instantiating input processor")
     /*
     val multiplexer = new InputMultiplexer
     multiplexer.addProcessor(new InputAdapter {
@@ -197,8 +200,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     multiplexer.addProcessor(controller)
     Gdx.input.setInputProcessor(multiplexer)
     */
-
-    controller = new InputProcessor {
+    processor = new InputProcessor {
       override def touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean =
         clientLogicQueue.add(_.touchUp(V2I(screenX, screenY), pointer, Button(button)))
 
@@ -223,7 +225,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       override def mouseMoved(screenX: Int, screenY: Int): Boolean =
         clientLogicQueue.add(_.mouseMoved(V2I(screenX, screenY), V2I(Gdx.input.getDeltaX, Gdx.input.getDeltaY)))
     }
-    Gdx.input.setInputProcessor(controller)
+    Gdx.input.setInputProcessor(processor)
 
     println("instantiating VRAM graph")
     vramGraph = new DependencyGraph
@@ -231,7 +233,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     Thread.currentThread().setPriority(renderLoopThreadPriority)
 
     println("spawning updating thread")
-    mainLoopTasks = new java.util.concurrent.ConcurrentLinkedQueue
     updateThread = new Thread(this, "update thread")
     updateThread.setPriority(mainLoopThreadPriority)
     clock.reset()
@@ -255,7 +256,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         // update world
         UniExecutor.point = V3F(renderer.cam.position)
         val p = (V3F(renderer.cam.position) / 16).floor
-        val effects = infinitum.update(/*((p - LoadDist) to (p + LoadDist)).toSet*/loadTarget, externEffects)
+        val effects = infinitum.update(loadTarget, externEffects)
         val time = infinitum().time
 
         // enqueue input
@@ -263,7 +264,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
         // process effects
         effects(SoundEffect).map(_.asInstanceOf[SoundEffect])
-          .foreach(AudioUtil.play(resourcePack, V3F(renderer.cam.position)))
+          .foreach(AudioUtil.play(pack, V3F(renderer.cam.position)))
 
         // manage time
         if (clock.timeSince(time) > (500 milliseconds)) {
@@ -278,20 +279,20 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   }
 
   override def render(): Unit = {
-    Gdx.graphics.setTitle(Gdx.graphics.getFramesPerSecond.toString)
-
     // setup
+    Gdx.graphics.setTitle(Gdx.graphics.getFramesPerSecond.toString)
     g += 1
 
-    // interpolation
-    val (toRender: SWorld, interpolation: Interpolation) = (infinitum(), NoInterpolation)
+    // get world and interpolation
+    val toRender = infinitum()
+    val interpolation = NoInterpolation
 
     // update controller
-    //controller.update()
     val clientInput = new ClientLogic.Input {
       override def camPos: V3F = V3F(renderer.cam.position)
       override def camDir: V3F = V3F(renderer.cam.direction)
       override def isCursorCaught: Boolean = Gdx.input.isCursorCatched
+      override def windowSize: V2I = V2I(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     }
     clientLogicQueue.add(_.update)
     while (clientLogicQueue.size > 0) {
@@ -311,7 +312,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     renderer.cam.update(true)
 
     // get render units
-    var units = toRender.renderables(resourcePack)
+    var units: Seq[RenderUnit] = toRender.renderables(pack)
 
     // add debug units
     if (Gdx.input.isKeyPressed(Keys.ALT_LEFT)) {
@@ -323,16 +324,18 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         units +:= new ChunkOutline(chunk.pos, Color.RED)
       }
     }
+    /*
     val (tasks3D, tasks2D, tasksDB3D) = UniExecutor.getService.getSpatialTasks
     for (p <- tasks3D) {
-      units +:= CubeRenderer(GrayTID, Color.WHITE, p)(resourcePack)
+      units +:= CubeRenderer(GrayTID, Color.WHITE, p)(pack)
     }
     for (p <- tasks2D.map(_.inflate(0))) {
-      units +:= CubeRenderer(GrayTID, Color.BLUE, p)(resourcePack)
+      units +:= CubeRenderer(GrayTID, Color.BLUE, p)(pack)
     }
     for (p <- tasksDB3D) {
-      units +:= CubeRenderer(GrayTID, Color.GREEN, p)(resourcePack)
+      units +:= CubeRenderer(GrayTID, Color.GREEN, p)(pack)
     }
+    */
 
 
     // draw a cube where you're pointing
@@ -341,7 +344,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     }
 
     // do memory management
-    val nodes = units.par.flatMap(_.resources).seq
+    val nodes = units.flatMap(_.resources)
     vramGraph ++= nodes
     if (g % 600 == 0) UniExecutor.exec(() => {
       val garbage = vramGraph.garbage(nodes)
@@ -353,11 +356,12 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     })
 
     // render
-    renderer.render(toRender, units, interpolation)
+    renderer.render(toRender, units, interpolation, clientLogic.hud(toRender, clientInput))
   }
 
   override def onResize(width: Int, height: Int): Unit = {
     renderer.onResize(width, height)
+    clientLogicQueue.add(_.resize)
   }
 
   override def onExit(): Unit = {

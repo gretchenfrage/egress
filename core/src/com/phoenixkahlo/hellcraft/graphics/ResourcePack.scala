@@ -15,6 +15,8 @@ import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.graphics._
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
+import com.phoenixkahlo.hellcraft.menu.util.FrameFactory
+import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -64,6 +66,8 @@ trait ResourcePack {
   def font(fontID: FontID): BitmapFont
 
   def pixmap(pixmapID: PixmapID): Pixmap
+
+  def frame(pixmapID: PixmapID, depth: Int, width: Int, height: Int): Texture
 
   def sound(soundID: SoundID): Sound
 
@@ -137,40 +141,12 @@ class DefaultResourcePack extends ResourcePack {
   override def sound(soundID: SoundID): Sound =
     sounds(soundID)
 
-  /*
-  val clouds: Seq[Model] = (0 until 10) map (i => {
-    val vertIn = new DataInputStream(Gdx.files.internal("clouds/" + i + "_verts.dat").read())
-    val verts = new ArrayBuffer[Float]
-    while (vertIn.available() > 0)
-      verts += vertIn.readFloat()
-    vertIn.close()
+  val _frame = new MemoFunc[(PixmapID, Int, Int, Int), Texture](
+    { case (pid, d, w, h) => new FrameFactory(pixmap(pid), d)(w, h) })
 
-    val indexIn = new DataInputStream(Gdx.files.internal("clouds/" + i + "_indices.dat").read())
-    val indices = new ArrayBuffer[Short]
-    while (indexIn.available() > 0)
-      indices += indexIn.readShort()
-    indexIn.close()
+  override def frame(pixmapID: PixmapID, depth: Int, width: Int, height: Int): Texture =
+    _frame((pixmapID, depth, width, height))
 
-    val m = new Mesh(true, verts.size, indices.size,
-      new VertexAttribute(Usage.Position, 3, "a_position"),
-      new VertexAttribute(Usage.ColorPacked, 4, "a_color"),
-      new VertexAttribute(Usage.TextureCoordinates, 2, "a_texCoord0"),
-      new VertexAttribute(Usage.Normal, 3, "a_normal")
-    )
-    m.setVertices(verts.toArray)
-    m.setIndices(indices.toArray)
-
-    val material = new Material()
-    material.set(ColorAttribute.createDiffuse(Color.WHITE))
-
-    val meshPart = new MeshPart("outline", m, 0, m.getNumIndices, GL20.GL_TRIANGLES)
-
-    val builder = new ModelBuilder()
-    builder.begin()
-    builder.part(meshPart, material)
-    builder.end()
-  })
-  */
   val clouds: Seq[Model] =
     Stream.iterate(0)(_ + 1)
       .map(i => Gdx.files.internal("clouds/" + i + "_verts.dat") -> Gdx.files.internal("clouds/" + i + "_indices.dat"))

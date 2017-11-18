@@ -64,11 +64,11 @@ class Renderer(resources: ResourcePack) extends Disposable {
     override def sort(camera: Camera, renderables: utils.Array[Renderable]): Unit = ()
   })
 
-  val hud = new DefaultHUD
+  //val hud = new DefaultHUD
   val spriteBatch = new SpriteBatch()
 
 
-  def render(world: SWorld, units: Seq[RenderUnit], interpolation: Interpolation): Unit = {
+  def render(world: SWorld, units: Seq[RenderUnit], interpolation: Interpolation, hud: HUD): Unit = {
     //val skyDistance = LoadDist.fold(Math.max) * 20
     val skyDistance = cam.far - 1
     val camPos = V3F(cam.position)
@@ -183,9 +183,10 @@ class Renderer(resources: ResourcePack) extends Disposable {
     batch.end()
 
     // render HUD
+    spriteBatch.getProjectionMatrix.setToOrtho2D(0, 0, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     spriteBatch.begin()
     for (comp <- hud.components(resources)) {
-      comp.draw(spriteBatch)
+      comp.draw(spriteBatch, cam)
     }
     spriteBatch.end()
 

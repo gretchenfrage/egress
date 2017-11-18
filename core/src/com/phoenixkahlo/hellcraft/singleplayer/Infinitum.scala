@@ -213,11 +213,6 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
 
   def finalSave(): Fut[Unit] = {
     PromiseFold(save.close(this().chunks))
-    /*
-    Promise(() => {
-      save.close(this().chunks).foreach(_.await)
-    }, AsyncExecutor.global.execute)
-    */
   }
 
   /**

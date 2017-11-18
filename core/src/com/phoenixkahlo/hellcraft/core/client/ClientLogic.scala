@@ -38,13 +38,14 @@ object ClientLogic {
     def isCursorCaught: Boolean
     def camPos: V3F
     def camDir: V3F
+    def windowSize: V2I
   }
 }
 
 trait ClientLogic {
-  protected def nothing: Output = (this, Seq.empty)
-  protected def become(replacement: ClientLogic): Output = (replacement, Seq.empty)
-  protected def cause(effects: ClientEffect*): Output = (this, effects)
+  def nothing: Output = (this, Seq.empty)
+  def become(replacement: ClientLogic): Output = (replacement, Seq.empty)
+  def cause(effects: ClientEffect*): Output = (this, effects)
 
   def update(world: World, input: Input): Output = nothing
 
@@ -67,5 +68,7 @@ trait ClientLogic {
   def scrolled(amount: Int)(world: World, input: Input): Output = nothing
 
   def hud(world: World, input: Input): HUD = EmptyHUD
+
+  def resize(world: World, input: Input): Output = nothing
 }
 
