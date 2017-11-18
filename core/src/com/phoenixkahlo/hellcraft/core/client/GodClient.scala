@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.{BitmapFont, GlyphLayout, TextureRegion}
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.graphics.models.{BlockOutline, ChunkOutline}
+import com.phoenixkahlo.hellcraft.math
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
 
@@ -59,18 +60,27 @@ case class MenuHUD(buttons: Seq[MenuButton]) extends HUD {
   }
 }
 
-case class GodClientMenu(pressed: Set[Int], buttons: Seq[MenuButton], pressing: Option[MenuButton], hud: HUD) extends ClientLogic {
+case class GodClientMenu(pressed: Set[Int], buttons: Seq[MenuButton], pressing: Option[MenuButton], hud: HUD, chat: Chat) extends ClientLogic {
+  /*
   override def update(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
     cause(ReleaseCursor)
+    */
+
+
+  override def become(replacement: ClientLogic): (ClientLogic, Seq[ClientEffect]) = {
+    if (replacement.isInstanceOf[GodClient]) replacement -> Seq(CaptureCursor)
+    else super.become(replacement)
+  }
 
   override def tick(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = {
     val chunkPos = input.camPos / 16 toInts
     val loadTarget = (chunkPos - GodClient.loadRad) to (chunkPos + GodClient.loadRad) toSet;
-    cause(ReleaseCursor, SetLoadTarget(loadTarget))
+    //cause(ReleaseCursor, SetLoadTarget(loadTarget))
+    cause(SetLoadTarget(loadTarget))
   }
 
   override def keyDown(keycode: Int)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
-    if (keycode == ESCAPE) GodClient(pressed) -> Seq(CaptureCursor)
+    if (keycode == ESCAPE) GodClient(pressed, chat) -> Seq(CaptureCursor)
     else become(copy(pressed = pressed + keycode))
 
   override def keyUp(keycode: Int)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
@@ -88,20 +98,20 @@ case class GodClientMenu(pressed: Set[Int], buttons: Seq[MenuButton], pressing: 
   }
 
   override def resize(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = {
-    val (buttons, hud) = GodClientMenu.makeButtonsAndHUD()
+    val (buttons, hud) = GodClientMenu.makeButtonsAndHUD(chat)
     become(copy(buttons = buttons, hud = hud))
   }
 }
 
 object GodClientMenu {
-  def makeButtonsAndHUD(): (Seq[MenuButton], HUD) = {
+  def makeButtonsAndHUD(chat: Chat): (Seq[MenuButton], HUD) = {
     val center = V2I(Gdx.graphics.getWidth / 2, Gdx.graphics.getHeight / 2)
     val rad = V2I(150, 18)
 
     val buttons = new ArrayBuffer[MenuButton]
     buttons += MenuButton(center - rad + V2I(0, 50), center + rad + V2I(0, 50), "Resume Game", (c, w, i) => {
       println("resume game")
-      GodClient(c.asInstanceOf[GodClientMenu].pressed) -> Seq(CaptureCursor)
+      GodClient(c.asInstanceOf[GodClientMenu].pressed, chat) -> Seq(CaptureCursor)
     })
     buttons += MenuButton(center - rad - V2I(0, 50), center + rad - V2I(0, 50), "Exit Game", (c, w, i) => {
       println("exit game")
@@ -113,13 +123,44 @@ object GodClientMenu {
     (buttons, hud)
   }
 
-  def apply(pressed: Set[Int]): GodClientMenu = {
-    val (buttons, hud) = makeButtonsAndHUD()
-    GodClientMenu(pressed, buttons, None, hud)
+  def apply(pressed: Set[Int], chat: Chat): GodClientMenu = {
+    val (buttons, hud) = makeButtonsAndHUD(chat)
+    GodClientMenu(pressed, buttons, None, hud, chat)
   }
 }
 
-case class GodClient(pressed: Set[Int]) extends ClientLogic {
+case class GodClientChat(chat: Chat, cursorOn: Boolean = true, buffer: String = "") extends ClientLogic {
+  val hud = new GodHUD(chat, buffer + (if (cursorOn) "_" else ""), new Color(0.1718f, 0.2422f, 0.3125f, 0.3f))
+
+
+  override def become(replacement: ClientLogic): (ClientLogic, Seq[ClientEffect]) = {
+    if (replacement.isInstanceOf[GodClient]) replacement -> Seq(CaptureCursor)
+    else super.become(replacement)
+  }
+
+  override def update(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
+    if (cursorShouldBeOn(input) ^ cursorOn) become(copy(cursorOn = cursorShouldBeOn(input)))
+    else nothing
+
+  def cursorShouldBeOn(input: Input): Boolean = {
+    val interval = 1000000000
+    input.nanoTime % interval > interval / 2
+  }
+
+  override def keyDown(keycode: Int)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
+    if (keycode == ESCAPE) become(GodClient(Set.empty, chat))
+    else become(copy(buffer = buffer + input.toString(keycode)))
+
+  override def render(world: World, input: Input): (HUD, Seq[RenderUnit]) = (hud, Seq.empty)
+}
+
+case class GodClient(pressed: Set[Int], chat: Chat) extends ClientLogic {
+
+  override def become(replacement: ClientLogic): (ClientLogic, Seq[ClientEffect]) = {
+    if (!replacement.isInstanceOf[GodClient]) replacement -> Seq(ReleaseCursor)
+    else super.become(replacement)
+  }
+
   override def update(world: World, input: Input) = {
     var movDir: V3F = Origin
     if (pressed(W)) movDir += input.camDir
@@ -136,9 +177,11 @@ case class GodClient(pressed: Set[Int]) extends ClientLogic {
     )
   }
 
-  override def keyDown(keycode: Int)(world: World, input: Input) =
-    if (keycode == ESCAPE) become(GodClientMenu(pressed))
-    else become(copy(pressed = pressed + keycode))
+  override def keyDown(keycode: Int)(world: World, input: Input) = keycode match {
+    case ESCAPE => become(GodClientMenu(pressed, chat))
+    case T => become(GodClientChat(chat))
+    case _ => become(copy(pressed = pressed + keycode))
+  }
 
   override def keyUp(keycode: Int)(world: World, input: Input) =
     become(copy(pressed = pressed - keycode))
@@ -176,7 +219,7 @@ case class GodClient(pressed: Set[Int]) extends ClientLogic {
       cause(SetCamDir(camDir))
     } else nothing
 
-  val hud = new GodHUD
+  val hud = new GodHUD(chat, "", Color.CLEAR)
 
   override def render(world: World, input: Input): (HUD, Seq[RenderUnit]) = {
     val units = new ArrayBuffer[RenderUnit]
@@ -201,11 +244,7 @@ case class GodClient(pressed: Set[Int]) extends ClientLogic {
   override def resize(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = become(copy())
 }
 
-object Abe {
-  val rant = "We can't bust heads like we used to, but we have our ways. One trick is to tell 'em stories that don't go anywhere - like the time I caught the ferry over to Shelbyville. I needed a new heel for my shoe, so, I decided to go to Morganville, which is what they called Shelbyville in those days. So I tied an onion to my belt, which was the style at the time."
-}
-
-class GodHUD extends HUD {
+class GodHUD(chat: Chat, buffer: String = "", bg: Color) extends HUD {
   val _components = new ParamCache[ResourcePack, Seq[HUDComponent]](pack => {
     val comps = new ArrayBuffer[HUDComponent]
     comps += ImgHUDComponent(
@@ -214,16 +253,15 @@ class GodHUD extends HUD {
       V2F(30, 30)
     )
     comps += ImgHUDComponent(
-      new TextureRegion(pack.frame(MenuPatchPID, 18, Gdx.graphics.getWidth / 2, Gdx.graphics.getHeight / 2)),
-      V2I(0, 0),
-      V2I(Gdx.graphics.getWidth / 2, Gdx.graphics.getHeight / 2)
+      new TextureRegion(pack.dot(bg)),
+      Origin2D,
+      V2F(Gdx.graphics.getWidth * 0.4f, Gdx.graphics.getHeight / 2)
     )
+    val str = (chat.messages :+ buffer).foldLeft("")(_ + _ + '\n').dropRight(1)
     comps += StrBoxHUDComponent(
-      Abe.rant,
-      pack.font(ButtonFID),
-      V2I(Gdx.graphics.getWidth / 2, Gdx.graphics.getHeight / 2), UpRight,
-      V2I(Gdx.graphics.getWidth / 2, Gdx.graphics.getHeight / 2),
-      Color.WHITE, 3, 10
+      str, pack.font(ChatFID),
+      Origin2D, DownLeft, V2F(Gdx.graphics.getWidth * 0.4f, Gdx.graphics.getHeight / 2),
+      new Color(1f, 1f, 1f, 0.5f), 3, 10
     )
     comps
   })

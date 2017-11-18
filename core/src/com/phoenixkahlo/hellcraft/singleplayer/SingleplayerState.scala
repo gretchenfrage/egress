@@ -1,5 +1,7 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
+import java.awt.Toolkit
+import java.awt.event.KeyEvent
 import java.util.UUID
 import java.util.concurrent.{ConcurrentLinkedQueue, ThreadLocalRandom}
 
@@ -9,7 +11,7 @@ import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.graphics.g3d._
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.utils.Pool
-import com.badlogic.gdx.{Gdx, InputAdapter, InputMultiplexer, InputProcessor}
+import com.badlogic.gdx._
 import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.client._
@@ -62,8 +64,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     }, 4)
 
     println("creating client logic")
-    clientLogic = GodClientMenu(Set.empty)
-    //clientLogic = GodClientMain(Set.empty)
+    //clientLogic = GodClientMenu(Set.empty, Chat(Seq("player joined the game.")))
+    clientLogic = GodClient(Set.empty, Chat(Seq("player joined the game.")))
 
     println("instantiating save")
     val generator = new DefaultGenerator(res)
@@ -293,6 +295,14 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       override def camDir: V3F = V3F(renderer.cam.direction)
       override def isCursorCaught: Boolean = Gdx.input.isCursorCatched
       override def windowSize: V2I = V2I(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
+      override def nanoTime: Long = System.nanoTime()
+      override def toString(keycode: Int): String = {
+        val str = Input.Keys.toString(keycode)
+        println("capslock = " + Toolkit.getDefaultToolkit.getLockingKeyState(KeyEvent.VK_CAPS_LOCK))
+
+        if (Toolkit.getDefaultToolkit.getLockingKeyState(KeyEvent.VK_CAPS_LOCK)) str.toUpperCase
+        else str.toLowerCase
+      }
     }
     clientLogicQueue.add(_.update)
     while (clientLogicQueue.size > 0) {

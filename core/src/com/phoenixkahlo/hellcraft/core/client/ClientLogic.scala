@@ -42,6 +42,8 @@ object ClientLogic {
     def camPos: V3F
     def camDir: V3F
     def windowSize: V2I
+    def nanoTime: Long
+    def toString(keycode: Int): String
   }
 }
 

@@ -4,6 +4,7 @@ import java.io.DataInputStream
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.audio.Sound
+import com.badlogic.gdx.graphics.Pixmap.Format
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter
@@ -49,6 +50,7 @@ case object HeaderFID extends FontID
 case object TitleFID extends FontID
 case object ButtonFID extends FontID
 case object XFID extends FontID
+case object ChatFID extends FontID
 
 sealed trait SoundID
 case object SnapSID extends SoundID
@@ -72,6 +74,8 @@ trait ResourcePack {
   def sound(soundID: SoundID): Sound
 
   def cloud(i: Int): Model
+
+  def dot(color: Color): Texture
 
 }
 
@@ -112,7 +116,8 @@ class DefaultResourcePack extends ResourcePack {
     HeaderFID -> ("raleway.ttf", 75),
     ButtonFID -> ("raleway.ttf", 24),
     TitleFID -> ("raleway.ttf", 32),
-    XFID -> ("raleway.ttf", 32)
+    XFID -> ("raleway.ttf", 32),
+    ChatFID -> ("raleway.ttf", 18)
   ) map {
     case (fid, (path, size)) =>
       val generator = new FreeTypeFontGenerator(Gdx.files.internal(path))
@@ -187,4 +192,13 @@ class DefaultResourcePack extends ResourcePack {
 
   override def cloud(i: Int): Model =
     clouds(Math.abs(i) % clouds.size)
+
+  val _dot = new MemoFunc[Color, Texture](col => {
+    val pixmap = new Pixmap(1, 1, Format.RGBA8888)
+    pixmap.setColor(col)
+    pixmap.drawPixel(0, 0)
+    new Texture(pixmap)
+  })
+
+  override def dot(color: Color): Texture = _dot(color)
 }
