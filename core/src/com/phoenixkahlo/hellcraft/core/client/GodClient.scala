@@ -11,11 +11,19 @@ case class GodClient(pressed: Set[Int]) extends ClientLogic {
     if (pressed(S)) movDir -= input.camDir
     if (pressed(D)) movDir += (input.camDir cross Up).normalize
     if (pressed(A)) movDir -= (input.camDir cross Up).normalize
-    cause(SetCamPos(input.camPos + (movDir * GodClient.moveSpeed)))
+
+    val chunkPos = input.camPos / 16 toInts
+    val loadTarget = (chunkPos - GodClient.loadRad) to (chunkPos + GodClient.loadRad) toSet
+
+    cause(
+      SetCamPos(input.camPos + (movDir * GodClient.moveSpeed)),
+      SetLoadTarget(loadTarget)
+    )
   }
 
   override def keyDown(keycode: Int)(world: World, input: Input) =
-    become(copy(pressed = pressed + keycode))
+    if (keycode == ESCAPE) cause(Exit)
+    else become(copy(pressed = pressed + keycode))
 
   override def keyUp(keycode: Int)(world: World, input: Input) =
     become(copy(pressed = pressed - keycode))
@@ -54,4 +62,5 @@ object GodClient {
   val turnSpeed = 0.25f
   val moveSpeed = 1f
   val margin = 1f
+  val loadRad = V3I(8, 4, 8)
 }

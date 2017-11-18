@@ -9,10 +9,10 @@ import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.graphics.g3d._
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.utils.Pool
-import com.badlogic.gdx.{Gdx, InputAdapter, InputMultiplexer}
+import com.badlogic.gdx.{Gdx, InputAdapter, InputMultiplexer, InputProcessor}
 import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.core._
-import com.phoenixkahlo.hellcraft.core.client.{ClientEffect, ClientLogic, GodClient}
+import com.phoenixkahlo.hellcraft.core.client._
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.graphics.models.{BlockOutline, ChunkOutline}
@@ -30,20 +30,25 @@ import scala.concurrent.duration._
 
 class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameState with Runnable {
 
+  private var driver: GameDriver = _
   private var save: AsyncSave = _
   private var clock: GametimeClock = _
   private var infinitum: Infinitum = _
   private var resourcePack: ResourcePack = _
   private var renderer: Renderer = _
+  private var controller: InputProcessor = _
+  @volatile private var loadTarget = Set.empty[V3I]
   //private var controller: FirstPersonCameraController = _
-  private var client: ClientLogic = GodClient(Set.empty)
-  private val clientProcess = new ConcurrentLinkedQueue[(World, ClientLogic.Input) => ClientLogic.Output]
+  private var clientLogic: ClientLogic = GodClient(Set.empty)
+  private val clientLogicQueue = new ConcurrentLinkedQueue[ClientLogic => ((World, ClientLogic.Input) => ClientLogic.Output)]
+  private val worldEffectQueue = new ConcurrentLinkedQueue[UpdateEffect]
   private var vramGraph: DependencyGraph = _
   private var mainLoopTasks: java.util.Queue[Runnable] = _
   private var updateThread: Thread = _
   private var g = 0
 
   override def onEnter(driver: GameDriver): Unit = {
+    this.driver = driver
     val res = WorldRes
 
     println("activating uni executor")
@@ -193,6 +198,33 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     Gdx.input.setInputProcessor(multiplexer)
     */
 
+    controller = new InputProcessor {
+      override def touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean =
+        clientLogicQueue.add(_.touchUp(V2I(screenX, screenY), pointer, Button(button)))
+
+      override def touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean =
+        clientLogicQueue.add(_.touchDown(V2I(screenX, screenY), pointer, Button(button)))
+
+      override def keyUp(keycode: Int): Boolean =
+        clientLogicQueue.add(_.keyUp(keycode))
+
+      override def scrolled(amount: Int): Boolean =
+        clientLogicQueue.add(_.scrolled(amount))
+
+      override def keyTyped(character: Char): Boolean =
+        clientLogicQueue.add(_.keyTyped(character))
+
+      override def touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean =
+        clientLogicQueue.add(_.touchDragged(V2I(screenX, screenY), V2I(Gdx.input.getDeltaX(pointer), Gdx.input.getDeltaY(pointer)), pointer))
+
+      override def keyDown(keycode: Int): Boolean =
+        clientLogicQueue.add(_.keyDown(keycode))
+
+      override def mouseMoved(screenX: Int, screenY: Int): Boolean =
+        clientLogicQueue.add(_.mouseMoved(V2I(screenX, screenY), V2I(Gdx.input.getDeltaX, Gdx.input.getDeltaY)))
+    }
+    Gdx.input.setInputProcessor(controller)
+
     println("instantiating VRAM graph")
     vramGraph = new DependencyGraph
 
@@ -215,11 +247,19 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         while (mainLoopTasks.size > 0)
           mainLoopTasks.remove().run()
 
+        // accumulate effects
+        var externEffects = Seq.empty[UpdateEffect]
+        while (worldEffectQueue.size > 0)
+          externEffects +:= worldEffectQueue.remove()
+
         // update world
         UniExecutor.point = V3F(renderer.cam.position)
         val p = (V3F(renderer.cam.position) / 16).floor
-        val effects = infinitum.update(((p - LoadDist) to (p + LoadDist)).toSet)
+        val effects = infinitum.update(/*((p - LoadDist) to (p + LoadDist)).toSet*/loadTarget, externEffects)
         val time = infinitum().time
+
+        // enqueue input
+        clientLogicQueue.add(_.tick)
 
         // process effects
         effects(SoundEffect).map(_.asInstanceOf[SoundEffect])
@@ -247,7 +287,28 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     val (toRender: SWorld, interpolation: Interpolation) = (infinitum(), NoInterpolation)
 
     // update controller
-    controller.update()
+    //controller.update()
+    val clientInput = new ClientLogic.Input {
+      override def camPos: V3F = V3F(renderer.cam.position)
+      override def camDir: V3F = V3F(renderer.cam.direction)
+      override def isCursorCaught: Boolean = Gdx.input.isCursorCatched
+    }
+    clientLogicQueue.add(_.update)
+    while (clientLogicQueue.size > 0) {
+      val (newClientLogic, effects) = clientLogicQueue.remove()(clientLogic)(toRender, clientInput)
+      clientLogic = newClientLogic
+      effects.foreach {
+        case CauseUpdateEffect(worldEffects) => worldEffects.foreach(worldEffectQueue.add)
+        case SetLoadTarget(target) => loadTarget = target
+        case SetCamPos(p) => renderer.cam.position.set(p.x, p.y, p.z)
+        case SetCamDir(d) => renderer.cam.direction.set(d.x, d.y, d.z)
+        case SetCamFOV(fov) => renderer.cam.fieldOfView = fov
+        case CaptureCursor => Gdx.input.setCursorCatched(true)
+        case ReleaseCursor => Gdx.input.setCursorCatched(false)
+        case Exit => driver.enter(new MainMenu(providedResources))
+      }
+    }
+    renderer.cam.update(true)
 
     // get render units
     var units = toRender.renderables(resourcePack)

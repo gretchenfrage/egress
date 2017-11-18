@@ -1,5 +1,6 @@
 package com.phoenixkahlo.hellcraft.core.client
 
+import com.badlogic.gdx.Input.Buttons
 import com.phoenixkahlo.hellcraft.core.{UpdateEffect, World}
 import com.phoenixkahlo.hellcraft.core.client.ClientLogic.{Input, Output}
 import com.phoenixkahlo.hellcraft.graphics.{EmptyHUD, HUD}
@@ -13,6 +14,7 @@ case class SetCamDir(p: V3F) extends ClientEffect
 case class SetCamFOV(fov: Float) extends ClientEffect
 case object CaptureCursor extends ClientEffect
 case object ReleaseCursor extends ClientEffect
+case object Exit extends ClientEffect
 
 sealed trait Button
 case object Left extends Button
@@ -20,6 +22,15 @@ case object Right extends Button
 case object Middle extends Button
 case object Back extends Button
 case object Forward extends Button
+object Button {
+  def apply(code: Int): Button = code match {
+    case Buttons.BACK => Back
+    case Buttons.FORWARD => Forward
+    case Buttons.LEFT => Left
+    case Buttons.RIGHT => Right
+    case Buttons.MIDDLE => Middle
+  }
+}
 
 object ClientLogic {
   type Output = (ClientLogic, Seq[ClientEffect])
@@ -36,6 +47,8 @@ trait ClientLogic {
   protected def cause(effects: ClientEffect*): Output = (this, effects)
 
   def update(world: World, input: Input): Output = nothing
+
+  def tick(world: World, input: Input): Output = nothing
 
   def keyDown(keycode: Int)(world: World, input: Input): Output = nothing
 
