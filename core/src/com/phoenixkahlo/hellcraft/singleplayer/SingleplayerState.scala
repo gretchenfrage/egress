@@ -1,7 +1,7 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
 import java.util.UUID
-import java.util.concurrent.ThreadLocalRandom
+import java.util.concurrent.{ConcurrentLinkedQueue, ThreadLocalRandom}
 
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
@@ -12,6 +12,7 @@ import com.badlogic.gdx.utils.Pool
 import com.badlogic.gdx.{Gdx, InputAdapter, InputMultiplexer}
 import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.core._
+import com.phoenixkahlo.hellcraft.core.client.{ClientEffect, ClientLogic, GodClient}
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.graphics.models.{BlockOutline, ChunkOutline}
@@ -34,7 +35,9 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var infinitum: Infinitum = _
   private var resourcePack: ResourcePack = _
   private var renderer: Renderer = _
-  private var controller: FirstPersonCameraController = _
+  //private var controller: FirstPersonCameraController = _
+  private var client: ClientLogic = GodClient(Set.empty)
+  private val clientProcess = new ConcurrentLinkedQueue[(World, ClientLogic.Input) => ClientLogic.Output]
   private var vramGraph: DependencyGraph = _
   private var mainLoopTasks: java.util.Queue[Runnable] = _
   private var updateThread: Thread = _
@@ -71,6 +74,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     renderer = new Renderer(resourcePack)
 
     println("instantiating controller")
+    /*
     val multiplexer = new InputMultiplexer
     multiplexer.addProcessor(new InputAdapter {
       override def keyDown(keycode: Int): Boolean =
@@ -187,6 +191,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     controller = new FirstPersonCameraController(renderer.cam)
     multiplexer.addProcessor(controller)
     Gdx.input.setInputProcessor(multiplexer)
+    */
 
     println("instantiating VRAM graph")
     vramGraph = new DependencyGraph

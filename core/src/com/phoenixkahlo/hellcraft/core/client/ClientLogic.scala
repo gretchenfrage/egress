@@ -1,0 +1,58 @@
+package com.phoenixkahlo.hellcraft.core.client
+
+import com.phoenixkahlo.hellcraft.core.{UpdateEffect, World}
+import com.phoenixkahlo.hellcraft.core.client.ClientLogic.{Input, Output}
+import com.phoenixkahlo.hellcraft.graphics.{EmptyHUD, HUD}
+import com.phoenixkahlo.hellcraft.math.{V2I, V3F, V3I}
+
+sealed trait ClientEffect
+case class CauseUpdateEffect(effect: Seq[UpdateEffect]) extends ClientEffect
+case class SetLoadTarget(target: Set[V3I]) extends ClientEffect
+case class SetCamPos(p: V3F) extends ClientEffect
+case class SetCamDir(p: V3F) extends ClientEffect
+case class SetCamFOV(fov: Float) extends ClientEffect
+case object CaptureCursor extends ClientEffect
+case object ReleaseCursor extends ClientEffect
+
+sealed trait Button
+case object Left extends Button
+case object Right extends Button
+case object Middle extends Button
+case object Back extends Button
+case object Forward extends Button
+
+object ClientLogic {
+  type Output = (ClientLogic, Seq[ClientEffect])
+  trait Input {
+    def isCursorCaught: Boolean
+    def camPos: V3F
+    def camDir: V3F
+  }
+}
+
+trait ClientLogic {
+  protected def nothing: Output = (this, Seq.empty)
+  protected def become(replacement: ClientLogic): Output = (replacement, Seq.empty)
+  protected def cause(effects: ClientEffect*): Output = (this, effects)
+
+  def update(world: World, input: Input): Output = nothing
+
+  def keyDown(keycode: Int)(world: World, input: Input): Output = nothing
+
+  def keyUp(keycode: Int)(world: World, input: Input): Output = nothing
+
+  def keyTyped(char: Char)(world: World, input: Input): Output = nothing
+
+  def touchDown(pos: V2I, pointer: Int, button: Button)(world: World, input: Input): Output = nothing
+
+  def touchUp(pos: V2I, pointer: Int, button: Button)(world: World, input: Input): Output = nothing
+
+  def touchDragged(pos: V2I, delta: V2I, pointer: Int)(world: World, input: Input): Output = nothing
+
+  def mouseMoved(pos: V2I, delta: V2I)(world: World, input: Input): Output = nothing
+
+  def scrolled(amount: Int)(world: World, input: Input): Output = nothing
+
+  def hud(world: World, input: Input): HUD = EmptyHUD
+}
+
