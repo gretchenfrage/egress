@@ -1,11 +1,15 @@
 package com.phoenixkahlo.hellcraft.core.client
+import java.util.UUID
+
 import com.badlogic.gdx.Gdx
-import com.phoenixkahlo.hellcraft.core.World
+import com.phoenixkahlo.hellcraft.core.{Blocks, SetMat, World}
 import com.phoenixkahlo.hellcraft.core.client.ClientLogic.Input
 import com.phoenixkahlo.hellcraft.math._
 import com.badlogic.gdx.Input.Keys._
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.{BitmapFont, GlyphLayout, TextureRegion}
 import com.phoenixkahlo.hellcraft.graphics._
+import com.phoenixkahlo.hellcraft.graphics.models.{BlockOutline, ChunkOutline}
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
 
@@ -19,28 +23,6 @@ case class MenuButton(min: V2I, max: V2I, str: String, onclick: (ClientLogic, Wo
 }
 
 case class MenuHUD(buttons: Seq[MenuButton]) extends HUD {
-  /*
-  val _components = new MemoFunc[ResourcePack, Seq[HUDComponent]](pack => {
-    val font = pack.font(ButtonFID)
-
-    buttons.flatMap(button => {
-      val layout = new GlyphLayout
-      layout.setText(font, button.str)
-      Seq(
-        TexHUDComponent(
-          new TextureRegion(pack.frame(MenuPatchPID, 18, button.max.xi - button.min.xi, button.max.yi - button.min.yi)),
-          button.min,
-          button.max - button.min
-        ),
-        StrHUDComponent(
-          button.str,
-          font,
-          (button.min + button.max) / 2 + V2F(-layout.width / 2, layout.height / 2)
-        )
-      )
-    })
-  })
-  */
   val _components = new ParamCache[ResourcePack, Seq[(MenuButton, Seq[HUDComponent], Seq[HUDComponent])]](pack => {
     val font = pack.font(ButtonFID)
     buttons.map(button => {
@@ -58,9 +40,9 @@ case class MenuHUD(buttons: Seq[MenuButton]) extends HUD {
         button.max - button.min
       )
       val text = StrHUDComponent(
-        button.str,
-        font,
-        (button.min + button.max) / 2 + V2F(-layout.width / 2, layout.height / 2)
+        button.str, font,
+        (button.min + button.max) / 2 + V2F(-layout.width / 2, layout.height / 2),
+        Color.BLACK
       )
 
       (
@@ -101,7 +83,9 @@ case class GodClientMenu(pressed: Set[Int], buttons: Seq[MenuButton], pressing: 
     if (pressing isDefined) buttons.reverse.find(_ contains pos).filter(_ == pressing.get).map(_.onclick(this, world, input)).getOrElse(nothing)
     else nothing
 
-  override def hud(world: World, input: Input): HUD = hud
+  override def render(world: World, input: Input): (HUD, Seq[RenderUnit]) = {
+    hud -> Seq.empty
+  }
 
   override def resize(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = {
     val (buttons, hud) = GodClientMenu.makeButtonsAndHUD()
@@ -160,8 +144,15 @@ case class GodClientMain(pressed: Set[Int]) extends ClientLogic {
     become(copy(pressed = pressed - keycode))
 
   override def touchDown(pos: V2I, pointer: Int, button: Button)(world: World, input: Input) =
-    if (input.isCursorCaught) nothing
-    else cause(CaptureCursor)
+    if (input.isCursorCaught) button match {
+      case Right =>
+        world
+          .placeBlock(input.camPos, input.camDir, 64)
+          .map(v => cause(CauseUpdateEffect(SetMat(v, Blocks.Brick, 16, UUID.randomUUID(), revalBlocks = true))))
+          .getOrElse(nothing)
+
+      case _ => nothing
+    } else cause(CaptureCursor)
 
   override def touchDragged(pos: V2I, delta: V2I, pointer: Int)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
     mouseMoved(pos, delta)(world, input)
@@ -184,11 +175,39 @@ case class GodClientMain(pressed: Set[Int]) extends ClientLogic {
 
       cause(SetCamDir(camDir))
     } else nothing
+
+  val hud = new DefaultHUD
+
+  override def render(world: World, input: Input): (HUD, Seq[RenderUnit]) = {
+    val units = new ArrayBuffer[RenderUnit]
+
+    for (v <- world.placeBlock(input.camPos, input.camDir, 64)) {
+      units += new BlockOutline(v, Color.WHITE, 0.95f)
+    }
+
+    if (Gdx.input.isKeyPressed(ALT_LEFT)) {
+      val (complete, incomplete) = world.debugChunkMap.values.partition(_.isComplete)
+      for (c <- complete) {
+        units += new ChunkOutline(c.pos, Color.GREEN)
+      }
+      for (c <- incomplete) {
+        units += new ChunkOutline(c.pos, Color.RED)
+      }
+    }
+
+    hud -> units
+    /*
+    for (v <- toRender.placeBlock(V3F(renderer.cam.position), V3F(renderer.cam.direction), 16)) {
+      units +:= new BlockOutline(v / WorldRes * 16, Color.WHITE, scale = 16f / WorldRes * 0.95f)
+    }
+     */
+
+  }
 }
 
 object GodClientMain {
   val turnSpeed = 0.25f
   val moveSpeed = 1f
   val margin = 1f
-  val loadRad = V3I(12, 4, 12)
+  val loadRad = V3I(12, 5, 12)
 }

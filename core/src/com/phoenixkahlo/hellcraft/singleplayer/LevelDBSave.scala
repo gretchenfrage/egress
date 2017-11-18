@@ -62,7 +62,6 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
     }
     // fold all sequences into a promise that all operations are completed
     val finish: Fut[Unit] = PromiseFold(sequences.toSeq.map(_._2.getLast))
-    println("finish promise = " + finish)
     // after that, close the database
     val close: Fut[Unit] = finish.afterwards(db.close(), UniExecutor.db)
     // return that
@@ -75,15 +74,9 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
       map = map.updated(p, sequences(p)({
         if (!closing) {
           val bytes = db.get(p.toByteArray)
-          if (bytes != null)
-            try Fut(deserialize(bytes), _.run())
-            //finally println("db pull yielding deserialize future")
-          else
-            try generator.chunkAt(p)
-            //finally println("db pull yielding generate future")
-        } else
-          try Fut(null: Chunk, _.run())
-          //finally println("db pull yielding null future")
+          if (bytes != null) Fut(deserialize(bytes), _.run())
+          else generator.chunkAt(p)
+        } else Fut(null: Chunk, _.run())
       }).flatMap(identity))
     }
     map

@@ -3,11 +3,14 @@ package com.phoenixkahlo.hellcraft.core.client
 import com.badlogic.gdx.Input.Buttons
 import com.phoenixkahlo.hellcraft.core.{UpdateEffect, World}
 import com.phoenixkahlo.hellcraft.core.client.ClientLogic.{Input, Output}
-import com.phoenixkahlo.hellcraft.graphics.{EmptyHUD, HUD}
+import com.phoenixkahlo.hellcraft.graphics.{EmptyHUD, HUD, RenderUnit}
 import com.phoenixkahlo.hellcraft.math.{V2I, V3F, V3I}
 
 sealed trait ClientEffect
-case class CauseUpdateEffect(effect: Seq[UpdateEffect]) extends ClientEffect
+case class CauseUpdateEffect(effects: Seq[UpdateEffect]) extends ClientEffect
+object CauseUpdateEffect {
+  def apply(effect: UpdateEffect): CauseUpdateEffect = CauseUpdateEffect(Seq(effect))
+}
 case class SetLoadTarget(target: Set[V3I]) extends ClientEffect
 case class SetCamPos(p: V3F) extends ClientEffect
 case class SetCamDir(p: V3F) extends ClientEffect
@@ -67,7 +70,7 @@ trait ClientLogic {
 
   def scrolled(amount: Int)(world: World, input: Input): Output = nothing
 
-  def hud(world: World, input: Input): HUD = EmptyHUD
+  def render(world: World, input: Input): (HUD, Seq[RenderUnit]) = EmptyHUD -> Seq.empty
 
   def resize(world: World, input: Input): Output = nothing
 }

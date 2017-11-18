@@ -315,6 +315,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     var units: Seq[RenderUnit] = toRender.renderables(pack)
 
     // add debug units
+    /*
     if (Gdx.input.isKeyPressed(Keys.ALT_LEFT)) {
       val (complete, incomplete) = toRender.chunks.values.partition(_.isComplete)
       for (chunk <- complete) {
@@ -324,7 +325,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         units +:= new ChunkOutline(chunk.pos, Color.RED)
       }
     }
-    /*
     val (tasks3D, tasks2D, tasksDB3D) = UniExecutor.getService.getSpatialTasks
     for (p <- tasks3D) {
       units +:= CubeRenderer(GrayTID, Color.WHITE, p)(pack)
@@ -335,13 +335,14 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     for (p <- tasksDB3D) {
       units +:= CubeRenderer(GrayTID, Color.GREEN, p)(pack)
     }
-    */
+
 
 
     // draw a cube where you're pointing
     for (v <- toRender.placeBlock(V3F(renderer.cam.position), V3F(renderer.cam.direction), 16)) {
       units +:= new BlockOutline(v / WorldRes * 16, Color.WHITE, scale = 16f / WorldRes * 0.95f)
     }
+    */
 
     // do memory management
     val nodes = units.flatMap(_.resources)
@@ -355,8 +356,12 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       })
     })
 
+    // get the client logic graphics
+    val (hud, cUnits) = clientLogic.render(toRender, clientInput)
+    units ++= cUnits
+
     // render
-    renderer.render(toRender, units, interpolation, clientLogic.hud(toRender, clientInput))
+    renderer.render(toRender, units, interpolation, hud)
   }
 
   override def onResize(width: Int, height: Int): Unit = {

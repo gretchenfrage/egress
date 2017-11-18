@@ -32,6 +32,8 @@ class SWorld(
   override def chunkAt(p: V3I): Option[Chunk] =
     chunks.get(p)
 
+  override def debugChunkMap: Map[V3I, Chunk] = chunks
+
   override def findEntity(id: EntityID): Option[Entity] =
     chunks.values.toStream.flatMap(_.entities.get(id)).headOption
 
@@ -127,6 +129,8 @@ class SWorld(
     override def findEntity(id: EntityID): Option[Entity] = nchunks.values.toStream.flatMap(_.entities.get(id)).headOption
 
     override def boundingBox: (V3I, V3I) = SWorld.this.boundingBox
+
+    override def debugChunkMap: Map[V3I, Chunk] = nchunks
   }
 
   /**
