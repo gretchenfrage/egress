@@ -3,7 +3,7 @@ package com.phoenixkahlo.hellcraft.util.fields
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteFields
 import com.phoenixkahlo.hellcraft.math.V3I
 
-trait IDMapping[T] {
+trait IDMapping[T] extends Serializable {
   def id(item: T): Byte
   def lookup(id: Byte): T
 }

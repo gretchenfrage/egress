@@ -23,7 +23,7 @@ class Chunk(
              @transient lastBlockMesher: BlockMesher = null,
              @transient lastTerrainValid: Boolean = true,
              @transient lastBlockValid: Boolean = true
-           ) {
+           ) extends Serializable {
 
 
   // TODO: there's no point in declaring the graphics values lazy if they get evaluated whenever the chunk is transformed

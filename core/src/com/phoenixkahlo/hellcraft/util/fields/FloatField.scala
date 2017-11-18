@@ -8,6 +8,8 @@ import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
 class FloatField private[fields](private var data: Either[Array[Float], Vector[Float]], private var _size: V3I) extends Externalizable {
 
+  def this() = this(null: Either[Array[Float], Vector[Float]], null: V3I)
+
   private def this(data: Array[Float], size: V3I) = this(Left(data), size)
 
   private def this(data: Vector[Float], size: V3I) = this(Right(data), size)

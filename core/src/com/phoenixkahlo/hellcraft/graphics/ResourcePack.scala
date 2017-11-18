@@ -18,7 +18,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin
 
 import scala.collection.mutable.ArrayBuffer
 
-sealed trait SheetTextureID
+sealed trait SheetTextureID extends Serializable
 case object StoneTID extends SheetTextureID
 case object SandTID extends SheetTextureID
 case object DirtTID extends SheetTextureID

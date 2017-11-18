@@ -5,7 +5,7 @@ import com.phoenixkahlo.hellcraft.core.Materials.seq
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.util.fields.IDMapping
 
-sealed trait TerrainUnit {
+sealed trait TerrainUnit extends Serializable {
   def id: Byte
   def tid: SheetTextureID
 }

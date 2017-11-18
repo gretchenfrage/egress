@@ -8,14 +8,17 @@ import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
 class BooleanField private[fields](private var data: Either[Array[Boolean], Vector[Boolean]], private var _size: V3I) extends Externalizable {
 
+  def this() = this(null: Either[Array[Boolean], Vector[Boolean]], null: V3I)
+
   private def this(data: Array[Boolean], size: V3I) = this(Left(data), size)
 
   private def this(data: Vector[Boolean], size: V3I) = this(Right(data), size)
 
   def size: V3I = _size
 
-  if (size.xi != size.yi || size.yi != size.zi)
-    throw new IllegalArgumentException("boolean field must have equal dimensions")
+  if (size != null)
+    if (size.xi != size.yi || size.yi != size.zi)
+      throw new IllegalArgumentException("boolean field must have equal dimensions")
 
   private def asVector: Vector[Boolean] = data match {
     case Left(arr) => arr.to[Vector]

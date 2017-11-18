@@ -11,7 +11,9 @@ import scala.reflect.ClassTag
 
 @CarboniteFields
 class OptionField[T <: AnyRef] private(private val data: Either[Array[T], Vector[T]], val sizeVec: V3I)
-  extends Iterable[T] {
+  extends Iterable[T] with Serializable {
+
+  def this() = this(null: Either[Array[T], Vector[T]], null: V3I)
 
   override val isEmpty: Boolean = Origin.until(sizeVec).map(apply).forall(_.isEmpty)
   override val nonEmpty: Boolean = !isEmpty

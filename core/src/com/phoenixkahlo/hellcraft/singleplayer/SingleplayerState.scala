@@ -55,9 +55,9 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     }, 4)
 
     println("instantiating save")
-    val generator = new Generator(res)
+    val generator = new DefaultGenerator(res)
     //save = new RegionGenAsyncSave(AppDirs.dataDir("egress").resolve("single"), new CarboniteSerialService, generator.chunkAt)
-    save = new LevelDBSave(AppDirs.dataDir("egress").resolve("single"), generator.chunkAt)
+    save = new LevelDBSave(AppDirs.dataDir("egress").resolve("single"), generator)
 
     clock = new GametimeClock
 
@@ -257,12 +257,15 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         units +:= new ChunkOutline(chunk.pos, Color.RED)
       }
     }
-    val (tasks3D, tasks2D) = UniExecutor.getService.getSpatialTasks
+    val (tasks3D, tasks2D, tasksDB3D) = UniExecutor.getService.getSpatialTasks
     for (p <- tasks3D) {
       units +:= CubeRenderer(GrayTID, Color.WHITE, p)(resourcePack)
     }
     for (p <- tasks2D.map(_.inflate(0))) {
       units +:= CubeRenderer(GrayTID, Color.BLUE, p)(resourcePack)
+    }
+    for (p <- tasksDB3D) {
+      units +:= CubeRenderer(GrayTID, Color.GREEN, p)(resourcePack)
     }
 
 
@@ -297,8 +300,10 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     renderer.dispose()
     updateThread.join()
     println("saving...")
-    infinitum.finalSave().onComplete(() => println("...saved!"))
+    val close = infinitum.finalSave()
     vramGraph.managing.foreach(_.dispose())
+    close.await
+    println("...saved!")
     UniExecutor.deactivate()
   }
 

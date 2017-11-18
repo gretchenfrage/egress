@@ -10,14 +10,17 @@ import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
 class ByteField private[fields](private var data: Either[Array[Byte], Vector[Byte]], private var _size: V3I) extends Externalizable {
 
+  def this() = this(null: Either[Array[Byte], Vector[Byte]], null: V3I)
+
   private def this(data: Array[Byte], size: V3I) = this(Left(data), size)
 
   private def this(data: Vector[Byte], size: V3I) = this(Right(data), size)
 
   def size: V3I = _size
 
-  if (size.xi != size.yi || size.yi != size.zi)
-    throw new IllegalArgumentException("byte field must have equal dimensions")
+  if (size != null)
+    if (size.xi != size.yi || size.yi != size.zi)
+      throw new IllegalArgumentException("byte field must have equal dimensions")
 
   private def asVector: Vector[Byte] = data match {
     case Left(arr) => arr.to[Vector]

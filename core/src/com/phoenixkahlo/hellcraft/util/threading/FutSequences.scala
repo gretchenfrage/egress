@@ -13,4 +13,6 @@ class FutSequences(executor: Runnable => Unit) {
     next
   }
 
+  def getLast: Fut[_] = last
+
 }

@@ -15,7 +15,7 @@ trait AsyncSave {
 
   def push(chunks: Map[V3I, Chunk]): Seq[Fut[Unit]]
 
-  def finalPush(chunks: Map[V3I, Chunk]): Seq[Fut[Unit]]
+  def close(chunks: Map[V3I, Chunk]): Seq[Fut[Unit]]
 
   def push(chunks: Seq[Chunk]): Seq[Fut[Unit]] =
     push(chunks.map(c => (c.pos, c)).toMap)
@@ -100,7 +100,7 @@ class RegionGenAsyncSave(path: Path, serial: SaveSerialService, generator: V3I =
     push(chunks, None)
   }
 
-  override def finalPush(chunks: Map[V3I, Chunk]): Seq[Fut[Unit]] = {
+  override def close(chunks: Map[V3I, Chunk]): Seq[Fut[Unit]] = {
     push(chunks, Some(new Thread(_).start()))
   }
 

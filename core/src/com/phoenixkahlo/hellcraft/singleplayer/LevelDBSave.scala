@@ -4,7 +4,7 @@ import java.nio.file.Path
 
 import com.phoenixkahlo.hellcraft.core.Chunk
 import com.phoenixkahlo.hellcraft.math.V3I
-import com.phoenixkahlo.hellcraft.util.threading.{Fut, FutSequences, UniExecutor}
+import com.phoenixkahlo.hellcraft.util.threading._
 import org.iq80.leveldb._
 import org.fusesource.leveldbjni.JniDBFactory._
 import java.io._
@@ -13,13 +13,15 @@ import com.phoenixkahlo.hellcraft.util.collections.ParGenMutHashMap
 
 import scala.collection.mutable.ArrayBuffer
 
-class LevelDBSave(path: Path, generator: V3I => Fut[Chunk]) extends AsyncSave {
+class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
+  @volatile private var closing = false
+
   private val db: DB = {
     val options = new Options
     options.createIfMissing(true)
     factory.open(path.toFile, options)
   }
-  private val sequences = new ParGenMutHashMap[V3I, FutSequences](p => new FutSequences(UniExecutor.exec(p * 16)))
+  private val sequences = new ParGenMutHashMap[V3I, FutSequences](p => new FutSequences(UniExecutor.db(p * 16)))
 
   private def serialize(chunk: Chunk): Array[Byte] = {
     val baos = new ByteArrayOutputStream
@@ -45,25 +47,43 @@ class LevelDBSave(path: Path, generator: V3I => Fut[Chunk]) extends AsyncSave {
     futs
   }
 
-  override def finalPush(chunks: Map[V3I, Chunk]): Seq[Fut[Unit]] = {
-    val futs = new ArrayBuffer[Fut[Unit]]
+  override def close(chunks: Map[V3I, Chunk]): Seq[Fut[Unit]] = {
+    // disrupt pull futures
+    closing = true
+    // disrupt generator
+    generator.cancel()
+    // drain the db 3d queue into the db seq queue to reduce tree overhead
+    UniExecutor.getService.makeDBSequential()
+    // add the pushes to all the sequences
     for ((p, chunk) <- chunks) {
-      futs += sequences(p)({
+      sequences(p)({
         db.put(p.toByteArray, serialize(chunk))
       })
     }
-    // TODO: close the database
-    futs
+    // fold all sequences into a promise that all operations are completed
+    val finish: Fut[Unit] = PromiseFold(sequences.toSeq.map(_._2.getLast))
+    println("finish promise = " + finish)
+    // after that, close the database
+    val close: Fut[Unit] = finish.afterwards(db.close(), UniExecutor.db)
+    // return that
+    Seq(close)
   }
 
   override def pull(chunks: Seq[V3I]): Map[V3I, Fut[Chunk]] = {
     var map = Map.empty[V3I, Fut[Chunk]]
     for (p <- chunks) {
       map = map.updated(p, sequences(p)({
-        val bytes = db.get(p.toByteArray)
-        if (bytes != null) Fut(deserialize(bytes), _.run())
-        else generator(p)
-        //deserialize(db.get(p.toByteArray))
+        if (!closing) {
+          val bytes = db.get(p.toByteArray)
+          if (bytes != null)
+            try Fut(deserialize(bytes), _.run())
+            //finally println("db pull yielding deserialize future")
+          else
+            try generator.chunkAt(p)
+            //finally println("db pull yielding generate future")
+        } else
+          try Fut(null: Chunk, _.run())
+          //finally println("db pull yielding null future")
       }).flatMap(identity))
     }
     map

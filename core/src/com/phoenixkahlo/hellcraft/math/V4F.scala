@@ -4,7 +4,7 @@ import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 
 @CarboniteWith(classOf[FieldNode])
-class V4F(val x: Float, val y: Float, val z: Float, val w: Float) {
+class V4F(val x: Float, val y: Float, val z: Float, val w: Float) extends Serializable {
 
   def +(o: V4F): V4F =
     V4F(x + o.x, y + o.y, z + o.z, w + o.w)

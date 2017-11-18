@@ -6,7 +6,9 @@ import java.util.zip.{Deflater, Inflater}
 
 import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
-class ShortField private[fields](private var data: Either[Array[Short], Vector[Short]], private var _size: V3I) extends Externalizable {
+class ShortField private[fields](private var data: Either[Array[Short], Vector[Short]], private var _size: V3I) extends Serializable {//extends Externalizable {
+
+  def this() = this(null: Either[Array[Short], Vector[Short]], null: V3I)
 
   private def this(data: Array[Short], size: V3I) = this(Left(data), size)
 
@@ -14,8 +16,9 @@ class ShortField private[fields](private var data: Either[Array[Short], Vector[S
 
   def size: V3I = _size
 
-  if (size.xi != size.yi || size.yi != size.zi)
-    throw new IllegalArgumentException("short field must have equal dimensions")
+  if (size != null)
+    if (size.xi != size.yi || size.yi != size.zi)
+      throw new IllegalArgumentException("short field must have equal dimensions")
 
   private def asVector: Vector[Short] = data match {
     case Left(arr) => arr.to[Vector]
@@ -60,6 +63,7 @@ class ShortField private[fields](private var data: Either[Array[Short], Vector[S
   override def toString: String =
     "ShortField(" + java.util.Arrays.toString(asArray) + ")"
 
+  /*
   override def writeExternal(out: ObjectOutput): Unit = {
     // write size
     out.writeInt(size.xi); out.writeInt(size.yi); out.writeInt(size.zi)
@@ -94,7 +98,7 @@ class ShortField private[fields](private var data: Either[Array[Short], Vector[S
     in.read(buffer, 0, length)
 
     // decompress
-    val asBytes = new Array[Byte](size.fold(_ * _) * 4)
+    val asBytes = new Array[Byte](size.fold(_ * _) * 2)
     val decompressor = new Inflater
     decompressor.setInput(buffer, 0, length)
     decompressor.inflate(asBytes)
@@ -109,6 +113,7 @@ class ShortField private[fields](private var data: Either[Array[Short], Vector[S
     // set data
     data = Left(shorts)
   }
+  */
 }
 
 object ShortField {

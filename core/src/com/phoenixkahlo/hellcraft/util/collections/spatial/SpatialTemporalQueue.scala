@@ -48,7 +48,7 @@ abstract class SpatialTemporalQueue[K, H, E](timeToSpace: Long => Float) extends
 
   private def now(kv: (K, E)): (H, E) = inflate(kv, timeToSpace(System.nanoTime() - startTime))
 
-  private val queue = new SpatialPriorityQueue(emptyTree, inflate(startPoint, timeToSpace(startTime)))
+  private var queue = new SpatialPriorityQueue(emptyTree, inflate(startPoint, timeToSpace(startTime)))
   private val minTime = new PriorityQueue[Float]
   private val lock = new ReentrantReadWriteLock
   private val writeLock = lock.writeLock()
@@ -132,7 +132,28 @@ abstract class SpatialTemporalQueue[K, H, E](timeToSpace: Long => Float) extends
     } finally readLock.unlock()
   }
 
-  override def drainTo(c: util.Collection[_ >: (K, E)]) = drainTo(c, Int.MaxValue)
+  override def drainTo(c: util.Collection[_ >: (K, E)]) = {
+    try {
+      // first, hoard as many tickets as possible
+      val ticketHoard = new util.ArrayList[AnyRef]
+      tickets.drainTo(ticketHoard)
+
+      readLock.lock()
+
+      // the size of the queue
+      val size = queue.size()
+      // drain as much of the tree as we have tickets
+      for (he <- queue.toSeq.take(ticketHoard.size)) {
+        c.add(flatten(he))
+      }
+      // make a new queue
+      queue = new SpatialPriorityQueue(emptyTree, queue.point)
+      // return the original size
+      size
+    } finally readLock.unlock()
+  }
+
+  //drainTo(c, Int.MaxValue)
 
   override def take() = {
     tickets.take()

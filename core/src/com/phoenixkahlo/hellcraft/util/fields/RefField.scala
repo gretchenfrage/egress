@@ -8,7 +8,9 @@ import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
 @CarboniteFields
 class RefField[T <: AnyRef] private(private val data: Either[Array[T], Vector[T]], val sizeVec: V3I)
-  extends Iterable[T] {
+  extends Iterable[T] with Serializable  {
+
+  def this() = this(null: Either[Array[T], Vector[T]], null: V3I)
 
   override def isEmpty: Boolean = sizeVec == Origin
 
