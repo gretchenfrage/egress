@@ -152,8 +152,8 @@ case class GodClientChat(chat: Chat, cursorOn: Boolean = true, buffer: String = 
     case ESCAPE => become(GodClient(Set.empty, chat))
     case DEL => become(copy(buffer = buffer.dropRight(1)))
     case ENTER =>
-      val (newChat, effects) = chat + buffer
-      GodClient(Set.empty, newChat) -> effects
+      val (newChat, effects) = chat + (buffer, world, input)
+      GodClient(Set.empty, newChat) -> (effects :+ CaptureCursor)
     case k => input.keyToChar(k) match {
       case Some(c) => become(copy(buffer = buffer + c))
       case None => nothing

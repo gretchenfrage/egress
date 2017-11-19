@@ -18,28 +18,6 @@ import com.phoenixkahlo.hellcraft.util.collections.ResourceNode
 class Cube(tid: SheetTextureID, override val pos: V3F, override val id: UUID) extends Entity {
   protected def color: Color = Color.WHITE
 
-  /*
-  @transient private lazy val renderUnit = new ParamCache[ResourcePack, Seq[RenderUnit]](pack => {
-    val renderable = new Renderable
-    renderable.meshPart.mesh = FreeCubeMesh((tid, color), (tid, pack, color))
-    renderable.material = new com.badlogic.gdx.graphics.g3d.Material
-    renderable.meshPart.offset = 0
-    renderable.meshPart.size = renderable.meshPart.mesh.getNumIndices
-    renderable.meshPart.primitiveType = GL20.GL_TRIANGLES
-    renderable.userData = GenericSID
-    renderable.worldTransform.translate(pos toGdx)
-    val renderableSeq = Seq(renderable)
-    Seq(new RenderUnit {
-      override def apply(interpolation: Interpolation): Seq[Renderable] = renderableSeq
-
-      override def resources: Seq[ResourceNode] = Seq.empty
-
-      override def locationIfTransparent =
-        if (color.a == 1) None
-        else Some(pos)
-    })
-  })
-  */
   @transient private lazy val renderUnit = new ParamCache[ResourcePack, Seq[RenderUnit]](
     pack => Seq(CubeRenderer(tid, color, pos)(pack)))
 

@@ -1,28 +1,94 @@
 package com.phoenixkahlo.hellcraft.core.client
 
-import net.liftweb.json.DefaultFormats
-import net.liftweb.json.JsonAST.{JString, JValue}
+import java.util.UUID
+
+import com.phoenixkahlo.hellcraft.core.entity._
+import com.phoenixkahlo.hellcraft.core.{PutEntity, World}
+import com.phoenixkahlo.hellcraft.graphics._
+import com.phoenixkahlo.hellcraft.math.V3F
+import org.json.simple.{JSONObject, JSONValue}
+
+import scala.collection.JavaConverters
 
 object Commands {
-  import net.liftweb.json._
-  implicit val formats = DefaultFormats
 
-  def print(j: JValue): Seq[ClientEffect] =
-    Seq(ClientPrint(j.asInstanceOf[JString].s))
-
-  val commands: Map[String, JValue => Seq[ClientEffect]] = Map(
-    "print" -> print
+  val textures: Map[String, SheetTextureID] = Map(
+    "stone" -> StoneTID,
+    "sand" -> SandTID,
+    "dirt" -> DirtTID,
+    "brick" -> BrickTID,
+    "grass" -> GrassTID,
+    "crosshair" -> CrosshairTID,
+    "cursor" -> CursorTID,
+    "sound" -> SoundTID,
+    "sun" -> SunTID,
+    "moon" -> MoonTID,
+    "phys" -> PhysTID,
+    "gray" -> GrayTID,
+    "star" -> StarTID,
+    "error" -> ErrorTID
   )
 
-  def apply(command: String): Seq[ClientEffect] = {
+  def sounds: Map[String, SoundID] = Map(
+    "snap" -> SnapSID
+  )
+
+  val spawnable: Map[String, (V3F, JSONObject) => Entity] = Map(
+    "sound" -> ((v, j) => SoundCube(
+      sounds(j.get("sound").asInstanceOf[String]),
+      j.get("freq").asInstanceOf[Number].intValue,
+      v, UUID.randomUUID()
+    )),
+    "glide" -> ((v, j) => {
+      val vel = JavaConverters.asScalaBuffer(j.get("vel").asInstanceOf[java.util.List[_]]).map(_.asInstanceOf[Number].floatValue)
+      GlideCube(
+        V3F(vel(0), vel(1), vel(2)),
+        v, UUID.randomUUID()
+      )
+    }),
+    "ghost" -> ((v, j) => GhostCube(v, UUID.randomUUID()))
+  )
+
+  def print(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
+    Seq(ClientPrint(j.asInstanceOf[String]))
+
+  def stevie(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
+    world.rayhit(input.camPos, input.camDir).map(
+      v => CauseUpdateEffect(PutEntity(new Cube(
+        textures(j.asInstanceOf[String])
+        , v, UUID.randomUUID()), UUID.randomUUID())))
+      .toSeq
+
+  def spawn(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
+    world.rayhit(input.camPos, input.camDir).map(
+      v => {
+        val entity = spawnable(j.asInstanceOf[JSONObject].get("type").asInstanceOf[String])(
+          v, j.asInstanceOf[JSONObject])
+        CauseUpdateEffect(PutEntity(entity, UUID.randomUUID()))
+      }
+    ).toSeq
+
+  val commands: Map[String, (World, ClientLogic.Input) => (AnyRef => Seq[ClientEffect])] = Map(
+    "print" -> print,
+    "stevie" -> stevie,
+    "spawn" -> spawn
+  )
+
+  def apply(command: String, world: World, input: ClientLogic.Input): Seq[ClientEffect] = {
     try {
       if (command.contains(' ')) {
         val name = command.substring(0, command.indexOf(' '))
         val json = command.substring(command.indexOf(' '), command.length)
+        println("json = " + json)
         commands.get(name).map(
-          command => parseOpt(json).map(
-            command
+          cmd => Option(JSONValue.parse(json)).map(
+            cmd(world, input)
           ).getOrElse(Seq(ClientPrint("command failed: invalid json")))
+          /*
+          command => parseOpt(json).map(
+            command(world, input)
+          ).getOrElse(Seq(ClientPrint("command failed: invalid json")))
+          */
         ).getOrElse(Seq(ClientPrint("command failed: invalid name")))
       } else Seq(ClientPrint("command failed: not enough parts"))
     } catch {
@@ -33,8 +99,8 @@ object Commands {
 
 
 case class Chat(messages: Seq[String]) {
-  def +(message: String): (Chat, Seq[ClientEffect]) = {
-    if (message.headOption.contains('/')) Chat(messages :+ message) -> Commands(message.tail)
+  def +(message: String, world: World, input: ClientLogic.Input): (Chat, Seq[ClientEffect]) = {
+    if (message.headOption.contains('/')) Chat(messages :+ message) -> Commands(message.tail, world, input)
     else Chat(messages :+ message) -> Seq.empty
   }
 }
