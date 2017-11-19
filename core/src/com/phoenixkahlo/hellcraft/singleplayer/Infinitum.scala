@@ -5,13 +5,14 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Entity
+import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.graphics.{RenderUnit, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Ones, Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.util.collections.MergeBinned
 import com.phoenixkahlo.hellcraft.util.threading._
 
 import scala.annotation.tailrec
-import scala.collection.SortedMap
+import scala.collection.{SortedMap, mutable}
 
 /**
   * A purely functional implementation of world, that stores a map of chunks, and three set of chunk indices,
@@ -210,6 +211,8 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
   private val blockSoupQueue = new ConcurrentLinkedQueue[(BlockSoup, BlockSoupID)]
   private var blockSoupMap = Map.empty[V3I, BlockSoupID]
 
+  private val requestedQueue = new ConcurrentLinkedQueue[World => Seq[UpdateEffect]]
+
   def apply(t: Long): Option[SWorld] = history.get(t)
   def apply(): SWorld = history.last._2
 
@@ -325,6 +328,17 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       val invalidateRange = Ones.neg to Ones
       newEffectsGrouped.getOrElse(TerrainChanged, Seq.empty).map(_.asInstanceOf[TerrainChanged].p)
         .foreach(terrainSoupMap -= _)
+
+      // scan for request events
+      for (make: MakeRequest[_] <- newEffectsGrouped.getOrElse(MakeRequest, Seq.empty).map(_.asInstanceOf[MakeRequest[_]])) {
+        val request: Request[_] = make.request
+        val fut: Fut[Any] = request.eval.toFut(new mutable.HashMap)(UniExecutor.getService)
+        fut.onComplete(() => {
+          val result: Requested = new Requested(request.id, fut.query.get)
+          val effects: Seq[UpdateEffect] = make.onComplete(result, ???)
+          ??? // recurse
+        })
+      }
 
       // recurse
       if (newEffectsGrouped.getOrElse(ChunkEvent, Seq.empty).nonEmpty)

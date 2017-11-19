@@ -18,7 +18,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
   * alternative such as a spatially prioritized executor, in a new thread, or even by hitching off of other threads using
   * <code>_.run()</code> as the executor (that is optimal for cheap transformations).
   */
-trait Fut[T] {
+trait Fut[+T] {
   def await: T
 
   def query: Option[T]

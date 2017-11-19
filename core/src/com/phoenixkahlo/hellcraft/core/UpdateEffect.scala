@@ -5,6 +5,7 @@ import java.util.UUID
 import com.phoenixkahlo.hellcraft.carbonite.{CarboniteFields, CarboniteWith}
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.{CubeFrame, Entity, Moveable, PhysCube}
+import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.graphics.SoundID
 import com.phoenixkahlo.hellcraft.math.{Directions, RNG, V3F, V3I}
 import com.phoenixkahlo.hellcraft.singleplayer.EntityID
@@ -21,6 +22,12 @@ case class SoundEffect(sound: SoundID, pow: Float, pos: V3F) extends UpdateEffec
   override def effectType: UpdateEffectType = SoundEffect
 }
 case object SoundEffect extends UpdateEffectType
+
+// request events
+case class MakeRequest[T](request: Request[T], onComplete: (Requested, World) => Seq[UpdateEffect]) extends UpdateEffect {
+  override def effectType: UpdateEffectType = MakeRequest
+}
+case object MakeRequest extends UpdateEffectType
 
 /**
   * Flag for the driver that a chunk's terrain has been modified. Any chunk event that modifies a chunk's terrain

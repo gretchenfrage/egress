@@ -51,18 +51,7 @@ object Render {
 }
 
 case class MakeRender(factory: () => (ResourcePack => RenderUnit), execHint: ExecHint = ExecSeq)
-sealed trait ExecHint {
-  def exec(task: Runnable): Unit
-}
-case object ExecSeq extends ExecHint {
-  override def exec(task: Runnable): Unit = UniExecutor.exec(task)
-}
-case class Exec3D(p: V3F) extends ExecHint {
-  override def exec(task: Runnable): Unit = UniExecutor.exec(p)(task)
-}
-case class Exec2D(p: V2F) extends ExecHint {
-  override def exec(task: Runnable): Unit = UniExecutor.exec(p)(task)
-}
+
 
 class FRenderer(pack: ResourcePack) {
   // TODO: make memo func soft and make futs weak
