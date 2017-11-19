@@ -5,9 +5,11 @@ import java.util.{Objects, UUID}
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.Entity
+import com.phoenixkahlo.hellcraft.core.request.Request
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.math.physics._
 import com.phoenixkahlo.hellcraft.math._
+import com.phoenixkahlo.hellcraft.util.LeftOption
 import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
 import com.phoenixkahlo.hellcraft.util.fields.{ByteFractionField, ByteFractionFieldBuffer, OptionField}
 
@@ -15,9 +17,11 @@ import com.phoenixkahlo.hellcraft.util.fields.{ByteFractionField, ByteFractionFi
 class Chunk(
              val pos: V3I,
              val terrain: Terrain,
-             val entities: Map[UUID, Entity] = Map.empty,
-             val terrainSoup: Option[TerrainSoup] = None,
-             val blockSoup: Option[BlockSoup] = None,
+             val entities: Map[UUID, Entity],
+             val terrainSoup: Either[TerrainSoup, Request[TerrainSoup]],
+             val blockSoup: Either[BlockSoup, Request[BlockSoup]],
+             //val terrainSoup: Option[TerrainSoup] = None,
+             //val blockSoup: Option[BlockSoup] = None,
              @transient lastBroadphase: Broadphase = null,
              @transient lastTerrainMesher: TerrainMesher = null,
              @transient lastBlockMesher: BlockMesher = null,
@@ -29,23 +33,35 @@ class Chunk(
   // TODO: there's no point in declaring the graphics values lazy if they get evaluated whenever the chunk is transformed
   @transient lazy val terrainMesher: Option[TerrainMesher] = Option(lastTerrainMesher) match {
     case last if last.isDefined && lastTerrainValid => last
-    case last => terrainSoup.map(new TerrainMesher(this, _)) match {
+    case last => terrainSoup match {
+      case Left(soup) => Some(new TerrainMesher(this, soup))
+      case Right(request) => last
+    }
+      /*
+    case last => LeftOption(terrainSoup).map(new TerrainMesher(this, _)) match {
       case neu if neu isDefined => neu
       case _ => last
     }
+    */
   }
 
   @transient lazy val blockMesher: Option[BlockMesher] = Option(lastBlockMesher) match {
     case last if last.isDefined && lastBlockValid => last
+    case last => blockSoup match {
+      case Left(soup) => Some(new BlockMesher(this, soup))
+      case Right(request) => last
+    }
+      /*
     case last => blockSoup.map(new BlockMesher(this, _)) match {
       case neu if neu isDefined => neu
       case _ => last
     }
+    */
   }
 
   @transient lazy val broadphase: Broadphase = Option(lastBroadphase).getOrElse({
     (terrainSoup, blockSoup) match {
-      case (Some(ts), Some(bs)) =>
+      case (Left(ts), Left(bs)) =>
         val triangles = ts.iterator.toSeq ++ bs.iterator.toSeq
         new OctreeBroadphase(triangles.iterator, pos * 16 + Repeated(8), 64)
       case _ => EmptyBroadphase
@@ -58,8 +74,10 @@ class Chunk(
   def removeEntity(entity: UUID): Chunk =
     new Chunk(pos, terrain, entities - entity, terrainSoup, blockSoup, broadphase, terrainMesher.orNull, blockMesher.orNull)
 
-  def setTerrain(neu: Terrain): Chunk =
-    new Chunk(pos, neu, entities, None, None, lastBroadphase, terrainMesher.orNull, blockMesher.orNull)
+  def setTerrain(neu: Terrain): (Chunk, Seq[UpdateEffect]) = {
+
+  }
+    //new Chunk(pos, neu, entities, None, None, lastBroadphase, terrainMesher.orNull, blockMesher.orNull)
 
   def setTerrainSoup(ts: TerrainSoup): Chunk =
     new Chunk(pos, terrain, entities, Some(ts), blockSoup, null, null, blockMesher.orNull)
