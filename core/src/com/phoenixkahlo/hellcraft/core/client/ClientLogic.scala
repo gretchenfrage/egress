@@ -43,7 +43,7 @@ object ClientLogic {
     def camDir: V3F
     def windowSize: V2I
     def nanoTime: Long
-    def toString(keycode: Int): String
+    def keyToChar(keycode: Int): Option[Char]
   }
 }
 

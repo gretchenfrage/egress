@@ -63,103 +63,125 @@ object StrBoxHUDComponent {
 
 class StrBoxHUDComponent private(text: String, font: BitmapFont, start: V2F, align: Alignment, size: V2F, color: Color, lineSep: Float, maxHeight: Float, pad: Float) extends HUDComponent {
   val lines: Seq[(String, V2F)] = {
-    var buffer = new ArrayBuffer[(String, V2F)]
-    var words: Seq[(String, String)] = {
-      var str = text
-      val words = new ArrayBuffer[(String, String)]
+    //println("text = " + text)
+    // tokenize the text into tokens and delimiters
+    var parts: Seq[Either[String, String]] = {
+      val parts = new ArrayBuffer[Either[String, String]]
       var i = 0
-      while (i < str.length) {
-        val tokenBuilder = new StringBuilder
-        while (i < str.length && !Character.isWhitespace(str(i))) {
-          tokenBuilder += str(i)
-          str = str.tail
+      while (i < text.length) {
+        val token = new StringBuilder
+        while (i < text.length && !Character.isWhitespace(text(i))) {
+          token += text(i)
+          i += 1
         }
-        val delimiterBuilder = new StringBuilder
-        while (i < str.length && Character.isWhitespace(str(i))) {
-          delimiterBuilder += str(i)
-          str = str.tail
+        if (token nonEmpty) {
+          //println("(token, i) = " + (token, i))
+          parts += Left(token.toString())
         }
-        words += (tokenBuilder.toString -> delimiterBuilder.toString)
-      }
-      def split(token: String): Seq[String] = {
-        if (token.size == 0) Seq.empty
-        else {
-          val layout = new GlyphLayout
-          layout.setText(font, token + ' ')
-          if (layout.width >= (size.x - 3)) {
-            val builder = new StringBuilder
-            var i = 0
-            do {
-              builder.append(token(i))
-              i += 1
-            } while (i < token.length && {
-              layout.setText(font, builder.toString() + ' ')
-              layout.width < (size.x - 3)
-            })
-            builder.deleteCharAt(builder.length - 1)
-            builder.toString +: split(token.drop(builder.length))
-          } else Seq(token)
+
+        val delimiter = new StringBuilder
+        while (i < text.length && Character.isWhitespace(text(i))) {
+          delimiter += text(i)
+          i += 1
+        }
+        if (delimiter nonEmpty) {
+          //println("(delimiter, i) = " + (delimiter, i))
+          parts += Right(delimiter.toString)
         }
       }
-      words.flatMap({ case (token, delimiter) => {
-        val s: Seq[String] = split(token)
-        s.dropRight(1).map(_ -> " ") :+ (s.last -> delimiter)
-      }})
+      parts
     }
-    var sumShift: V2F = Origin2D
-    var height: Float = 0
-    var currStart = start
-
-    var lineHeight: Float = 0
-
-    while (words nonEmpty) {
-      var line = ""
-      val layout = new GlyphLayout
-      var lineDone = false
-      while (!(lineDone || words.isEmpty)) {
-        val (word, delimiter) = words.head
-        val newLine = line + word + delimiter
-
-        layout.setText(font, newLine)
-
-        if (layout.width > size.x) {
-          layout.setText(font, line)
-          lineDone = true
-        } else {
-          line = newLine
-          words = words.tail
-        }
-      }
-      align match {
-        case DownLeft =>
-          buffer += ((line, V2F(start.x, currStart.y)))
-          currStart -= V2F(0, layout.height + lineSep)
-          sumShift += V2F(0, layout.height + lineSep)
-        case DownRight =>
-          buffer += ((line, V2F(start.x - layout.width, currStart.y)))
-          currStart -= V2F(0, layout.height + lineSep)
-          sumShift += V2F(0, layout.height + lineSep)
-        case UpLeft =>
-          buffer += ((line, V2F(start.x, currStart.y)))
-          currStart -= V2F(0, layout.height + lineSep)
-        case UpRight =>
-          buffer += ((line, V2F(start.x - layout.width, currStart.y)))
-          currStart -= V2F(0, layout.height + lineSep)
-      }
-      height += layout.height + lineSep
+    //println("parts = " + parts)
+    // helper functions
+    // also, record the line height
+    var lineHeight: Float = Float.NaN
+    val layout = new GlyphLayout
+    def strSize(str: String): V2F = {
+      layout.setText(font, str)
       lineHeight = layout.height
+      V2F(layout.width, layout.height)
     }
-    if ((height + lineHeight + pad) >= maxHeight) {
+    def fits(str: String): Boolean = strSize(str).x <= size.x
+    // build the lines
+    val lines = new ArrayBuffer[String]
+    while ({
+      // always drop leading delimiters before possibly iterating
+      parts = parts.dropWhile(_ isRight)
+      parts nonEmpty
+    }) {
+      // this loop shall build a single line
+      // this buffer holds iterative possibilities for the current line and remaining parts
+      val iterations = new ArrayBuffer[(String, Seq[Either[String, String]])]
+      iterations += ("" -> parts)
+      // build it until it's too big
+      do {
+        iterations.last._2.head match {
+          // a token that can entirely fit
+          case Left(token) if fits(token) =>
+            iterations += ((iterations.last._1 + token) -> iterations.last._2.tail)
+          // a token that has to be split
+          case Left(token) =>
+            // each character in the token is a possibility
+            val tail = iterations.last._2.tail
+            for ((char, i) <- token.zipWithIndex) {
+              iterations += ((iterations.last._1 + char) -> (Left(token.drop(i)) +: tail))
+            }
+          // a delimiter
+          case Right(delimiter) =>
+            iterations += ((iterations.last._1 + delimiter) -> iterations.last._2.tail)
+        }
+      } while (fits(iterations.last._1) && iterations.last._2.nonEmpty && {
+        val nextIsNewline = iterations.last._2.head match {
+          case Right(str) if str contains '\n' => true
+          case _ => false
+        }
+        !nextIsNewline
+      })
+      //println("iterations = " + iterations)
+      // search for the last possibility that worked
+      val (line, newParts) = iterations.reverse.find({ case (str, _) => fits(str) }).get
+      // append and replace
+      lines += line
+      parts = newParts
+    }
+    //println("lines = " + lines)
+    // position them
+    var p = start
+    var shift: V2F = Origin2D
+    var positioned: Seq[(String, V2F)] = lines.map(line => align match {
+      case DownLeft =>
+        try line -> p
+        finally {
+          p -= V2F(0, layout.height + lineSep)
+          shift += V2F(0, layout.height + lineSep)
+        }
+      case DownRight =>
+        try line -> (p - V2F(layout.width, 0))
+        finally {
+          p -= V2F(0, layout.height + lineSep)
+          shift += V2F(0, layout.height + lineSep)
+        }
+      case UpLeft =>
+        try line -> p
+        finally p -= V2F(0, layout.height + lineSep)
+      case UpRight =>
+        try line -> p
+        finally p -= V2F(0, layout.height + lineSep)
+    })
+    positioned = positioned.map({ case (str, vec) => (str, vec + shift) })
+    //println("positioned = " + positioned)
+    // truncate
+    if (((lines.size + 1) * (lineHeight + pad)) >= maxHeight) {
       val canFit = ((maxHeight - pad * 2) / (lineHeight + lineSep)).toInt
-      val cantFit = buffer.size - canFit
       if (align.isUp) {
-        buffer = buffer.take(canFit)
+        positioned = positioned.take(canFit)
       } else {
-        buffer = buffer.takeRight(canFit)
+        positioned = positioned.takeRight(canFit)
       }
     }
-
-    buffer.map({ case (str, pos) => (str, pos + sumShift) })
+    //println("truncated = " + positioned)
+    // return
+    positioned
   }
 
   override def draw(batch: SpriteBatch, cam: Camera): Unit = {

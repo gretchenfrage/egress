@@ -296,12 +296,20 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       override def isCursorCaught: Boolean = Gdx.input.isCursorCatched
       override def windowSize: V2I = V2I(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
       override def nanoTime: Long = System.nanoTime()
-      override def toString(keycode: Int): String = {
-        val str = Input.Keys.toString(keycode)
-        println("capslock = " + Toolkit.getDefaultToolkit.getLockingKeyState(KeyEvent.VK_CAPS_LOCK))
-
-        if (Toolkit.getDefaultToolkit.getLockingKeyState(KeyEvent.VK_CAPS_LOCK)) str.toUpperCase
-        else str.toLowerCase
+      override def keyToChar(keycode: Int): Option[Char] = {
+        val str = keycode match {
+          case Keys.SPACE => " "
+          case Keys.TAB => "\t"
+          case Keys.ENTER => "\n"
+          case k => Input.Keys.toString(keycode)
+        }
+        if (str.size == 1) {
+          val char = str.head
+          if (Character.isAlphabetic(char) || Character.isDigit(char) || Character.isWhitespace(char)) {
+            val caps = Gdx.input.isKeyPressed(Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Keys.SHIFT_RIGHT)
+            Some(if (caps) char.toUpper else char.toLower)
+          } else None
+        } else None
       }
     }
     clientLogicQueue.add(_.update)

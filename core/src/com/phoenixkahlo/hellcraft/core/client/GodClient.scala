@@ -138,18 +138,32 @@ case class GodClientChat(chat: Chat, cursorOn: Boolean = true, buffer: String = 
     else super.become(replacement)
   }
 
+  /*
   override def update(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
     if (cursorShouldBeOn(input) ^ cursorOn) become(copy(cursorOn = cursorShouldBeOn(input)))
     else nothing
+  */
 
   def cursorShouldBeOn(input: Input): Boolean = {
     val interval = 1000000000
     input.nanoTime % interval > interval / 2
   }
 
-  override def keyDown(keycode: Int)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
+  override def keyDown(keycode: Int)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = keycode match {
+    case ESCAPE => become(GodClient(Set.empty, chat))
+    case DEL => become(copy(buffer = buffer.dropRight(1)))
+    case ENTER =>
+      val newChat = chat + buffer
+      become(copy(chat = newChat, buffer = ""))
+    case k => input.keyToChar(k) match {
+      case Some(c) => become(copy(buffer = buffer + c))
+      case None => nothing
+    }
+  }
+  /*
     if (keycode == ESCAPE) become(GodClient(Set.empty, chat))
-    else become(copy(buffer = buffer + input.toString(keycode)))
+    else become(copy(buffer = buffer + input.keyToChar(keycode).map(_.toString).getOrElse("")))
+    */
 
   override def render(world: World, input: Input): (HUD, Seq[RenderUnit]) = (hud, Seq.empty)
 }
