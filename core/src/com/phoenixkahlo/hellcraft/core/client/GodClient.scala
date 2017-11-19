@@ -8,6 +8,7 @@ import com.phoenixkahlo.hellcraft.math._
 import com.badlogic.gdx.Input.Keys._
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.{BitmapFont, GlyphLayout, TextureRegion}
+import com.phoenixkahlo.hellcraft.core.entity.CubeRenderer
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.graphics.models.{BlockOutline, ChunkOutline}
 import com.phoenixkahlo.hellcraft.math
@@ -238,7 +239,7 @@ case class GodClient(pressed: Set[Int], chat: Chat) extends ClientLogic {
       units += new BlockOutline(v, Color.WHITE, 0.95f)
     }
 
-    if (Gdx.input.isKeyPressed(ALT_LEFT)) {
+    if (pressed(ALT_LEFT)) {
       val (complete, incomplete) = world.debugChunkMap.values.partition(_.isComplete)
       for (c <- complete) {
         units += new ChunkOutline(c.pos, Color.GREEN)
@@ -247,6 +248,31 @@ case class GodClient(pressed: Set[Int], chat: Chat) extends ClientLogic {
         units += new ChunkOutline(c.pos, Color.RED)
       }
     }
+    if (input.sessionData.get("show_tasks").exists(_.asInstanceOf[Boolean])) {
+      val (tasks3D, tasks2D, tasksDB3D) = input.executor.getSpatialTasks
+      for (p <- tasks3D) {
+        units += CubeRenderer(GrayTID, Color.WHITE, p)(input.pack)
+      }
+      for (p <- tasks2D.map(_.inflate(0))) {
+        units += CubeRenderer(GrayTID, Color.BLUE, p)(input.pack)
+      }
+      for (p <- tasksDB3D) {
+        units += CubeRenderer(GrayTID, Color.GREEN, p)(input.pack)
+      }
+    }
+
+    /*
+    val (tasks3D, tasks2D, tasksDB3D) = UniExecutor.getService.getSpatialTasks
+    for (p <- tasks3D) {
+      units +:= CubeRenderer(GrayTID, Color.WHITE, p)(pack)
+    }
+    for (p <- tasks2D.map(_.inflate(0))) {
+      units +:= CubeRenderer(GrayTID, Color.BLUE, p)(pack)
+    }
+    for (p <- tasksDB3D) {
+      units +:= CubeRenderer(GrayTID, Color.GREEN, p)(pack)
+    }
+     */
 
     hud -> units
   }

@@ -40,7 +40,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var renderer: Renderer = _
   private var processor: InputProcessor = _
   @volatile private var loadTarget = Set.empty[V3I]
-  private var clientLogic: ClientLogic = _//GodClientMenu(Set.empty)//GodClientMain(Set.empty)
+  private var clientLogic: ClientLogic = _
+  private var sessionData: Map[String, Any] = Map.empty
   private val clientLogicQueue = new ConcurrentLinkedQueue[ClientLogic => ((World, ClientLogic.Input) => ClientLogic.Output)]
   private val worldEffectQueue = new ConcurrentLinkedQueue[UpdateEffect]
   private var vramGraph: DependencyGraph = _
@@ -64,7 +65,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     }, 4)
 
     println("creating client logic")
-    //clientLogic = GodClientMenu(Set.empty, Chat(Seq("player joined the game.")))
     clientLogic = GodClient(Set.empty, Chat(Seq("player joined the game.")))
 
     println("instantiating save")
@@ -84,124 +84,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     renderer = new Renderer(pack)
 
     println("instantiating input processor")
-    /*
-    val multiplexer = new InputMultiplexer
-    multiplexer.addProcessor(new InputAdapter {
-      override def keyDown(keycode: Int): Boolean =
-        if (keycode == Keys.ESCAPE) {
-          println("closing world")
-          driver.enter(new MainMenu(providedResources))
-          true
-        } else if (keycode == Keys.J) {
-          println(V3F(renderer.cam.direction).direction)
-          true
-        } else if (keycode == Keys.P) {
-          val camPos = V3F(renderer.cam.position)
-          val camDir = V3F(renderer.cam.direction)
-          val world = infinitum()
-          mainLoopTasks.add(() => {
-            val hit = world.rayhit(camPos, camDir)
-            println("hit = " + hit)
-            if (hit.isDefined)
-              infinitum.update(infinitum().chunks.keySet, Seq(PutEntity(new Cube(StoneTID, hit.get, UUID.randomUUID()), UUID.randomUUID())))
-
-          })
-          true
-
-        } else if (keycode == Keys.H) {
-          val camPos = V3F(renderer.cam.position)
-          val camDir = V3F(renderer.cam.direction)
-          val world = infinitum()
-          mainLoopTasks.add(() => {
-            world.seghit(camPos, camDir, 16).foreach(
-              v => infinitum.update(infinitum().chunks.keySet,
-                Seq(PutEntity(SoundCube(SnapSID, 60, v, UUID.randomUUID()), UUID.randomUUID())))
-            )
-          })
-          true
-        } else if (keycode == Keys.Y) {
-          val camPos = V3F(renderer.cam.position)
-          val camDir = V3F(renderer.cam.direction)
-          val world = infinitum()
-          mainLoopTasks.add(() => {
-            world.rayhit(camPos, camDir).foreach(
-              v => infinitum.update(infinitum().chunks.keySet,
-                Seq(PutEntity(GlideCube(Ones, v, UUID.randomUUID()), UUID.randomUUID())))
-            )
-          })
-          true
-        } else if (keycode == Keys.L) {
-          val camPos = V3F(renderer.cam.position)
-          val camDir = V3F(renderer.cam.direction)
-          val world = infinitum()
-          mainLoopTasks.add(() => {
-            for (v <- world.rayhit(camPos, camDir)) {
-              infinitum.update(infinitum().chunks.keySet, Seq(
-                PutEntity(PhysCube(camDir.normalize, v + (Up * 10), UUID.randomUUID(), North), UUID.randomUUID())
-              ))
-            }
-          })
-          true
-        } else if (keycode == Keys.G) {
-          val camPos = V3F(renderer.cam.position)
-          val camDir = V3F(renderer.cam.direction)
-          val world = infinitum()
-          mainLoopTasks.add(() => {
-            for (v <- world.rayhit(camPos, camDir)) {
-              infinitum.update(infinitum().chunks.keySet, Seq(
-                PutEntity(GhostCube(v, UUID.randomUUID()), UUID.randomUUID())
-              ))
-            }
-          })
-          true
-        } else if (keycode == Keys.F) {
-          val camPos = V3F(renderer.cam.position)
-          val camDir = V3F(renderer.cam.direction)
-          val world = infinitum()
-          mainLoopTasks.add(() => {
-            for (v <- world.rayhit(camPos, camDir)) {
-              infinitum.update(infinitum().chunks.keySet, Seq(
-                PutEntity(PreGenCloud(v, ThreadLocalRandom.current().nextInt(), UUID.randomUUID()), UUID.randomUUID())
-              ))
-            }
-          })
-          true
-        } else if (keycode == Keys.R) {
-          val camPos = V3F(renderer.cam.position)
-          val camDir = V3F(renderer.cam.direction)
-          val world = infinitum()
-          mainLoopTasks.add(() => {
-            for (v <- world.rayhit(camPos, camDir)) {
-              infinitum.update(infinitum().chunks.keySet, Seq(
-                PutEntity(new ProceduralCloud(v, ThreadLocalRandom.current().nextLong(), V3I(20, 15, 30), 0.7f, UUID.randomUUID(), 3.5f, 6f, 15, Repeated(1.5f), null), UUID.randomUUID())
-              ))
-            }
-          })
-          true
-        } else false
-
-
-
-      override def touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean = {
-        if (button == 1) {
-          val camPos = V3F(renderer.cam.position)
-          val camDir = V3F(renderer.cam.direction)
-          val p = camPos / 16 floor
-          val world = infinitum()
-          mainLoopTasks.add(() => {
-            for (v <- world.placeBlock(camPos, camDir, 16)) {
-              infinitum.update(infinitum().chunks.keySet,
-                Seq(SetMat(v, Blocks.Brick, WorldRes, UUID.randomUUID(), revalBlocks = true)))
-            }
-          })
-        }
-        true
-      }
-    })
-    controller = new FirstPersonCameraController(renderer.cam)
-    multiplexer.addProcessor(controller)
-    Gdx.input.setInputProcessor(multiplexer)
-    */
     processor = new InputProcessor {
       override def touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean =
         clientLogicQueue.add(_.touchUp(V2I(screenX, screenY), pointer, Button(button)))
@@ -296,6 +178,9 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       override def isCursorCaught: Boolean = Gdx.input.isCursorCatched
       override def windowSize: V2I = V2I(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
       override def nanoTime: Long = System.nanoTime()
+      override def sessionData: Map[String, Any] = SingleplayerState.this.sessionData
+      override def pack: ResourcePack = SingleplayerState.this.pack
+      override def executor: UniExecutor = UniExecutor.getService
       override def keyToChar(keycode: Int): Option[Char] = {
         val str = keycode match {
           case Keys.SPACE => " "
@@ -355,42 +240,13 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         case ReleaseCursor => Gdx.input.setCursorCatched(false)
         case ClientPrint(str) => println(str)
         case Exit => driver.enter(new MainMenu(providedResources))
+        case SetSessionProperty(k, v) => sessionData += k -> v
       }
     }
     renderer.cam.update(true)
 
     // get render units
     var units: Seq[RenderUnit] = toRender.renderables(pack)
-
-    // add debug units
-    /*
-    if (Gdx.input.isKeyPressed(Keys.ALT_LEFT)) {
-      val (complete, incomplete) = toRender.chunks.values.partition(_.isComplete)
-      for (chunk <- complete) {
-        units +:= new ChunkOutline(chunk.pos, Color.GREEN)
-      }
-      for (chunk <- incomplete) {
-        units +:= new ChunkOutline(chunk.pos, Color.RED)
-      }
-    }
-    val (tasks3D, tasks2D, tasksDB3D) = UniExecutor.getService.getSpatialTasks
-    for (p <- tasks3D) {
-      units +:= CubeRenderer(GrayTID, Color.WHITE, p)(pack)
-    }
-    for (p <- tasks2D.map(_.inflate(0))) {
-      units +:= CubeRenderer(GrayTID, Color.BLUE, p)(pack)
-    }
-    for (p <- tasksDB3D) {
-      units +:= CubeRenderer(GrayTID, Color.GREEN, p)(pack)
-    }
-
-
-
-    // draw a cube where you're pointing
-    for (v <- toRender.placeBlock(V3F(renderer.cam.position), V3F(renderer.cam.direction), 16)) {
-      units +:= new BlockOutline(v / WorldRes * 16, Color.WHITE, scale = 16f / WorldRes * 0.95f)
-    }
-    */
 
     // do memory management
     val nodes = units.flatMap(_.resources)

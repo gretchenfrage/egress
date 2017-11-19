@@ -5,7 +5,7 @@ import java.util.UUID
 import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.core.{PutEntity, World}
 import com.phoenixkahlo.hellcraft.graphics._
-import com.phoenixkahlo.hellcraft.math.V3F
+import com.phoenixkahlo.hellcraft.math.{Origin, Up, V3F}
 import org.json.simple.{JSONObject, JSONValue}
 
 import scala.collection.JavaConverters
@@ -46,7 +46,23 @@ object Commands {
         v, UUID.randomUUID()
       )
     }),
-    "ghost" -> ((v, j) => GhostCube(v, UUID.randomUUID()))
+    "ghost" -> ((v, j) => GhostCube(v, UUID.randomUUID())),
+    "walker" -> ((v, j) => {
+      val walk = Option(j.get("walk"))
+        .map(_.asInstanceOf[java.util.List[_]])
+        .map(JavaConverters.asScalaBuffer(_))
+        .map(_.map(_.asInstanceOf[Number].floatValue))
+        .map(floats => V3F(floats(0), floats(1), floats(2)))
+        .getOrElse(Origin)
+      val vel = Option(j.get("vel"))
+        .map(_.asInstanceOf[java.util.List[_]])
+        .map(JavaConverters.asScalaBuffer(_))
+        .map(_.map(_.asInstanceOf[Number].floatValue))
+        .map(floats => V3F(floats(0), floats(1), floats(2)))
+        .getOrElse(Origin)
+
+      PhysCube(vel, v + (Up * 10), UUID.randomUUID(), walk)
+    })
   )
 
   def print(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
@@ -68,10 +84,14 @@ object Commands {
       }
     ).toSeq
 
+  def showtasks(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
+    Seq(SetSessionProperty("show_tasks", j.asInstanceOf[Boolean]))
+
   val commands: Map[String, (World, ClientLogic.Input) => (AnyRef => Seq[ClientEffect])] = Map(
     "print" -> print,
     "stevie" -> stevie,
-    "spawn" -> spawn
+    "spawn" -> spawn,
+    "showtasks" -> showtasks
   )
 
   def apply(command: String, world: World, input: ClientLogic.Input): Seq[ClientEffect] = {

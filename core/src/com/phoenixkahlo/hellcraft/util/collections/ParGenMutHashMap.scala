@@ -4,7 +4,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import scala.collection.mutable
 
-class ParGenMutHashMap[K, V](gen: K => V) extends {
+class ParGenMutHashMap[K, V](gen: K => V) {
   private val map = new mutable.HashMap[K, V]
   private val lock = new ReentrantReadWriteLock()
 
@@ -31,7 +31,7 @@ class ParGenMutHashMap[K, V](gen: K => V) extends {
     k
   }
 
-  def apply(k: K): V = {
+  def apply(k: K)(gen: => V = this.gen(k)): V = {
     lock.readLock().lock()
     map.get(k) match {
       case Some(v) =>
@@ -45,7 +45,7 @@ class ParGenMutHashMap[K, V](gen: K => V) extends {
             lock.writeLock().unlock()
             v
           case None =>
-            val v = gen(k)
+            val v = gen
             map.put(k, v)
             lock.writeLock().unlock()
             v

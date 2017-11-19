@@ -3,8 +3,9 @@ package com.phoenixkahlo.hellcraft.core.client
 import com.badlogic.gdx.Input.Buttons
 import com.phoenixkahlo.hellcraft.core.{UpdateEffect, World}
 import com.phoenixkahlo.hellcraft.core.client.ClientLogic.{Input, Output}
-import com.phoenixkahlo.hellcraft.graphics.{EmptyHUD, HUD, RenderUnit}
+import com.phoenixkahlo.hellcraft.graphics.{EmptyHUD, HUD, RenderUnit, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{V2I, V3F, V3I}
+import com.phoenixkahlo.hellcraft.util.threading.UniExecutor
 
 sealed trait ClientEffect
 case class CauseUpdateEffect(effects: Seq[UpdateEffect]) extends ClientEffect
@@ -19,6 +20,7 @@ case object CaptureCursor extends ClientEffect
 case object ReleaseCursor extends ClientEffect
 case object Exit extends ClientEffect
 case class ClientPrint(str: String) extends ClientEffect
+case class SetSessionProperty(k: String, v: Any) extends ClientEffect
 
 sealed trait Button
 case object Left extends Button
@@ -45,6 +47,9 @@ object ClientLogic {
     def windowSize: V2I
     def nanoTime: Long
     def keyToChar(keycode: Int): Option[Char]
+    def sessionData: Map[String, Any]
+    def pack: ResourcePack
+    def executor: UniExecutor
   }
 }
 

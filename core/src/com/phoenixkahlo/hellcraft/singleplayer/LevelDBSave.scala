@@ -40,7 +40,7 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
   override def push(chunks: Map[V3I, Chunk]): Seq[Fut[Unit]] = {
     val futs = new ArrayBuffer[Fut[Unit]]
     for ((p, chunk) <- chunks) {
-      futs += sequences(p)({
+      futs += sequences(p)()({
         db.put(p.toByteArray, serialize(chunk))
       })
     }
@@ -56,7 +56,7 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
     UniExecutor.getService.makeDBSequential()
     // add the pushes to all the sequences
     for ((p, chunk) <- chunks) {
-      sequences(p)({
+      sequences(p)()({
         db.put(p.toByteArray, serialize(chunk))
       })
     }
@@ -71,7 +71,7 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
   override def pull(chunks: Seq[V3I]): Map[V3I, Fut[Chunk]] = {
     var map = Map.empty[V3I, Fut[Chunk]]
     for (p <- chunks) {
-      map = map.updated(p, sequences(p)({
+      map = map.updated(p, sequences(p)()({
         if (!closing) {
           val bytes = db.get(p.toByteArray)
           if (bytes != null) Fut(deserialize(bytes), _.run())
