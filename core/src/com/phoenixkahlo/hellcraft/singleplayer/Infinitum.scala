@@ -203,6 +203,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
   private val loadQueue = new ConcurrentLinkedQueue[(Chunk, LoadID)]
   private var loadMap = Map.empty[V3I, LoadID]
 
+  // TODO: save to db
   private var pendingEvents = Map.empty[V3I, Seq[ChunkEvent]]
 
   private val terrainSoupQueue = new ConcurrentLinkedQueue[(TerrainSoup, TerrainSoupID)]
@@ -211,7 +212,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
   private val blockSoupQueue = new ConcurrentLinkedQueue[(BlockSoup, BlockSoupID)]
   private var blockSoupMap = Map.empty[V3I, BlockSoupID]
 
-  private val requestedQueue = new ConcurrentLinkedQueue[World => Seq[UpdateEffect]]
+  private val requestedQueue = new ConcurrentLinkedQueue[World => Seq[ChunkEvent]]
 
   def apply(t: Long): Option[SWorld] = history.get(t)
   def apply(): SWorld = history.last._2
@@ -267,9 +268,11 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       })
     }
 
+    // TODO: should we pend other effects?
+
     // get effects and begin to accumulate events
-    val effects = (world.effects(dt) ++ externalEvents).groupBy(_.effectType).withDefaultValue(Seq.empty)
-    var events = effects(ChunkEvent).map(_.asInstanceOf[ChunkEvent])
+    val effects: Map[UpdateEffectType, Seq[UpdateEffect]] = (world.effects(dt) ++ externalEvents).groupBy(_.effectType).withDefaultValue(Seq.empty)
+    var events: Seq[ChunkEvent] = effects(ChunkEvent).map(_.asInstanceOf[ChunkEvent])
 
     // pull loaded chunks from the queue and add them to the world if they're valid, also accumulate pending events
     while (loadQueue.size > 0) {
@@ -284,7 +287,12 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       }
     }
 
-    var specialEffects = effects - ChunkEvent
+    // pull requested values from the queue and transform them into events, accumulating them
+    while (requestedQueue.size > 0) {
+      events ++= requestedQueue.remove()(world)
+    }
+
+    var specialEffects: Map[UpdateEffectType, Seq[UpdateEffect]] = effects - ChunkEvent
 
     // recursively modifies the world and specialEffects
     @tailrec def applyEvents(eventsIn: Seq[ChunkEvent]): Unit = {
@@ -330,6 +338,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
         .foreach(terrainSoupMap -= _)
 
       // scan for request events
+      /*
       for (make: MakeRequest[_] <- newEffectsGrouped.getOrElse(MakeRequest, Seq.empty).map(_.asInstanceOf[MakeRequest[_]])) {
         val request: Request[_] = make.request
         val fut: Fut[Any] = request.eval.toFut(new mutable.HashMap)(UniExecutor.getService)
@@ -339,6 +348,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
           ??? // recurse
         })
       }
+      */
 
       // recurse
       if (newEffectsGrouped.getOrElse(ChunkEvent, Seq.empty).nonEmpty)
@@ -347,6 +357,18 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
 
     // recursively apply the events
     applyEvents(events)
+
+    // process request events
+    for (make <- specialEffects.getOrElse(MakeRequest, Seq.empty).map(_.asInstanceOf[MakeRequest[_]])) {
+      val request: Request[_] = make.request
+      val fut: Fut[Any] = request.eval.toFut(new mutable.HashMap)(UniExecutor.getService)
+      fut.onComplete(() => {
+        val result: Requested = new Requested(request.id, fut.query.get)
+        requestedQueue.add(world => make.onComplete(result, world))
+        //val effects: Seq[UpdateEffect] = make.onComplete(result, ???)
+        //??? // recurse
+      })
+    }
 
     // increment time
     world = world.incrTime

@@ -4,7 +4,7 @@ import com.phoenixkahlo.hellcraft.math.{V2F, V3F}
 import com.phoenixkahlo.hellcraft.util.threading.UniExecutor
 
 sealed trait ExecHint {
-  private [request] def exec(task: Runnable)(implicit service: UniExecutor): Unit
+  def exec(task: Runnable)(implicit service: UniExecutor): Unit
 }
 case object ExecSeq extends ExecHint {
   override def exec(task: Runnable)(implicit service: UniExecutor): Unit = service.exec(task)

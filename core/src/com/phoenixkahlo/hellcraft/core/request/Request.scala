@@ -7,7 +7,7 @@ import com.phoenixkahlo.hellcraft.util.threading.{Fut, MergeFut, UniExecutor}
 
 import scala.collection.mutable
 
-case class Request[T](id: UUID, eval: Evalable[T]) {
+case class Request[T](eval: Evalable[T], id: UUID) {
   def unlock(requested: Requested): Option[T] =
     if (requested.id == this.id) Some(requested.result.asInstanceOf[T])
     else None

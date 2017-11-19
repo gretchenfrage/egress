@@ -1,6 +1,6 @@
 package com.phoenixkahlo.hellcraft.util.collections
 
-class IdentityKey[+T <: AnyRef](obj: T) {
+class IdentityKey[+T <: AnyRef](val obj: T) {
   override def hashCode(): Int = System.identityHashCode(obj)
 
   override def equals(other: scala.Any): Boolean =

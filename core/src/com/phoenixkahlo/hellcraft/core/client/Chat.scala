@@ -1,11 +1,12 @@
 package com.phoenixkahlo.hellcraft.core.client
 
 import java.util.UUID
+import java.util.concurrent.ThreadLocalRandom
 
 import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.core.{PutEntity, World}
 import com.phoenixkahlo.hellcraft.graphics._
-import com.phoenixkahlo.hellcraft.math.{Origin, Up, V3F}
+import com.phoenixkahlo.hellcraft.math.{Origin, RNG, Up, V3F}
 import org.json.simple.{JSONObject, JSONValue}
 
 import scala.collection.JavaConverters
@@ -87,11 +88,30 @@ object Commands {
   def showtasks(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
     Seq(SetSessionProperty("show_tasks", j.asInstanceOf[Boolean]))
 
+  def requesttest(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
+    Seq(CauseUpdateEffect(RequestTester(j.asInstanceOf[String], RNG.uuids(RNG(ThreadLocalRandom.current.nextLong())))))
+
+  def queuestats(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
+    Seq(
+      ClientPrint("seq queue size = " + input.executor.sizeSeq),
+      ClientPrint("3D queue size = " + input.executor.size3D),
+      ClientPrint("2D queue size = " + input.executor.size2D),
+      ClientPrint("DB seq queue size = " + input.executor.sizeDBSeq),
+      ClientPrint("DB 3D queue size = " + input.executor.sizeDB3D),
+      ClientPrint(""),
+      ClientPrint("3D queue height = " + input.executor.height3D),
+      ClientPrint("2D queue height = " + input.executor.height2D),
+      ClientPrint("DB 3D queue height = " + input.executor.heightDB3D),
+      ClientPrint("")
+    )
+
   val commands: Map[String, (World, ClientLogic.Input) => (AnyRef => Seq[ClientEffect])] = Map(
     "print" -> print,
     "stevie" -> stevie,
     "spawn" -> spawn,
-    "showtasks" -> showtasks
+    "showtasks" -> showtasks,
+    "requesttest" -> requesttest,
+    "queuestats" -> queuestats
   )
 
   def apply(command: String, world: World, input: ClientLogic.Input): Seq[ClientEffect] = {
@@ -104,11 +124,6 @@ object Commands {
           cmd => Option(JSONValue.parse(json)).map(
             cmd(world, input)
           ).getOrElse(Seq(ClientPrint("command failed: invalid json")))
-          /*
-          command => parseOpt(json).map(
-            command(world, input)
-          ).getOrElse(Seq(ClientPrint("command failed: invalid json")))
-          */
         ).getOrElse(Seq(ClientPrint("command failed: invalid name")))
       } else Seq(ClientPrint("command failed: not enough parts"))
     } catch {

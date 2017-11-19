@@ -40,6 +40,15 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
   })
   */
 
+  def sizeSeq: Int = seqQueue.size
+  def size3D: Int = queue3D.size
+  def height3D: Int = queue3D.height
+  def size2D: Int = queue2D.size
+  def height2D: Int = queue2D.height
+  def sizeDBSeq: Int = dbQueue.size
+  def sizeDB3D: Int = dbQueue3D.size
+  def heightDB3D: Int = dbQueue3D.height
+
   case class Worker(work: Runnable) extends Runnable {
     override def run(): Unit = {
       try {

@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.{Mesh, PerspectiveCamera}
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.{Environment, Material, Renderable}
+import com.phoenixkahlo.hellcraft.core.request.{ExecHint, ExecSeq}
 import com.phoenixkahlo.hellcraft.graphics.{HUD, Interpolation, RenderUnit, ResourcePack}
 import com.phoenixkahlo.hellcraft.graphics.shaders._
 import com.phoenixkahlo.hellcraft.math.{V2F, V3F}
@@ -53,7 +54,7 @@ object Render {
 case class MakeRender(factory: () => (ResourcePack => RenderUnit), execHint: ExecHint = ExecSeq)
 
 
-class FRenderer(pack: ResourcePack) {
+class FRenderer(pack: ResourcePack)(implicit service: UniExecutor) {
   // TODO: make memo func soft and make futs weak
   val memoizer: MemoHintFunc[() => (ResourcePack => RenderUnit), ExecHint, Fut[ResourcePack => RenderUnit]] =
     new MemoHintFunc((factory, execHint) => Fut(factory(), execHint.exec))
