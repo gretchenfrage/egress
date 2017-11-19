@@ -18,6 +18,7 @@ case class SetCamFOV(fov: Float) extends ClientEffect
 case object CaptureCursor extends ClientEffect
 case object ReleaseCursor extends ClientEffect
 case object Exit extends ClientEffect
+case class ClientPrint(str: String) extends ClientEffect
 
 sealed trait Button
 case object Left extends Button

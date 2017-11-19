@@ -61,11 +61,6 @@ case class MenuHUD(buttons: Seq[MenuButton]) extends HUD {
 }
 
 case class GodClientMenu(pressed: Set[Int], buttons: Seq[MenuButton], pressing: Option[MenuButton], hud: HUD, chat: Chat) extends ClientLogic {
-  /*
-  override def update(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
-    cause(ReleaseCursor)
-    */
-
 
   override def become(replacement: ClientLogic): (ClientLogic, Seq[ClientEffect]) = {
     if (replacement.isInstanceOf[GodClient]) replacement -> Seq(CaptureCursor)
@@ -75,7 +70,6 @@ case class GodClientMenu(pressed: Set[Int], buttons: Seq[MenuButton], pressing: 
   override def tick(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = {
     val chunkPos = input.camPos / 16 toInts
     val loadTarget = (chunkPos - GodClient.loadRad) to (chunkPos + GodClient.loadRad) toSet;
-    //cause(ReleaseCursor, SetLoadTarget(loadTarget))
     cause(SetLoadTarget(loadTarget))
   }
 
@@ -130,19 +124,24 @@ object GodClientMenu {
 }
 
 case class GodClientChat(chat: Chat, cursorOn: Boolean = true, buffer: String = "") extends ClientLogic {
-  val hud = new GodHUD(chat, buffer + (if (cursorOn) "_" else ""), new Color(0.1718f, 0.2422f, 0.3125f, 0.3f))
-
+  val hud = new GodHUD(
+    chat,
+    buffer + (if (cursorOn || buffer.isEmpty) "_" else ""),
+    new Color(0.1718f, 0.2422f, 0.3125f, 0.3f)
+  )
 
   override def become(replacement: ClientLogic): (ClientLogic, Seq[ClientEffect]) = {
     if (replacement.isInstanceOf[GodClient]) replacement -> Seq(CaptureCursor)
     else super.become(replacement)
   }
 
-  /*
   override def update(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
     if (cursorShouldBeOn(input) ^ cursorOn) become(copy(cursorOn = cursorShouldBeOn(input)))
     else nothing
-  */
+
+
+  override def resize(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
+    become(copy())
 
   def cursorShouldBeOn(input: Input): Boolean = {
     val interval = 1000000000
@@ -153,17 +152,13 @@ case class GodClientChat(chat: Chat, cursorOn: Boolean = true, buffer: String = 
     case ESCAPE => become(GodClient(Set.empty, chat))
     case DEL => become(copy(buffer = buffer.dropRight(1)))
     case ENTER =>
-      val newChat = chat + buffer
-      become(copy(chat = newChat, buffer = ""))
+      val (newChat, effects) = chat + buffer
+      GodClient(Set.empty, newChat) -> effects
     case k => input.keyToChar(k) match {
       case Some(c) => become(copy(buffer = buffer + c))
       case None => nothing
     }
   }
-  /*
-    if (keycode == ESCAPE) become(GodClient(Set.empty, chat))
-    else become(copy(buffer = buffer + input.keyToChar(keycode).map(_.toString).getOrElse("")))
-    */
 
   override def render(world: World, input: Input): (HUD, Seq[RenderUnit]) = (hud, Seq.empty)
 }
@@ -194,6 +189,7 @@ case class GodClient(pressed: Set[Int], chat: Chat) extends ClientLogic {
   override def keyDown(keycode: Int)(world: World, input: Input) = keycode match {
     case ESCAPE => become(GodClientMenu(pressed, chat))
     case T => become(GodClientChat(chat))
+    case SLASH => become(GodClientChat(chat, buffer = "/"))
     case _ => become(copy(pressed = pressed + keycode))
   }
 

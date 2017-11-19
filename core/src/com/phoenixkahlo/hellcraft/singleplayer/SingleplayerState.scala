@@ -305,11 +305,40 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         }
         if (str.size == 1) {
           val char = str.head
-          if (Character.isAlphabetic(char) || Character.isDigit(char) || Character.isWhitespace(char)) {
-            val caps = Gdx.input.isKeyPressed(Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Keys.SHIFT_RIGHT)
-            Some(if (caps) char.toUpper else char.toLower)
-          } else None
-        } else None
+          if (char >= 0x20 && char <= 0x126) {
+            val shift = Gdx.input.isKeyPressed(Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Keys.SHIFT_RIGHT)
+            Some(if (!shift) char.toLower
+            else if (Character.isAlphabetic(char)) char.toUpper
+            else char match {
+              case '`' => '~'
+              case '1' => '!'
+              case '2' => '@'
+              case '3' => '#'
+              case '4' => '$'
+              case '5' => '%'
+              case '6' => '^'
+              case '7' => '&'
+              case '8' => '*'
+              case '9' => '('
+              case '0' => ')'
+              case '-' => '_'
+              case '=' => '+'
+              case '[' => '{'
+              case ']' => '}'
+              case '\\' => '|'
+              case ';' => ':'
+              case ''' => '"'
+              case ',' => '<'
+              case '.' => '>'
+              case '/' => '?'
+              case _ => '�'
+            })
+          } else  {
+            None
+          }
+        } else {
+          None
+        }
       }
     }
     clientLogicQueue.add(_.update)
@@ -324,6 +353,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         case SetCamFOV(fov) => renderer.cam.fieldOfView = fov
         case CaptureCursor => Gdx.input.setCursorCatched(true)
         case ReleaseCursor => Gdx.input.setCursorCatched(false)
+        case ClientPrint(str) => println(str)
         case Exit => driver.enter(new MainMenu(providedResources))
       }
     }
