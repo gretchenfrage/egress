@@ -5,7 +5,7 @@ import java.util.{Objects, UUID}
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.Entity
-import com.phoenixkahlo.hellcraft.core.request.Request
+import com.phoenixkahlo.hellcraft.core.request._
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.math.physics._
 import com.phoenixkahlo.hellcraft.math._
@@ -13,100 +13,6 @@ import com.phoenixkahlo.hellcraft.util.LeftOption
 import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
 import com.phoenixkahlo.hellcraft.util.fields.{ByteFractionField, ByteFractionFieldBuffer, OptionField}
 
-@CarboniteWith(classOf[FieldNode])
-class Chunk(
-             val pos: V3I,
-             val terrain: Terrain,
-             val entities: Map[UUID, Entity] = Map.empty,
-             val terrainSoup: Option[TerrainSoup] = None,
-             val blockSoup: Option[BlockSoup] = None,
-             @transient lastBroadphase: Broadphase = null,
-             @transient lastTerrainMesher: TerrainMesher = null,
-             @transient lastBlockMesher: BlockMesher = null,
-             @transient lastTerrainValid: Boolean = true,
-             @transient lastBlockValid: Boolean = true
-           ) extends Serializable {
-
-
-  // TODO: there's no point in declaring the graphics values lazy if they get evaluated whenever the chunk is transformed
-  @transient lazy val terrainMesher: Option[TerrainMesher] = Option(lastTerrainMesher) match {
-    case last if last.isDefined && lastTerrainValid => last
-    case last => terrainSoup.map(new TerrainMesher(this, _)) match {
-      case neu if neu isDefined => neu
-      case _ => last
-    }
-  }
-
-  @transient lazy val blockMesher: Option[BlockMesher] = Option(lastBlockMesher) match {
-    case last if last.isDefined && lastBlockValid => last
-    case last => blockSoup.map(new BlockMesher(this, _)) match {
-      case neu if neu isDefined => neu
-      case _ => last
-    }
-  }
-
-  @transient lazy val broadphase: Broadphase = Option(lastBroadphase).getOrElse({
-    (terrainSoup, blockSoup) match {
-      case (Some(ts), Some(bs)) =>
-        val triangles = ts.iterator.toSeq ++ bs.iterator.toSeq
-        new OctreeBroadphase(triangles.iterator, pos * 16 + Repeated(8), 64)
-      case _ => EmptyBroadphase
-    }
-  })
-
-  def putEntity(entity: Entity): Chunk =
-    new Chunk(pos, terrain, entities + (entity.id -> entity), terrainSoup, blockSoup, broadphase, terrainMesher.orNull, blockMesher.orNull)
-
-  def removeEntity(entity: UUID): Chunk =
-    new Chunk(pos, terrain, entities - entity, terrainSoup, blockSoup, broadphase, terrainMesher.orNull, blockMesher.orNull)
-
-  def setTerrain(neu: Terrain): Chunk =
-    new Chunk(pos, neu, entities, None, None, lastBroadphase, terrainMesher.orNull, blockMesher.orNull)
-
-  def setTerrainSoup(ts: TerrainSoup): Chunk =
-    new Chunk(pos, terrain, entities, Some(ts), blockSoup, null, null, blockMesher.orNull)
-
-  def setBlockSoup(bs: BlockSoup): Chunk =
-    new Chunk(pos, terrain, entities, terrainSoup, Some(bs), null, terrainMesher.orNull, null)
-
-  def invalidate: Chunk =
-    new Chunk(pos, terrain, entities, None, None, broadphase, terrainMesher.orNull, blockMesher.orNull, false, false)
-
-  def isComplete: Boolean =
-    terrainSoup.isDefined && blockSoup.isDefined
-
-  def isActive: Boolean =
-    entities nonEmpty
-
-  def makeComplete(world: World): Chunk = {
-    val ts = TerrainSoup(terrain, world).get
-    val bs = BlockSoup(terrain, world).get
-    new Chunk(pos, terrain, entities, Some(ts), Some(bs), null, null, null)
-  }
-
-  def update(world: World): Seq[UpdateEffect] = {
-    val seed: Long = (world.time.hashCode().toLong << 32) | pos.hashCode().toLong
-    val idss: Stream[Stream[UUID]] = RNG.meta(RNG(seed), RNG.uuids)
-    entities.values.zip(idss).flatMap({ case (entity, ids) => entity.update(world, ids) }).toSeq
-  }
-
-  override def hashCode(): Int =
-    Objects.hash(pos, terrain, entities)
-
-  override def equals(obj: scala.Any): Boolean =
-    obj match {
-      case chunk: Chunk => pos == chunk.pos && terrain == chunk.terrain && entities == chunk.entities
-      case _ => false
-    }
-
-  def renderables(pack: ResourcePack, world: World): Seq[RenderUnit] = {
-    entities.values.flatMap(_.renderables(pack)).toSeq ++
-      terrainMesher.map(_(world, pack)).getOrElse(Seq.empty) ++
-      blockMesher.map(_(world, pack)).getOrElse(Seq.empty)
-  }
-
-}
-/*
 class Chunk(
              val pos: V3I,
              val terrain: Terrain,
@@ -115,78 +21,22 @@ class Chunk(
              val blockSoup: BlockSoup,
              val tsRequest: Option[Request[TerrainSoup]],
              val bsRequest: Option[Request[BlockSoup]],
-
-             //val terrainSoup: Either[TerrainSoup, Request[TerrainSoup]],
-             //val blockSoup: Either[BlockSoup, Request[BlockSoup]],
-             //val terrainSoup: Option[TerrainSoup] = None,
-             //val blockSoup: Option[BlockSoup] = None,
              @transient lastBroadphase: () => Broadphase = null,
              @transient lastTerrainMesher: () => TerrainMesher = null,
-             @transient lastBlockMesher: () => BlockMesher = null,
-             //@transient lastTerrainValid: Boolean = true,
-             //@transient lastBlockValid: Boolean = true
+             @transient lastBlockMesher: () => BlockMesher = null
            ) extends Serializable {
 
-
-  // TODO: there's no point in declaring the graphics values lazy if they get evaluated whenever the chunk is transformed
-  /*
-  @transient lazy val terrainMesher: Option[TerrainMesher] = Option(lastTerrainMesher) match {
-    case last if last.isDefined && lastTerrainValid => last
-      /*
-    case last => terrainSoup match {
-      case Left(soup) => Some(new TerrainMesher(this, soup))
-      case Right(request) => last
-    }
-    */
-
-    case last => terrainSoup.map(new TerrainMesher(this, _)) match {
-      case neu if neu isDefined => neu
-      case _ => last
-    }
-
-  }
-  */
   @transient lazy val terrainMesher: TerrainMesher =
-    Option(lastTerrainMesher).map(_()).getOrElse(new TerrainMesher(this, terrainSoup))
+    Option(lastTerrainMesher).map(_ ()).getOrElse(new TerrainMesher(this, terrainSoup))
 
   @transient lazy val blockMesher: BlockMesher =
-    Option(lastBlockMesher).map(_()).getOrElse(new BlockMesher(this, blockSoup))
+    Option(lastBlockMesher).map(_ ()).getOrElse(new BlockMesher(this, blockSoup))
 
   @transient lazy val broadphase: Broadphase =
-    Option(lastBroadphase).map(_()).getOrElse(new OctreeBroadphase(
+    Option(lastBroadphase).map(_ ()).getOrElse(new OctreeBroadphase(
       terrainSoup.iterator ++ blockSoup.iterator,
       pos * 16 + Repeated(8), 64
     ))
-
-  /*
-  @transient lazy val blockMesher: Option[BlockMesher] = Option(lastBlockMesher) match {
-    case last if last.isDefined && lastBlockValid => last
-      /*
-    case last => blockSoup match {
-      case Left(soup) => Some(new BlockMesher(this, soup))
-      case Right(request) => last
-    }
-    */
-
-    case last => blockSoup.map(new BlockMesher(this, _)) match {
-      case neu if neu isDefined => neu
-      case _ => last
-    }
-
-  }
-  */
-
-
-  /*
-  @transient lazy val broadphase: Broadphase = Option(lastBroadphase).getOrElse({
-    (terrainSoup, blockSoup) match {
-      case (Some(ts), Some(bs)) =>
-        val triangles = ts.iterator.toSeq ++ bs.iterator.toSeq
-        new OctreeBroadphase(triangles.iterator, pos * 16 + Repeated(8), 64)
-      case _ => EmptyBroadphase
-    }
-  })
-  */
 
   def putEntity(entity: Entity): Chunk =
     new Chunk(
@@ -197,7 +47,6 @@ class Chunk(
       () => broadphase,
       () => terrainMesher, () => blockMesher
     )
-    //new Chunk(pos, terrain, entities + (entity.id -> entity), terrainSoup, blockSoup, () => broadphase, terrainMesher, blockMesher)
 
   def removeEntity(entity: UUID): Chunk =
     new Chunk(
@@ -208,37 +57,86 @@ class Chunk(
       () => broadphase,
       () => terrainMesher, () => blockMesher
     )
-    //new Chunk(pos, terrain, entities - entity, terrainSoup, blockSoup, broadphase, terrainMesher.orNull, blockMesher.orNull)
 
-  def setTerrain(newTerrain: Terrain): (Chunk, Seq[UpdateEffect]) = {
-    // make the new block soup immediately
-    val newBlockSoup = BlockSou
+  def setTerrain(newTerrain: Terrain, ids: Stream[UUID]): (Chunk, Seq[UpdateEffect]) =
+    new Chunk(
+      pos, newTerrain,
+      entities,
+      terrainSoup, blockSoup,
+      tsRequest, bsRequest,
+      () => broadphase,
+      () => terrainMesher,
+      () => blockMesher
+    ).invalidate(ids)
+
+  def invalidate(ids: Stream[UUID]): (Chunk, Seq[UpdateEffect]) = {
+    implicit val exec = Exec3D(pos * 16)
+
+    val emicroworld: Evalable[TerrainGrid] =
+      pos.neighbors
+        .map(Evalable.chunk)
+        .foldLeft(Evalable(Map.empty[V3I, Chunk])(ExecCheap))(
+          (emap: Evalable[Map[V3I, Chunk]], echunk: Evalable[Chunk]) =>
+            Evalable.merge(emap, echunk,
+              (map: Map[V3I, Chunk], chunk: Chunk) => map + (chunk.pos -> chunk)
+            )(ExecCheap)
+        )
+        .map(chunks => {
+          new TerrainGrid {
+            override def terrainAt(p: V3I): Option[Terrain] = chunks.get(p).map(_.terrain)
+          }
+          /*
+          // TODO: this is hacky
+          new World {
+            override def boundingBox: (V3I, V3I) = ???
+            override def res: Int = 16
+            override def chunkAt(p: V3I): Option[Chunk] = chunks.get(p)
+            override def debugChunkMap: Map[V3I, Chunk] = ???
+            override def findEntity(id: UUID): Option[Entity] = ???
+            override def time: Long = ???
+          }
+          */
+        })
+    val ets: Evalable[TerrainSoup] = emicroworld.map(world => TerrainSoup(terrain, world).get)
+    val ebs: Evalable[BlockSoup] = emicroworld.map(world => BlockSoup(terrain, world).get)
+    val rts: Request[TerrainSoup] = Request(ets, ids.drop(0).head)
+    val rbs: Request[BlockSoup] = Request(ebs, ids.drop(1).head)
+    new Chunk(
+      pos, terrain,
+      entities,
+      terrainSoup, blockSoup,
+      Some(rts), Some(rbs),
+      () => broadphase,
+      () => terrainMesher,
+      () => blockMesher
+    ) -> Seq(
+      MakeRequest(rts, (requested, world) => Seq(FulfillChunk(pos, requested, ids.drop(2).head))),
+      MakeRequest(rbs, (requested, world) => Seq(FulfillChunk(pos, requested, ids.drop(3).head)))
+    )
   }
 
-  //{
-
-  //}
-    //new Chunk(pos, neu, entities, None, None, lastBroadphase, terrainMesher.orNull, blockMesher.orNull)
-
-  def setTerrainSoup(ts: TerrainSoup): Chunk =
-    new Chunk(pos, terrain, entities, Some(ts), blockSoup, null, null, blockMesher.orNull)
-
-  def setBlockSoup(bs: BlockSoup): Chunk =
-    new Chunk(pos, terrain, entities, terrainSoup, Some(bs), null, terrainMesher.orNull, null)
-
-  def invalidate: Chunk =
-    new Chunk(pos, terrain, entities, None, None, broadphase, terrainMesher.orNull, blockMesher.orNull, false, false)
-
-  def isComplete: Boolean =
-    terrainSoup.isDefined && blockSoup.isDefined
-
-  def isActive: Boolean =
-    entities nonEmpty
-
-  def makeComplete(world: World): Chunk = {
-    val ts = TerrainSoup(terrain, world).get
-    val bs = BlockSoup(terrain, world).get
-    new Chunk(pos, terrain, entities, Some(ts), Some(bs), null, null, null)
+  def fulfill(requested: Requested): Chunk = {
+    if (tsRequest.isDefined && tsRequest.get.unlock(requested).isDefined) {
+      new Chunk(
+        pos, terrain,
+        entities,
+        tsRequest.get.unlock(requested).get, blockSoup,
+        None, bsRequest,
+        () => broadphase,
+        () => terrainMesher,
+        () => blockMesher
+      )
+    } else if (bsRequest.isDefined && bsRequest.get.unlock(requested).isDefined) {
+      new Chunk(
+        pos, terrain,
+        entities,
+        terrainSoup, bsRequest.get.unlock(requested).get,
+        tsRequest, None,
+        () => broadphase,
+        () => terrainMesher,
+        () => blockMesher
+      )
+    } else this
   }
 
   def update(world: World): Seq[UpdateEffect] = {
@@ -247,20 +145,9 @@ class Chunk(
     entities.values.zip(idss).flatMap({ case (entity, ids) => entity.update(world, ids) }).toSeq
   }
 
-  override def hashCode(): Int =
-    Objects.hash(pos, terrain, entities)
-
-  override def equals(obj: scala.Any): Boolean =
-    obj match {
-      case chunk: Chunk => pos == chunk.pos && terrain == chunk.terrain && entities == chunk.entities
-      case _ => false
-    }
+  def isActive: Boolean = entities.nonEmpty
 
   def renderables(pack: ResourcePack, world: World): Seq[RenderUnit] = {
-    entities.values.flatMap(_.renderables(pack)).toSeq ++
-      terrainMesher.map(_(world, pack)).getOrElse(Seq.empty) ++
-      blockMesher.map(_(world, pack)).getOrElse(Seq.empty)
+    entities.values.flatMap(_.renderables(pack)).toSeq ++ terrainMesher(world, pack) ++ blockMesher(world, pack)
   }
-
 }
-*/

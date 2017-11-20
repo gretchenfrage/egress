@@ -16,7 +16,7 @@ import scala.collection.mutable.ArrayBuffer
 @CarboniteFields
 case class Terrain(pos: V3I, grid: IDField[TerrainUnit])
 object Terrain {
-  def canComplete(pos: V3I, world: World): Boolean = pos.neighbors.forall(world.chunkAt(_).isDefined)
+  def canComplete(pos: V3I, world: TerrainGrid): Boolean = pos.neighbors.forall(world.terrainAt(_).isDefined)
 }
 
 @CarboniteFields
@@ -58,7 +58,7 @@ object TerrainSoup {
     (Up, Up + West, West)
   )
 
-  def apply(terrain: Terrain, world: World): Option[TerrainSoup] =
+  def apply(terrain: Terrain, world: TerrainGrid): Option[TerrainSoup] =
   if (Terrain.canComplete(terrain.pos, world)) {
     val offset = terrain.pos * world.res
 
@@ -143,7 +143,7 @@ case class BlockSoup(pos: V3I, verts: Seq[BlockSoup.Vert], indices: Seq[NodeType
 object BlockSoup {
   @CarboniteFields case class Vert(pos: V3F, block: Block, uvDelta: V2I, nor: V3F)
 
-  def apply(terrain: Terrain, world: World): Option[BlockSoup] =
+  def apply(terrain: Terrain, world: TerrainGrid): Option[BlockSoup] =
     if (Terrain.canComplete(terrain.pos, world)) {
       val offset = terrain.pos * world.res
       val grid = terrain.grid

@@ -6,24 +6,15 @@ import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 
-trait World {
-
-  def chunkAt(p: V3I): Option[Chunk]
-
-  def time: Long
-
-  def res: Int
+trait TerrainGrid {
+  def res = 16
 
   def resVec = V3I(res, res, res)
 
-  def findEntity(id: UUID): Option[Entity]
-
-  def boundingBox: (V3I, V3I)
+  def terrainAt(p: V3I): Option[Terrain]
 
   def terrainGridPoint(v: V3I): Option[TerrainUnit] =
-    chunkAt(v / res floor).map(_.terrain.grid.atMod(v))
-
-  def debugChunkMap: Map[V3I, Chunk]
+    terrainAt(v / 16 floor).map(_.grid.atMod(v))
 
   def sampleDensity(vWorld: V3F): Option[Float] = {
     val vGrid = vWorld / 16f * res
@@ -33,7 +24,7 @@ trait World {
       // trilinear interpolation
       val v0 = vGrid.floor
       val v1 = v0 + Ones
-      if (v0.to(v1).map(_ / res floor).forall(chunkAt(_).isDefined)) {
+      if (v0.to(v1).map(_ / res floor).forall(terrainAt(_).isDefined)) {
         // helper function (stands for density grid point)
         def dgp(x: V3I, y: V3I, z: V3I): Float =
           if (terrainGridPoint(V3I(x.xi, y.yi, z.zi)).get.id <= 0) 0 else 1
@@ -60,7 +51,27 @@ trait World {
       case (Some(a), Some(b)) => Some(a + b)
       case _ => None
     }).map(v => (v / 6).normalize)
+}
 
+trait World extends TerrainGrid {
+  def chunkAt(p: V3I): Option[Chunk]
+
+  override def terrainAt(p: V3I) = chunkAt(p).map(_.terrain)
+
+  def time: Long
+
+  //def res: Int
+
+  //def resVec = V3I(res, res, res)
+
+  def findEntity(id: UUID): Option[Entity]
+
+  def boundingBox: (V3I, V3I)
+
+  def debugChunkMap: Map[V3I, Chunk]
+
+
+/*
   def raycast(pos: V3F, dir: V3F): Stream[V3F] = {
     val (min, max) = boundingBox
     Raytrace.voxels(pos / 16, dir)
@@ -74,6 +85,20 @@ trait World {
         Raytrace.meshes(pos, dir, Seq(tm, bm).flatten)
       })
   }
+  */
+  def raycast(pos: V3F, dir: V3F): Stream[V3F] = {
+    val (min, max) = boundingBox
+    Raytrace.voxels(pos / 16, dir)
+      .takeWhile(p => p > min && p < (max + Ones))
+      .flatMap(chunkAt)
+      .flatMap(chunk => {
+        val tm: (Seq[Short], Short => V3F) =
+          (chunk.terrainSoup.indices, i => chunk.terrainSoup.verts(chunk.terrainSoup.indexToVert(i)).get.pos)
+        val bm: (Seq[Short], Short => V3F) =
+          (chunk.blockSoup.indices, i => chunk.blockSoup.verts(i).pos)
+        Raytrace.meshes(pos, dir, Seq(tm, bm))
+      })
+  }
 
   def rayhit(pos: V3F, dir: V3F): Option[V3F] =
     raycast(pos, dir).headOption
@@ -85,11 +110,17 @@ trait World {
       .takeWhile(p => p > min && p < (max + Ones))
       .flatMap(chunkAt)
       .flatMap(chunk => {
+        val tm: (Seq[Short], Short => V3F) =
+          (chunk.terrainSoup.indices, i => chunk.terrainSoup.verts(chunk.terrainSoup.indexToVert(i)).get.pos)
+        val bm: (Seq[Short], Short => V3F) =
+          (chunk.blockSoup.indices, i => chunk.blockSoup.verts(i).pos)
+        /*
         val tm: Option[(Seq[Short], Short => V3F)] =
           chunk.terrainSoup.map(soup => (soup.indices, i => soup.verts(soup.indexToVert(i)).get.pos))
         val bm: Option[(Seq[Short], Short => V3F)] =
           chunk.blockSoup.map(soup => (soup.indices, i => soup.verts(i).pos))
-        Raytrace.meshes(pos, dir, Seq(tm, bm).flatten)
+          */
+        Raytrace.meshes(pos, dir, Seq(tm, bm))
       })
       .takeWhile(_.dist(pos) <= dist)
   }

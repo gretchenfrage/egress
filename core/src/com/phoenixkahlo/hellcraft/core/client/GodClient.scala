@@ -2,7 +2,8 @@ package com.phoenixkahlo.hellcraft.core.client
 import java.util.UUID
 
 import com.badlogic.gdx.Gdx
-import com.phoenixkahlo.hellcraft.core.{Blocks, SetMat, World}
+import com.phoenixkahlo.hellcraft.core.World
+//import com.phoenixkahlo.hellcraft.core.{Blocks, SetMat, World}
 import com.phoenixkahlo.hellcraft.core.client.ClientLogic.Input
 import com.phoenixkahlo.hellcraft.math._
 import com.badlogic.gdx.Input.Keys._
@@ -199,14 +200,16 @@ case class GodClient(pressed: Set[Int], chat: Chat) extends ClientLogic {
 
   override def touchDown(pos: V2I, pointer: Int, button: Button)(world: World, input: Input) =
     if (input.isCursorCaught) button match {
+        /*
       case Right =>
         world
           .placeBlock(input.camPos, input.camDir, 64)
           .map(v => cause(CauseUpdateEffect(SetMat(v, Blocks.Brick, 16, UUID.randomUUID(), revalBlocks = true))))
           .getOrElse(nothing)
-
+*/
       case _ => nothing
     } else cause(CaptureCursor)
+
 
   override def touchDragged(pos: V2I, delta: V2I, pointer: Int)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
     mouseMoved(pos, delta)(world, input)
@@ -240,6 +243,7 @@ case class GodClient(pressed: Set[Int], chat: Chat) extends ClientLogic {
     }
 
     if (pressed(ALT_LEFT)) {
+      /*
       val (complete, incomplete) = world.debugChunkMap.values.partition(_.isComplete)
       for (c <- complete) {
         units += new ChunkOutline(c.pos, Color.GREEN)
@@ -247,6 +251,7 @@ case class GodClient(pressed: Set[Int], chat: Chat) extends ClientLogic {
       for (c <- incomplete) {
         units += new ChunkOutline(c.pos, Color.RED)
       }
+      */
     }
     if (input.sessionData.get("show_tasks").exists(_.asInstanceOf[Boolean])) {
       val (tasks3D, tasks2D, tasksDB3D) = input.executor.getSpatialTasks

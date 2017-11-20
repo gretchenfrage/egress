@@ -15,3 +15,6 @@ case class Exec3D(p: V3F) extends ExecHint {
 case class Exec2D(p: V2F) extends ExecHint {
   override def exec(task: Runnable)(implicit service: UniExecutor): Unit = service.exec(p)(task)
 }
+case object ExecCheap extends ExecHint {
+  override def exec(task: Runnable)(implicit service: UniExecutor): Unit = task.run()
+}
