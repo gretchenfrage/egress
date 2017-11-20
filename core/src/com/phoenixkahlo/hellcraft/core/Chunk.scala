@@ -85,17 +85,6 @@ class Chunk(
           new TerrainGrid {
             override def terrainAt(p: V3I): Option[Terrain] = chunks.get(p).map(_.terrain)
           }
-          /*
-          // TODO: this is hacky
-          new World {
-            override def boundingBox: (V3I, V3I) = ???
-            override def res: Int = 16
-            override def chunkAt(p: V3I): Option[Chunk] = chunks.get(p)
-            override def debugChunkMap: Map[V3I, Chunk] = ???
-            override def findEntity(id: UUID): Option[Entity] = ???
-            override def time: Long = ???
-          }
-          */
         })
     val ets: Evalable[TerrainSoup] = emicroworld.map(world => TerrainSoup(terrain, world).get)
     val ebs: Evalable[BlockSoup] = emicroworld.map(world => BlockSoup(terrain, world).get)

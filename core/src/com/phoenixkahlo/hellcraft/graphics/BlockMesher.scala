@@ -66,10 +66,13 @@ class BlockMesher(chunk: Chunk, soup: BlockSoup) {
     }
   }})
 
-  def apply(world: World, pack: ResourcePack): Seq[RenderUnit] = {
+  def apply(world: World, pack: ResourcePack): Seq[RenderUnit] =
+    Seq(meshUnit((world, pack)))
+  /*{
     if (chunk.pos.neighbors.forall(world.chunkAt(_).isDefined))
       Seq(meshUnit((world, pack)))
     else Seq.empty
   }
+  */
 
 }

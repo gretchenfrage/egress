@@ -243,6 +243,9 @@ case class GodClient(pressed: Set[Int], chat: Chat) extends ClientLogic {
     }
 
     if (pressed(ALT_LEFT)) {
+      for (c <- world.debugChunkMap.keys) {
+        units += new ChunkOutline(c, Color.WHITE)
+      }
       /*
       val (complete, incomplete) = world.debugChunkMap.values.partition(_.isComplete)
       for (c <- complete) {
