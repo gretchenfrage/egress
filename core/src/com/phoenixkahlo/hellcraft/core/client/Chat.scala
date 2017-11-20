@@ -6,7 +6,7 @@ import java.util.concurrent.ThreadLocalRandom
 import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.core.{PutEntity, World}
 import com.phoenixkahlo.hellcraft.graphics._
-import com.phoenixkahlo.hellcraft.math.{Origin, RNG, Up, V3F}
+import com.phoenixkahlo.hellcraft.math._
 import org.json.simple.{JSONObject, JSONValue}
 
 import scala.collection.JavaConverters
@@ -91,6 +91,20 @@ object Commands {
   def requesttest(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
     Seq(CauseUpdateEffect(RequestTester(j.asInstanceOf[String], RNG.uuids(RNG(ThreadLocalRandom.current.nextLong())))))
 
+  def requestchunktest(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] = {
+    val c = j.asInstanceOf[java.util.List[java.util.List[Number]]]
+    val start = V3I(c.get(0).get(0).intValue, c.get(0).get(1).intValue, c.get(0).get(2).intValue)
+    val delta = V3I(c.get(1).get(0).intValue, c.get(1).get(1).intValue, c.get(1).get(2).intValue)
+    Seq(
+      CauseUpdateEffect(
+        (start to (start + delta))
+          .flatMap(v => RequestTester.chunkHash(
+            v, RNG.uuids(RNG(ThreadLocalRandom.current.nextLong()))
+          ))
+      )
+    )
+  }
+
   def queuestats(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
     Seq(
       ClientPrint("seq queue size = " + input.executor.sizeSeq),
@@ -111,7 +125,8 @@ object Commands {
     "spawn" -> spawn,
     "showtasks" -> showtasks,
     "requesttest" -> requesttest,
-    "queuestats" -> queuestats
+    "queuestats" -> queuestats,
+    "requestchunktest" -> requestchunktest
   )
 
   def apply(command: String, world: World, input: ClientLogic.Input): Seq[ClientEffect] = {

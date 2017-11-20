@@ -1,12 +1,13 @@
 package com.phoenixkahlo.hellcraft.util.threading
 
 import java.util.concurrent.Executors
+import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.util.threading.MergeFut.{NoneCompleted, Status}
 
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.parallel
+import scala.collection.{mutable, parallel}
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
@@ -90,6 +91,113 @@ private class EvalFut[T](factory: => T, executor: Runnable => Unit) extends Fut[
       else listeners += runnable
     }
   }
+}
+
+class FulfillmentContext[K, V] {
+  private val lock = new ReentrantReadWriteLock
+  private val map = new mutable.HashMap[K, Either[V, mutable.Buffer[V => Unit]]]
+
+  def put(k: K, v: V): Unit = {
+    lock.writeLock().lock()
+    map.get(k) match {
+      case Some(Right(waiting)) => waiting.foreach(_ apply v)
+      case _ =>
+    }
+    map.put(k, Left(v))
+    lock.writeLock.unlock()
+  }
+
+  def put(kvs: Seq[(K, V)]): Unit = {
+    for ((k, v) <- kvs) put(k, v)
+  }
+
+  def remove(k: K): Unit = {
+    lock.writeLock().lock()
+    map.get(k) match {
+      case Some(Left(_)) => map.remove(k)
+      case _ => println("removed non-existant key from fulfillment context")
+    }
+    lock.writeLock().unlock()
+  }
+
+  def remove(ks: Iterable[K]): Unit = {
+    for (k <- ks) {
+      remove(k)
+    }
+  }
+
+  def onFulfill(k: K, func: V => Unit): Unit = {
+    lock.readLock.lock()
+    map.get(k) match {
+      case Some(Left(v)) =>
+        func(v)
+        lock.readLock.unlock()
+      case _ =>
+        lock.readLock.unlock()
+        lock.writeLock().lock()
+        map.get(k) match {
+          case Some(Left(v)) => func(v)
+          case Some(Right(buf)) => buf += func
+          case None => map.put(k, Right(ArrayBuffer(func)))
+        }
+        lock.writeLock.unlock()
+    }
+  }
+}
+private class FulfillFut[K, V](k: K, context: FulfillmentContext[K, V]) extends Fut[V] {
+  @volatile private var status: Option[V] = None
+  private val listeners = new ArrayBuffer[Runnable]
+  private val monitor = new Object
+
+  context.onFulfill(k, v => {
+    monitor.synchronized {
+      status = Some(v)
+      monitor.notifyAll()
+    }
+    listeners.foreach(_.run())
+  })
+
+  override def await: V = {
+    if (status isDefined) status.get
+    else monitor.synchronized {
+      while (status isEmpty) monitor.wait()
+      status.get
+    }
+  }
+
+  override def query: Option[V] =
+    status
+
+  override def onComplete(runnable: Runnable): Unit = {
+    if (status isDefined) runnable.run()
+    else monitor.synchronized {
+      if (status isDefined) runnable.run()
+      else listeners += runnable
+    }
+  }
+}
+object FulfillFut {
+  def apply[K, V](key: K)(implicit context: FulfillmentContext[K, V]): Fut[V] =
+    new FulfillFut(key, context)
+}
+
+object FulfillTest extends App {
+  implicit val context = new FulfillmentContext[String, String]
+
+  context.put("now", "now is now")
+
+  val now = FulfillFut[String, String]("now")
+  now.onComplete(() => println(now.query.get))
+
+  val later = FulfillFut[String, String]("later")
+  later.onComplete(() => println(later.query.get))
+
+  new Thread(() => {
+    Thread.sleep(1000)
+    context.put("later", "later is now")
+  }).start()
+
+
 }
 
 case class Promise(task: Runnable, executor: Runnable => Unit) extends Fut[Unit] {

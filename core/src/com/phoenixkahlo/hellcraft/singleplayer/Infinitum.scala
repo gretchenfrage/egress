@@ -203,8 +203,12 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
   private val loadQueue = new ConcurrentLinkedQueue[(Chunk, LoadID)]
   private var loadMap = Map.empty[V3I, LoadID]
 
+  private implicit val chunkFulfill = new FulfillmentContext[V3I, Chunk]
+  private implicit val executor = UniExecutor.getService
+
   // TODO: save to db
   private var pendingEvents = Map.empty[V3I, Seq[ChunkEvent]]
+
 
   private val terrainSoupQueue = new ConcurrentLinkedQueue[(TerrainSoup, TerrainSoupID)]
   private var terrainSoupMap = Map.empty[V3I, TerrainSoupID]
@@ -236,6 +240,8 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     save.push(toUnload)
     // remove them from the world
     world --= toUnload.map(_.pos)
+    // remove them from the context
+    chunkFulfill.remove(toUnload.map(_.pos))
 
     // pull chunk futures from save to create load futures
     val loadFuts: Map[V3I, Fut[Chunk]] = save.pull((loadTarget -- world.chunks.keySet -- loadMap.keySet).toSeq)
@@ -280,6 +286,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       if (loadMap.get(chunk.pos).contains(loadID)) {
         loadMap -= chunk.pos
         world += chunk
+        chunkFulfill.put(chunk.pos, chunk)
         if (pendingEvents contains chunk.pos) {
           events ++= pendingEvents(chunk.pos)
           pendingEvents -= chunk.pos
@@ -317,7 +324,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       }
 
       // partition events by whether they can be integrated immediately
-      val (integrateNow, integrateLater) = events.partition(world.chunks contains _.target)
+      val (integrateNow: Seq[ChunkEvent], integrateLater: Seq[ChunkEvent]) = events.partition(world.chunks contains _.target)
 
       // add the events that can't be immediately integrated to the pending event sequence
       for ((key, seq) <- integrateLater.groupBy(_.target)) {
@@ -328,6 +335,12 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       val (integrated, newEffects) = world.integrate(integrateNow)
       world = integrated
 
+      // update the chunk fulfiller with the updated chunks
+      // TODO: do this once per loop, and optimize the chunk set getting
+      for (p <- integrateNow.map(_.target).distinct) {
+        chunkFulfill.put(p, world.chunks(p))
+      }
+
       // group
       val newEffectsGrouped = newEffects.groupBy(_.effectType)
       specialEffects = MergeBinned(specialEffects, newEffectsGrouped - ChunkEvent)
@@ -336,19 +349,6 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       val invalidateRange = Ones.neg to Ones
       newEffectsGrouped.getOrElse(TerrainChanged, Seq.empty).map(_.asInstanceOf[TerrainChanged].p)
         .foreach(terrainSoupMap -= _)
-
-      // scan for request events
-      /*
-      for (make: MakeRequest[_] <- newEffectsGrouped.getOrElse(MakeRequest, Seq.empty).map(_.asInstanceOf[MakeRequest[_]])) {
-        val request: Request[_] = make.request
-        val fut: Fut[Any] = request.eval.toFut(new mutable.HashMap)(UniExecutor.getService)
-        fut.onComplete(() => {
-          val result: Requested = new Requested(request.id, fut.query.get)
-          val effects: Seq[UpdateEffect] = make.onComplete(result, ???)
-          ??? // recurse
-        })
-      }
-      */
 
       // recurse
       if (newEffectsGrouped.getOrElse(ChunkEvent, Seq.empty).nonEmpty)
@@ -361,7 +361,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     // process request events
     for (make <- specialEffects.getOrElse(MakeRequest, Seq.empty).map(_.asInstanceOf[MakeRequest[_]])) {
       val request: Request[_] = make.request
-      val fut: Fut[Any] = request.eval.toFut(new mutable.HashMap)(UniExecutor.getService)
+      val fut: Fut[Any] = request.eval.toFut(new mutable.HashMap)//(UniExecutor.getService)
       fut.onComplete(() => {
         val result: Requested = new Requested(request.id, fut.query.get)
         requestedQueue.add(world => make.onComplete(result, world))
