@@ -58,7 +58,7 @@ class Chunk(
       () => terrainMesher, () => blockMesher
     )
 
-  def setTerrain(newTerrain: Terrain, ids: Stream[UUID]): (Chunk, Seq[UpdateEffect]) =
+  def setTerrain(newTerrain: Terrain, ids: Stream[UUID], meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true): (Chunk, Seq[UpdateEffect]) =
     new Chunk(
       pos, newTerrain,
       entities,
@@ -67,10 +67,10 @@ class Chunk(
       () => broadphase,
       () => terrainMesher,
       () => blockMesher
-    ).invalidate(ids)
+    ).invalidate(ids, meshTerrFast, meshBlocksFast)
 
-  def invalidate(ids: Stream[UUID]): (Chunk, Seq[UpdateEffect]) = {
-    implicit val exec = Exec3D(pos * 16)
+  def invalidate(ids: Stream[UUID], meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true): (Chunk, Seq[UpdateEffect]) = {
+    val e3d = Exec3D(pos * 16)
 
     val emicroworld: Evalable[TerrainGrid] =
       pos.neighbors
@@ -85,9 +85,13 @@ class Chunk(
           new TerrainGrid {
             override def terrainAt(p: V3I): Option[Terrain] = chunks.get(p).map(_.terrain)
           }
-        })
-    val ets: Evalable[TerrainSoup] = emicroworld.map(world => TerrainSoup(terrain, world).get)
-    val ebs: Evalable[BlockSoup] = emicroworld.map(world => BlockSoup(terrain, world).get)
+        })(ExecCheap)
+    val ets: Evalable[TerrainSoup] = emicroworld.map(world => TerrainSoup(terrain, world).get)(
+      if (meshTerrFast) ExecCheap else e3d
+    )
+    val ebs: Evalable[BlockSoup] = emicroworld.map(world => BlockSoup(terrain, world).get)(
+      if (meshBlocksFast) ExecCheap else e3d
+    )
     val rts: Request[TerrainSoup] = Request(ets, ids.drop(0).head)
     val rbs: Request[BlockSoup] = Request(ebs, ids.drop(1).head)
     new Chunk(
@@ -95,6 +99,7 @@ class Chunk(
       entities,
       terrainSoup, blockSoup,
       Some(rts), Some(rbs),
+      // TODO: don't make a chain of old chunks
       () => broadphase,
       () => terrainMesher,
       () => blockMesher
@@ -112,7 +117,7 @@ class Chunk(
         tsRequest.get.unlock(requested).get, blockSoup,
         None, bsRequest,
         () => broadphase,
-        () => terrainMesher,
+        null,//() => terrainMesher,
         () => blockMesher
       )
     } else if (bsRequest.isDefined && bsRequest.get.unlock(requested).isDefined) {
@@ -123,7 +128,7 @@ class Chunk(
         tsRequest, None,
         () => broadphase,
         () => terrainMesher,
-        () => blockMesher
+        null//() => blockMesher
       )
     } else this
   }
