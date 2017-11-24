@@ -16,14 +16,6 @@ case class RNG(seed: Long) {
     nextInt match {
       case (rng, i) => (rng, Math.abs(i.toFloat / Int.MaxValue))
     }
-  /*
-    nextInt match {
-      case (rng, n) => (rng, java.lang.Float.intBitsToFloat(n)) match {
-        case (rng, f) if f != f => rng.nextFloat
-        case (rng, f) => (rng, f)
-      }
-    }
-    */
 
   def nextLong: (RNG, Long) =
     nextInt match {

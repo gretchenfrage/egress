@@ -172,17 +172,14 @@ class SWorld(
   */
 class Infinitum(res: Int, save: AsyncSave, dt: Float) {
 
-  @volatile private var history =
-    SortedMap(0L -> new SWorld(0, res, Map.empty, Set.empty, None, None))
-    //SortedMap(0L -> new SWorld(0, res, Map.empty, Set.empty, Set.empty, Set.empty, Set.empty, None, None))
-
-  type LoadID = UUID
-
-  private val loadQueue = new ConcurrentLinkedQueue[(Chunk, LoadID)]
-  private var loadMap = Map.empty[V3I, LoadID]
+  @volatile private var history = SortedMap(0L -> new SWorld(0, res, Map.empty, Set.empty, None, None))
 
   private implicit val chunkFulfill = new FulfillmentContext[V3I, Chunk]
   private implicit val executor = UniExecutor.getService
+
+  type LoadID = UUID
+  private val loadQueue = new ConcurrentLinkedQueue[(Chunk, LoadID)]
+  private var loadMap = Map.empty[V3I, LoadID]
 
   // TODO: save to db
   private var pendingEvents = Map.empty[V3I, Seq[ChunkEvent]]
@@ -202,8 +199,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     * Update the world, and return the effects.
     * This concurrent, imperative logic is probably the most complicated part of this game, so let's Keep It Simple Sweety.
    */
-  def update(loadTarget: Set[V3I], externalEvents: Seq[UpdateEffect] = Seq.empty):
-      Map[UpdateEffectType, Seq[UpdateEffect]] = {
+  def update(loadTarget: Set[V3I], externalEvents: Seq[UpdateEffect] = Seq.empty): Map[UpdateEffectType, Seq[UpdateEffect]] = {
     var world = this()
 
     // push chunks to save
