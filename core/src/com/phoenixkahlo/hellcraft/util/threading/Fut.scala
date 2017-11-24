@@ -59,6 +59,56 @@ object Fut {
   }
 }
 
+trait CancellableFut[+T] extends Fut[Option[T]] {
+  def cancel(): Unit
+
+  def cmap[E](func: T => E, exec: Runnable => Unit): Fut[Option[E]] = super.map(_.map(func))
+}
+
+private class CancellableEvalFut[T](factory: => T, executor: Runnable => Unit) extends CancellableFut[T] {
+  @volatile private var status: Option[Option[T]] = None
+  private val listeners = new ArrayBuffer[Runnable]
+  private val monitor = new Object
+  private val availableForEvaluation = new AtomicBoolean(true)
+
+  private def evaluate(fac: => Option[T]): Unit = {
+    if (availableForEvaluation.getAndSet(false)) {
+      val result = fac
+      monitor.synchronized {
+        status = Some(result)
+        monitor.notifyAll()
+      }
+      listeners.foreach(_.run())
+    }
+  }
+
+  executor(() => evaluate(Some(factory)))
+
+  override def cancel(): Unit = evaluate(None)
+
+  override def await: Option[T] = {
+    if (status isDefined) status.get
+    else monitor.synchronized {
+      while (status isEmpty) monitor.wait()
+      status.get
+    }
+  }
+
+  override def query: Option[Option[T]] =
+    status
+
+  override def onComplete(runnable: Runnable): Unit = {
+    if (status isDefined) runnable.run()
+    else monitor.synchronized {
+      if (status isDefined) runnable.run()
+      else listeners += runnable
+    }
+  }
+}
+
+
+
+/*
 trait WeakFut[+T] extends Fut[Option[T]] {
   def cancel(): Unit
 
@@ -158,6 +208,7 @@ object WeakFut {
     (fut, Objects.requireNonNull(handle))
   }
 }
+*/
 /*
 object WeakFutTest extends App {
   val queue = new ConcurrentLinkedQueue[Runnable]

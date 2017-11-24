@@ -8,14 +8,18 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Cube
 import com.phoenixkahlo.hellcraft.graphics.StoneTID
 import com.phoenixkahlo.hellcraft.math._
-import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
+import com.phoenixkahlo.hellcraft.util.collections.{FutDomain, MemoFunc}
 import com.phoenixkahlo.hellcraft.util.fields._
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, MergeFut, UniExecutor}
 
 import scala.collection.mutable
 
 trait Generator {
-  val chunkAt: V3I => Fut[Chunk]
+  val chunkAt: V3I => Fut[Option[Chunk]]
+
+  def domain: Set[V3I]
+
+  def domain_=(newDomain: Set[V3I]): Unit
 
   def cancel(): Unit
 }
@@ -35,6 +39,10 @@ class DefaultGenerator(res: Int) extends Generator {
     } else Fut(null: FloatField, _.run())
   )
 
+  val terrainAt = new FutDomain[V3I, Terrain](p =>
+  )
+
+  /*
   val terrainAt = new MemoFunc[V3I, Fut[Terrain]](p =>
     if (!cancelled) {
       heightAt(p.flatten).map(
@@ -72,6 +80,7 @@ class DefaultGenerator(res: Int) extends Generator {
       soupAt(p).map({ case (ter, bs, ts) => new Chunk(p, ter, Map.empty, ts, bs, None, None) }, UniExecutor.exec)
     } else Fut(null: Chunk, _.run())
   )
+  */
 
   override def cancel(): Unit = {
     cancelled = true
