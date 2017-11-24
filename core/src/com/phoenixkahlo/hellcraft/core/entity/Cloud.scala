@@ -165,7 +165,7 @@ class CloudRenderer(cloud: ProceduralCloud) {
     // assign indices
     val indexToVert = new ArrayBuffer[V3I]
     val vertToIndex = new ShortFieldBuffer(cloud.size* 3)
-    for ((v, i) <- (Origin until cloud.size* 3).filter(vertField(_) isDefined).zipWithIndex) {
+    for ((v, i) <- (Origin untilAsSeq cloud.size* 3).filter(vertField(_) isDefined).zipWithIndex) {
       indexToVert += v
       vertToIndex(v) = i toShort
     }
@@ -175,7 +175,7 @@ class CloudRenderer(cloud: ProceduralCloud) {
     // find facets
     val indices = new ArrayBuffer[Short]
     for {
-      v <- Origin until cloud.size* 3 - Ones
+      v <- Origin untilAsSeq cloud.size* 3 - Ones
       (d1, d2, d3) <- TerrainSoup.deltas
     } yield (vertField(v), vertField(v + d1), vertField(v + d2), vertField(v + d3)) match {
       case (Some(vert1), Some(vert2), Some(vert3), Some(vert4)) =>

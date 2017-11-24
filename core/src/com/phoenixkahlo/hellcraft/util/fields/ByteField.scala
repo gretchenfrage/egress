@@ -88,7 +88,7 @@ class ByteField private[fields](private var data: Either[Array[Byte], Vector[Byt
   override def equals(obj: Any): Boolean =
     if (obj.isInstanceOf[AnyRef] && this.eq(obj.asInstanceOf[AnyRef])) true
     else obj match {
-      case field: ByteField => Origin.until(size).forall(v => this (v) == field(v))
+      case field: ByteField => Origin.untilAsSeq(size).forall(v => this (v) == field(v))
       case _ => false
     }
 
@@ -132,7 +132,7 @@ case class ByteFractionField(bytes: ByteField) {
     ByteFractionField(bytes.updated(v, (Math.min(n, 1) * 255).toByte))
 
   override def toString: String =
-    "FractionField(" + Origin.until(size).map(apply(_).get) + ")"
+    "FractionField(" + Origin.untilAsSeq(size).map(apply(_).get) + ")"
 
 }
 

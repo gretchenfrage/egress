@@ -57,7 +57,7 @@ class ShortField private[fields](private var data: Either[Array[Short], Vector[S
   override def equals(obj: scala.Any): Boolean =
     if (obj.isInstanceOf[AnyRef] && this.eq(obj.asInstanceOf[AnyRef])) true
     else obj match {
-      case field: ShortField => Origin.until(size).forall(v => this(v) == field(v))
+      case field: ShortField => Origin.untilAsSeq(size).forall(v => this(v) == field(v))
     }
 
   override def toString: String =

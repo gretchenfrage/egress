@@ -137,7 +137,7 @@ class SWorld(
     */
   def integrate(events: Seq[ChunkEvent]): (SWorld, Seq[UpdateEffect]) = {
     val grouped = events.groupBy(_.target)
-    Origin.until(V3I(2, 2, 2)).foldLeft((this, Seq.empty[UpdateEffect])) {
+    Origin.untilAsSeq(V3I(2, 2, 2)).foldLeft((this, Seq.empty[UpdateEffect])) {
       case ((world, accumulator), freq) => {
         val (updatedWorld, newEffects) = world.integrate(grouped, 2, freq)
         (updatedWorld, accumulator ++ newEffects)

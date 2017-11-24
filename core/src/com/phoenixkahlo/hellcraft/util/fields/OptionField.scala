@@ -15,7 +15,7 @@ class OptionField[T <: AnyRef] private(private val data: Either[Array[T], Vector
 
   def this() = this(null: Either[Array[T], Vector[T]], null: V3I)
 
-  override val isEmpty: Boolean = Origin.until(sizeVec).map(apply).forall(_.isEmpty)
+  override val isEmpty: Boolean = Origin.untilAsSeq(sizeVec).map(apply).forall(_.isEmpty)
   override val nonEmpty: Boolean = !isEmpty
 
   private def asVector: Vector[T] = data match {
@@ -47,12 +47,12 @@ class OptionField[T <: AnyRef] private(private val data: Either[Array[T], Vector
   })), sizeVec)
 
   override def iterator: Iterator[T] =
-    Origin.until(sizeVec).iterator.flatMap(apply)
+    Origin.untilAsSeq(sizeVec).iterator.flatMap(apply)
 
   override def equals(obj: scala.Any): Boolean =
     obj match {
       case value: AnyRef if this.eq(value) => true
-      case field: OptionField[T] => Origin.until(sizeVec).forall(v => this (v) == field(v))
+      case field: OptionField[T] => Origin.untilAsSeq(sizeVec).forall(v => this (v) == field(v))
       case _ => false
     }
 

@@ -24,7 +24,7 @@ trait TerrainGrid {
       // trilinear interpolation
       val v0 = vGrid.floor
       val v1 = v0 + Ones
-      if (v0.to(v1).map(_ / res floor).forall(terrainAt(_).isDefined)) {
+      if (v0.toAsSeq(v1).map(_ / res floor).forall(terrainAt(_).isDefined)) {
         // helper function (stands for density grid point)
         def dgp(x: V3I, y: V3I, z: V3I): Float =
           if (terrainGridPoint(V3I(x.xi, y.yi, z.zi)).get.id <= 0) 0 else 1

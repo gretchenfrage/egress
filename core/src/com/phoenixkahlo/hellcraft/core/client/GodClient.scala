@@ -71,7 +71,7 @@ case class GodClientMenu(pressed: Set[Int], buttons: Seq[MenuButton], pressing: 
 
   override def tick(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = {
     val chunkPos = input.camPos / 16 toInts
-    val loadTarget = (chunkPos - GodClient.loadRad) to (chunkPos + GodClient.loadRad) toSet;
+    val loadTarget = (chunkPos - GodClient.loadRad) toAsSet (chunkPos + GodClient.loadRad) toSet;
     cause(SetLoadTarget(loadTarget))
   }
 
@@ -180,7 +180,7 @@ case class GodClient(pressed: Set[Int], chat: Chat) extends ClientLogic {
     if (pressed(A)) movDir -= (input.camDir cross Up).normalize
 
     val chunkPos = input.camPos / 16 toInts
-    val loadTarget = (chunkPos - GodClient.loadRad) to (chunkPos + GodClient.loadRad) toSet
+    val loadTarget = (chunkPos - GodClient.loadRad) toAsSet (chunkPos + GodClient.loadRad) toSet
 
     cause(
       SetCamPos(input.camPos + (movDir * GodClient.moveSpeed)),

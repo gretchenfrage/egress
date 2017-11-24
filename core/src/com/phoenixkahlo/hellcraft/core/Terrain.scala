@@ -64,7 +64,7 @@ object TerrainSoup {
 
     // generate the vertex field with an overshoot of <1, 1, 1> to connect the chunks
     val verts = OptionField[TerrainSoup.Vert](world.resVec + Ones, v => {
-      val corners = (v to v + Ones).map(v => world.terrainGridPoint(offset + v).get)
+      val corners = (v toAsSeq v + Ones).map(v => world.terrainGridPoint(offset + v).get)
       if (corners.exists(_.id < 0)) {
         // if one of the corners is a block, we must snap to the center
         // but if none of the corners are terrain, we shouldn't place a vertex at all
@@ -89,7 +89,7 @@ object TerrainSoup {
           // average isopoints and convert to spatial coords
           val vertPos = (isopoints.fold(Origin)(_ + _) / isopoints.size) / world.res * 16
           // find a material that's not air
-          val mat = (v to v + Ones).toStream
+          val mat = (v toAsSeq v + Ones).toStream
             .map(vv => world.terrainGridPoint(offset + vv).get).filterNot(_ == Air).head
 
           Some(TerrainSoup.Vert(vertPos, mat.asInstanceOf[Material], world.sampleDirection(vertPos).get.neg))
@@ -100,7 +100,7 @@ object TerrainSoup {
     // generate the vertex-index maps in both direction
     val indexToVert = new ArrayBuffer[V3I]
     val vertToIndex = new ShortFieldBuffer(verts.sizeVec)
-    for ((v, i) <- (Origin until verts.sizeVec).filter(verts(_) isDefined).zipWithIndex) {
+    for ((v, i) <- (Origin untilAsSeq verts.sizeVec).filter(verts(_) isDefined).zipWithIndex) {
       indexToVert += v
       vertToIndex(v) = i toShort
     }
@@ -108,7 +108,7 @@ object TerrainSoup {
     // find facets and generate the indices
     val indices = new ArrayBuffer[Short]
     for {
-      v <- Origin until verts.sizeVec - Ones
+      v <- Origin untilAsSeq verts.sizeVec - Ones
       (d1, d2, d3) <- deltas
     } yield (verts(v), verts(v + d1), verts(v + d2), verts(v + d3)) match {
       case (Some(vert1), Some(vert2), Some(vert3), Some(vert4)) =>
@@ -155,7 +155,7 @@ object BlockSoup {
       val indices = new ArrayBuffer[Short]
       var index = 0
       for {
-        v <- Origin until world.resVec
+        v <- Origin untilAsSeq world.resVec
         d <- Directions()
       } yield{
         val visible = (grid(v).id, world.terrainGridPoint(offset + v + d).get.id) match {

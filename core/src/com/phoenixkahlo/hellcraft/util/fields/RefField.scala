@@ -44,12 +44,12 @@ class RefField[T <: AnyRef] private(private val data: Either[Array[T], Vector[T]
     Objects.hash(asArray: _*)
 
   override def iterator: Iterator[T] =
-    Origin.until(sizeVec).iterator.map(apply)
+    Origin.untilAsSeq(sizeVec).iterator.map(apply)
 
   override def equals(obj: scala.Any): Boolean =
     obj match {
       case value: AnyRef if this.eq(value) => true
-      case field: RefField[T] => Origin.until(sizeVec).forall(v => this(v) == field(v))
+      case field: RefField[T] => Origin.untilAsSeq(sizeVec).forall(v => this(v) == field(v))
       case _ => false
     }
 

@@ -97,7 +97,7 @@ object Commands {
     val delta = V3I(c.get(1).get(0).intValue, c.get(1).get(1).intValue, c.get(1).get(2).intValue)
     Seq(
       CauseUpdateEffect(
-        (start to (start + delta))
+        (start toAsSeq (start + delta))
           .flatMap(v => RequestTester.chunkHash(
             v, RNG.uuids(RNG(ThreadLocalRandom.current.nextLong()))
           ))

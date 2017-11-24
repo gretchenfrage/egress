@@ -57,7 +57,7 @@ class BooleanField private[fields](private var data: Either[Array[Boolean], Vect
   override def equals(obj: scala.Any): Boolean =
     if (obj.isInstanceOf[AnyRef] && this.eq(obj.asInstanceOf[AnyRef])) true
     else obj match {
-      case field: BooleanField => Origin.until(size).forall(v => this(v) == field(v))
+      case field: BooleanField => Origin.untilAsSeq(size).forall(v => this(v) == field(v))
     }
 
   override def toString: String =
@@ -70,7 +70,7 @@ class BooleanField private[fields](private var data: Either[Array[Boolean], Vect
     // convert to byte array
     val baos = new ByteArrayOutputStream(size.fold(_ * _) * 1)
     val dos = new DataOutputStream(baos)
-    for (v <- Origin until size) {
+    for (v <- Origin untilAsSeq size) {
       dos.writeBoolean(atMod(v))
     }
     val asBytes = baos.toByteArray
@@ -105,7 +105,7 @@ class BooleanField private[fields](private var data: Either[Array[Boolean], Vect
     // convert to boolean array
     val booleans = new Array[Boolean](size.fold(_ * _))
     val dis = new DataInputStream(new ByteArrayInputStream(asBytes))
-    for (v <- Origin until size) {
+    for (v <- Origin untilAsSeq size) {
       booleans(size.compress(v)) = dis.readBoolean()
     }
 

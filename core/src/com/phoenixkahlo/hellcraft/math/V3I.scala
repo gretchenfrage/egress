@@ -5,6 +5,9 @@ import java.io.{ByteArrayOutputStream, DataOutputStream}
 import com.badlogic.gdx.graphics.Color
 import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
 import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
+import com.phoenixkahlo.hellcraft.util.collections.{V3IRange, V3ISet}
+
+import scala.collection.immutable
 
 /**
   * A vector of 3 ints, that is also a vector of 3 floats
@@ -41,7 +44,7 @@ class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
     else None
 
   def surrounding: Seq[V3I] =
-    ((this - Ones) to (this + Ones)) filterNot (this ==)
+    ((this - Ones) toAsSeq (this + Ones)) filterNot (this ==)
 
   override protected def toIntsStrategy: V3I =
     this
@@ -49,19 +52,25 @@ class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
   def *(s: Int): V3I =
     V3I(xi * s, yi * s, zi * s)
 
-  def until(o: V3I) =
+  def untilAsSeq(o: V3I): Seq[V3I] =
     for {
       x <- xi until o.xi
       y <- yi until o.yi
       z <- zi until o.zi
     } yield V3I(x, y, z)
 
-  def to(o: V3I) =
+  def toAsSeq(o: V3I): Seq[V3I] =
     for {
       x <- xi to o.xi
       y <- yi to o.yi
       z <- zi to o.zi
     } yield V3I(x, y, z)
+
+  def toAsSet(o: V3I): V3ISet =
+    V3IRange(this, o)
+
+  def untilAsSet(o: V3I): V3ISet =
+    V3IRange(this, o - Ones)
 
   def fold(f: (Int, Int) => Int) =
     f(xi, f(yi, zi))
@@ -102,7 +111,7 @@ class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
     Directions().map(this + _)
 
   def neighbors: Seq[V3I] =
-    (Ones.neg to Ones).map(_ + this)
+    (Ones.neg toAsSeq Ones).map(_ + this)
 
 }
 
@@ -127,4 +136,10 @@ object V3I {
   def max(v1: V3I, v2: V3I): V3I =
     if (v1 > v2) v1 else v2
 
+  def componentMin(v1: V3I, v2: V3I): V3I =
+    V3I(Math.min(v1.xi, v2.xi), Math.min(v1.yi, v2.yi), Math.min(v1.zi, v2.zi))
+
+  def componentMax(v1: V3I, v2: V3I): V3I =
+    V3I(Math.max(v1.xi, v2.xi), Math.max(v1.yi, v2.yi), Math.max(v1.zi, v2.zi))
+  
 }

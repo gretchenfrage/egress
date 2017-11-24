@@ -582,7 +582,6 @@ private class MergeFut[S1, S2, R](source1: Fut[S1], source2: Fut[S2], func: (S1,
       else listeners += runnable
     }
   }
-
 }
 
 /**

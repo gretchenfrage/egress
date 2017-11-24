@@ -66,7 +66,7 @@ class FloatField private[fields](private var data: Either[Array[Float], Vector[F
   override def equals(obj: scala.Any): Boolean =
     if (obj.isInstanceOf[AnyRef] && this.eq(obj.asInstanceOf[AnyRef])) true
     else obj match {
-      case field: FloatField => Origin.until(size).forall(v => this(v) == field(v))
+      case field: FloatField => Origin.untilAsSeq(size).forall(v => this(v) == field(v))
     }
 
   override def toString: String =
@@ -79,7 +79,7 @@ class FloatField private[fields](private var data: Either[Array[Float], Vector[F
     // convert to byte array
     val baos = new ByteArrayOutputStream(size.fold(_ * _) * 4)
     val dos = new DataOutputStream(baos)
-    for (v <- Origin until size) {
+    for (v <- Origin untilAsSeq size) {
       dos.writeFloat(atMod(v))
     }
     val asBytes = baos.toByteArray
@@ -114,7 +114,7 @@ class FloatField private[fields](private var data: Either[Array[Float], Vector[F
     // convert to float array
     val floats = new Array[Float](size.fold(_ * _))
     val dis = new DataInputStream(new ByteArrayInputStream(asBytes))
-    for (v <- Origin until size) {
+    for (v <- Origin untilAsSeq size) {
       floats(size.compress(v)) = dis.readFloat()
     }
 

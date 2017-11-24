@@ -59,6 +59,38 @@ class ParGenMutHashMap[K, V](gen: K => V) {
     lock.writeLock().unlock()
   }
 
+  def getAndUpdate(k: K, trans: V => V): V = {
+    lock.writeLock().lock()
+    val v = map.getOrElse(k, gen(k))
+    map.put(k, trans(v))
+    lock.writeLock().unlock()
+    v
+  }
+
+  def updateAndGet(k: K, trans: V => V): V = {
+    lock.writeLock().lock()
+    val v1 = map.getOrElse(k, gen(k))
+    val v2 = trans(v1)
+    map.put(k, v2)
+    lock.writeLock().unlock()
+    v2
+  }
+
+  def updateAndClean(k: K, trans: V => V): Unit = {
+    lock.writeLock().lock()
+    map.get(k) match {
+      case Some(v1) =>
+        val v2 = trans(v1)
+        val vNew = gen(k)
+        if (v2 == vNew)
+          map.remove(k)
+        else
+          map.put(k, v2)
+      case None =>
+    }
+    lock.writeLock().unlock()
+  }
+
   def clean(): Unit = {
     lock.writeLock().lock()
     for ((k, v) <- map) {
