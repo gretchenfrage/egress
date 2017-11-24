@@ -33,6 +33,9 @@ trait Fut[+T] {
   def map[E](func: T => E): Fut[E] =
     new MapFut(this, func, _.run())
 
+  def mapCancellable[E](func: T => E, executor: Runnable => Unit): CancellableFut[E] =
+    new CancellableMapFut(this, func, executor)
+
   def flatMap[E](func: T => Fut[E]): Fut[E] =
     new FlatMapFut(this, func)
 
@@ -62,7 +65,38 @@ object Fut {
 trait CancellableFut[+T] extends Fut[Option[T]] {
   def cancel(): Unit
 
-  def cmap[E](func: T => E, exec: Runnable => Unit): Fut[Option[E]] = super.map(_.map(func))
+  def mapContents[E](func: T => E, exec: Runnable => Unit): CancellableFut[E] =
+    new CancellableContentsMapFut(this, func, exec)
+
+}
+
+object AlwaysCancelled extends CancellableFut[Nothing] {
+  override def cancel(): Unit = ()
+
+  override def await: Option[Nothing] = None
+
+  override def query: Option[Option[Nothing]] = Some(None)
+
+  override def onComplete(runnable: Runnable): Unit = runnable.run()
+}
+
+/*
+object CancelTest extends App {
+  val queue = new ConcurrentLinkedQueue[Runnable]
+
+  val fut1 = Fut("hello world", queue.add)
+  val fut2 = fut1.mapCancellable(identity, queue.add)
+  val fut3 = fut2.mapContents(identity, queue.add)
+  fut3.onComplete(() => println(fut3.query.get))
+  fut2.cancel()
+
+  while (queue.size > 0)
+    queue.remove().run()
+}
+*/
+object CancellableFut {
+  def apply[T](factory: => T, executor: Runnable => Unit): CancellableFut[T] =
+    new CancellableEvalFut[T](factory, executor)
 }
 
 private class CancellableEvalFut[T](factory: => T, executor: Runnable => Unit) extends CancellableFut[T] {
@@ -95,6 +129,88 @@ private class CancellableEvalFut[T](factory: => T, executor: Runnable => Unit) e
   }
 
   override def query: Option[Option[T]] =
+    status
+
+  override def onComplete(runnable: Runnable): Unit = {
+    if (status isDefined) runnable.run()
+    else monitor.synchronized {
+      if (status isDefined) runnable.run()
+      else listeners += runnable
+    }
+  }
+}
+
+private class CancellableContentsMapFut[S, R](source: CancellableFut[S], func: S => R, executor: Runnable => Unit) extends CancellableFut[R] {
+  @volatile private var status: Option[Option[R]] = None
+  private val listeners = new ArrayBuffer[Runnable]
+  private val monitor = new Object
+  private val availableForEvaluation = new AtomicBoolean(true)
+
+  private def evaluate(fac: => Option[R]): Unit = {
+    if (availableForEvaluation.getAndSet(false)) {
+      val result = fac
+      monitor.synchronized {
+        status = Some(fac)
+        monitor.notifyAll()
+      }
+      listeners.foreach(_.run())
+    }
+  }
+
+  source.onComplete(() => executor(() => evaluate(source.query.get.map(func))))
+
+  override def cancel(): Unit = evaluate(None)
+
+  override def await: Option[R] = {
+    if (status isDefined) status.get
+    else {
+      while (status isEmpty) monitor.wait()
+      status.get
+    }
+  }
+
+  override def query: Option[Option[R]] =
+    status
+
+  override def onComplete(runnable: Runnable): Unit = {
+    if (status isDefined) runnable.run()
+    else monitor.synchronized {
+      if (status isDefined) runnable.run()
+      else listeners += runnable
+    }
+  }
+}
+
+private class CancellableMapFut[S, R](source: Fut[S], func: S => R, executor: Runnable => Unit) extends CancellableFut[R] {
+  @volatile private var status: Option[Option[R]] = None
+  private val listeners = new ArrayBuffer[Runnable]
+  private val monitor = new Object
+  private val availableForEvaluation = new AtomicBoolean(true)
+
+  private def evaluate(fac: => Option[R]): Unit = {
+    if (availableForEvaluation.getAndSet(false)) {
+      val result = fac
+      monitor.synchronized {
+        status = Some(fac)
+        monitor.notifyAll()
+      }
+      listeners.foreach(_.run())
+    }
+  }
+
+  source.onComplete(() => executor(() => evaluate(Some(func(source.query.get)))))
+
+  override def cancel(): Unit = evaluate(None)
+
+  override def await: Option[R] = {
+    if (status isDefined) status.get
+    else {
+      while (status isEmpty) monitor.wait()
+      status.get
+    }
+  }
+
+  override def query: Option[Option[R]] =
     status
 
   override def onComplete(runnable: Runnable): Unit = {
