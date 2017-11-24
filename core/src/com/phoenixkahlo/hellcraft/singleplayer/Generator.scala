@@ -8,19 +8,19 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Cube
 import com.phoenixkahlo.hellcraft.graphics.StoneTID
 import com.phoenixkahlo.hellcraft.math._
-import com.phoenixkahlo.hellcraft.util.collections.{MemoFunc}
+import com.phoenixkahlo.hellcraft.util.collections.{FutDomain, MemoFunc}
 import com.phoenixkahlo.hellcraft.util.fields._
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, MergeFut, UniExecutor}
 
 import scala.collection.mutable
 
 trait Generator {
-  //val chunkAt: V3I => Fut[Option[Chunk]]
-  val chunkAt: V3I => Fut[Chunk]
+  val chunkAt: V3I => Fut[Option[Chunk]]
+  //val chunkAt: V3I => Fut[Chunk]
 
-  //def domain: Set[V3I]
+  def domain: Set[V3I]
 
-  //def domain_=(newDomain: Set[V3I]): Unit
+  def domain_=(newDomain: Set[V3I]): Unit
 
   def cancel(): Unit
 }
@@ -32,6 +32,14 @@ class DefaultGenerator(res: Int) extends Generator {
 
   @volatile private var cancelled = false
 
+  override val chunkAt: V3I => Fut[Option[Chunk]] = _
+
+  override def domain: Set[V3I] = ???
+
+  override def domain_=(newDomain: Set[V3I]): Unit = ???
+
+  override def cancel(): Unit = ???
+
   val heightAt = new MemoFunc[V2I, Fut[FloatField]](v =>
     if (!cancelled) {
       Fut(FloatField(V3I(res, 1, res),
@@ -40,12 +48,22 @@ class DefaultGenerator(res: Int) extends Generator {
     } else Fut(null: FloatField, _.run())
   )
 
-  /*
   val terrainAt = new FutDomain[V3I, Terrain](p =>
+    heightAt(p.flatten).mapCancellable(
+      height => Terrain(p, IDField[TerrainUnit](V3I(res, res, res), (i: V3I) => {
+        val depth = (p.yi * res + i.yi) - height(V3I(i.xi, 0, i.zi))
+        if (depth >= 0) Air
+        else if (p.flatten % 2 == Origin2D) Blocks.Stone
+        else Materials.Grass
+      }))
+    , UniExecutor.exec(p * 16))
   )
-  */
+
+  val soupAt = new MemoFunc
 
 
+
+  /*
   val terrainAt = new MemoFunc[V3I, Fut[Terrain]](p =>
     if (!cancelled) {
       heightAt(p.flatten).map(
@@ -88,4 +106,5 @@ class DefaultGenerator(res: Int) extends Generator {
   override def cancel(): Unit = {
     cancelled = true
   }
+  */
 }

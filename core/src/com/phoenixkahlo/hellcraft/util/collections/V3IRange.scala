@@ -10,13 +10,31 @@ sealed trait V3ISet extends Set[V3I] {
 
   def shrink: V3ISet
 
-  protected def toNormalSet: Set[V3I] = Set(iterator.toSeq: _*)
+  protected def toNormalSet: NormalV3ISet = NormalV3ISet(Set(iterator.toSeq: _*))
 
-  override def +(elem: V3I): Set[V3I] =
+  override def +(elem: V3I): V3ISet =
     toNormalSet + elem
 
-  override def -(elem: V3I): Set[V3I] =
+  override def -(elem: V3I): V3ISet =
     toNormalSet - elem
+
+  override def ++(other: GenTraversableOnce[V3I]): V3ISet
+
+  override def --(other: GenTraversableOnce[V3I]): V3ISet
+}
+
+case class NormalV3ISet(set: Set[V3I]) extends V3ISet {
+  override def bloat =
+    NormalV3ISet(set.flatMap(_.neighbors))
+
+  override def shrink =
+    NormalV3ISet(set.filter(_.neighbors.forall(set.contains)))
+
+  override def contains(elem: V3I) =
+    set contains elem
+
+  override def iterator =
+    set iterator
 }
 /*
 private object V3ISetTest extends App {
@@ -85,11 +103,11 @@ case class V3IRange(low: V3I, high: V3I) extends V3ISet {
   override def iterator: Iterator[V3I] =
     low toAsSeq high iterator
 
-  override def ++(other: GenTraversableOnce[V3I]): Set[V3I] =
+  override def ++(other: GenTraversableOnce[V3I]) =
     if (other.isInstanceOf[V3IRange]) V3IRangeSum(this, other.asInstanceOf[V3IRange])
     else toNormalSet ++ other
 
-  override def --(other: GenTraversableOnce[V3I]): Set[V3I] =
+  override def --(other: GenTraversableOnce[V3I]) =
     if (other.isInstanceOf[V3IRange]) V3IRangeDiff(this, other.asInstanceOf[V3IRange])
     else toNormalSet -- other
 
