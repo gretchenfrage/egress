@@ -18,9 +18,27 @@ sealed trait V3ISet extends Set[V3I] {
   override def -(elem: V3I): V3ISet =
     toNormalSet - elem
 
-  override def ++(other: GenTraversableOnce[V3I]): V3ISet
+  override def ++(other: GenTraversableOnce[V3I]): V3ISet = ???
 
-  override def --(other: GenTraversableOnce[V3I]): V3ISet
+  override def --(other: GenTraversableOnce[V3I]): V3ISet = ???
+}
+
+object V3ISet {
+  val empty = new V3ISet {
+    override def shrink: V3ISet = this
+
+    override def bloat: V3ISet = this
+
+    override def contains(elem: V3I): Boolean = false
+
+    override def iterator: Iterator[V3I] = Iterator.empty
+
+    override def ++(other: GenTraversableOnce[V3I]): V3ISet =
+      if (other.isInstanceOf[V3ISet]) other.asInstanceOf[V3ISet]
+      else NormalV3ISet(other.foldLeft(Set.empty[V3I])(_ + _))
+
+    override def --(other: GenTraversableOnce[V3I]): V3ISet = this
+  }
 }
 
 case class NormalV3ISet(set: Set[V3I]) extends V3ISet {
@@ -35,6 +53,18 @@ case class NormalV3ISet(set: Set[V3I]) extends V3ISet {
 
   override def iterator =
     set iterator
+
+  override def +(elem: V3I) =
+    NormalV3ISet(set + elem)
+
+  override def -(elem: V3I) =
+    NormalV3ISet(set - elem)
+
+  override def ++(elems: GenTraversableOnce[V3I]) =
+    NormalV3ISet(set ++ elems)
+
+  override def --(xs: GenTraversableOnce[V3I]) =
+    NormalV3ISet(set -- xs)
 }
 /*
 private object V3ISetTest extends App {

@@ -8,6 +8,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 import com.phoenixkahlo.hellcraft.math.{Origin, V2F, V3F, V4F}
 
 import scala.collection.immutable.Queue
+import scala.concurrent.duration._
+
 
 class SpatialTemporalQueue3D[E](timeToSpace: Long => Float) extends SpatialTemporalQueue[V3F, V4F, E](timeToSpace) {
   override protected def emptyTree = HexadecaTree.empty(V4F(0, 0, 0, 0), Float.MaxValue)
@@ -31,6 +33,9 @@ class SpatialTemporalQueue2D[E](timeToSpace: Long => Float) extends SpatialTempo
 
 object SpatialTemporalQueue {
   val secondEqualsMeter: Long => Float = _ / 1000000000f
+
+  def equate(time: Duration, meters: Float): Long => Float =
+    nanotime => (nanotime nanoseconds) / time * meters toFloat
 }
 
 abstract class SpatialTemporalQueue[K, H, E](timeToSpace: Long => Float) extends util.AbstractQueue[(K, E)]

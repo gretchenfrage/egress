@@ -5,6 +5,7 @@ import com.phoenixkahlo.hellcraft.core.{UpdateEffect, World}
 import com.phoenixkahlo.hellcraft.core.client.ClientLogic.{Input, Output}
 import com.phoenixkahlo.hellcraft.graphics.{EmptyHUD, HUD, RenderUnit, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{V2I, V3F, V3I}
+import com.phoenixkahlo.hellcraft.util.collections.V3ISet
 import com.phoenixkahlo.hellcraft.util.threading.UniExecutor
 
 sealed trait ClientEffect
@@ -12,7 +13,7 @@ case class CauseUpdateEffect(effects: Seq[UpdateEffect]) extends ClientEffect
 object CauseUpdateEffect {
   def apply(effect: UpdateEffect): CauseUpdateEffect = CauseUpdateEffect(Seq(effect))
 }
-case class SetLoadTarget(target: Set[V3I]) extends ClientEffect
+case class SetLoadTarget(target: V3ISet) extends ClientEffect
 case class SetCamPos(p: V3F) extends ClientEffect
 case class SetCamDir(p: V3F) extends ClientEffect
 case class SetCamFOV(fov: Float) extends ClientEffect

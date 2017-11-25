@@ -23,7 +23,8 @@ import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.util.audio.AudioUtil
 import com.phoenixkahlo.hellcraft.util.caches.Cache
-import com.phoenixkahlo.hellcraft.util.collections.{DependencyGraph, ResourceNode}
+import com.phoenixkahlo.hellcraft.util.collections.spatial.SpatialTemporalQueue
+import com.phoenixkahlo.hellcraft.util.collections.{DependencyGraph, ResourceNode, V3ISet}
 import com.phoenixkahlo.hellcraft.util.threading.UniExecutor
 import other.AppDirs
 
@@ -39,7 +40,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var pack: ResourcePack = _
   private var renderer: Renderer = _
   private var processor: InputProcessor = _
-  @volatile private var loadTarget = Set.empty[V3I]
+  @volatile private var loadTarget = V3ISet.empty
   private var clientLogic: ClientLogic = _
   private var sessionData: Map[String, Any] = Map.empty
   private val clientLogicQueue = new ConcurrentLinkedQueue[ClientLogic => ((World, ClientLogic.Input) => ClientLogic.Output)]
@@ -62,7 +63,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       System.err.println("uni executor failure")
       t.printStackTrace()
       driver.enter(new MainMenu(providedResources))
-    }, 4)
+    }, SpatialTemporalQueue.equate(1 second, 0))
 
     println("creating client logic")
     clientLogic = GodClient(Set.empty, Chat(Seq("player joined the game.")))

@@ -10,13 +10,13 @@ import com.phoenixkahlo.hellcraft.util.collections.spatial._
 import scala.concurrent.duration._
 import scala.collection.mutable.ArrayBuffer
 
-class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: Consumer[Throwable], binSize: Float) {
+class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: Consumer[Throwable], equator: Long => Float) {
 
   private val seqQueue = new LinkedBlockingQueue[Runnable]
-  private val queue3D = new SpatialTemporalQueue3D[Runnable](SpatialTemporalQueue.secondEqualsMeter)
-  private val queue2D = new SpatialTemporalQueue2D[Runnable](SpatialTemporalQueue.secondEqualsMeter)
+  private val queue3D = new SpatialTemporalQueue3D[Runnable](equator)
+  private val queue2D = new SpatialTemporalQueue2D[Runnable](equator)
   private val dbQueue = new LinkedBlockingQueue[Runnable]
-  private val dbQueue3D = new SpatialTemporalQueue3D[Runnable](SpatialTemporalQueue.secondEqualsMeter)
+  private val dbQueue3D = new SpatialTemporalQueue3D[Runnable](equator)
 
   private val ticketQueue = new LinkedBlockingQueue[Supplier[Option[Runnable]]]
   private val workers = new ArrayBuffer[Thread]
@@ -155,10 +155,10 @@ object UniExecutor {
 
   def getService: UniExecutor = service
 
-  def activate(threadCount: Int, threadFactory: ThreadFactory, failHandler: Consumer[Throwable], binSize: Float): Unit =
+  def activate(threadCount: Int, threadFactory: ThreadFactory, failHandler: Consumer[Throwable], equator: Long => Float): Unit =
     this.synchronized {
       if (service != null) throw new IllegalStateException("uni executor is already active")
-      service = new UniExecutor(threadCount, threadFactory, failHandler, binSize)
+      service = new UniExecutor(threadCount, threadFactory, failHandler, equator)
       service.start()
     }
 

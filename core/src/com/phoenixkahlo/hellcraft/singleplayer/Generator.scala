@@ -8,19 +8,19 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Cube
 import com.phoenixkahlo.hellcraft.graphics.StoneTID
 import com.phoenixkahlo.hellcraft.math._
-import com.phoenixkahlo.hellcraft.util.collections.{FutDomain, MemoFunc}
+import com.phoenixkahlo.hellcraft.util.collections.{Domain, FutDomain, MemoFunc, V3ISet}
 import com.phoenixkahlo.hellcraft.util.fields._
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, MergeFut, UniExecutor}
 
 import scala.collection.mutable
 
 trait Generator {
-  val chunkAt: V3I => Fut[Option[Chunk]]
-  //val chunkAt: V3I => Fut[Chunk]
+  //val chunkAt: V3I => Fut[Option[Chunk]]
+  val chunkAt: V3I => Fut[Chunk]
 
-  def domain: Set[V3I]
+  //def domain: V3ISet
 
-  def domain_=(newDomain: Set[V3I]): Unit
+  //def domain_=(newDomain: V3ISet): Unit
 
   def cancel(): Unit
 }
@@ -31,21 +31,22 @@ class DefaultGenerator(res: Int) extends Generator {
   private val noise = Simplex(1f / 8f, 15f)
 
   @volatile private var cancelled = false
+  /*
 
   override val chunkAt: V3I => Fut[Option[Chunk]] = _
 
-  override def domain: Set[V3I] = ???
+  @volatile private var _domain: V3ISet = Origin toAsSet Origin
+  override def domain: V3ISet = _domain
+  override def domain_=(newDomain: V3ISet): Unit = {
+    _domain = newDomain
+    ???
+  }
 
-  override def domain_=(newDomain: Set[V3I]): Unit = ???
-
-  override def cancel(): Unit = ???
 
   val heightAt = new MemoFunc[V2I, Fut[FloatField]](v =>
-    if (!cancelled) {
-      Fut(FloatField(V3I(res, 1, res),
-        i => noise(v * res + i.flatten)
-      ), UniExecutor.exec(v * 16))
-    } else Fut(null: FloatField, _.run())
+    Fut(FloatField(V3I(res, 1, res),
+      i => noise(v * res + i.flatten)
+    ), UniExecutor.exec(v * 16))
   )
 
   val terrainAt = new FutDomain[V3I, Terrain](p =>
@@ -59,11 +60,18 @@ class DefaultGenerator(res: Int) extends Generator {
     , UniExecutor.exec(p * 16))
   )
 
-  val soupAt = new MemoFunc
+  val soupAt = new Domain[V3I, Fut[Option[(Terrain, BlockSoup, TerrainSoup)]]](p =>
+    p.neighbors
+      .map(terrainAt)
+  )
+  */
 
+  val heightAt = new MemoFunc[V2I, Fut[FloatField]](v =>
+    Fut(FloatField(V3I(res, 1, res),
+      i => noise(v * res + i.flatten)
+    ), UniExecutor.exec(v * 16))
+  )
 
-
-  /*
   val terrainAt = new MemoFunc[V3I, Fut[Terrain]](p =>
     if (!cancelled) {
       heightAt(p.flatten).map(
@@ -92,13 +100,13 @@ class DefaultGenerator(res: Int) extends Generator {
           }
           val ter = terrains(p)
           (ter, BlockSoup(ter, grid).get, TerrainSoup(ter, grid).get)
-        }, UniExecutor.exec)
+        }, UniExecutor.exec(p * 16))
     } else Fut(null: (Terrain, BlockSoup, TerrainSoup), _.run())
   )
 
   override val chunkAt = new MemoFunc[V3I, Fut[Chunk]](p =>
     if (!cancelled) {
-      soupAt(p).map({ case (ter, bs, ts) => new Chunk(p, ter, Map.empty, ts, bs, None, None) }, UniExecutor.exec)
+      soupAt(p).map({ case (ter, bs, ts) => new Chunk(p, ter, Map.empty, ts, bs, None, None) }, UniExecutor.exec(p * 16))
     } else Fut(null: Chunk, _.run())
   )
 
@@ -106,5 +114,5 @@ class DefaultGenerator(res: Int) extends Generator {
   override def cancel(): Unit = {
     cancelled = true
   }
-  */
+
 }

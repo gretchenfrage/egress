@@ -15,6 +15,7 @@ import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.caches.{DisposableParamCache, ParamCache}
 import com.phoenixkahlo.hellcraft.util.collections.ResourceNode
+import com.phoenixkahlo.hellcraft.util.collections.spatial.SpatialTemporalQueue
 import com.phoenixkahlo.hellcraft.util.fields.{BooleanField, FloatField, OptionField, ShortFieldBuffer}
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 import other.AppDirs
@@ -71,7 +72,7 @@ class ProceduralCloud(override val pos: V3F, val seed: Long, val size: V3I, val 
 class CloudGenerator extends ApplicationAdapter {
 
   override def create(): Unit = {
-    UniExecutor.activate(0, new Thread(_), _.printStackTrace(), 1000000)
+    UniExecutor.activate(0, new Thread(_), _.printStackTrace(), SpatialTemporalQueue.secondEqualsMeter )
     val rand = new Random
     val pack = new DefaultResourcePack
     AppDirs.dataDir("egress").resolve("clouds").toFile.mkdirs()

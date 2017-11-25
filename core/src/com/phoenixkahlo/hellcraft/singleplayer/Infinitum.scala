@@ -8,7 +8,8 @@ import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.graphics.{RenderUnit, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Ones, Origin, V3F, V3I}
-import com.phoenixkahlo.hellcraft.util.collections.MergeBinned
+import com.phoenixkahlo.hellcraft.util.collections.{MergeBinned, V3ISet}
+import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 import com.phoenixkahlo.hellcraft.util.threading._
 
 import scala.annotation.tailrec
@@ -22,6 +23,7 @@ class SWorld(
               override val time: Long,
               override val res: Int,
               val chunks: Map[V3I, Chunk],
+              val domain: V3ISet,
               val active: Set[V3I],
               val min: Option[V3I],
               val max: Option[V3I]
@@ -42,9 +44,9 @@ class SWorld(
 
   private def compBoundingBox: SWorld =
     if (chunks isEmpty)
-      new SWorld(time, res, chunks, active, None, None)
+      new SWorld(time, res, chunks, domain, active, None, None)
     else
-      new SWorld(time, res, chunks, active,
+      new SWorld(time, res, chunks, domain, active,
         Some(V3I(chunks.keySet.toSeq.map(_.xi).min, chunks.keySet.toSeq.map(_.yi).min, chunks.keySet.toSeq.map(_.zi).min)),
         Some(V3I(chunks.keySet.toSeq.map(_.xi).max, chunks.keySet.toSeq.map(_.yi).max, chunks.keySet.toSeq.map(_.zi).max))
       )
@@ -53,11 +55,11 @@ class SWorld(
     * Remove those chunks from this world,
     */
   def --(ps: Seq[V3I]): SWorld = {
-    new SWorld(time, res, chunks -- ps, active -- ps, None, None).compBoundingBox
+    new SWorld(time, res, chunks -- ps, domain, active -- ps, None, None).compBoundingBox
   }
 
   def -(p: V3I): SWorld = {
-    new SWorld(time, res, chunks - p, active - p, None, None).compBoundingBox
+    new SWorld(time, res, chunks - p, domain, active - p, None, None).compBoundingBox
   }
 
   /**
@@ -69,6 +71,7 @@ class SWorld(
     val removed = this -- cs.map(_.pos)
     new SWorld(time, res,
       removed.chunks ++ cs.map(c => c.pos -> c),
+      domain,
       removed.active ++ cs.filter(_ isActive).map(_.pos),
       Some(V3I(
         Math.min(cs.map(_.pos.xi).min, min.map(_.xi).getOrElse(Int.MaxValue)),
@@ -85,6 +88,7 @@ class SWorld(
     val removed = this - c.pos
     new SWorld(time, res,
       removed.chunks + (c.pos -> c),
+      domain,
       if (c.isActive) removed.active + c.pos else removed.active,
       Some(V3I(
         Math.min(c.pos.xi, min.map(_.xi).getOrElse(Int.MaxValue)),
@@ -148,7 +152,11 @@ class SWorld(
     * Increment the time
     */
   def incrTime: SWorld = {
-    new SWorld(time + 1, res, chunks, active, min, max)
+    new SWorld(time + 1, res, chunks, domain, active, min, max)
+  }
+
+  def setDomain(newDomain: V3ISet): SWorld = {
+    new SWorld(time, res, chunks, newDomain, active, min, max)
   }
 
   /**
@@ -172,7 +180,7 @@ class SWorld(
   */
 class Infinitum(res: Int, save: AsyncSave, dt: Float) {
 
-  @volatile private var history = SortedMap(0L -> new SWorld(0, res, Map.empty, Set.empty, None, None))
+  @volatile private var history = SortedMap(0L -> new SWorld(0, res, Map.empty, V3ISet.empty, Set.empty, None, None))
 
   private implicit val chunkFulfill = new FulfillmentContext[V3I, Chunk]
   private implicit val executor = UniExecutor.getService
@@ -199,30 +207,41 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     * Update the world, and return the effects.
     * This concurrent, imperative logic is probably the most complicated part of this game, so let's Keep It Simple Sweety.
    */
-  def update(loadTarget: Set[V3I], externalEvents: Seq[UpdateEffect] = Seq.empty): Map[UpdateEffectType, Seq[UpdateEffect]] = {
+  def update(loadTarget: V3ISet, externalEvents: Seq[UpdateEffect] = Seq.empty): Map[UpdateEffectType, Seq[UpdateEffect]] = {
     var world = this()
 
+    val p = Profiler("main update")
+
     // push chunks to save
-    val toUnload = (world.chunks.keySet -- loadTarget).toSeq.map(world.chunks(_))
+    val toUnload = (world.domain -- loadTarget).toSeq.flatMap(world.chunks.get)
     save.push(toUnload)
     // remove them from the world
     world --= toUnload.map(_.pos)
     // remove them from the context
     chunkFulfill.remove(toUnload.map(_.pos))
 
+    p.log()
+
     // pull chunk futures from save to create load futures
-    val loadFuts: Map[V3I, Fut[Chunk]] = save.pull((loadTarget -- world.chunks.keySet -- loadMap.keySet).toSeq)
+    val loadFuts: Map[V3I, Fut[Chunk]] = save.pull((loadTarget -- world.domain).toSeq)
     for ((p, fut) <- loadFuts) {
       val loadID = UUID.randomUUID()
       loadMap += p -> loadID
       fut.onComplete(() => loadQueue.add(fut.query.get -> loadID))
     }
 
+    // set the new domain
+    world = world.setDomain(loadTarget)
+
+    p.log()
+
     // TODO: should we pend other effects?
 
     // get effects and begin to accumulate events
     val effects: Map[UpdateEffectType, Seq[UpdateEffect]] = (world.effects(dt) ++ externalEvents).groupBy(_.effectType).withDefaultValue(Seq.empty)
     var events: Seq[ChunkEvent] = effects(ChunkEvent).map(_.asInstanceOf[ChunkEvent])
+
+    p.log()
 
     // pull loaded chunks from the queue and add them to the world if they're valid, also accumulate pending events
     while (loadQueue.size > 0) {
@@ -238,10 +257,14 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       }
     }
 
+    p.log()
+
     // pull requested values from the queue and transform them into events, accumulating them
     while (requestedQueue.size > 0) {
       events ++= requestedQueue.remove()(world)
     }
+
+    p.log()
 
     var specialEffects: Map[UpdateEffectType, Seq[UpdateEffect]] = effects - ChunkEvent
 
@@ -279,6 +302,8 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     // recursively apply the events
     applyEvents(events)
 
+    p.log()
+
     // process request events
     for (make <- specialEffects.getOrElse(MakeRequest, Seq.empty).map(_.asInstanceOf[MakeRequest[_]])) {
       val request: Request[_] = make.request
@@ -289,6 +314,8 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       })
     }
 
+    p.log()
+
     // increment time
     world = world.incrTime
 
@@ -297,6 +324,9 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
 
     // prune history
     history = history.rangeImpl(Some(history.lastKey - 20), None)
+
+    p.log()
+    p.print()
 
     // return the accumulated special effects, with default values
     specialEffects.withDefaultValue(Seq.empty)
