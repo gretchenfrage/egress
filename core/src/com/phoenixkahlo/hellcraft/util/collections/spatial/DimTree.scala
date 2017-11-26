@@ -1,10 +1,6 @@
 package com.phoenixkahlo.hellcraft.util.collections.spatial
 
 import com.phoenixkahlo.hellcraft.math._
-import com.phoenixkahlo.hellcraft.util.collections.spatial.BiTree.BiTree
-import com.phoenixkahlo.hellcraft.util.collections.spatial.HexadecaTree.HexadecaTree
-import com.phoenixkahlo.hellcraft.util.collections.spatial.Octree.Octree
-import com.phoenixkahlo.hellcraft.util.collections.spatial.QuadTree.QuadTree
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
@@ -263,6 +259,7 @@ object BiTree extends TreeDim[Int, Float] {
   type BiTree[+E] = DimTree[E, Int, Float]
   def empty[E](center: Float, range: Float): BiTree[E] =
     Empty(Domain(center, range, None, this))(this)
+  val bigEmpty: BiTree[Nothing] = Empty(Domain(0f, Float.MaxValue, None, this))(this)
 }
 
 object QuadTree extends TreeDim[V2I, V2F] {
@@ -300,6 +297,7 @@ object QuadTree extends TreeDim[V2I, V2F] {
   type QuadTree[+E] = DimTree[E, V2I, V2F]
   def empty[E](center: V2F, range: Float): QuadTree[E] =
     Empty(Domain(center, range, None, this))(this)
+  val bigEmpty: QuadTree[Nothing] = Empty(Domain(Origin2D, Float.MaxValue, None, this))(this)
 }
 
 object Octree extends TreeDim[V3I, V3F] {
@@ -318,7 +316,7 @@ object Octree extends TreeDim[V3I, V3F] {
   override def indexof(v: V3I): Int =
     ((v.xi & 0x2) >> 1) | (v.yi & 0x2) | ((v.zi & 0x2) << 1)
 
-  override def signs: Seq[V3I] = {
+  override val signs: Seq[V3I] = {
     val signs = new Array[V3I](8)
     for {
       x <- Seq(-1, 1)
@@ -337,6 +335,7 @@ object Octree extends TreeDim[V3I, V3F] {
   type Octree[+E] = DimTree[E, V3I, V3F]
   def empty[E](center: V3F, range: Float): Octree[E] =
     Empty(Domain(center, range, None, this))(this)
+  val bigEmpty: Octree[Nothing] = Empty(Domain(Origin, Float.MaxValue, None, this))(this)
 }
 
 object HexadecaTree extends TreeDim[V4I, V4F] {
@@ -355,7 +354,7 @@ object HexadecaTree extends TreeDim[V4I, V4F] {
   override def indexof(v: V4I): Int =
     ((v.xi & 0x2) >> 1) | (v.yi & 0x2) | ((v.zi & 0x2) << 1) | ((v.wi & 0x2) << 2)
 
-  override def signs: Seq[V4I] = {
+  override val signs: Seq[V4I] = {
     val signs = new Array[V4I](16)
     for {
       x <- Seq(-1, 1)
@@ -375,6 +374,105 @@ object HexadecaTree extends TreeDim[V4I, V4F] {
   type HexadecaTree[+E] = DimTree[E, V4I, V4F]
   def empty[E](center: V4F, range: Float): HexadecaTree[E] =
     Empty(Domain(center, range, None, this))(this)
+  val bigEmpty: HexadecaTree[Nothing] = Empty(Domain(V4F(0, 0, 0, 0), Float.MaxValue, None, this))(this)
+}
+
+object Tree5D extends TreeDim[(Int, Int, Int, Int, Int), (Float, Float, Float, Float, Float)] {
+  override def repeated(n: Float) = (n, n, n, n, n)
+  override def sub(a: (Float, Float, Float, Float, Float), b: (Float, Float, Float, Float, Float)) =
+    (a._1 - b._1, a._2 - b._2, a._3 - b._3, a._4 - b._4, a._5 - b._5)
+  override def add(a: (Float, Float, Float, Float, Float), b: (Float, Float, Float, Float, Float)) =
+    (a._1 + b._1, a._2 + b._2, a._3 + b._3, a._4 + b._4, a._5 + b._5)
+  override def mul(a: (Float, Float, Float, Float, Float), s: Float) =
+    (a._1 * s, a._2 * s, a._3 * s, a._4 * s, a._5 * s)
+  override def div(a: (Float, Float, Float, Float, Float), s: Float) =
+    (a._1 / s, a._2 / s, a._3 / s, a._4 / s, a._5 / s)
+  override def dist(a: (Float, Float, Float, Float, Float), b: (Float, Float, Float, Float, Float)) =
+    Math.sqrt(sub(a, b).productIterator.map(_.asInstanceOf[Float]).map(n => n * n).sum).toFloat
+  override def >=(a: (Float, Float, Float, Float, Float), b: (Float, Float, Float, Float, Float)) =
+    a._1 >= b._1 && a._2 >= b._2 && a._3 >= b._3 && a._4 >= b._4 && a._5 >= b._5
+  override def <=(a: (Float, Float, Float, Float, Float), b: (Float, Float, Float, Float, Float)) =
+    a._1 <= b._1 && a._2 <= b._2 && a._3 <= b._3 && a._4 <= b._4 && a._5 <= b._5
+  override def >(a: (Float, Float, Float, Float, Float), b: (Float, Float, Float, Float, Float)) =
+    a._1 > b._1 && a._2 > b._2 && a._3 > b._3 && a._4 > b._4 && a._5 > b._5
+  override def <(a: (Float, Float, Float, Float, Float), b: (Float, Float, Float, Float, Float)) =
+    a._1 < b._1 && a._2 < b._2 && a._3 < b._3 && a._4 < b._4 && a._5 < b._5
+  override def upcast(v: (Int, Int, Int, Int, Int)) =
+    (v._1.toFloat, v._2.toFloat, v._3.toFloat, v._4.toFloat, v._5.toFloat)
+  override def indexof(v: (Int, Int, Int, Int, Int)) =
+    ((v._1 & 0x2) >> 1) | (v._2 & 0x2) | ((v._3 & 0x2) << 1) | ((v._4 & 0x2) << 2) | ((v._5 & 0x2) << 3)
+  override val signs = {
+    val signs = new Array[(Int, Int, Int, Int, Int)](32)
+    for {
+      x <- Seq(-1, 1)
+      y <- Seq(-1, 1)
+      z <- Seq(-1, 1)
+      w <- Seq(-1, 1)
+      k <- Seq(-1, 1)
+    } yield {
+      val sign = (x, y, z, w, k)
+      signs(indexof(sign)) = sign
+    }
+    signs
+  }
+
+  override def signOf(v: (Float, Float, Float, Float, Float)) =
+    (
+      if (v._1 >= 0) 1 else -1,
+      if (v._2 >= 0) 1 else -1,
+      if (v._3 >= 0) 1 else -1,
+      if (v._4 >= 0) 1 else -1,
+      if (v._5 >= 0) 1 else -1
+    )
+
+  type Tree5D[+E] = DimTree[E, (Int, Int, Int, Int, Int), (Float, Float, Float, Float, Float)]
+  def empty[E](center: (Float, Float, Float, Float, Float), range: Float): Tree5D[E] =
+    Empty(Domain(center, range, None, this))(this)
+  val bigEmpty: Tree5D[Nothing] = Empty(Domain((0f, 0f, 0f, 0f, 0f), Float.MaxValue, None, this))(this)
+}
+
+class NthDimension(dim: Int) extends TreeDim[Seq[Int], Seq[Float]] {
+  override def repeated(n: Float) = Stream.iterate(n)(identity).take(dim)
+  override def sub(a: Seq[Float], b: Seq[Float]) =
+    a.zip(b).map({ case (aa, bb) => aa - bb })
+  override def add(a: Seq[Float], b: Seq[Float]) =
+    a.zip(b).map({ case (aa, bb) => aa + bb })
+  override def mul(a: Seq[Float], s: Float) =
+    a.map(_ * s)
+  override def div(a: Seq[Float], s: Float) =
+    a.map(_ / s)
+  override def dist(a: Seq[Float], b: Seq[Float]) =
+    Math.sqrt(sub(a, b).map(n => n * n).sum).toFloat
+  override def >=(a: Seq[Float], b: Seq[Float]) =
+    a.zip(b).forall({ case (aa, bb) => aa >= bb })
+  override def <=(a: Seq[Float], b: Seq[Float]) =
+    a.zip(b).forall({ case (aa, bb) => aa <= bb })
+  override def >(a: Seq[Float], b: Seq[Float]) =
+    a.zip(b).forall({ case (aa, bb) => aa > bb })
+  override def <(a: Seq[Float], b: Seq[Float]) =
+    a.zip(b).forall({ case (aa, bb) => aa < bb })
+  override def upcast(v: Seq[Int]) =
+    v.map(_.toFloat)
+  override def indexof(v: Seq[Int]) =
+    v.zip(Stream.iterate(-1)(_ + 1)).map({ case (c, s) => (c & 0x2) >> s }).foldLeft(0)(_ | _)
+  override val signs = {
+    @tailrec def permute(heads: Seq[Int], tails: Seq[List[Int]], len: Int): Seq[List[Int]] = {
+      val buffer = new ArrayBuffer[List[Int]]
+      for {
+        head <- heads
+        tail <- tails
+      } yield buffer += (head :: tail)
+      if (len == 1) buffer
+      else permute(heads, buffer, len - 1)
+    }
+    val signs = new Array[Seq[Int]](Math.pow(2, dim).toInt)
+    for (sign <- permute(Seq(-1, 1), Seq(Nil), dim)) {
+      signs(indexof(sign)) = sign
+    }
+    signs
+  }
+  override def signOf(v: Seq[Float]) =
+    v.map(n => if (n >= 0) 1 else -1)
 }
 /*
 object BiTest extends App {
