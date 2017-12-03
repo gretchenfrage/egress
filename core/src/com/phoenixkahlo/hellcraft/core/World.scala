@@ -56,8 +56,6 @@ trait TerrainGrid {
 trait World extends TerrainGrid {
   def chunkAt(p: V3I): Option[Chunk]
 
-  override def terrainAt(p: V3I) = chunkAt(p).map(_.terrain)
-
   def time: Long
 
   //def res: Int

@@ -13,7 +13,7 @@ case class CauseUpdateEffect(effects: Seq[UpdateEffect]) extends ClientEffect
 object CauseUpdateEffect {
   def apply(effect: UpdateEffect): CauseUpdateEffect = CauseUpdateEffect(Seq(effect))
 }
-case class SetLoadTarget(target: V3ISet) extends ClientEffect
+case class SetLoadTarget(target: V3ISet, terrains: V3ISet) extends ClientEffect
 case class SetCamPos(p: V3F) extends ClientEffect
 case class SetCamDir(p: V3F) extends ClientEffect
 case class SetCamFOV(fov: Float) extends ClientEffect

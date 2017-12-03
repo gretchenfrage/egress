@@ -72,7 +72,7 @@ case class GodClientMenu(pressed: Set[Int], buttons: Seq[MenuButton], pressing: 
   override def tick(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = {
     val chunkPos = input.camPos / 16 toInts
     val loadTarget = (chunkPos - GodClient.loadRad) toAsSet (chunkPos + GodClient.loadRad);
-    cause(SetLoadTarget(loadTarget))
+    cause(SetLoadTarget(loadTarget, loadTarget.shroat(4)))
   }
 
   override def keyDown(keycode: Int)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
@@ -184,7 +184,7 @@ case class GodClient(pressed: Set[Int], chat: Chat) extends ClientLogic {
 
     cause(
       SetCamPos(input.camPos + (movDir * GodClient.moveSpeed)),
-      SetLoadTarget(loadTarget)
+      SetLoadTarget(loadTarget, loadTarget.shroat(4))
     )
   }
 

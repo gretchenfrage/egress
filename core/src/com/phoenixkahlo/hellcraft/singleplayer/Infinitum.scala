@@ -8,6 +8,7 @@ import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.graphics.{RenderUnit, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Ones, Origin, V3F, V3I}
+import com.phoenixkahlo.hellcraft.util.LeftOption
 import com.phoenixkahlo.hellcraft.util.collections.{MergeBinned, V3ISet}
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 import com.phoenixkahlo.hellcraft.util.threading._
@@ -22,7 +23,7 @@ import scala.collection.{SortedMap, mutable}
 class SWorld(
               override val time: Long,
               override val res: Int,
-              val chunks: Map[V3I, Chunk],
+              val chunks: Map[V3I, Either[Chunk, Terrain]],
               val domain: V3ISet,
               val active: Set[V3I],
               val min: Option[V3I],
@@ -30,12 +31,23 @@ class SWorld(
             ) extends World {
 
   override def chunkAt(p: V3I): Option[Chunk] =
-    chunks.get(p)
+    chunks.get(p).flatMap(LeftOption(_))
 
-  override def debugChunkMap: Map[V3I, Chunk] = chunks
+
+  override def terrainAt(p: V3I): Option[Terrain] =
+    chunks.get(p).map({
+      case Left(chunk) => chunk.terrain
+      case Right(terrain) => terrain
+    })
+
+  override def debugChunkMap: Map[V3I, Chunk] =
+    chunks.flatMap({
+      case (v, Left(c)) => Some(v -> c)
+      case _ => None
+    })
 
   override def findEntity(id: EntityID): Option[Entity] =
-    chunks.values.toStream.flatMap(_.entities.get(id)).headOption
+    chunks.values.toStream.flatMap(LeftOption(_)).flatMap(_.entities.get(id)).headOption
 
   override def boundingBox: (V3I, V3I) = (min, max) match {
     case (Some(minP), Some(maxP)) => (minP, maxP)
@@ -70,7 +82,7 @@ class SWorld(
       return this
     val removed = this -- cs.map(_.pos)
     new SWorld(time, res,
-      removed.chunks ++ cs.map(c => c.pos -> c),
+      removed.chunks ++ cs.map(c => c.pos -> Left(c)),
       domain,
       removed.active ++ cs.filter(_ isActive).map(_.pos),
       Some(V3I(
@@ -87,7 +99,7 @@ class SWorld(
   def +(c: Chunk): SWorld = {
     val removed = this - c.pos
     new SWorld(time, res,
-      removed.chunks + (c.pos -> c),
+      removed.chunks + (c.pos -> Left(c)),
       domain,
       if (c.isActive) removed.active + c.pos else removed.active,
       Some(V3I(
@@ -102,9 +114,9 @@ class SWorld(
   }
 
   case class WithReplacedChunk(replaced: Chunk) extends World {
-    lazy val nchunks = chunks + (replaced.pos -> replaced)
+    lazy val nchunks = chunks + (replaced.pos -> Left(replaced))
 
-    override def chunkAt(p: V3I): Option[Chunk] = nchunks.get(p)
+    override def chunkAt(p: V3I): Option[Chunk] = nchunks.get(p).flatMap(LeftOption(_))
 
     override def time: Long = SWorld.this.time
 
@@ -326,7 +338,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     history = history.rangeImpl(Some(history.lastKey - 20), None)
 
     p.log()
-    p.print()
+    //p.print()
 
     // return the accumulated special effects, with default values
     specialEffects.withDefaultValue(Seq.empty)

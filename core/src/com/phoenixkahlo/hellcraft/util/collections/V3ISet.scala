@@ -10,6 +10,8 @@ sealed trait V3ISet extends Set[V3I] {
 
   def shrink: V3ISet
 
+  def shroat(n: Int): V3ISet
+
   protected def toNormalSet: NormalV3ISet = NormalV3ISet(Set(iterator.toSeq: _*))
 
   override def +(elem: V3I): V3ISet =
@@ -29,6 +31,8 @@ object V3ISet {
 
     override def bloat: V3ISet = this
 
+    override def shroat(n: Int) = this
+
     override def contains(elem: V3I): Boolean = false
 
     override def iterator: Iterator[V3I] = Iterator.empty
@@ -47,6 +51,11 @@ case class NormalV3ISet(set: Set[V3I]) extends V3ISet {
 
   override def shrink =
     NormalV3ISet(set.filter(_.neighbors.forall(set.contains)))
+
+  override def shroat(n: Int): V3ISet =
+    if (n == 0) this
+    else if (n > 0) bloat.shroat(n - 1)
+    else shrink.shroat(n + 1)
 
   override def contains(elem: V3I) =
     set contains elem
@@ -127,6 +136,9 @@ case class V3IRange(low: V3I, high: V3I) extends V3ISet {
   override def shrink: V3IRange =
     V3IRange(low + Ones, high - Ones)
 
+  override def shroat(n: Int) =
+    V3IRange(low - (Ones * n), high + (Ones * n))
+
   override def contains(elem: V3I): Boolean =
     elem >= low && elem <= high
 
@@ -150,6 +162,9 @@ case class V3IRangeSum(r1: V3IRange, r2: V3IRange) extends V3ISet {
   override def shrink: V3ISet =
     V3IRangeSum(r1.shrink, r2.shrink)
 
+  override def shroat(n: Int) =
+    V3IRangeSum(r1.shroat(n), r2.shroat(n))
+
   override def contains(elem: V3I): Boolean =
     (r1 contains elem) || (r2 contains elem)
 
@@ -159,10 +174,13 @@ case class V3IRangeSum(r1: V3IRange, r2: V3IRange) extends V3ISet {
 
 case class V3IRangeDiff(r1: V3IRange, r2: V3IRange) extends V3ISet {
   override def bloat: V3ISet =
-    V3IRangeSum(r1.bloat, r1.shrink)
+    V3IRangeDiff(r1.bloat, r1.shrink)
 
   override def shrink: V3ISet =
-    V3IRangeSum(r1.shrink, r2.bloat)
+    V3IRangeDiff(r1.shrink, r2.bloat)
+
+  override def shroat(n: Int) =
+    V3IRangeDiff(r1.shroat(n), r2.shroat(-n))
 
   override def contains(elem: V3I): Boolean =
     (r1 contains elem) && !(r2 contains elem)
