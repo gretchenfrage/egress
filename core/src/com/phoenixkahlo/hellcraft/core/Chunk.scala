@@ -74,16 +74,16 @@ class Chunk(
 
     val emicroworld: Evalable[TerrainGrid] =
       pos.neighbors
-        .map(Evalable.chunk)
-        .foldLeft(Evalable(Map.empty[V3I, Chunk])(ExecCheap))(
-          (emap: Evalable[Map[V3I, Chunk]], echunk: Evalable[Chunk]) =>
-            Evalable.merge(emap, echunk,
-              (map: Map[V3I, Chunk], chunk: Chunk) => map + (chunk.pos -> chunk)
+        .map(Evalable.terrain)
+        .foldLeft(Evalable(Map.empty[V3I, Terrain])(ExecCheap))(
+          (emap: Evalable[Map[V3I, Terrain]], eterr: Evalable[Terrain]) =>
+            Evalable.merge(emap, eterr,
+              (map: Map[V3I, Terrain], chunk: Terrain) => map + (chunk.pos -> chunk)
             )(ExecCheap)
         )
-        .map(chunks => {
+        .map(terrains => {
           new TerrainGrid {
-            override def terrainAt(p: V3I): Option[Terrain] = chunks.get(p).map(_.terrain)
+            override def terrainAt(p: V3I): Option[Terrain] = terrains.get(p)
           }
         })(ExecCheap)
     val ets: Evalable[TerrainSoup] = emicroworld.map(world => TerrainSoup(terrain, world).get)(

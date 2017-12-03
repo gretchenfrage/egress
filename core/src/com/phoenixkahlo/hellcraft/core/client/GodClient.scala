@@ -241,8 +241,11 @@ case class GodClient(pressed: Set[Int], chat: Chat) extends ClientLogic {
     }
 
     if (pressed(ALT_LEFT)) {
-      for (c <- world.debugChunkMap.keys) {
+      for (c <- world.debugLoadedChunks) {
         units += new ChunkOutline(c, Color.WHITE)
+      }
+      for (c <- world.debugLoadedTerrain) {
+        units += new ChunkOutline(c, Color.BLUE)
       }
     }
     if (input.sessionData.get("show_tasks").exists(_.asInstanceOf[Boolean])) {

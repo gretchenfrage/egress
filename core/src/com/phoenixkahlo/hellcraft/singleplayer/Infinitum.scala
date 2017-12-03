@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Entity
+import com.phoenixkahlo.hellcraft.core.request.Evalable.ToFutPack
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.graphics.{RenderUnit, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{Ones, Origin, V3F, V3I}
@@ -40,11 +41,9 @@ class SWorld(
       case Right(terrain) => terrain
     })
 
-  override def debugChunkMap: Map[V3I, Chunk] =
-    chunks.flatMap({
-      case (v, Left(c)) => Some(v -> c)
-      case _ => None
-    })
+  override def debugLoadedChunks: Iterable[V3I] = chunks.keySet.toSeq.filter(chunks(_).isLeft)
+
+  override def debugLoadedTerrain: Iterable[V3I] = chunks.keySet.toSeq.filter(chunks(_).isRight)
 
   override def findEntity(id: EntityID): Option[Entity] =
     chunks.values.toStream.flatMap(LeftOption(_)).flatMap(_.entities.get(id)).headOption
@@ -155,10 +154,9 @@ class SWorld(
 
     override def boundingBox: (V3I, V3I) = SWorld.this.boundingBox
 
-    override def debugChunkMap: Map[V3I, Chunk] = nchunks.flatMap({
-      case (p, Left(chunk)) => Some(p -> chunk)
-      case _ => None
-    })
+    override def debugLoadedChunks: Iterable[V3I] = SWorld.this.debugLoadedChunks.toSeq :+ replaced.pos
+
+    override def debugLoadedTerrain: Iterable[V3I] = SWorld.this.debugLoadedTerrain
   }
 
   /**
@@ -347,7 +345,9 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     @tailrec def applyEvents(eventsIn: Seq[ChunkEvent]): Unit = {
       var events = eventsIn
       // partition events by whether they can be integrated immediately
-      val (integrateNow: Seq[ChunkEvent], integrateLater: Seq[ChunkEvent]) = events.partition(world.chunks contains _.target)
+      val (integrateNow: Seq[ChunkEvent], integrateLater: Seq[ChunkEvent]) =
+        events.partition(event => world.chunks.get(event.target).flatMap(_.left.toOption).isDefined)
+        //events.partition(world.chunks contains _.target)
 
       // add the events that can't be immediately integrated to the pending event sequence
       for ((key, seq) <- integrateLater.groupBy(_.target)) {
@@ -380,9 +380,10 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     p.log()
 
     // process request events
+    val toFutPack = ToFutPack(UniExecutor.getService, chunkFulfill, terrainFulfill)
     for (make <- specialEffects.getOrElse(MakeRequest, Seq.empty).map(_.asInstanceOf[MakeRequest[_]])) {
       val request: Request[_] = make.request
-      val fut: Fut[Any] = request.eval.toFut(new mutable.HashMap)
+      val fut: Fut[Any] = request.eval.toFut(toFutPack)
       fut.onComplete(() => {
         val result: Requested = new Requested(request.id, fut.query.get)
         requestedQueue.add(world => make.onComplete(result, world))

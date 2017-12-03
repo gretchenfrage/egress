@@ -58,32 +58,14 @@ trait World extends TerrainGrid {
 
   def time: Long
 
-  //def res: Int
-
-  //def resVec = V3I(res, res, res)
-
   def findEntity(id: UUID): Option[Entity]
 
   def boundingBox: (V3I, V3I)
 
-  def debugChunkMap: Map[V3I, Chunk]
+  def debugLoadedChunks: Iterable[V3I]
 
+  def debugLoadedTerrain: Iterable[V3I]
 
-/*
-  def raycast(pos: V3F, dir: V3F): Stream[V3F] = {
-    val (min, max) = boundingBox
-    Raytrace.voxels(pos / 16, dir)
-      .takeWhile(p => p > min && p < (max + Ones))
-      .flatMap(chunkAt)
-      .flatMap(chunk => {
-        val tm: Option[(Seq[Short], Short => V3F)] =
-          chunk.terrainSoup.map(soup => (soup.indices, i => soup.verts(soup.indexToVert(i)).get.pos))
-        val bm: Option[(Seq[Short], Short => V3F)] =
-          chunk.blockSoup.map(soup => (soup.indices, i => soup.verts(i).pos))
-        Raytrace.meshes(pos, dir, Seq(tm, bm).flatten)
-      })
-  }
-  */
   def raycast(pos: V3F, dir: V3F): Stream[V3F] = {
     val (min, max) = boundingBox
     Raytrace.voxels(pos / 16, dir)
