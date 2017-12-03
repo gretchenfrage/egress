@@ -2,11 +2,8 @@ package com.phoenixkahlo.hellcraft.util.fields
 
 import java.util.Objects
 
-import com.phoenixkahlo.hellcraft.carbonite.CarboniteFields
-import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
-@CarboniteFields
 class RefField[T <: AnyRef] private(private val data: Either[Array[T], Vector[T]], val sizeVec: V3I)
   extends Iterable[T] with Serializable  {
 

@@ -13,13 +13,11 @@ import com.phoenixkahlo.hellcraft.util.fields._
 
 import scala.collection.mutable.ArrayBuffer
 
-@CarboniteFields
 case class Terrain(pos: V3I, grid: IDField[TerrainUnit])
 object Terrain {
   def canComplete(pos: V3I, world: TerrainGrid): Boolean = pos.neighbors.forall(world.terrainAt(_).isDefined)
 }
 
-@CarboniteFields
 case class TerrainSoup(pos: V3I, verts: OptionField[TerrainSoup.Vert], indices: Seq[Short], indexToVert: Seq[V3I],
                        vertToIndex: ShortField) extends Iterable[Triangle] {
   override def iterator: Iterator[Triangle] =
@@ -31,7 +29,7 @@ case class TerrainSoup(pos: V3I, verts: OptionField[TerrainSoup.Vert], indices: 
       ))
 }
 object TerrainSoup {
-  @CarboniteFields case class Vert(pos: V3F, mat: Material, nor: V3F)
+  case class Vert(pos: V3F, mat: Material, nor: V3F)
 
   val edges: Seq[(V3I, V3I)] = Seq(
     Origin -> West,
@@ -130,8 +128,7 @@ object TerrainSoup {
   } else None
 }
 
-@CarboniteFields
-case class BlockSoup(pos: V3I, verts: Seq[BlockSoup.Vert], indices: Seq[NodeTypeID]) extends Iterable[Triangle] {
+case class BlockSoup(pos: V3I, verts: Seq[BlockSoup.Vert], indices: Seq[Short]) extends Iterable[Triangle] {
   override def iterator: Iterator[Triangle] =
     Range(0, indices.size, 3).iterator
     .map(i => Triangle(
@@ -141,7 +138,7 @@ case class BlockSoup(pos: V3I, verts: Seq[BlockSoup.Vert], indices: Seq[NodeType
     ))
 }
 object BlockSoup {
-  @CarboniteFields case class Vert(pos: V3F, block: Block, uvDelta: V2I, nor: V3F)
+  case class Vert(pos: V3F, block: Block, uvDelta: V2I, nor: V3F)
 
   def apply(terrain: Terrain, world: TerrainGrid): Option[BlockSoup] =
     if (Terrain.canComplete(terrain.pos, world)) {

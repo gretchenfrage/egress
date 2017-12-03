@@ -1,13 +1,10 @@
 package com.phoenixkahlo.hellcraft.math
 
 import com.badlogic.gdx.math.{Matrix4, Vector3}
-import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
-import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 
 /**
   * A vector of 3 floats
   */
-@CarboniteWith(classOf[FieldNode])
 class V3F(val x: Float, val y: Float, val z: Float) extends Serializable {
 
   if (x != x || y != y || z != z)

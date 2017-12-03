@@ -1,9 +1,6 @@
 package com.phoenixkahlo.hellcraft.math
 
-import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
-import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 
-@CarboniteWith(classOf[FieldNode])
 case class V2F(x: Float, y: Float) extends Serializable {
 
   if (x != x || y != y)

@@ -2,8 +2,6 @@ package com.phoenixkahlo.hellcraft.core
 
 import java.util.UUID
 
-import com.phoenixkahlo.hellcraft.carbonite.{CarboniteFields, CarboniteWith}
-import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.{CubeFrame, Entity, Moveable, PhysCube}
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.graphics.SoundID
@@ -75,12 +73,10 @@ case class SetMat(v: V3I, mat: TerrainUnit, override val id: UUID, meshTerrFast:
   }
 }
 
-@CarboniteFields
 case class PutEntity(entity: Entity, override val id: UUID) extends ChunkEvent(entity.chunkPos, id) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = (chunk.putEntity(entity), Seq.empty)
 }
 
-@CarboniteFields
 case class RemoveEntity(override val target: V3I, entity: UUID, override val id: UUID) extends ChunkEvent(target, id) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) = (chunk.removeEntity(entity), Seq.empty)
 }
@@ -100,13 +96,11 @@ abstract class UpdateEntity[T <: Entity](entityID: EntityID, override val target
   }
 }
 
-@CarboniteFields
 case class Shift(dx: V3F, entityID: EntityID, override val target: V3I, override val id: UUID)
   extends UpdateEntity[Moveable](entityID, target, id) {
   override protected def update(entity: Moveable, world: World): Entity = entity.updatePos(entity.pos + dx)
 }
 
-@CarboniteFields
 case class DoPhysics(entityID: EntityID, override val target: V3I, override val id: UUID)
   extends UpdateEntity[PhysCube](entityID, target, id) {
   override protected def update(entity: PhysCube, world: World): Entity = entity.doPhysics(world)

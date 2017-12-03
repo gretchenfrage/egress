@@ -1,8 +1,5 @@
 package com.phoenixkahlo.hellcraft.math
 
-import com.phoenixkahlo.hellcraft.carbonite.{CarboniteFields, CarboniteWith}
-
-@CarboniteFields
 class V4I(val xi: Int, val yi: Int, val zi: Int, val wi: Int) extends V4F(xi, yi, zi, wi) {
 
   def +(o: V4I): V4I =

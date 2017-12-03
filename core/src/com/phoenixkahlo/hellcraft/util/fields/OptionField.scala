@@ -3,13 +3,10 @@ package com.phoenixkahlo.hellcraft.util.fields
 import java.util
 import java.util.Objects
 
-import com.phoenixkahlo.hellcraft.carbonite.{CarboniteFields, CarboniteWith}
-import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
 import scala.reflect.ClassTag
 
-@CarboniteFields
 class OptionField[T <: AnyRef] private(private val data: Either[Array[T], Vector[T]], val sizeVec: V3I)
   extends Iterable[T] with Serializable {
 

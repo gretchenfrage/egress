@@ -1,6 +1,5 @@
 package com.phoenixkahlo.hellcraft.util.fields
 
-import com.phoenixkahlo.hellcraft.carbonite.CarboniteFields
 import com.phoenixkahlo.hellcraft.math.V3I
 
 trait IDMapping[T] extends Serializable {
@@ -12,7 +11,6 @@ trait IDMapping[T] extends Serializable {
   * Given an enumeration of objects with 256-bit IDs, this object will represent a field of them, backed by a
   * ByteField.
   */
-@CarboniteFields
 case class IDField[T] private[fields](bytes: ByteField, mapping: IDMapping[T]) {
 
   def size: V3I = bytes.size

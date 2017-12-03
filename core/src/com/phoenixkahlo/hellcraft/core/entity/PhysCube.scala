@@ -2,7 +2,6 @@ package com.phoenixkahlo.hellcraft.core.entity
 
 import java.util.UUID
 
-import com.phoenixkahlo.hellcraft.carbonite.CarboniteFields
 import com.phoenixkahlo.hellcraft.core.{DoPhysics, PutEntity, Shift, TerrainSoup, UpdateEffect, World}
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.graphics.{GrassTID, PhysTID}
@@ -11,7 +10,6 @@ import com.phoenixkahlo.hellcraft.math.physics.{ComplexCollider, EmptyBroadphase
 
 import scala.collection.mutable.ArrayBuffer
 
-@CarboniteFields
 case class PhysCube(vel: V3F, override val pos: V3F, override val id: UUID, walk: V3F) extends Cube(PhysTID, pos, id) with Moveable {
   override def updatePos(newPos: V3F): Entity = copy(pos = newPos)
 

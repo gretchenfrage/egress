@@ -5,7 +5,6 @@ import java.util
 import java.util.Objects
 import java.util.zip.{Deflater, Inflater}
 
-import com.phoenixkahlo.hellcraft.carbonite.CarboniteFields
 import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
 class ByteField private[fields](private var data: Either[Array[Byte], Vector[Byte]], private var _size: V3I) extends Externalizable {
@@ -117,7 +116,6 @@ object ByteField {
 
 }
 
-@CarboniteFields
 case class ByteFractionField(bytes: ByteField) {
 
   def size: V3I = bytes.size

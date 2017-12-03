@@ -1,9 +1,5 @@
 package com.phoenixkahlo.hellcraft.math
 
-import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
-import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
-
-@CarboniteWith(classOf[FieldNode])
 class V2I(val xi: Int, val yi: Int) extends V2F(xi, yi) {
 
   def +(o: V2I): V2I =

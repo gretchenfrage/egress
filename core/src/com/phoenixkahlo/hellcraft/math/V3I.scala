@@ -3,8 +3,6 @@ package com.phoenixkahlo.hellcraft.math
 import java.io.{ByteArrayOutputStream, DataOutputStream}
 
 import com.badlogic.gdx.graphics.Color
-import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
-import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.util.collections.{V3IRange, V3ISet}
 
 import scala.collection.immutable
@@ -12,7 +10,6 @@ import scala.collection.immutable
 /**
   * A vector of 3 ints, that is also a vector of 3 floats
   */
-@CarboniteWith(classOf[FieldNode])
 class V3I(val xi: Int, val yi: Int, val zi: Int) extends V3F(xi, yi, zi) {
 
   def +(o: V3I): V3I =

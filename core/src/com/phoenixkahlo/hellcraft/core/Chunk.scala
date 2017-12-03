@@ -2,8 +2,6 @@ package com.phoenixkahlo.hellcraft.core
 
 import java.util.{Objects, UUID}
 
-import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
-import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.core.request._
 import com.phoenixkahlo.hellcraft.graphics._

@@ -315,6 +315,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
         chunkLoadMap -= chunk.pos
         world += chunk
         chunkFulfill.put(chunk.pos, chunk)
+        terrainFulfill.put(chunk.pos, chunk.terrain)
         if (pendingEvents contains chunk.pos) {
           events ++= pendingEvents(chunk.pos)
           pendingEvents -= chunk.pos
@@ -323,7 +324,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     }
     while (terrainLoadQueue.size > 0) {
       val (terrain, loadID) = terrainLoadQueue.remove()
-      if (terrainLoadMap.get(terrain.pos).contains(loadID)) {
+      if (!world.chunks.contains(terrain.pos) && terrainLoadMap.get(terrain.pos).contains(loadID)) {
         terrainLoadMap -= terrain.pos
         world += terrain
         terrainFulfill.put(terrain.pos, terrain)

@@ -4,7 +4,6 @@ import java.util.UUID
 
 import com.badlogic.gdx.graphics.{Color, GL20}
 import com.badlogic.gdx.graphics.g3d.Renderable
-import com.phoenixkahlo.hellcraft.carbonite.CarboniteFields
 import com.phoenixkahlo.hellcraft.core.{Shift, SoundEffect, UpdateEffect, World}
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.graphics._
@@ -14,7 +13,6 @@ import com.phoenixkahlo.hellcraft.math.{Down, V3F}
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 import com.phoenixkahlo.hellcraft.util.collections.ResourceNode
 
-@CarboniteFields
 class Cube(tid: SheetTextureID, override val pos: V3F, override val id: UUID) extends Entity {
   protected def color: Color = Color.WHITE
 
@@ -47,14 +45,12 @@ object CubeRenderer {
   }
 }
 
-@CarboniteFields
 case class SoundCube(sid: SoundID, freq: Int, override val pos: V3F, override val id: UUID) extends Cube(SoundTID, pos, id) {
   override def update(world: World, ids: Stream[UUID]): Seq[UpdateEffect] =
     if (world.time % freq == 0) Seq(SoundEffect(sid, 1, pos))
     else Seq.empty
 }
 
-@CarboniteFields
 case class GlideCube(vel: V3F, override val pos: V3F, override val id: UUID) extends Cube(GrassTID, pos, id) with Moveable {
   override def update(world: World, ids: Stream[UUID]): Seq[UpdateEffect] = {
     Seq(Shift(vel * Delta.dtf, id, chunkPos, ids.head))
@@ -63,7 +59,6 @@ case class GlideCube(vel: V3F, override val pos: V3F, override val id: UUID) ext
   override def updatePos(newPos: V3F): Entity = copy(pos = newPos)
 }
 
-@CarboniteFields
 case class GhostCube(override val pos: V3F, override val id: UUID) extends Cube(GrayTID, pos, id) {
   override protected val color = new Color(1, 1, 1, 0.4f)
 }

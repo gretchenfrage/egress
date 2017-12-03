@@ -8,7 +8,6 @@ import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
 import com.badlogic.gdx.graphics.g3d.{ModelInstance, Renderable}
 import com.badlogic.gdx.utils.Pool
-import com.phoenixkahlo.hellcraft.carbonite.CarboniteFields
 import com.phoenixkahlo.hellcraft.core.TerrainSoup
 import com.phoenixkahlo.hellcraft.graphics.shaders.{GenericSID, LineSID, TerrainSID}
 import com.phoenixkahlo.hellcraft.graphics._
@@ -24,7 +23,6 @@ import scala.collection.JavaConverters
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
-@CarboniteFields
 case class PreGenCloud(pos: V3F, i: Int, id: UUID) extends Entity with Moveable {
   @transient private lazy val renderUnit =
     new ParamCache[ResourcePack, Seq[RenderUnit]](pack => Seq(new CloudUnit(pos, i, pack)))
@@ -56,7 +54,6 @@ class CloudUnit(pos: V3F, index: Int, pack: ResourcePack) extends RenderUnit {
   override def resources: Seq[ResourceNode] = Seq.empty
 }
 
-@CarboniteFields
 class ProceduralCloud(override val pos: V3F, val seed: Long, val size: V3I, val iso: Float, override val id: UUID, val minRad: Float, val maxRad: Float, val balls: Int, val scale: V3F, @transient lastRenderer: CloudRenderer) extends Entity with Moveable {
   val renderer: CloudRenderer =
     if (lastRenderer != null) lastRenderer

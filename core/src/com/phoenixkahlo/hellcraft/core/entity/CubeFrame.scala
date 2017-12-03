@@ -5,8 +5,6 @@ import java.util.UUID
 import com.badlogic.gdx.graphics.{Color, GL20}
 import com.badlogic.gdx.graphics.g3d.{ModelInstance, Renderable}
 import com.badlogic.gdx.utils.Pool
-import com.phoenixkahlo.hellcraft.carbonite.CarboniteWith
-import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.graphics.models.BlockOutlineModel
@@ -17,7 +15,6 @@ import com.phoenixkahlo.hellcraft.util.collections.ResourceNode
 
 import scala.collection.JavaConverters
 
-@CarboniteWith(classOf[FieldNode])
 case class CubeFrame(color: Color, override val pos: V3F, override val id: UUID) extends Entity {
   @transient private lazy val renderUnit = Seq(new CubeFrameRenderer(this))
 
