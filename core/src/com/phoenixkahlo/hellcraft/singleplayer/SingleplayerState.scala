@@ -40,7 +40,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var pack: ResourcePack = _
   private var renderer: Renderer = _
   private var processor: InputProcessor = _
-  @volatile private var loadTarget = V3ISet.empty
+  @volatile private var chunkDomain = V3ISet.empty
+  @volatile private var terrainDomain = V3ISet.empty
   private var clientLogic: ClientLogic = _
   private var sessionData: Map[String, Any] = Map.empty
   private val clientLogicQueue = new ConcurrentLinkedQueue[ClientLogic => ((World, ClientLogic.Input) => ClientLogic.Output)]
@@ -141,7 +142,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         // update world
         UniExecutor.point = V3F(renderer.cam.position)
         val p = (V3F(renderer.cam.position) / 16).floor
-        val effects = infinitum.update(loadTarget, externEffects)
+        val effects = infinitum.update(chunkDomain, terrainDomain, externEffects)
         val time = infinitum().time
 
         // enqueue input
@@ -233,7 +234,9 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       clientLogic = newClientLogic
       effects.foreach {
         case CauseUpdateEffect(worldEffects) => worldEffects.foreach(worldEffectQueue.add)
-        case SetLoadTarget(target) => loadTarget = target
+        case SetLoadTarget(c, t) =>
+          chunkDomain = c
+          terrainDomain = t
         case SetCamPos(p) => renderer.cam.position.set(p.x, p.y, p.z)
         case SetCamDir(d) => renderer.cam.direction.set(d.x, d.y, d.z)
         case SetCamFOV(fov) => renderer.cam.fieldOfView = fov

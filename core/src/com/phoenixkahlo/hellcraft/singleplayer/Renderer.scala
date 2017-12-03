@@ -69,6 +69,8 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
 
   def render(world: SWorld, units: Seq[RenderUnit], interpolation: Interpolation, hud: HUD): Unit = {
+    //Gdx.gl.asInstanceOf[GL11]
+
     //val skyDistance = LoadDist.fold(Math.max) * 20
     val skyDistance = cam.far - 1
     val camPos = V3F(cam.position)
@@ -171,7 +173,8 @@ class Renderer(resources: ResourcePack) extends Disposable {
     val (translucent, opaque) = units.partition(_.locationIfTransparent.isDefined)
     val opaqueSeq: Seq[Renderable] = (opaque ++ cloudUnits :+ sunMoon :+ stars).flatMap(_(interpolation)).sortBy(_.userData.hashCode())
     val transSeq = translucent.sortBy(_.locationIfTransparent.get dist camPos * -1).flatMap(_(interpolation))
-    val renderSeq = opaqueSeq ++ transSeq
+    val renderSeq: Seq[Renderable] = opaqueSeq ++ transSeq
+
 
     val provider = new RenderableProvider {
       override def getRenderables(renderables: utils.Array[Renderable], pool: Pool[Renderable]): Unit =

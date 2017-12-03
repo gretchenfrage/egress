@@ -24,7 +24,8 @@ class SWorld(
               override val time: Long,
               override val res: Int,
               val chunks: Map[V3I, Either[Chunk, Terrain]],
-              val domain: V3ISet,
+              val chunkDomain: V3ISet,
+              val terrainDomain: V3ISet,
               val active: Set[V3I],
               val min: Option[V3I],
               val max: Option[V3I]
@@ -32,7 +33,6 @@ class SWorld(
 
   override def chunkAt(p: V3I): Option[Chunk] =
     chunks.get(p).flatMap(LeftOption(_))
-
 
   override def terrainAt(p: V3I): Option[Terrain] =
     chunks.get(p).map({
@@ -56,9 +56,9 @@ class SWorld(
 
   private def compBoundingBox: SWorld =
     if (chunks isEmpty)
-      new SWorld(time, res, chunks, domain, active, None, None)
+      new SWorld(time, res, chunks, chunkDomain, terrainDomain, active, None, None)
     else
-      new SWorld(time, res, chunks, domain, active,
+      new SWorld(time, res, chunks, chunkDomain, terrainDomain, active,
         Some(V3I(chunks.keySet.toSeq.map(_.xi).min, chunks.keySet.toSeq.map(_.yi).min, chunks.keySet.toSeq.map(_.zi).min)),
         Some(V3I(chunks.keySet.toSeq.map(_.xi).max, chunks.keySet.toSeq.map(_.yi).max, chunks.keySet.toSeq.map(_.zi).max))
       )
@@ -67,66 +67,98 @@ class SWorld(
     * Remove those chunks from this world,
     */
   def --(ps: Seq[V3I]): SWorld = {
-    new SWorld(time, res, chunks -- ps, domain, active -- ps, None, None).compBoundingBox
+    new SWorld(time, res, chunks -- ps, chunkDomain, terrainDomain, active -- ps, None, None).compBoundingBox
+  }
+
+  def downgrade(ps: Seq[V3I]): SWorld = {
+    new SWorld(time, res, ps.foldLeft(chunks)({ case (map, p) => map.get(p) match {
+      case Some(Left(chunk)) => map.updated(p, Right(chunk.terrain))
+      case _ => map
+    }}), chunkDomain, terrainDomain, active -- ps, None, None)
   }
 
   def -(p: V3I): SWorld = {
-    new SWorld(time, res, chunks - p, domain, active - p, None, None).compBoundingBox
+    new SWorld(time, res, chunks - p, chunkDomain, terrainDomain, active - p, None, None).compBoundingBox
   }
 
   /**
     * Add those chunks to the world.
     */
-  def ++(cs: Seq[Chunk]): SWorld = {
+  def ++(cs: Seq[Either[Chunk, Terrain]]): SWorld = {
+    def pos(c: Either[Chunk, Terrain]): V3I = c match {
+      case Left(chunk) => chunk.pos
+      case Right(terrain) => terrain.pos
+    }
     if (cs.isEmpty)
       return this
-    val removed = this -- cs.map(_.pos)
+    val removed = this -- cs.map(pos)
     new SWorld(time, res,
-      removed.chunks ++ cs.map(c => c.pos -> Left(c)),
-      domain,
-      removed.active ++ cs.filter(_ isActive).map(_.pos),
+      removed.chunks ++ cs.map(c => pos(c) -> c),
+      chunkDomain, terrainDomain,
+      removed.active ++ cs.filter({
+        case Left(chunk) => chunk.isActive
+        case _ => false
+      }).map(pos),
       Some(V3I(
-        Math.min(cs.map(_.pos.xi).min, min.map(_.xi).getOrElse(Int.MaxValue)),
-        Math.min(cs.map(_.pos.yi).min, min.map(_.yi).getOrElse(Int.MaxValue)),
-        Math.min(cs.map(_.pos.zi).min, min.map(_.zi).getOrElse(Int.MaxValue))
+        Math.min(cs.map(pos(_).xi).min, min.map(_.xi).getOrElse(Int.MaxValue)),
+        Math.min(cs.map(pos(_).yi).min, min.map(_.yi).getOrElse(Int.MaxValue)),
+        Math.min(cs.map(pos(_).zi).min, min.map(_.zi).getOrElse(Int.MaxValue))
       )), Some(V3I(
-        Math.max(cs.map(_.pos.xi).max, max.map(_.xi).getOrElse(Int.MinValue)),
-        Math.max(cs.map(_.pos.yi).max, max.map(_.yi).getOrElse(Int.MinValue)),
-        Math.max(cs.map(_.pos.zi).max, max.map(_.zi).getOrElse(Int.MinValue))
+        Math.max(cs.map(pos(_).xi).max, max.map(_.xi).getOrElse(Int.MinValue)),
+        Math.max(cs.map(pos(_).yi).max, max.map(_.yi).getOrElse(Int.MinValue)),
+        Math.max(cs.map(pos(_).zi).max, max.map(_.zi).getOrElse(Int.MinValue))
       )))
   }
 
-  def +(c: Chunk): SWorld = {
-    val removed = this - c.pos
+  def addChunks(cs: Seq[Chunk]): SWorld = this ++ (cs map (Left(_)))
+  def addTerrains(ts: Seq[Terrain]): SWorld = this ++ (ts map (Right(_)))
+
+  def +(c: Either[Chunk, Terrain]): SWorld = {
+    def pos(c: Either[Chunk, Terrain]): V3I = c match {
+      case Left(chunk) => chunk.pos
+      case Right(terrain) => terrain.pos
+    }
+    val removed = this - pos(c)
     new SWorld(time, res,
-      removed.chunks + (c.pos -> Left(c)),
-      domain,
-      if (c.isActive) removed.active + c.pos else removed.active,
+      removed.chunks + (pos(c) -> c),
+      chunkDomain, terrainDomain,
+      c match {
+        case Left(chunk) if chunk isActive => removed.active + chunk.pos
+        case _ => removed.active
+      },
       Some(V3I(
-        Math.min(c.pos.xi, min.map(_.xi).getOrElse(Int.MaxValue)),
-        Math.min(c.pos.yi, min.map(_.yi).getOrElse(Int.MaxValue)),
-        Math.min(c.pos.zi, min.map(_.zi).getOrElse(Int.MaxValue))
+        Math.min(pos(c).xi, min.map(_.xi).getOrElse(Int.MaxValue)),
+        Math.min(pos(c).yi, min.map(_.yi).getOrElse(Int.MaxValue)),
+        Math.min(pos(c).zi, min.map(_.zi).getOrElse(Int.MaxValue))
       )), Some(V3I(
-        Math.max(c.pos.xi, max.map(_.xi).getOrElse(Int.MinValue)),
-        Math.max(c.pos.yi, max.map(_.yi).getOrElse(Int.MinValue)),
-        Math.max(c.pos.zi, max.map(_.zi).getOrElse(Int.MinValue))
+        Math.max(pos(c).xi, max.map(_.xi).getOrElse(Int.MinValue)),
+        Math.max(pos(c).yi, max.map(_.yi).getOrElse(Int.MinValue)),
+        Math.max(pos(c).zi, max.map(_.zi).getOrElse(Int.MinValue))
       )))
   }
+
+  def +(c: Chunk): SWorld = this + Left(c)
+  def +(t: Terrain): SWorld = this + Right(t)
 
   case class WithReplacedChunk(replaced: Chunk) extends World {
     lazy val nchunks = chunks + (replaced.pos -> Left(replaced))
 
     override def chunkAt(p: V3I): Option[Chunk] = nchunks.get(p).flatMap(LeftOption(_))
 
+    override def terrainAt(p: V3I): Option[Terrain] = SWorld.this.terrainAt(p)
+
     override def time: Long = SWorld.this.time
 
     override def res: Int = SWorld.this.res
 
-    override def findEntity(id: EntityID): Option[Entity] = nchunks.values.toStream.flatMap(_.entities.get(id)).headOption
+    override def findEntity(id: EntityID): Option[Entity] = nchunks.values.toStream.flatMap(LeftOption(_)).flatMap(_.entities.get(id)).headOption
 
     override def boundingBox: (V3I, V3I) = SWorld.this.boundingBox
 
-    override def debugChunkMap: Map[V3I, Chunk] = nchunks
+    override def debugChunkMap: Map[V3I, Chunk] = nchunks.flatMap({
+      case (p, Left(chunk)) => Some(p -> chunk)
+      case _ => None
+    })
   }
 
   /**
@@ -136,14 +168,14 @@ class SWorld(
   def integrate(events: Map[V3I, Seq[ChunkEvent]], mod: Int, freq: V3I): (SWorld, Seq[UpdateEffect]) = {
     val (updated: Seq[Chunk], accumulated: Seq[Seq[UpdateEffect]]) =
       events.filterKeys(_ % mod == freq).map({
-        case (p, group) => group.foldLeft((chunks(p), Seq.empty[UpdateEffect])) {
+        case (p, group) => group.foldLeft((chunks(p).left.get, Seq.empty[UpdateEffect])) {
           case ((chunk, accumulator), event) => {
             val (updatedChunk, newEffects) = event(chunk, WithReplacedChunk(chunk))
             (updatedChunk, accumulator ++ newEffects)
           }
         }
       }).toSeq.unzip
-    (this ++ updated, accumulated.flatten)
+    (this addChunks updated, accumulated.flatten)
   }
 
   /**
@@ -164,25 +196,25 @@ class SWorld(
     * Increment the time
     */
   def incrTime: SWorld = {
-    new SWorld(time + 1, res, chunks, domain, active, min, max)
+    new SWorld(time + 1, res, chunks, chunkDomain, terrainDomain, active, min, max)
   }
 
-  def setDomain(newDomain: V3ISet): SWorld = {
-    new SWorld(time, res, chunks, newDomain, active, min, max)
+  def setDomain(newChunkDomain: V3ISet, newTerrainDomain: V3ISet): SWorld = {
+    new SWorld(time, res, chunks, newChunkDomain, newTerrainDomain, active, min, max)
   }
 
   /**
     * Get all effects from chunks with complete terrain
     */
   def effects(dt: Float): Seq[UpdateEffect] = {
-    active.toSeq.map(chunks(_)).flatMap(_.update(this))
+    active.toSeq.map(chunks(_).left.get).flatMap(_.update(this))
   }
 
   /**
     * The render units of all chunks
     */
   def renderables(resources: ResourcePack): Seq[RenderUnit] = {
-    chunks.values.flatMap(_.renderables(resources, this)).toSeq
+    chunks.values.flatMap(_.left.toOption).flatMap(_.renderables(resources, this)).toSeq
   }
 
 }
@@ -192,58 +224,81 @@ class SWorld(
   */
 class Infinitum(res: Int, save: AsyncSave, dt: Float) {
 
-  @volatile private var history = SortedMap(0L -> new SWorld(0, res, Map.empty, V3ISet.empty, Set.empty, None, None))
+  @volatile private var history = SortedMap(0L -> new SWorld(0, res, Map.empty, V3ISet.empty, V3ISet.empty, Set.empty, None, None))
 
   private implicit val chunkFulfill = new FulfillmentContext[V3I, Chunk]
+  private implicit val terrainFulfill = new FulfillmentContext[V3I, Terrain]
   private implicit val executor = UniExecutor.getService
 
   type LoadID = UUID
-  private val loadQueue = new ConcurrentLinkedQueue[(Chunk, LoadID)]
-  private var loadMap = Map.empty[V3I, LoadID]
+  private val chunkLoadQueue = new ConcurrentLinkedQueue[(Chunk, LoadID)]
+  private var chunkLoadMap = Map.empty[V3I, LoadID]
+  private var terrainLoadQueue = new ConcurrentLinkedQueue[(Terrain, LoadID)]
+  private var terrainLoadMap = Map.empty[V3I, LoadID]
 
   // TODO: save to db
   private var pendingEvents = Map.empty[V3I, Seq[ChunkEvent]]
-
   private val requestedQueue = new ConcurrentLinkedQueue[World => Seq[ChunkEvent]]
 
   def apply(t: Long): Option[SWorld] = history.get(t)
   def apply(): SWorld = history.last._2
 
-  def loading: Set[V3I] = loadMap.keySet
+  def loading: Set[V3I] = chunkLoadMap.keySet
 
   def finalSave(): Fut[Unit] = {
-    PromiseFold(save.close(this().chunks))
+    PromiseFold(save.close(this().chunks.flatMap({
+      case (p, Left(chunk)) => Some(p -> chunk)
+      case _ => None
+    })))
   }
 
   /**
     * Update the world, and return the effects.
     * This concurrent, imperative logic is probably the most complicated part of this game, so let's Keep It Simple Sweety.
    */
-  def update(loadTarget: V3ISet, externalEvents: Seq[UpdateEffect] = Seq.empty): Map[UpdateEffectType, Seq[UpdateEffect]] = {
+  def update(chunkDomain: V3ISet, terrainDomain: V3ISet, externalEvents: Seq[UpdateEffect] = Seq.empty): Map[UpdateEffectType, Seq[UpdateEffect]] = {
     var world = this()
 
     val p = Profiler("main update")
 
+    // downgrade chunks that left the chunk domain
+    val toDowngrade = (world.chunkDomain -- chunkDomain).toSeq.flatMap(world.chunks.get).flatMap(_.left.toOption)
+    save.push(toDowngrade)
+    world = world.downgrade(toDowngrade.map(_.pos))
+    chunkFulfill.remove(toDowngrade.map(_.pos))
+
+    // remove terrain that left the terrain domain
+    val toRemove = world.terrainDomain -- terrainDomain filter (world.chunks contains)
+    world --= toRemove.toSeq
+    terrainFulfill.remove(toRemove)
+
     // push chunks to save
-    val toUnload = (world.domain -- loadTarget).toSeq.flatMap(world.chunks.get)
+    /*
+    val toUnload = (world.chunkDomain -- chunkDomain).toSeq.flatMap(world.chunks.get).flatMap(_.left.toOption)
     save.push(toUnload)
     // remove them from the world
     world --= toUnload.map(_.pos)
     // remove them from the context
     chunkFulfill.remove(toUnload.map(_.pos))
+    */
 
     p.log()
 
-    // pull chunk futures from save to create load futures
-    val loadFuts: Map[V3I, Fut[Chunk]] = save.pull((loadTarget -- world.domain).toSeq)
-    for ((p, fut) <- loadFuts) {
+    // pull chunk and terrain futures from save to create load futures
+    val (chunkLoadFuts, terrainLoadFuts) = save.pull((chunkDomain -- world.chunkDomain).toSeq, (terrainDomain -- world.terrainDomain).toSeq)
+    for ((p, fut) <- chunkLoadFuts) {
       val loadID = UUID.randomUUID()
-      loadMap += p -> loadID
-      fut.onComplete(() => loadQueue.add(fut.query.get -> loadID))
+      chunkLoadMap += p -> loadID
+      fut.onComplete(() => chunkLoadQueue.add(fut.query.get -> loadID))
+    }
+    for ((p, fut) <- terrainLoadFuts) {
+      val loadID = UUID.randomUUID()
+      terrainLoadMap += p -> loadID
+      fut.onComplete(() => terrainLoadQueue.add(fut.query.get -> loadID))
     }
 
     // set the new domain
-    world = world.setDomain(loadTarget)
+    world = world.setDomain(chunkDomain, terrainDomain)
 
     p.log()
 
@@ -256,16 +311,24 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     p.log()
 
     // pull loaded chunks from the queue and add them to the world if they're valid, also accumulate pending events
-    while (loadQueue.size > 0) {
-      val (chunk, loadID) = loadQueue.remove()
-      if (loadMap.get(chunk.pos).contains(loadID)) {
-        loadMap -= chunk.pos
+    while (chunkLoadQueue.size > 0) {
+      val (chunk, loadID) = chunkLoadQueue.remove()
+      if (chunkLoadMap.get(chunk.pos).contains(loadID)) {
+        chunkLoadMap -= chunk.pos
         world += chunk
         chunkFulfill.put(chunk.pos, chunk)
         if (pendingEvents contains chunk.pos) {
           events ++= pendingEvents(chunk.pos)
           pendingEvents -= chunk.pos
         }
+      }
+    }
+    while (terrainLoadQueue.size > 0) {
+      val (terrain, loadID) = terrainLoadQueue.remove()
+      if (terrainLoadMap.get(terrain.pos).contains(loadID)) {
+        terrainLoadMap -= terrain.pos
+        world += terrain
+        terrainFulfill.put(terrain.pos, terrain)
       }
     }
 
@@ -298,7 +361,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       // update the chunk fulfiller with the updated chunks
       // TODO: do this once per loop, and optimize the chunk set getting
       for (p <- integrateNow.map(_.target).distinct) {
-        chunkFulfill.put(p, world.chunks(p))
+        chunkFulfill.put(p, world.chunks(p).left.get)
       }
 
       // group

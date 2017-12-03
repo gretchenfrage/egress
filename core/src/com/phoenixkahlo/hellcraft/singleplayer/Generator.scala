@@ -15,12 +15,9 @@ import com.phoenixkahlo.hellcraft.util.threading.{Fut, MergeFut, UniExecutor}
 import scala.collection.mutable
 
 trait Generator {
-  //val chunkAt: V3I => Fut[Option[Chunk]]
   val chunkAt: V3I => Fut[Chunk]
 
-  //def domain: V3ISet
-
-  //def domain_=(newDomain: V3ISet): Unit
+  val terrainAt: V3I => Fut[Terrain]
 
   def cancel(): Unit
 }
@@ -31,17 +28,6 @@ class DefaultGenerator(res: Int) extends Generator {
   private val noise = Simplex(1f / 8f, 15f)
 
   @volatile private var cancelled = false
-  /*
-
-  override val chunkAt: V3I => Fut[Option[Chunk]] = _
-
-  @volatile private var _domain: V3ISet = Origin toAsSet Origin
-  override def domain: V3ISet = _domain
-  override def domain_=(newDomain: V3ISet): Unit = {
-    _domain = newDomain
-    ???
-  }
-
 
   val heightAt = new MemoFunc[V2I, Fut[FloatField]](v =>
     Fut(FloatField(V3I(res, 1, res),
@@ -49,30 +35,7 @@ class DefaultGenerator(res: Int) extends Generator {
     ), UniExecutor.exec(v * 16))
   )
 
-  val terrainAt = new FutDomain[V3I, Terrain](p =>
-    heightAt(p.flatten).mapCancellable(
-      height => Terrain(p, IDField[TerrainUnit](V3I(res, res, res), (i: V3I) => {
-        val depth = (p.yi * res + i.yi) - height(V3I(i.xi, 0, i.zi))
-        if (depth >= 0) Air
-        else if (p.flatten % 2 == Origin2D) Blocks.Stone
-        else Materials.Grass
-      }))
-    , UniExecutor.exec(p * 16))
-  )
-
-  val soupAt = new Domain[V3I, Fut[Option[(Terrain, BlockSoup, TerrainSoup)]]](p =>
-    p.neighbors
-      .map(terrainAt)
-  )
-  */
-
-  val heightAt = new MemoFunc[V2I, Fut[FloatField]](v =>
-    Fut(FloatField(V3I(res, 1, res),
-      i => noise(v * res + i.flatten)
-    ), UniExecutor.exec(v * 16))
-  )
-
-  val terrainAt = new MemoFunc[V3I, Fut[Terrain]](p =>
+  override val terrainAt = new MemoFunc[V3I, Fut[Terrain]](p =>
     if (!cancelled) {
       heightAt(p.flatten).map(
         height => Terrain(p, IDField[TerrainUnit](V3I(res, res, res), (i: V3I) => {
@@ -109,7 +72,6 @@ class DefaultGenerator(res: Int) extends Generator {
       soupAt(p).map({ case (ter, bs, ts) => new Chunk(p, ter, Map.empty, ts, bs, None, None) }, UniExecutor.exec(p * 16))
     } else Fut(null: Chunk, _.run())
   )
-
 
   override def cancel(): Unit = {
     cancelled = true

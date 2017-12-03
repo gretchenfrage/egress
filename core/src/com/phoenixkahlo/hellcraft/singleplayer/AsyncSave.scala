@@ -5,7 +5,7 @@ import java.nio.file.Path
 
 import com.phoenixkahlo.hellcraft.carbonite.{CarboniteInputStream, CarboniteOutputStream, LazyDeserial}
 import com.phoenixkahlo.hellcraft.carbonite.egress.EgressCarboniteConfig
-import com.phoenixkahlo.hellcraft.core.Chunk
+import com.phoenixkahlo.hellcraft.core.{Chunk, Terrain}
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, FutSequences, UniExecutor}
 
@@ -20,7 +20,7 @@ trait AsyncSave {
   def push(chunks: Seq[Chunk]): Seq[Fut[Unit]] =
     push(chunks.map(c => (c.pos, c)).toMap)
 
-  def pull(chunks: Seq[V3I]): Map[V3I, Fut[Chunk]]
+  def pull(chunks: Seq[V3I], terrain: Seq[V3I]): (Map[V3I, Fut[Chunk]], Map[V3I, Fut[Terrain]])
 
 }
 
