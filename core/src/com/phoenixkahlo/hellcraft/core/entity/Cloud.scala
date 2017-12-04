@@ -53,7 +53,7 @@ class CloudUnit(pos: V3F, index: Int, pack: ResourcePack) extends RenderUnit {
 
   override def resources: Seq[ResourceNode] = Seq.empty
 }
-
+/*
 class ProceduralCloud(override val pos: V3F, val seed: Long, val size: V3I, val iso: Float, override val id: UUID, val minRad: Float, val maxRad: Float, val balls: Int, val scale: V3F, @transient lastRenderer: CloudRenderer) extends Entity with Moveable {
   val renderer: CloudRenderer =
     if (lastRenderer != null) lastRenderer
@@ -174,7 +174,7 @@ class CloudRenderer(cloud: ProceduralCloud) {
     val indices = new ArrayBuffer[Short]
     for {
       v <- Origin untilAsSeq cloud.size* 3 - Ones
-      (d1, d2, d3) <- TerrainSoup.deltas
+      (d1, d2, d3, dir) <- TerrainSoup.deltas
     } yield (vertField(v), vertField(v + d1), vertField(v + d2), vertField(v + d3)) match {
       case (Some(vert1), Some(vert2), Some(vert3), Some(vert4)) =>
         // verts 1, 2, 3
@@ -256,3 +256,4 @@ class CloudRenderer(cloud: ProceduralCloud) {
 
   def apply(pack: ResourcePack): Seq[RenderUnit] = units(pack)
 }
+*/

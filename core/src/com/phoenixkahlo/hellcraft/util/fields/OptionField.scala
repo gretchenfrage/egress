@@ -43,6 +43,14 @@ class OptionField[T <: AnyRef] private(private val data: Either[Array[T], Vector
     case t => func(t)
   })), sizeVec)
 
+  def fm[N >: Null <: AnyRef](func: T => Option[N]) = new OptionField[N](Right(asVector.map({
+    case null => null
+    case t => func(t) match {
+      case Some(n) => n
+      case None => null
+    }
+  })), sizeVec)
+
   override def iterator: Iterator[T] =
     Origin.untilAsSeq(sizeVec).iterator.flatMap(apply)
 

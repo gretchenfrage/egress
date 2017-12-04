@@ -47,10 +47,10 @@ object TerrainSoup {
     V3I(1, 1, 0) -> Ones
   )
 
-  val deltas = Seq(
-    (North, North + West, West),
-    (Up, Up + North, North),
-    (Up, Up + West, West)
+  val deltas: Seq[(V3I, V3I, V3I, Direction)] = Seq(
+    (North, North + West, West, Up),
+    (Up, Up + North, North, West),
+    (Up, Up + West, West, South)
   )
 
   def apply(terrain: Terrain, world: TerrainGrid): Option[TerrainSoup] =
@@ -58,14 +58,16 @@ object TerrainSoup {
     val offset = terrain.pos * world.res
 
     // generate the vertex field with an overshoot of <1, 1, 1> to connect the chunks
-    val verts = OptionField[TerrainSoup.Vert](world.resVec + Ones, v => {
-      val corners = (v toAsSeq v + Ones).map(v => world.terrainGridPoint(offset + v).get)
+    // the lefts represent a vertex, the rights (unit) represent a solid filling
+    val someRightUnit = Some(Right((): Unit))
+    val verts = OptionField[Either[TerrainSoup.Vert, Unit]](world.resVec + V3I(2, 2, 2), v => {
+      val corners: Seq[TerrainUnit] = (v toAsSeq v + Ones).map(v => world.terrainGridPoint(offset + v).get)
       if (corners.exists(_.id < 0)) {
         // if one of the corners is a block, we must snap to the center
         // but if none of the corners are terrain, we shouldn't place a vertex at all
         corners.find(_.id > 0).map(mat => {
           val pos = (offset + v + V3F(0.5f, 0.5f, 0.5f)) / world.res * 16
-          Vert(pos, mat.asInstanceOf[Material], world.sampleDirection(pos).get.neg)
+          Left(Vert(pos, mat.asInstanceOf[Material], world.sampleDirection(pos).get.neg))
         })
       } else {
         // otherwise, we can do surface nets as normal
@@ -79,15 +81,17 @@ object TerrainSoup {
             isopoints += ((v1 + v2) / 2)
           }
         }
-        if (isopoints isEmpty) None
-        else {
+        if (isopoints isEmpty) {
+          if (corners.forall(_.id > 0)) someRightUnit
+          else None
+        } else {
           // average isopoints and convert to spatial coords
           val vertPos = (isopoints.fold(Origin)(_ + _) / isopoints.size) / world.res * 16
           // find a material that's not air
           val mat = (v toAsSeq v + Ones).toStream
             .map(vv => world.terrainGridPoint(offset + vv).get).filterNot(_ == Air).head
 
-          Some(TerrainSoup.Vert(vertPos, mat.asInstanceOf[Material], world.sampleDirection(vertPos).get.neg))
+          Some(Left(TerrainSoup.Vert(vertPos, mat.asInstanceOf[Material], world.sampleDirection(vertPos).get.neg)))
         }
       }
     })
@@ -95,7 +99,7 @@ object TerrainSoup {
     // generate the vertex-index maps in both direction
     val indexToVert = new ArrayBuffer[V3I]
     val vertToIndex = new ShortFieldBuffer(verts.sizeVec)
-    for ((v, i) <- (Origin untilAsSeq verts.sizeVec).filter(verts(_) isDefined).zipWithIndex) {
+    for ((v, i) <- (Origin untilAsSeq verts.sizeVec).filter(verts(_).exists(_.isLeft)).zipWithIndex) {
       indexToVert += v
       vertToIndex(v) = i toShort
     }
@@ -104,10 +108,18 @@ object TerrainSoup {
     val indices = new ArrayBuffer[Short]
     for {
       v <- Origin untilAsSeq verts.sizeVec - Ones
-      (d1, d2, d3) <- deltas
+      (d1, d2, d3, dir) <- deltas
     } yield (verts(v), verts(v + d1), verts(v + d2), verts(v + d3)) match {
-      case (Some(vert1), Some(vert2), Some(vert3), Some(vert4)) =>
+      case (Some(Left(vert1)), Some(Left(vert2)), Some(Left(vert3)), Some(Left(vert4))) =>
+        if (Seq(verts(v + dir), verts(v + d1 + dir), verts(v + d2 + dir), verts(v + d3 + dir)).exists(_.isEmpty)) {
+          indices.append(vertToIndex(v), vertToIndex(v + d1), vertToIndex(v + d2))
+          indices.append(vertToIndex(v), vertToIndex(v + d2), vertToIndex(v + d3))
+        } else {
+          indices.append(vertToIndex(v), vertToIndex(v + d2), vertToIndex(v + d1))
+          indices.append(vertToIndex(v), vertToIndex(v + d3), vertToIndex(v + d2))
+        }
         // verts 1, 2, 3
+        /*
         if ((((vert2.pos - vert1.pos) cross (vert3.pos - vert1.pos)) dot
           world.sampleDirection((vert1.pos + vert2.pos + vert3.pos) / 3).get.neg) > 0)
           indices.append(vertToIndex(v), vertToIndex(v + d1), vertToIndex(v + d2))
@@ -119,9 +131,10 @@ object TerrainSoup {
           indices.append(vertToIndex(v), vertToIndex(v + d2), vertToIndex(v + d3))
         else
           indices.append(vertToIndex(v), vertToIndex(v + d3), vertToIndex(v + d2))
+          */
       case _ =>
     }
-    Some(new TerrainSoup(terrain.pos, verts, indices, indexToVert, vertToIndex.immutabilize))
+    Some(new TerrainSoup(terrain.pos, verts.fm(_.left.toOption), indices, indexToVert, vertToIndex.immutabilize))
   } else None
 }
 
