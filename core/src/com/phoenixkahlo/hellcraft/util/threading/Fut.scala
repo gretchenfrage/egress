@@ -482,7 +482,7 @@ object FulfillTest extends App {
 
 
 }
-
+/*
 case class Promise(task: Runnable, executor: Runnable => Unit) extends Fut[Unit] {
   @volatile private var done: Boolean = false
   private val listeners = new ArrayBuffer[Runnable]
@@ -515,6 +515,7 @@ case class Promise(task: Runnable, executor: Runnable => Unit) extends Fut[Unit]
     }
   }
 }
+*/
 
 private class SeqFut[T](last: Fut[_], factory: => T, executor: Runnable => Unit) extends Fut[T] {
   @volatile private var status: Option[T] = None

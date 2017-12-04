@@ -43,7 +43,7 @@ class SWorld(
 
   override def debugLoadedChunks: Iterable[V3I] = chunks.keySet.toSeq.filter(chunks(_).isLeft)
 
-  override def debugLoadedTerrain: Iterable[V3I] = chunks.keySet.toSeq.filter(chunks(_).isRight)
+  override def debugLoadedTerrain: Iterable[V3I] = chunks.keySet
 
   override def findEntity(id: EntityID): Option[Entity] =
     chunks.values.toStream.flatMap(LeftOption(_)).flatMap(_.entities.get(id)).headOption
@@ -270,16 +270,6 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     world --= toRemove.toSeq
     terrainFulfill.remove(toRemove)
 
-    // push chunks to save
-    /*
-    val toUnload = (world.chunkDomain -- chunkDomain).toSeq.flatMap(world.chunks.get).flatMap(_.left.toOption)
-    save.push(toUnload)
-    // remove them from the world
-    world --= toUnload.map(_.pos)
-    // remove them from the context
-    chunkFulfill.remove(toUnload.map(_.pos))
-    */
-
     p.log()
 
     // pull chunk and terrain futures from save to create load futures
@@ -303,7 +293,8 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     // TODO: should we pend other effects?
 
     // get effects and begin to accumulate events
-    val effects: Map[UpdateEffectType, Seq[UpdateEffect]] = (world.effects(dt) ++ externalEvents).groupBy(_.effectType).withDefaultValue(Seq.empty)
+    val effects: Map[UpdateEffectType, Seq[UpdateEffect]] =
+      (world.effects(dt) ++ externalEvents).groupBy(_.effectType).withDefaultValue(Seq.empty)
     var events: Seq[ChunkEvent] = effects(ChunkEvent).map(_.asInstanceOf[ChunkEvent])
 
     p.log()
@@ -348,7 +339,6 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       // partition events by whether they can be integrated immediately
       val (integrateNow: Seq[ChunkEvent], integrateLater: Seq[ChunkEvent]) =
         events.partition(event => world.chunks.get(event.target).flatMap(_.left.toOption).isDefined)
-        //events.partition(world.chunks contains _.target)
 
       // add the events that can't be immediately integrated to the pending event sequence
       for ((key, seq) <- integrateLater.groupBy(_.target)) {
@@ -363,6 +353,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       // TODO: do this once per loop, and optimize the chunk set getting
       for (p <- integrateNow.map(_.target).distinct) {
         chunkFulfill.put(p, world.chunks(p).left.get)
+        terrainFulfill.put(p, world.chunks(p).left.get.terrain)
       }
 
       // group

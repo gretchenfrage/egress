@@ -1,6 +1,5 @@
 package com.phoenixkahlo.hellcraft.core
 
-import com.phoenixkahlo.hellcraft.carbonite._
 import com.phoenixkahlo.hellcraft.core.Materials.seq
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.util.fields.IDMapping

@@ -3,8 +3,6 @@ package com.phoenixkahlo.hellcraft.singleplayer
 import java.io.{FileInputStream, FileOutputStream}
 import java.nio.file.Path
 
-import com.phoenixkahlo.hellcraft.carbonite.{CarboniteInputStream, CarboniteOutputStream, LazyDeserial}
-import com.phoenixkahlo.hellcraft.carbonite.egress.EgressCarboniteConfig
 import com.phoenixkahlo.hellcraft.core.{Chunk, Terrain}
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, FutSequences, UniExecutor}

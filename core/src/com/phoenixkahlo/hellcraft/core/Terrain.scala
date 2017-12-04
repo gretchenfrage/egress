@@ -1,8 +1,5 @@
 package com.phoenixkahlo.hellcraft.core
 
-import com.phoenixkahlo.hellcraft.carbonite
-import com.phoenixkahlo.hellcraft.carbonite._
-import com.phoenixkahlo.hellcraft.carbonite.nodetypes.FieldNode
 import com.phoenixkahlo.hellcraft.core.BlockSoup.Vert
 import com.phoenixkahlo.hellcraft.core.TerrainSoup.Vert
 import com.phoenixkahlo.hellcraft.math._

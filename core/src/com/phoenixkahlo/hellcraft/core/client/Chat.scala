@@ -119,6 +119,9 @@ object Commands {
       ClientPrint("")
     )
 
+  def chunkdebugmode(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
+    Seq(SetSessionProperty("chunk_debug_mode", j.asInstanceOf[String]))
+
   val commands: Map[String, (World, ClientLogic.Input) => (AnyRef => Seq[ClientEffect])] = Map(
     "print" -> print,
     "stevie" -> stevie,
@@ -126,7 +129,8 @@ object Commands {
     "showtasks" -> showtasks,
     "requesttest" -> requesttest,
     "queuestats" -> queuestats,
-    "requestchunktest" -> requestchunktest
+    "requestchunktest" -> requestchunktest,
+    "chunkdebugmode" -> chunkdebugmode
   )
 
   def apply(command: String, world: World, input: ClientLogic.Input): Seq[ClientEffect] = {

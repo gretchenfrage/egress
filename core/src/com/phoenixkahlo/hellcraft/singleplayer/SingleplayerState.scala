@@ -25,7 +25,7 @@ import com.phoenixkahlo.hellcraft.util.audio.AudioUtil
 import com.phoenixkahlo.hellcraft.util.caches.Cache
 import com.phoenixkahlo.hellcraft.util.collections.spatial.SpatialTemporalQueue
 import com.phoenixkahlo.hellcraft.util.collections.{DependencyGraph, ResourceNode, V3ISet}
-import com.phoenixkahlo.hellcraft.util.threading.UniExecutor
+import com.phoenixkahlo.hellcraft.util.threading.{Fut, Promise, UniExecutor}
 import other.AppDirs
 
 import scala.concurrent.duration._
@@ -141,7 +141,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
         // update world
         UniExecutor.point = V3F(renderer.cam.position)
-        val p = (V3F(renderer.cam.position) / 16).floor
         val effects = infinitum.update(chunkDomain, terrainDomain, externEffects)
         val time = infinitum().time
 
@@ -278,15 +277,23 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   }
 
   override def onExit(): Unit = {
+    // unhook further input events to avoid problems
     Gdx.input.setInputProcessor(new InputAdapter)
+    // start interrupting the main loop
     updateThread.interrupt()
+    // while that's closing, we can dispose of the graphics system
     renderer.dispose()
+    // before we resume, we need to wait for the main loop to completely close
     updateThread.join()
+    // start saving the world
     println("saving...")
-    val close = infinitum.finalSave()
+    val close: Promise = infinitum.finalSave()
+    // while that's happening, we can dispose of all graphics resources owned by the VRAM graph
     vramGraph.managing.foreach(_.dispose())
+    // now we wait for the world to finish saving
     close.await
     println("...saved!")
+    // finally, kill the executor, any tasks in it are no longer needed
     UniExecutor.deactivate()
   }
 

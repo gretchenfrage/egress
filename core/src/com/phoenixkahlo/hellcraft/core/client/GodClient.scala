@@ -240,6 +240,7 @@ case class GodClient(pressed: Set[Int], chat: Chat) extends ClientLogic {
       units += new BlockOutline(v, Color.WHITE, 0.95f)
     }
 
+    /*
     if (pressed(ALT_LEFT)) {
       for (c <- world.debugLoadedChunks) {
         units += new ChunkOutline(c, Color.WHITE)
@@ -247,6 +248,16 @@ case class GodClient(pressed: Set[Int], chat: Chat) extends ClientLogic {
       for (c <- world.debugLoadedTerrain) {
         units += new ChunkOutline(c, Color.BLUE)
       }
+    }
+    */
+    input.sessionData.get("chunk_debug_mode").map(_.asInstanceOf[String]).getOrElse("") match {
+      case "chunk" => for (c <- world.debugLoadedChunks) {
+        units += new ChunkOutline(c, Color.WHITE)
+      }
+      case "terrain" => for (c <- world.debugLoadedTerrain) {
+        units += new ChunkOutline(c, Color.GRAY)
+      }
+      case _ =>
     }
     if (input.sessionData.get("show_tasks").exists(_.asInstanceOf[Boolean])) {
       val (tasks3D, tasks2D, tasksDB3D) = input.executor.getSpatialTasks
