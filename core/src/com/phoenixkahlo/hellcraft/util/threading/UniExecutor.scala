@@ -4,7 +4,7 @@ import java.util
 import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue, ThreadFactory}
 import java.util.function.{Consumer, Supplier}
 
-import com.phoenixkahlo.hellcraft.math.{V2F, V3F}
+import com.phoenixkahlo.hellcraft.math.{V2F, V2I, V3F}
 import com.phoenixkahlo.hellcraft.util.collections.spatial._
 
 import scala.concurrent.duration._
@@ -13,10 +13,10 @@ import scala.collection.mutable.ArrayBuffer
 class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: Consumer[Throwable], equator: Long => Float) {
 
   private val seqQueue = new LinkedBlockingQueue[Runnable]
-  private val queue3D = new SpatialTemporalQueue3D[Runnable](equator)
-  private val queue2D = new SpatialTemporalQueue2D[Runnable](equator)
+  private val queue3D = new SpatialTemporalQueue3D[Runnable](equator, V3F(1, 2, 1))
+  private val queue2D = new SpatialTemporalQueue2D[Runnable](equator, V2I(1, 1))
   private val dbQueue = new LinkedBlockingQueue[Runnable]
-  private val dbQueue3D = new SpatialTemporalQueue3D[Runnable](equator)
+  private val dbQueue3D = new SpatialTemporalQueue3D[Runnable](equator, V3F(1, 2, 1))
 
   private val ticketQueue = new LinkedBlockingQueue[Supplier[Option[Runnable]]]
   private val workers = new ArrayBuffer[Thread]

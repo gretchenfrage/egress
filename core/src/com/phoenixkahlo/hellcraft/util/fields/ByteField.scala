@@ -35,6 +35,8 @@ class ByteField private[fields](private var data: Either[Array[Byte], Vector[Byt
     new ByteField(asVector.updated(size.compress(v), b), size)
   }
 
+  def vectorize: ByteField = new ByteField(Right(asVector), _size)
+
   def get(v: V3I): Option[Byte] =
     if (v >= Origin && v < size) data match {
       case Left(arr) => Some(arr(size.compress(v)))

@@ -38,12 +38,29 @@ class DefaultGenerator(res: Int) extends Generator {
   override val terrainAt = new MemoFunc[V3I, Fut[Terrain]](p =>
     if (!cancelled) {
       heightAt(p.flatten).map(
-        height => Terrain(p, IDField[TerrainUnit](V3I(res, res, res), (i: V3I) => {
-          val depth = (p.yi * res + i.yi) - height(V3I(i.xi, 0, i.zi))
-          if (depth >= 0) Air
-          else if (p.flatten % 2 == Origin2D) Blocks.Stone
-          else Materials.Grass
-        }))
+        height => {
+          val field =
+            if ((p.yi + 1) * 16 < height.min)
+              if (p.flatten % 2 == Origin2D) MatField.solid(Blocks.Stone)
+              else MatField.solid(Materials.Grass)
+            else if (p.yi * 16 > height.max)
+              MatField.solid(Air)
+            else {
+              IDField[TerrainUnit](V3I(res, res, res), (i: V3I) => {
+                val depth = (p.yi * res + i.yi) - height(V3I(i.xi, 0, i.zi))
+                if (depth >= 0) Air
+                else if (p.flatten % 2 == Origin2D) Blocks.Stone
+                else Materials.Grass
+              })
+            }
+          /*Terrain(p, IDField[TerrainUnit](V3I(res, res, res), (i: V3I) => {
+            val depth = (p.yi * res + i.yi) - height(V3I(i.xi, 0, i.zi))
+            if (depth >= 0) Air
+            else if (p.flatten % 2 == Origin2D) Blocks.Stone
+            else Materials.Grass
+          }))*/
+          Terrain(p, field)
+        }
       , UniExecutor.exec(p * 16))
     } else Fut(null: Terrain, _.run())
   )
