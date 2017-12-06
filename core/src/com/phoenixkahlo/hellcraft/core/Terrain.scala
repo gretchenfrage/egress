@@ -118,23 +118,9 @@ object TerrainSoup {
           indices.append(vertToIndex(v), vertToIndex(v + d2), vertToIndex(v + d1))
           indices.append(vertToIndex(v), vertToIndex(v + d3), vertToIndex(v + d2))
         }
-        // verts 1, 2, 3
-        /*
-        if ((((vert2.pos - vert1.pos) cross (vert3.pos - vert1.pos)) dot
-          world.sampleDirection((vert1.pos + vert2.pos + vert3.pos) / 3).get.neg) > 0)
-          indices.append(vertToIndex(v), vertToIndex(v + d1), vertToIndex(v + d2))
-        else
-          indices.append(vertToIndex(v), vertToIndex(v + d2), vertToIndex(v + d1))
-        // verts 1, 3, 4
-        if ((((vert3.pos - vert1.pos) cross (vert4.pos - vert1.pos)) dot
-          world.sampleDirection((vert1.pos + vert3.pos + vert4.pos) / 3).get.neg) > 0)
-          indices.append(vertToIndex(v), vertToIndex(v + d2), vertToIndex(v + d3))
-        else
-          indices.append(vertToIndex(v), vertToIndex(v + d3), vertToIndex(v + d2))
-          */
       case _ =>
     }
-    Some(new TerrainSoup(terrain.pos, verts.fm(_.left.toOption), indices, indexToVert, vertToIndex.immutabilize))
+    Some(new TerrainSoup(terrain.pos, verts.flatMapField(_.left.toOption), indices, indexToVert, vertToIndex.immutabilize))
   } else None
 }
 
