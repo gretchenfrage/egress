@@ -15,6 +15,12 @@ case class V2F(x: Float, y: Float) extends Serializable {
   def *(s: Float) =
     V2F(x * s, y * s)
 
+  def **(s: V2F) =
+    V2F(x * s.x, y * s.y)
+
+  def \\(s: V2F) =
+    V2F(x / s.x, y / s.y)
+
   def /(s: Float) =
     V2F(x / s, y / s)
 

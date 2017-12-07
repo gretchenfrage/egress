@@ -72,7 +72,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
     //Gdx.gl.asInstanceOf[GL11]
 
     //val skyDistance = LoadDist.fold(Math.max) * 20
-    val skyDistance = cam.far - 1
+    val skyDistance = cam.far - 5
     val camPos = V3F(cam.position)
 
     // remove old clouds and add new clouds

@@ -11,8 +11,12 @@ import scala.collection.immutable.Queue
 import scala.concurrent.duration._
 
 
-class SpatialTemporalQueue3D[E](timeToSpace: Long => Float) extends SpatialTemporalQueue[V3F, V4F, E](timeToSpace) {
+class SpatialTemporalQueue3D[E](timeToSpace: Long => Float, sca: V3F) extends SpatialTemporalQueue[V3F, V4F, E](timeToSpace) {
   override protected def emptyTree = HexadecaTree.empty(V4F(0, 0, 0, 0), Float.MaxValue)
+
+  override protected def scale(k: V3F): V3F = k ** sca
+
+  override protected def unscale(k: V3F): V3F = k \\ sca
 
   override protected def startPoint = Origin
 
@@ -21,8 +25,12 @@ class SpatialTemporalQueue3D[E](timeToSpace: Long => Float) extends SpatialTempo
   override protected def flatten(h: V4F) = h.flatten
 }
 
-class SpatialTemporalQueue2D[E](timeToSpace: Long => Float) extends SpatialTemporalQueue[V2F, V3F, E](timeToSpace) {
+class SpatialTemporalQueue2D[E](timeToSpace: Long => Float, sca: V2F) extends SpatialTemporalQueue[V2F, V3F, E](timeToSpace) {
   override protected def emptyTree = Octree.empty(Origin, Float.MaxValue)
+
+  override protected def scale(k: V2F): V2F = k ** sca
+
+  override protected def unscale(k: V2F): V2F = k \\ sca
 
   override protected def startPoint = V2F(0, 0)
 
@@ -44,12 +52,14 @@ abstract class SpatialTemporalQueue[K, H, E](timeToSpace: Long => Float) extends
   private val startTime = System.nanoTime()
 
   protected def emptyTree: DimTree[Queue[E], _, H]
+  protected def scale(k: K): K
+  protected def unscale(k: K): K
   protected def startPoint: K
   protected def inflate(k: K, s: Float): H
   protected def flatten(h: H): K
 
-  private def inflate(kv: (K, E), s: Float): (H, E) = (inflate(kv._1, s), kv._2)
-  private def flatten(kv: (H, E)): (K, E) = (flatten(kv._1), kv._2)
+  private def inflate(kv: (K, E), s: Float): (H, E) = (inflate(scale(kv._1), s), kv._2)
+  private def flatten(kv: (H, E)): (K, E) = (unscale(flatten(kv._1)), kv._2)
 
   private def now(kv: (K, E)): (H, E) = inflate(kv, timeToSpace(System.nanoTime() - startTime))
 
@@ -78,14 +88,14 @@ abstract class SpatialTemporalQueue[K, H, E](timeToSpace: Long => Float) extends
   def point: K = {
     try {
       readLock.lock()
-      flatten(queue.point)
+      unscale(flatten(queue.point))
     } finally readLock.unlock()
   }
 
   def point_=(p: K): Unit = {
     try {
       writeLock.lock()
-      queue.point = inflate(p, minTime.peek())
+      queue.point = inflate(scale(p), minTime.peek())
     } finally writeLock.unlock()
   }
 
