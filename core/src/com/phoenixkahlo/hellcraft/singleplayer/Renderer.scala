@@ -171,7 +171,7 @@ class Renderer(resources: ResourcePack) extends Disposable {
 
     // sort and render
     val (translucent, opaque) = units.partition(_.locationIfTransparent.isDefined)
-    val opaqueSeq: Seq[Renderable] = (opaque ++ cloudUnits :+ sunMoon :+ stars).flatMap(_(interpolation)).sortBy(_.userData.hashCode())
+    val opaqueSeq: Seq[Renderable] = (opaque ++ cloudUnits :+ sunMoon :+ stars).flatMap(_(interpolation))
     val transSeq = translucent.sortBy(_.locationIfTransparent.get dist camPos * -1).flatMap(_(interpolation))
     val renderSeq: Seq[Renderable] = opaqueSeq ++ transSeq
 

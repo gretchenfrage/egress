@@ -30,8 +30,8 @@ class LineShaderProcedure extends ShaderProcedure[LineShader] {
       new VertexAttribute(Usage.Position, 3, "a_position"),
       new VertexAttribute(Usage.ColorPacked, 4, "a_color")
     )
-    mesh.setVertices(floats)
-    mesh.setIndices(indices)
+    mesh.setVertices(floats.toArray)
+    mesh.setIndices(indices.toArray)
     mesh
   }
 
