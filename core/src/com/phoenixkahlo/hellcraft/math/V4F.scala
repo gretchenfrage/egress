@@ -1,5 +1,7 @@
 package com.phoenixkahlo.hellcraft.math
 
+import com.badlogic.gdx.graphics.Color
+
 class V4F(val x: Float, val y: Float, val z: Float, val w: Float) extends Serializable {
 
   def +(o: V4F): V4F =
@@ -54,6 +56,7 @@ class V4F(val x: Float, val y: Float, val z: Float, val w: Float) extends Serial
   override def hashCode(): Int =
     (x, y, z, w).hashCode()
 
+  def toColor: Color = new Color(x, y, z, w)
 
   override def equals(obj: scala.Any): Boolean =
     obj match {

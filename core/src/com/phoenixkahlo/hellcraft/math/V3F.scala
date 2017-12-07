@@ -79,6 +79,9 @@ class V3F(val x: Float, val y: Float, val z: Float) extends Serializable {
   def dist(v: V3F) =
     (this - v).magnitude
 
+  def toTransMatrix: Matrix4 =
+    (new Matrix4).setTranslation(x, y, z)
+
   def closest(vs: V3F*): Option[V3F] = {
     var bestVec: Option[V3F] = None
     var bestDist = Float.MaxValue
@@ -102,6 +105,8 @@ class V3F(val x: Float, val y: Float, val z: Float) extends Serializable {
 
   override def toString: String =
     "<" + x + ", " + y + ", " + z + ">"
+
+  def toArray: Array[Float] = Array(x, y, z)
 
   def copy(x: Float = this.x, y: Float = this.y, z: Float = this.z) =
     V3F(x, y, z)

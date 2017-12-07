@@ -13,6 +13,7 @@ import com.phoenixkahlo.hellcraft.util.caches.{DisposableParamCache, ParamCache}
 import com.phoenixkahlo.hellcraft.util.collections.{MemoHintFunc, ResourceNode}
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 
+/*
 class Render(verts: Seq[Float], indices: Seq[Short], shader: ShaderID) extends (ResourcePack => RenderUnit) {
   val renderable = new DisposableParamCache[ResourcePack, Renderable](pack => {
     val mesh = new Mesh(true, verts.size, indices.size, shader.attribs.toArray: _*)
@@ -88,3 +89,4 @@ class FRenderer(pack: ResourcePack)(implicit service: UniExecutor) {
       make.map(factory => memoizer(factory.factory, factory.execHint)).flatMap(_.query).map(_(pack))
   }
 }
+*/
