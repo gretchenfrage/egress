@@ -7,7 +7,7 @@ import com.phoenixkahlo.hellcraft.math.V3F
 
 import scala.reflect.ClassTag
 
-case class Renderable[S <: Shader](eval: GEval[S#RenderUnit], identityHash: Boolean = false, translucentPos: Option[V3F] = None)(implicit val shader: ClassTag[S]) {
+case class Renderable[S <: Shader](eval: GEval[S#RenderUnit], identityHash: Boolean = false, translucentPos: Option[V3F] = None)(implicit val shader: ShaderTag[S]) {
   override def hashCode(): Int =
     if (identityHash) super.hashCode()
     else Objects.hash(eval, identityHash.asInstanceOf[AnyRef], translucentPos)

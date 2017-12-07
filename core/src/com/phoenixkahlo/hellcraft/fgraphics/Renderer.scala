@@ -14,7 +14,7 @@ trait Renderer {
   def apply(renders: Seq[Render[_]]): Unit
   def close(): Unit
 }
-
+/*
 class DefaultRenderer(pack: ResourcePack) extends Renderer {
   val cam = new PerspectiveCamera(90, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
   cam.near = 0.1f
@@ -82,3 +82,4 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
 
   override def close(): Unit = ???
 }
+*/
