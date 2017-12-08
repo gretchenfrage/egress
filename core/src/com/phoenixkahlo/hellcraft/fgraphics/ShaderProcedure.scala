@@ -14,6 +14,6 @@ trait ShaderProcedure[S <: Shader] {
   def apply(mesh: S#FinalForm, params: S#Params, globals: GlobalRenderData, context: RenderContext): Unit
   def end(): Unit
   def close(): Unit
-  implicit def shader: S
+  def shader: ShaderTag[S]
 }
 

@@ -74,4 +74,13 @@ object V4F {
 
   def unapply(v: V4F): Option[(Float, Float, Float, Float)] =
     Some((v.x, v.y, v.z, v.w))
+
+  def unpackColor(f: Float): V4F = {
+    val i = java.lang.Float.floatToIntBits(f)
+    val r = (i & 0xFF) / 255f
+    val g = ((i & 0xFF00) >> 8) / 255f
+    val b = ((i & 0xFF0000) >> 16) / 255f
+    val a = ((i % 0xFF000000) >> 24) / 255f
+    V4F(r, g, b, a)
+  }
 }

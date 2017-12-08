@@ -4,13 +4,17 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Mesh
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext
-import com.phoenixkahlo.hellcraft.fgraphics.{GlobalRenderData, HUDShader, ShaderProcedure}
+import com.phoenixkahlo.hellcraft.fgraphics.{GlobalRenderData, HUDShader, ShaderProcedure, ShaderTag}
 import com.phoenixkahlo.hellcraft.graphics.HUDComponent
+
+import scala.reflect.ClassTag
 
 class HUDShaderProcedure extends ShaderProcedure[HUDShader] {
   val batch = new SpriteBatch
 
   override def toFinalForm(comp: HUDComponent): HUDComponent = comp
+
+  override def shader: ShaderTag[HUDShader] = ClassTag(classOf[HUDShader])
 
   override def begin(globals: GlobalRenderData, context: RenderContext): Unit = {
     batch.getProjectionMatrix.setToOrtho2D(0, 0, Gdx.graphics.getWidth, Gdx.graphics.getHeight)

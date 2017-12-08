@@ -11,6 +11,7 @@ import com.phoenixkahlo.hellcraft.fgraphics._
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
 
 import scala.collection.mutable.ArrayBuffer
+import scala.reflect.ClassTag
 
 class TerrainShaderProcedure(resources: ResourcePack) extends ShaderProcedure[TerrainShader] {
   val program: GeomShaderProgram = {
@@ -30,6 +31,9 @@ class TerrainShaderProcedure(resources: ResourcePack) extends ShaderProcedure[Te
   val u_lightPos = program.getUniformLocation("u_lightPos")
   val u_texture = program.getUniformLocation("u_texture")
   val u_lightPow = program.getUniformLocation("u_lightPow")
+
+
+  override def shader: ShaderTag[TerrainShader] = ClassTag(classOf[TerrainShader])
 
   override def toFinalForm(renderUnit: (Seq[BasicTriVert], Seq[Short])): Mesh = {
     val (verts, indices) = renderUnit

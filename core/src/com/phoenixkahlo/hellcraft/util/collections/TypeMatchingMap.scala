@@ -6,6 +6,10 @@ import com.phoenixkahlo.hellcraft.util.collections.TypeMatchingMap.Identified
 
 import scala.collection.mutable.ArrayBuffer
 
+/**
+  * A map where the keys and values accept a type parameter, with a bound, and key-value pairs in the map have the same
+  * type parameter.
+  */
 class TypeMatchingMap[K[_ <: B], V[_ <: B], B](private val contents: Map[Any, Any]) {
   def +[T <: B](kv: (K[T], V[T])): TypeMatchingMap[K, V, B] =
     new TypeMatchingMap[K, V, B](contents + kv)
@@ -25,7 +29,7 @@ class TypeMatchingMap[K[_ <: B], V[_ <: B], B](private val contents: Map[Any, An
 
   override def toString: String = contents.toString
 
-  override def equals(obj: scala.Any): Boolean =
+  @unchecked override def equals(obj: scala.Any): Boolean =
     if (obj.isInstanceOf[TypeMatchingMap[Identity, Identity, _]])
       obj.asInstanceOf[TypeMatchingMap[Identity, Identity, Any]].contents == this.contents
     else false

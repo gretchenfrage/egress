@@ -7,10 +7,11 @@ import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.graphics.glutils.GeomShaderProgram.ShaderPart
 import com.badlogic.gdx.graphics.glutils.{GeomShaderProgram, ShaderStage}
 import com.badlogic.gdx.utils.GdxRuntimeException
-import com.phoenixkahlo.hellcraft.fgraphics.{BasicParams, GlobalRenderData, ParticleShader, ShaderProcedure}
+import com.phoenixkahlo.hellcraft.fgraphics._
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
 
 import scala.collection.mutable.ArrayBuffer
+import scala.reflect.ClassTag
 
 class ParticleShaderProcedure(resources: ResourcePack) extends ShaderProcedure[ParticleShader] {
   val program: GeomShaderProgram = {
@@ -27,6 +28,9 @@ class ParticleShaderProcedure(resources: ResourcePack) extends ShaderProcedure[P
   val u_MV = program.getUniformLocation("u_MV")
   val u_P = program.getUniformLocation("u_P")
   val u_texture = program.getUniformLocation("u_texture")
+
+
+  override def shader: ShaderTag[ParticleShader] = ClassTag(classOf[ParticleShader])
 
   override def toFinalForm(particles: Seq[ParticleShader.Particle]): Mesh = {
     val floats = new ArrayBuffer[Float](particles.size * 9)

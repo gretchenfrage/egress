@@ -6,9 +6,10 @@ import com.badlogic.gdx.graphics.{GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.utils.GdxRuntimeException
-import com.phoenixkahlo.hellcraft.fgraphics.{BasicParams, GlobalRenderData, LineShader, ShaderProcedure}
+import com.phoenixkahlo.hellcraft.fgraphics._
 
 import scala.collection.mutable.ArrayBuffer
+import scala.reflect.ClassTag
 
 class LineShaderProcedure extends ShaderProcedure[LineShader] {
   val program: ShaderProgram = {
@@ -19,6 +20,9 @@ class LineShaderProcedure extends ShaderProcedure[LineShader] {
   if (!program.isCompiled) throw new GdxRuntimeException(program.getLog)
   val u_projViewTrans = program.getUniformLocation("u_projViewTrans")
   val u_worldTrans = program.getUniformLocation("u_worldTrans")
+
+
+  override def shader: ShaderTag[LineShader] = ClassTag(classOf[LineShader])
 
   override def toFinalForm(renderUnit: (Seq[LineShader.Vert], Seq[Short])): Mesh = {
     val (verts, indices) = renderUnit
