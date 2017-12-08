@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.util.collections
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
-import com.phoenixkahlo.hellcraft.util.collections.GenFunc.{GenWrapper, Identity}
+import com.phoenixkahlo.hellcraft.util.collections.GenFunc.GenWrapper
 import com.phoenixkahlo.hellcraft.util.threading.Fut
 
 import scala.collection.parallel
@@ -38,7 +38,6 @@ trait GenFunc[I[_], O[_]] {
   def apply[E](i: I[E]): O[E]
 }
 object GenFunc {
-  type Identity[T] = T
   type GenWrapper[O[_]] = GenFunc[Identity, O]
   type GenUnwrapper[I[_]] = GenFunc[I, Identity]
 }
