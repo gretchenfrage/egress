@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.fgraphics
 
 import com.badlogic.gdx.graphics.Mesh
 import com.phoenixkahlo.hellcraft.graphics.HUDComponent
-import com.phoenixkahlo.hellcraft.math.{V2F, V3F, V4F}
+import com.phoenixkahlo.hellcraft.math.{Origin, V2F, V3F, V4F}
 
 trait Shader {
   type RenderUnit
@@ -12,6 +12,9 @@ trait Shader {
 
 case class BasicTriVert(pos: V3F, col: V4F, tex: V2F, nor: V3F)
 case class BasicParams(offset: V3F)
+object BasicParams {
+  val default = BasicParams(Origin)
+}
 
 trait TerrainShader extends Shader {
   override type RenderUnit = (Seq[BasicTriVert], Seq[Short])

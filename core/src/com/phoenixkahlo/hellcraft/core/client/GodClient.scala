@@ -2,7 +2,8 @@ package com.phoenixkahlo.hellcraft.core.client
 import java.util.UUID
 
 import com.badlogic.gdx.Gdx
-import com.phoenixkahlo.hellcraft.core.{Blocks, SetMat, World}
+import com.phoenixkahlo.hellcraft.core.{Blocks, RenderWorld, SetMat, World}
+import com.phoenixkahlo.hellcraft.fgraphics._
 //import com.phoenixkahlo.hellcraft.core.{Blocks, SetMat, World}
 import com.phoenixkahlo.hellcraft.core.client.ClientLogic.Input
 import com.phoenixkahlo.hellcraft.math._
@@ -18,13 +19,41 @@ import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
 
 import scala.collection.mutable.ArrayBuffer
 
+
 case class MenuButton(min: V2I, max: V2I, str: String, onclick: (ClientLogic, World, ClientLogic.Input) => ClientLogic.Output) {
   def contains(v: V2I): Boolean = {
     val v2 = V2I(v.xi, Gdx.graphics.getHeight - v.yi)
     v2 >= min && v2 <= max
   }
+  
+  val components: (Seq[Render[HUDShader]], Seq[Render[HUDShader]]) = {
+    val frameOff = GEval.resourcePack.map(pack => ImgHUDComponent(
+      new TextureRegion(pack.frame(MenuPatchPID, 18, max.xi - min.xi, max.yi - min.yi)),
+      min,
+      max - min
+    ))
+    val frameOn = GEval.resourcePack.map(pack => ImgHUDComponent(
+      new TextureRegion(pack.frame(MenuPatchActivePID, 18, max.xi - min.xi, max.yi - min.yi)),
+      min,
+      max - min
+    ))
+    val text = GEval.resourcePack.map(pack => {
+      val font = pack.font(ButtonFID)
+      val layout = new GlyphLayout
+      layout.setText(font, str)
+      StrHUDComponent(
+        str, font,
+        (min + max) / 2 + V2F(-layout.width / 2, layout.height / 2),
+        Color.BLACK
+      )
+    })
+    (
+      Seq(frameOff, text).map(Renderable[HUDShader](_)).map(Render[HUDShader](_, (): Unit)),
+      Seq(frameOn, text).map(Renderable[HUDShader](_)).map(Render[HUDShader](_, (): Unit))
+    )
+  }
 }
-
+/*
 case class MenuHUD(buttons: Seq[MenuButton]) extends HUD {
   val _components = new ParamCache[ResourcePack, Seq[(MenuButton, Seq[HUDComponent], Seq[HUDComponent])]](pack => {
     val font = pack.font(ButtonFID)
@@ -61,8 +90,9 @@ case class MenuHUD(buttons: Seq[MenuButton]) extends HUD {
       .flatMap({ case (button, off, on) => if (button.contains(V2I(Gdx.input.getX, Gdx.input.getY))) on else off })
   }
 }
-
-case class GodClientMenu(pressed: Set[Int], buttons: Seq[MenuButton], pressing: Option[MenuButton], hud: HUD, chat: Chat) extends ClientLogic {
+*/
+/*
+case class GodClientMenu(pressed: Set[Int], buttons: Seq[MenuButton], pressing: Option[MenuButton], chat: Chat, camPos: V3F, camDir: V3F) extends ClientLogic {
 
   override def become(replacement: ClientLogic): (ClientLogic, Seq[ClientEffect]) = {
     if (replacement.isInstanceOf[GodClient]) replacement -> Seq(CaptureCursor)
@@ -89,9 +119,18 @@ case class GodClientMenu(pressed: Set[Int], buttons: Seq[MenuButton], pressing: 
     if (pressing isDefined) buttons.reverse.find(_ contains pos).filter(_ == pressing.get).map(_.onclick(this, world, input)).getOrElse(nothing)
     else nothing
 
-  override def render(world: World, input: Input): (HUD, Seq[RenderUnit]) = {
+
+
+  /*
+  override def render(world: RenderWorld, input: Input): (HUD, Seq[RenderUnit]) = {
     hud -> Seq.empty
   }
+  */
+
+  override def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData) =
+    world.renderableChunks.flatMap(_.renderables) ++ buttons.flatMap(
+      b => if (b contains V2I(Gdx.input.getX, Gdx.input.getY)) b.components._2 else b.components._1
+    ) -> GlobalRenderData(camPos, camDir, )
 
   override def resize(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = {
     val (buttons, hud) = GodClientMenu.makeButtonsAndHUD(chat)
@@ -162,7 +201,7 @@ case class GodClientChat(chat: Chat, cursorOn: Boolean = true, buffer: String = 
     }
   }
 
-  override def render(world: World, input: Input): (HUD, Seq[RenderUnit]) = (hud, Seq.empty)
+  override def render(world: RenderWorld, input: Input): (HUD, Seq[RenderUnit]) = (hud, Seq.empty)
 }
 
 case class GodClient(pressed: Set[Int], chat: Chat) extends ClientLogic {
@@ -233,7 +272,7 @@ case class GodClient(pressed: Set[Int], chat: Chat) extends ClientLogic {
 
   val hud = new GodHUD(chat, "", Color.CLEAR)
 
-  override def render(world: World, input: Input): (HUD, Seq[RenderUnit]) = {
+  override def render(world: RenderWorld, input: Input): (HUD, Seq[RenderUnit]) = {
     val units = new ArrayBuffer[RenderUnit]
 
     for (v <- world.placeBlock(input.camPos, input.camDir, 64)) {
@@ -310,4 +349,4 @@ object GodClient {
   val moveSpeed = 1f
   val margin = 1f
   val loadRad = V3I(12, 5, 12)
-}
+}*/

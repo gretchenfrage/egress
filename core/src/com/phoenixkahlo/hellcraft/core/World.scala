@@ -53,6 +53,10 @@ trait TerrainGrid {
     }).map(v => (v / 6).normalize)
 }
 
+trait RenderWorld extends World {
+  def renderableChunks: Seq[Chunk]
+}
+
 trait World extends TerrainGrid {
   def chunkAt(p: V3I): Option[Chunk]
 

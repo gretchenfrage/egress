@@ -5,7 +5,7 @@ import com.badlogic.gdx.graphics.VertexAttributes.Usage
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.graphics.glutils.GeomShaderProgram.ShaderPart
 import com.badlogic.gdx.graphics.glutils.{GeomShaderProgram, ShaderStage}
-import com.badlogic.gdx.graphics.{Color, GL20, Mesh, VertexAttribute}
+import com.badlogic.gdx.graphics._
 import com.badlogic.gdx.utils.GdxRuntimeException
 import com.phoenixkahlo.hellcraft.fgraphics._
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
@@ -57,10 +57,10 @@ class TerrainShaderProcedure(resources: ResourcePack) extends ShaderProcedure[Te
     mesh
   }
 
-  override def begin(globals: GlobalRenderData, context: RenderContext): Unit = {
+  override def begin(globals: GlobalRenderData, context: RenderContext, cam: Camera): Unit = {
     program.begin()
-    program.setUniformMatrix(u_viewTrans, globals.cam.view)
-    program.setUniformMatrix(u_projTrans, globals.cam.projection)
+    program.setUniformMatrix(u_viewTrans, cam.view)
+    program.setUniformMatrix(u_projTrans, cam.projection)
     program.setUniform3fv(u_lightPos, globals.lightPos.toArray, 0, 3)
     resources.sheet.bind(0)
     program.setUniformi(u_texture, 0)
@@ -70,7 +70,7 @@ class TerrainShaderProcedure(resources: ResourcePack) extends ShaderProcedure[Te
     context.setCullFace(GL20.GL_BACK)
   }
 
-  override def apply(mesh: Mesh, params: BasicParams, globals: GlobalRenderData, context: RenderContext): Unit = {
+  override def apply(mesh: Mesh, params: BasicParams, globals: GlobalRenderData, context: RenderContext, cam: Camera): Unit = {
     program.setUniformMatrix(u_worldTrans, params.offset.toTransMatrix)
     mesh.render(program, GL20.GL_TRIANGLES)
   }

@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.fgraphics.procedures
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
-import com.badlogic.gdx.graphics.{GL20, Mesh, VertexAttribute}
+import com.badlogic.gdx.graphics.{Camera, GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.utils.GdxRuntimeException
@@ -39,14 +39,14 @@ class LineShaderProcedure extends ShaderProcedure[LineShader] {
     mesh
   }
 
-  override def begin(globals: GlobalRenderData, context: RenderContext): Unit = {
+  override def begin(globals: GlobalRenderData, context: RenderContext, cam: Camera): Unit = {
     program.begin()
-    program.setUniformMatrix(u_projViewTrans, globals.cam.combined)
+    program.setUniformMatrix(u_projViewTrans, cam.combined)
 
     context.setDepthTest(GL20.GL_LEQUAL)
   }
 
-  override def apply(mesh: Mesh, params: BasicParams, globals: GlobalRenderData, context: RenderContext): Unit = {
+  override def apply(mesh: Mesh, params: BasicParams, globals: GlobalRenderData, context: RenderContext, cam: Camera): Unit = {
     program.setUniformMatrix(u_worldTrans, params.offset.toTransMatrix)
     mesh.render(program, GL20.GL_LINES)
   }

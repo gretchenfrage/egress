@@ -71,6 +71,8 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     // move camera
     cam.position.set(globals.camPos.toGdx)
     cam.direction.set(globals.camDir.toGdx)
+    cam.fieldOfView = globals.fov
+    cam.update()
 
     // find what we can render immediately
     def extract[S <: Shader](render: Render[S]): Option[RenderNow[S]] =
@@ -93,9 +95,9 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
       if (!active.map(_.shader).contains(rn.prepared.shader)) {
         active.foreach(_.end())
         active = Some(procedures(rn.prepared.shader))
-        active.get.begin(globals, context)
+        active.get.begin(globals, context, cam)
       }
-      active.get.asInstanceOf[ShaderProcedure[S]].apply(rn.prepared.unit, rn.params, globals, context)
+      active.get.asInstanceOf[ShaderProcedure[S]].apply(rn.prepared.unit, rn.params, globals, context, cam)
     }
     // ka-chow!
     renderSeq.foreach(render(_))

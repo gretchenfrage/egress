@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.fgraphics.procedures
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
-import com.badlogic.gdx.graphics.{GL20, Mesh, VertexAttribute}
+import com.badlogic.gdx.graphics.{Camera, GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.graphics.glutils.GeomShaderProgram.ShaderPart
 import com.badlogic.gdx.graphics.glutils.{GeomShaderProgram, ShaderStage}
@@ -56,7 +56,7 @@ class ParticleShaderProcedure(resources: ResourcePack) extends ShaderProcedure[P
     mesh
   }
 
-  override def begin(globals: GlobalRenderData, context: RenderContext): Unit = {
+  override def begin(globals: GlobalRenderData, context: RenderContext, cam: Camera): Unit = {
     program.begin()
     resources.sheet.bind(0)
     program.setUniformi(u_texture, 0)
@@ -67,9 +67,9 @@ class ParticleShaderProcedure(resources: ResourcePack) extends ShaderProcedure[P
     Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
   }
 
-  override def apply(mesh: Mesh, params: BasicParams, globals: GlobalRenderData, context: RenderContext): Unit = {
-    program.setUniformMatrix(u_MV, params.offset.toTransMatrix.mulLeft(globals.cam.view))
-    program.setUniformMatrix(u_P, globals.cam.projection)
+  override def apply(mesh: Mesh, params: BasicParams, globals: GlobalRenderData, context: RenderContext, cam: Camera): Unit = {
+    program.setUniformMatrix(u_MV, params.offset.toTransMatrix.mulLeft(cam.view))
+    program.setUniformMatrix(u_P, cam.projection)
     mesh.render(program, GL20.GL_POINTS)
   }
 

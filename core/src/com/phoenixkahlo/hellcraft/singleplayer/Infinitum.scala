@@ -30,7 +30,7 @@ class SWorld(
               val active: Set[V3I],
               val min: Option[V3I],
               val max: Option[V3I]
-            ) extends World {
+            ) extends RenderWorld {
 
   override def chunkAt(p: V3I): Option[Chunk] =
     chunks.get(p).flatMap(LeftOption(_))
@@ -44,6 +44,8 @@ class SWorld(
   override def debugLoadedChunks: Iterable[V3I] = chunks.keySet.toSeq.filter(chunks(_).isLeft)
 
   override def debugLoadedTerrain: Iterable[V3I] = chunks.keySet
+
+  override def renderableChunks: Seq[Chunk] = chunks.toSeq.flatMap(_._2.left.toOption)
 
   override def findEntity(id: EntityID): Option[Entity] =
     chunks.values.toStream.flatMap(LeftOption(_)).flatMap(_.entities.get(id)).headOption
@@ -211,10 +213,11 @@ class SWorld(
   /**
     * The render units of all chunks
     */
+  /*
   def renderables(resources: ResourcePack): Seq[RenderUnit] = {
     chunks.values.flatMap(_.left.toOption).flatMap(_.renderables(resources, this)).toSeq
   }
-
+  */
 }
 
 /**

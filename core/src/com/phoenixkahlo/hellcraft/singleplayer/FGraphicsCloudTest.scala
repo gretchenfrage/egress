@@ -70,7 +70,7 @@ class FGraphicsCloudTest extends GameState {
     renders = Seq(render)
 
     // make the globals
-    globals = GlobalRenderData(Origin, North, Origin, 1, renderer.asInstanceOf[DefaultRenderer].cam, V4F(1, 1, 1, 1))
+    globals = GlobalRenderData(Origin, North, Origin, 1, V4F(1, 1, 1, 1), )
 
     // generate the input processor
     processor = new FirstPersonCameraController(renderer.asInstanceOf[DefaultRenderer].cam)
@@ -79,7 +79,7 @@ class FGraphicsCloudTest extends GameState {
 
   override def render(): Unit = {
     processor.update()
-    globals = globals.copy(camPos = V3F(renderer.cam.position), camDir = V3F(renderer.cam.direction))
+    globals = globals.copy(camPos = V3F(renderer.cam.position), camDir = V3F(renderer.cam.direction), fov = )
     renderer(renders, globals)
   }
 

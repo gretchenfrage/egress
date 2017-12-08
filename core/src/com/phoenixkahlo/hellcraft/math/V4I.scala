@@ -21,4 +21,5 @@ object V4I {
   def apply(x: Int, y: Int, z: Int, w: Int) =
     new V4I(x, y, z, w)
 
+  val ones = V4I(1, 1, 1, 1)
 }

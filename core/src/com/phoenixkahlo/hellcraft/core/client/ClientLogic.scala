@@ -1,8 +1,9 @@
 package com.phoenixkahlo.hellcraft.core.client
 
 import com.badlogic.gdx.Input.Buttons
-import com.phoenixkahlo.hellcraft.core.{UpdateEffect, World}
+import com.phoenixkahlo.hellcraft.core.{RenderWorld, UpdateEffect, World}
 import com.phoenixkahlo.hellcraft.core.client.ClientLogic.{Input, Output}
+import com.phoenixkahlo.hellcraft.fgraphics.{GlobalRenderData, Render, Shader}
 import com.phoenixkahlo.hellcraft.graphics.{EmptyHUD, HUD, RenderUnit, ResourcePack}
 import com.phoenixkahlo.hellcraft.math.{V2I, V3F, V3I}
 import com.phoenixkahlo.hellcraft.util.collections.V3ISet
@@ -14,9 +15,9 @@ object CauseUpdateEffect {
   def apply(effect: UpdateEffect): CauseUpdateEffect = CauseUpdateEffect(Seq(effect))
 }
 case class SetLoadTarget(target: V3ISet, terrains: V3ISet) extends ClientEffect
-case class SetCamPos(p: V3F) extends ClientEffect
-case class SetCamDir(p: V3F) extends ClientEffect
-case class SetCamFOV(fov: Float) extends ClientEffect
+//case class SetCamPos(p: V3F) extends ClientEffect
+//case class SetCamDir(p: V3F) extends ClientEffect
+//case class SetCamFOV(fov: Float) extends ClientEffect
 case object CaptureCursor extends ClientEffect
 case object ReleaseCursor extends ClientEffect
 case object Exit extends ClientEffect
@@ -79,7 +80,8 @@ trait ClientLogic {
 
   def scrolled(amount: Int)(world: World, input: Input): Output = nothing
 
-  def render(world: World, input: Input): (HUD, Seq[RenderUnit]) = EmptyHUD -> Seq.empty
+  //def render(world: World, input: Input): (HUD, Seq[RenderUnit]) = EmptyHUD -> Seq.empty
+  def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData)
 
   def resize(world: World, input: Input): Output = nothing
 }
