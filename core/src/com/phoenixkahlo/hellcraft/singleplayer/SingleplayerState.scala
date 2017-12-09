@@ -15,6 +15,7 @@ import com.badlogic.gdx._
 import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.client._
+import com.phoenixkahlo.hellcraft.fgraphics.{DefaultRenderer, Renderer}
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.graphics.models.{BlockOutline, ChunkOutline}
@@ -38,6 +39,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var clock: GametimeClock = _
   private var infinitum: Infinitum = _
   private var pack: ResourcePack = _
+  //private var renderer: Renderer = _
   private var renderer: Renderer = _
   private var processor: InputProcessor = _
   @volatile private var chunkDomain = V3ISet.empty
@@ -67,7 +69,11 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     }, SpatialTemporalQueue.equate(1 second, 0))
 
     println("creating client logic")
-    clientLogic = GodClient(Set.empty, Chat(Seq("player joined the game.")))
+    clientLogic = GodClientMain(ClientCore(
+      Set.empty,
+      Chat(Seq("player joined the game")),
+      Origin, North
+    ))//GodClient(Set.empty, Chat(Seq("player joined the game.")))
 
     println("instantiating save")
     val generator = new DefaultGenerator(res)
@@ -83,7 +89,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     pack = providedResources()
 
     println("creating renderer")
-    renderer = new Renderer(pack)
+    //renderer = new Renderer(pack)
+    renderer = new DefaultRenderer(pack)
 
     println("instantiating input processor")
     processor = new InputProcessor {
@@ -236,9 +243,9 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         case SetLoadTarget(c, t) =>
           chunkDomain = c
           terrainDomain = t
-        case SetCamPos(p) => renderer.cam.position.set(p.x, p.y, p.z)
-        case SetCamDir(d) => renderer.cam.direction.set(d.x, d.y, d.z)
-        case SetCamFOV(fov) => renderer.cam.fieldOfView = fov
+        //case SetCamPos(p) => renderer.cam.position.set(p.x, p.y, p.z)
+        //case SetCamDir(d) => renderer.cam.direction.set(d.x, d.y, d.z)
+        //case SetCamFOV(fov) => renderer.cam.fieldOfView = fov
         case CaptureCursor => Gdx.input.setCursorCatched(true)
         case ReleaseCursor => Gdx.input.setCursorCatched(false)
         case ClientPrint(str) => println(str)
@@ -249,6 +256,10 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     renderer.cam.update(true)
 
     // get render units
+    val (renders, globals) = clientLogic.render(infinitum(), clientInput)
+    renderer(renders, globals)
+
+    /*
     var units: Seq[RenderUnit] = toRender.renderables(pack)
 
     // do memory management
@@ -269,6 +280,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     // render
     renderer.render(toRender, units, interpolation, hud)
+    */
   }
 
   override def onResize(width: Int, height: Int): Unit = {
@@ -282,7 +294,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     // start interrupting the main loop
     updateThread.interrupt()
     // while that's closing, we can dispose of the graphics system
-    renderer.dispose()
+    renderer.close()
     // before we resume, we need to wait for the main loop to completely close
     updateThread.join()
     // start saving the world

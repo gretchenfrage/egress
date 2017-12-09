@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.fgraphics
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.g3d.utils.{DefaultTextureBinder, RenderContext}
-import com.badlogic.gdx.graphics.{GL20, PerspectiveCamera}
+import com.badlogic.gdx.graphics.{Camera, GL20, PerspectiveCamera}
 import com.phoenixkahlo.hellcraft.fgraphics.procedures._
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
 import com.phoenixkahlo.hellcraft.math.{V3F, V4F}
@@ -13,6 +13,8 @@ import scala.reflect.ClassTag
 
 trait Renderer {
   def apply(renders: Seq[Render[_ <: Shader]], globals: GlobalRenderData): Unit
+  def cam: Camera
+  def onResize(width: Int, height: Int): Unit
   def close(): Unit
 }
 
@@ -22,7 +24,7 @@ trait Renderer {
   */
 class DefaultRenderer(pack: ResourcePack) extends Renderer {
   // libgdx camera
-  val cam = new PerspectiveCamera(90, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
+  override val cam = new PerspectiveCamera(90, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
   cam.near = 0.1f
   cam.far = 3000
   cam.position.set(30, 30, 30)
@@ -101,6 +103,12 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     }
     // ka-chow!
     renderSeq.foreach(render(_))
+  }
+
+  override def onResize(width: Int, height: Int): Unit = {
+    cam.viewportWidth = width
+    cam.viewportHeight = height
+    cam.update()
   }
 
   override def close(): Unit = {

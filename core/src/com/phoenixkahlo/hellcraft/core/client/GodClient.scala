@@ -2,6 +2,7 @@ package com.phoenixkahlo.hellcraft.core.client
 import java.util.UUID
 
 import com.badlogic.gdx.Gdx
+import com.phoenixkahlo.hellcraft.core.request.ExecCheap
 import com.phoenixkahlo.hellcraft.core.{Blocks, RenderWorld, SetMat, World}
 import com.phoenixkahlo.hellcraft.fgraphics._
 //import com.phoenixkahlo.hellcraft.core.{Blocks, SetMat, World}
@@ -27,6 +28,7 @@ case class MenuButton(min: V2I, max: V2I, str: String, onclick: (ClientLogic, Wo
   }
   
   val components: (Seq[Render[HUDShader]], Seq[Render[HUDShader]]) = {
+    implicit val exec = ExecCheap
     val frameOff = GEval.resourcePack.map(pack => ImgHUDComponent(
       new TextureRegion(pack.frame(MenuPatchPID, 18, max.xi - min.xi, max.yi - min.yi)),
       min,
@@ -53,6 +55,164 @@ case class MenuButton(min: V2I, max: V2I, str: String, onclick: (ClientLogic, Wo
     )
   }
 }
+
+case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3F)
+
+case class GodClientMain(core: ClientCore) extends ClientLogic {
+  override def become(replacement: ClientLogic): (ClientLogic, Seq[ClientEffect]) = {
+    if (!replacement.isInstanceOf[GodClientMain]) replacement -> Seq(ReleaseCursor)
+    else super.become(replacement)
+  }
+
+  override def update(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = {
+    var movDir: V3F = Origin
+    if (core.pressed(W)) movDir += core.camDir
+    if (core.pressed(S)) movDir -= core.camDir
+    if (core.pressed(D)) movDir += (core.camDir cross Up).normalize
+    if (core.pressed(A)) movDir -= (core.camDir cross Up).normalize
+
+    val chunkPos = core.camPos / 16 toInts
+    val loadTarget = (chunkPos - GodClient.loadRad) toAsSet (chunkPos + GodClient.loadRad)
+
+    GodClientMain(core.copy(camPos = core.camPos + (movDir * GodClient.moveSpeed))) -> Seq(
+      SetLoadTarget(loadTarget, loadTarget.shroat(4))
+    )
+  }
+
+  override def keyDown(keycode: KeyCode)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = keycode match {
+    case _ => become(GodClientMain(core.copy(pressed = core.pressed + keycode)))
+  }
+
+  override def keyUp(keycode: KeyCode)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
+    become(GodClientMain(core.copy(pressed = core.pressed - keycode)))
+
+  override def touchDown(pos: V2I, pointer: Int, button: Button)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
+    if (input.isCursorCaught) button match {
+      case Right =>
+        world
+          .placeBlock(core.camPos, core.camDir, 64)
+          .map(v => cause(CauseUpdateEffect(SetMat(v, Blocks.Brick, UUID.randomUUID(), meshBlocksFast = true))))
+          .getOrElse(nothing)
+      case _ => nothing
+    } else cause(CaptureCursor)
+
+  override def mouseMoved(pos: V2I, delta: V2I)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = {
+    if (input.isCursorCaught) {
+      var camDir = core.camDir
+
+      val dx = -delta.x * GodClient.turnSpeed
+      camDir = camDir.rotate(Up, dx)
+
+      var dy = -delta.y * GodClient.turnSpeed
+      val awd = core.camDir angleWith Down
+      val awu = core.camDir angleWith Up
+      if (awd + dy < GodClient.margin)
+        dy = -awd + GodClient.margin
+      else if (awu - dy < GodClient.margin)
+        dy = awu - GodClient.margin
+      camDir = camDir.rotate(camDir cross Up, dy)
+
+      become(GodClientMain(core.copy(camDir = camDir)))
+    } else nothing
+  }
+
+  override def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData) = {
+    val renders = new ArrayBuffer[Render[_ <: Shader]]
+
+    for (render <- world.renderableChunks.flatMap(_.renders)) {
+      renders += render
+    }
+
+    val globals = GlobalRenderData(core.camPos, core.camDir, Origin, 1, V4F(0, 0, 1, 1), 90)
+
+    renders -> globals
+  }
+}
+
+/*
+case class GodClient(pressed: Set[Int], chat: Chat) extends ClientLogic {
+
+  override def become(replacement: ClientLogic): (ClientLogic, Seq[ClientEffect]) = {
+    if (!replacement.isInstanceOf[GodClient]) replacement -> Seq(ReleaseCursor)
+    else super.become(replacement)
+  }
+
+  override def update(world: World, input: Input) = {
+    var movDir: V3F = Origin
+    if (pressed(W)) movDir += input.camDir
+    if (pressed(S)) movDir -= input.camDir
+    if (pressed(D)) movDir += (input.camDir cross Up).normalize
+    if (pressed(A)) movDir -= (input.camDir cross Up).normalize
+
+    val chunkPos = input.camPos / 16 toInts
+    val loadTarget = (chunkPos - GodClient.loadRad) toAsSet (chunkPos + GodClient.loadRad)
+
+    cause(
+      SetCamPos(input.camPos + (movDir * GodClient.moveSpeed)),
+      SetLoadTarget(loadTarget, loadTarget.shroat(4))
+    )
+  }
+
+  override def keyDown(keycode: Int)(world: World, input: Input) = keycode match {
+    case ESCAPE => become(GodClientMenu(pressed, chat))
+    case T => become(GodClientChat(chat))
+    case SLASH => become(GodClientChat(chat, buffer = "/"))
+    case _ => become(copy(pressed = pressed + keycode))
+  }
+
+  override def keyUp(keycode: Int)(world: World, input: Input) =
+    become(copy(pressed = pressed - keycode))
+*/
+/*
+
+  val hud = new GodHUD(chat, "", Color.CLEAR)
+
+  override def render(world: RenderWorld, input: Input): (HUD, Seq[RenderUnit]) = {
+    val units = new ArrayBuffer[RenderUnit]
+
+    for (v <- world.placeBlock(input.camPos, input.camDir, 64)) {
+      units += new BlockOutline(v, Color.WHITE, 0.95f)
+    }
+
+    /*
+    if (pressed(ALT_LEFT)) {
+      for (c <- world.debugLoadedChunks) {
+        units += new ChunkOutline(c, Color.WHITE)
+      }
+      for (c <- world.debugLoadedTerrain) {
+        units += new ChunkOutline(c, Color.BLUE)
+      }
+    }
+    */
+    input.sessionData.get("chunk_debug_mode").map(_.asInstanceOf[String]).getOrElse("") match {
+      case "chunk" => for (c <- world.debugLoadedChunks) {
+        units += new ChunkOutline(c, Color.WHITE)
+      }
+      case "terrain" => for (c <- world.debugLoadedTerrain) {
+        units += new ChunkOutline(c, Color.GRAY)
+      }
+      case _ =>
+    }
+    if (input.sessionData.get("show_tasks").exists(_.asInstanceOf[Boolean])) {
+      val (tasks3D, tasks2D, tasksDB3D) = input.executor.getSpatialTasks
+      for (p <- tasks3D) {
+        units += CubeRenderer(GrayTID, Color.WHITE, p)(input.pack)
+      }
+      for (p <- tasks2D.map(_.inflate(0))) {
+        units += CubeRenderer(GrayTID, Color.BLUE, p)(input.pack)
+      }
+      for (p <- tasksDB3D) {
+        units += CubeRenderer(GrayTID, Color.GREEN, p)(input.pack)
+      }
+    }
+
+    hud -> units
+  }
+
+  override def resize(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = become(copy())
+}
+ */
+
 /*
 case class MenuHUD(buttons: Seq[MenuButton]) extends HUD {
   val _components = new ParamCache[ResourcePack, Seq[(MenuButton, Seq[HUDComponent], Seq[HUDComponent])]](pack => {
@@ -343,10 +503,10 @@ class GodHUD(chat: Chat, buffer: String = "", bg: Color) extends HUD {
     _components(texturePack)
   }
 }
-
+*/
 object GodClient {
   val turnSpeed = 0.25f
   val moveSpeed = 1f
   val margin = 1f
   val loadRad = V3I(12, 5, 12)
-}*/
+}

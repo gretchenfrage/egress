@@ -1,0 +1,10 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="egress:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/egress_jar</output-path>
+    <root id="archive" name="egress.jar">
+      <element id="directory" name="META-INF">
+        <element id="file-copy" path="$PROJECT_DIR$/core/META-INF/MANIFEST.MF" />
+      </element>
+    </root>
+  </artifact>
+</component>

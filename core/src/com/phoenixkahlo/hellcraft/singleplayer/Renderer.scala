@@ -17,6 +17,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
 
+/*
 class Renderer(resources: ResourcePack) extends Disposable {
 
   val environment = new Environment
@@ -214,3 +215,4 @@ class Renderer(resources: ResourcePack) extends Disposable {
   }
 
 }
+*/

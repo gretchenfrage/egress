@@ -24,9 +24,11 @@ class Chunk(
              val tsRequest: Option[Request[TerrainSoup]],
              val bsRequest: Option[Request[BlockSoup]],
              @transient lastBroadphase: () => Broadphase = null,
-             @transient lastTerrainRenderable: () => Renderable[TerrainShader],
-             @transient lastBlockRenderable: () => Renderable[GenericShader]
+             @transient lastTerrainRenderable: () => Renderable[TerrainShader] = null,
+             @transient lastBlockRenderable: () => Renderable[GenericShader] = null
            ) extends Serializable {
+
+  implicit val exec = Exec3D(pos * 16)
 
   @transient lazy val terrainRenderable: Renderable[TerrainShader] =
     Option(lastTerrainRenderable).map(_ apply).getOrElse(Renderable[TerrainShader](GEval.resourcePack.map(pack => {
@@ -160,7 +162,7 @@ class Chunk(
 
   def isActive: Boolean = entities.nonEmpty
 
-  def renderables: Seq[Render[_ <: Shader]] = {
+  def renders: Seq[Render[_ <: Shader]] = {
     Seq(
       Render[TerrainShader](terrainRenderable, BasicParams.default),
       Render[GenericShader](blockRenderable, BasicParams.default)
