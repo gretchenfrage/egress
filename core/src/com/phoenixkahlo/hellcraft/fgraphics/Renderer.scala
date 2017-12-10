@@ -63,7 +63,7 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
   }
 
   // just a little fusion of a prepared renderable and params
-  case class RenderNow[S <: Shader](prepared: Prepared[S], params: S#Params)
+  case class RenderNow[S <: Shader](prepared: Prepared[S], params: S#Params, procedure: ShaderProcedure[S])
 
   override def apply(renders: Seq[Render[_ <: Shader]], globals: GlobalRenderData): Unit = {
     // clear
@@ -78,11 +78,43 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
 
     // find what we can render immediately
     def extract[S <: Shader](render: Render[S]): Option[RenderNow[S]] =
-      prepare(render.renderable).query.map(prepared => RenderNow(prepared, render.params))
+      prepare(render.renderable).query.map(prepared => RenderNow(prepared, render.params, procedures(render.renderable.shader)))
     // the compiler is struggling, this isn't haskell, so we're gonna have to help it out a little
     val renderNow: Seq[RenderNow[_ <: Shader]] = renders.flatMap((render: Render[_ <: Shader]) => extract(render): Option[RenderNow[_ <: Shader]])
 
     // sequence it
+    // partition out sprite renders, those must be done at end
+    val (isSprites, isntSprites) = renderNow.partition(_.procedure.isSprites)
+    // partition again by translucency
+    val (trans, opaqu) = isntSprites.partition(_.prepared.translucentPos.isDefined)
+    // order translucent calls be distance to player
+    val transSeq = trans.sortBy(_.prepared.translucentPos.get dist globals.camPos * -1)
+    // cluster opaque calls by shader to minimize state changes
+    val opaquSeq = opaqu.sortBy(_.prepared.shader.hashCode())
+    // form an iterator for the render sequence
+    val renderIter = opaquSeq.iterator ++ transSeq.iterator ++ isSprites.iterator
+
+    // prepare to render
+    var active: Option[ShaderProcedure[_ <: Shader]] = None
+    def render[S <: Shader](rn: RenderNow[S]): Unit = {
+      if (!active.contains(rn.procedure)) {
+        //active.foreach(_.end())
+        if (active.isDefined) {
+          active.get.end()
+          context.end()
+        }
+        context.begin()
+        active = Some(rn.procedure)
+        active.get.begin(globals, context, cam)
+      }
+      rn.procedure(rn.prepared.unit, rn.params, globals, context, cam)
+    }
+    // ka-chow
+    renderIter.foreach(render(_))
+    // and before I go
+    active.foreach(_.end())
+    context.end()
+    /*
     val (trans, opaqu) = renderNow.partition(_.prepared.translucentPos.isDefined)
     // order the translucent calls by distance to player
     val transSeq = trans.sortBy(_.prepared.translucentPos.get dist globals.camPos * -1)
@@ -103,6 +135,9 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     }
     // ka-chow!
     renderSeq.foreach(render(_))
+    // and before I go...
+    active.foreach(_.end())
+    */
   }
 
   override def onResize(width: Int, height: Int): Unit = {

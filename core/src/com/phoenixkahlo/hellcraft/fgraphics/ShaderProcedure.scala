@@ -11,6 +11,7 @@ import com.phoenixkahlo.hellcraft.graphics.ResourcePack
 trait ShaderProcedure[S <: Shader] {
   def toFinalForm(renderUnit: S#RenderUnit): S#FinalForm
   def begin(globals: GlobalRenderData, context: RenderContext, cam: Camera): Unit
+  def isSprites: Boolean = false
   def apply(mesh: S#FinalForm, params: S#Params, globals: GlobalRenderData, context: RenderContext, cam: Camera): Unit
   def end(): Unit
   def close(): Unit

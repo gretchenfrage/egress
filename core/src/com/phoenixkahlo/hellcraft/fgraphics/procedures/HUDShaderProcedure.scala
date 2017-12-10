@@ -16,6 +16,8 @@ class HUDShaderProcedure extends ShaderProcedure[HUDShader] {
 
   override def shader: ShaderTag[HUDShader] = ClassTag(classOf[HUDShader])
 
+  override def isSprites: Boolean = true
+
   override def begin(globals: GlobalRenderData, context: RenderContext, cam: Camera): Unit = {
     batch.getProjectionMatrix.setToOrtho2D(0, 0, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     batch.begin()

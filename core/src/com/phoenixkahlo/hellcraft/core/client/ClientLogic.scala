@@ -5,7 +5,7 @@ import com.phoenixkahlo.hellcraft.core.{RenderWorld, UpdateEffect, World}
 import com.phoenixkahlo.hellcraft.core.client.ClientLogic.{Input, Output}
 import com.phoenixkahlo.hellcraft.fgraphics.{GlobalRenderData, Render, Shader}
 import com.phoenixkahlo.hellcraft.graphics.{EmptyHUD, HUD, RenderUnit, ResourcePack}
-import com.phoenixkahlo.hellcraft.math.{V2I, V3F, V3I}
+import com.phoenixkahlo.hellcraft.math.{V2F, V2I, V3F, V3I}
 import com.phoenixkahlo.hellcraft.util.collections.V3ISet
 import com.phoenixkahlo.hellcraft.util.threading.UniExecutor
 
@@ -52,6 +52,7 @@ object ClientLogic {
     def sessionData: Map[String, Any]
     def pack: ResourcePack
     def executor: UniExecutor
+    def cursorPos: V2I
   }
 }
 

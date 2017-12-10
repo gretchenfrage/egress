@@ -56,7 +56,19 @@ case class MenuButton(min: V2I, max: V2I, str: String, onclick: (ClientLogic, Wo
   }
 }
 
-case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3F)
+case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3F) {
+  def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData) = {
+    val renders = new ArrayBuffer[Render[_ <: Shader]]
+
+    for (render <- world.renderableChunks.flatMap(_.renders)) {
+      renders += render
+    }
+
+    val globals = GlobalRenderData(camPos, camDir, Origin, 1, V4F(0, 0, 1, 1), 90)
+
+    renders -> globals
+  }
+}
 
 case class GodClientMain(core: ClientCore) extends ClientLogic {
   override def become(replacement: ClientLogic): (ClientLogic, Seq[ClientEffect]) = {
@@ -80,6 +92,7 @@ case class GodClientMain(core: ClientCore) extends ClientLogic {
   }
 
   override def keyDown(keycode: KeyCode)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = keycode match {
+    case ESCAPE => become(GodClientMenu(core, input))
     case _ => become(GodClientMain(core.copy(pressed = core.pressed + keycode)))
   }
 
@@ -116,16 +129,63 @@ case class GodClientMain(core: ClientCore) extends ClientLogic {
     } else nothing
   }
 
-  override def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData) = {
-    val renders = new ArrayBuffer[Render[_ <: Shader]]
+  override def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData) =
+    core.render(world, input)
+}
 
-    for (render <- world.renderableChunks.flatMap(_.renders)) {
-      renders += render
+case class GodClientMenu(core: ClientCore, buttons: Seq[MenuButton], pressing: Option[MenuButton]) extends ClientLogic {
+  override def become(replacement: ClientLogic): (ClientLogic, Seq[ClientEffect]) = {
+    if (replacement.isInstanceOf[GodClientMain]) replacement -> Seq(CaptureCursor)
+    else super.become(replacement)
+  }
+
+  override def tick(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = {
+    val chunkPos = core.camPos / 16 toInts
+    val loadTarget = (chunkPos - GodClient.loadRad) toAsSet (chunkPos + GodClient.loadRad)
+    cause(SetLoadTarget(loadTarget, loadTarget.shroat(4)))
+  }
+
+  override def keyDown(keycode: KeyCode)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
+    if (keycode == ESCAPE) become(GodClientMain(core))
+    else become(copy(core = core.copy(pressed = core.pressed + keycode)))
+
+
+  override def touchDown(pos: V2I, pointer: KeyCode, button: Button)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
+    buttons.reverse.find(_ contains pos).map(button => become(copy(pressing = Some(button)))).getOrElse(nothing)
+
+  override def touchUp(pos: V2I, pointer: KeyCode, button: Button)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
+    pressing match {
+      case Some(pressing) => buttons.reverse.find(_ contains pos).filter(_ == pressing).map(_.onclick(this, world, input)).getOrElse(nothing)
+      case None => nothing
     }
 
-    val globals = GlobalRenderData(core.camPos, core.camDir, Origin, 1, V4F(0, 0, 1, 1), 90)
+  override def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData) = {
+    val (renders, globals) = core.render(world, input)
+    val menu: Seq[Render[HUDShader]] = buttons.flatMap(b => b.components match {
+      case (off, on) => if (b contains input.cursorPos) on else off
+    })
+    (renders ++: menu, globals)
+  }
 
-    renders -> globals
+  override def resize(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
+    become(GodClientMenu(core, input))
+}
+object GodClientMenu {
+  def apply(core: ClientCore, input: Input): GodClientMenu = {
+    val center = input.windowSize / 2 toInts
+    val rad = V2I(150, 18)
+    val buttons = Seq(
+      MenuButton(center - rad + V2I(0, 50), center + rad + V2I(0, 50), "Resume Game", (c, w, i) => {
+        GodClientMain(c.asInstanceOf[GodClientMenu].core) -> Seq(
+          CaptureCursor,
+          ClientPrint("resuming game")
+        )
+      }),
+      MenuButton(center - rad - V2I(0, 50), center + rad - V2I(0, 50), "Exit Game", (c, w, i) => {
+        c.cause(ClientPrint("exiting game"), Exit)
+      })
+    )
+    GodClientMenu(core, buttons, None)
   }
 }
 

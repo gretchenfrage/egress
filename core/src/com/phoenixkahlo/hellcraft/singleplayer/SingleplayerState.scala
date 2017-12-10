@@ -183,6 +183,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     val clientInput = new ClientLogic.Input {
       override def camPos: V3F = V3F(renderer.cam.position)
       override def camDir: V3F = V3F(renderer.cam.direction)
+      override def cursorPos: V2I = V2I(Gdx.input.getX, Gdx.input.getY)
       override def isCursorCaught: Boolean = Gdx.input.isCursorCatched
       override def windowSize: V2I = V2I(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
       override def nanoTime: Long = System.nanoTime()
