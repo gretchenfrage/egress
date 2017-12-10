@@ -20,4 +20,4 @@ case class Renderable[S <: Shader](eval: GEval[S#RenderUnit], identityHash: Bool
     }
 }
 
-case class Render[S <: Shader](renderable: Renderable[S], params: S#Params)
+case class Render[S <: Shader](renderable: Renderable[S], params: S#Params, mustRender: Boolean = false)

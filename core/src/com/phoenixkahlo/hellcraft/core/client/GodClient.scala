@@ -2,9 +2,16 @@ package com.phoenixkahlo.hellcraft.core.client
 import java.util.UUID
 
 import com.badlogic.gdx.Gdx
-import com.phoenixkahlo.hellcraft.core.request.ExecCheap
+import com.badlogic.gdx.math.Matrix4
+import com.phoenixkahlo.hellcraft.core.graphics.{Sky, SkyParams}
+import com.phoenixkahlo.hellcraft.core.request.{ExecCheap, ExecSeq}
 import com.phoenixkahlo.hellcraft.core.{Blocks, RenderWorld, SetMat, World}
+import com.phoenixkahlo.hellcraft.fgraphics.ParticleShader.Particle
 import com.phoenixkahlo.hellcraft.fgraphics._
+import com.phoenixkahlo.hellcraft.math.MatrixFactory.{Rotate, Translate}
+
+import scala.collection.immutable.IndexedSeq
+import scala.util.Random
 //import com.phoenixkahlo.hellcraft.core.{Blocks, SetMat, World}
 import com.phoenixkahlo.hellcraft.core.client.ClientLogic.Input
 import com.phoenixkahlo.hellcraft.math._
@@ -17,6 +24,7 @@ import com.phoenixkahlo.hellcraft.graphics.models.{BlockOutline, ChunkOutline}
 import com.phoenixkahlo.hellcraft.math
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
+import scala.concurrent.duration._
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -58,14 +66,165 @@ case class MenuButton(min: V2I, max: V2I, str: String, onclick: (ClientLogic, Wo
 
 case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3F) {
   def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData) = {
+    implicit val exec = ExecCheap
+
+    // begin accumulating renders
     val renders = new ArrayBuffer[Render[_ <: Shader]]
 
+    // render the chunks
     for (render <- world.renderableChunks.flatMap(_.renders)) {
       renders += render
     }
 
-    val globals = GlobalRenderData(camPos, camDir, Origin, 1, V4F(0, 0, 1, 1), 90)
+    // build the sky
+    // some cosmic data
+    val skyDist: Float = 20f
+    val cycle = world.time.toFloat / GodClient.dayTicks % 1
+    val sunDir = V3F(-Trig.cos(cycle * 360), Trig.sin(cycle * 360), 0)
+    val sunPos = camPos + (sunDir * skyDist)
+    val moonPos = camPos + (sunDir * -1 * skyDist)
+    // compute sky color
+    val dayColor = V3F(0.5089f, 0.6941f, 1f)
+    val nightColor = V3F(0.0039f, 0.0471f, 0.1843f)
+    val transFrac = 0.04f
+    var trans: Float = 0
+    var from: V3F = null
+    var to: V3F = null
+    if (cycle < transFrac / 2 || cycle > 1 - transFrac / 2) {
+      // sunrise
+      trans = (cycle + transFrac / 2) % 1 / transFrac
+      from = nightColor
+      to = dayColor
+    } else if (cycle > 0.5f - transFrac / 2 && cycle < 0.5f + transFrac / 2) {
+      // sunset
+      trans = (cycle + transFrac / 2 - 0.5f) / transFrac
+      from = dayColor
+      to = nightColor
+    } else if (cycle < 0.5f) {
+      // day
+      from = dayColor
+      to = dayColor
+    } else {
+      // night
+      from = nightColor
+      to = nightColor
+    }
+    val skyColor = ((to - from) * trans) + from
+    // compute sun power
+    val fromPow = if (from == dayColor) 1 else -1
+    val toPow = if (to == dayColor) 1 else -1
+    val sunlightPow = ((toPow - fromPow) * trans) + fromPow
+    val (lightPow, lightPos) =
+      if (sunlightPow > 0) (sunlightPow, sunPos)
+      else (0.1f, moonPos)
+    // cosmic render
+    val sky = Sky(SkyParams(skyDist))
+    renders += Render[ParticleShader](sky, TransMatrix(MatrixFactory(Rotate(South, cycle * 360), Translate(camPos))))
 
+
+
+    //val skyDist = input.camRange._2 - 5
+    /*
+    val skyDist: Float = 20f
+    println(input.camRange)
+    val cycle = world.time.toFloat / GodClient.dayTicks % 1
+    println(cycle)
+    val sunDir = V3F(-Trig.cos(cycle * 360), Trig.sin(cycle * 360), 0)
+    val sunPos = camPos + (sunDir * skyDist)
+    val moonPos = camPos + (sunDir * -1 * skyDist)
+    /*
+    val sunMoonRenderable = Renderable[ParticleShader](GEval.resourcePack.map(pack => {
+      Seq(
+        Particle(East * skyDist, V4F(1, 1, 1, 1), skyDist / 8f, V2F(pack(SunTID).getU, pack(SunTID).getV), V2F(pack(SunTID).getU2, pack(SunTID).getV2)),
+        Particle(West * skyDist, V4F(1, 1, 1, 1), skyDist / 8f, V2F(pack(MoonTID).getU, pack(SunTID).getV), V2F(pack(MoonTID).getU2, pack(MoonTID).getV2))
+      )
+    }))
+    val cosmicTrans = TransMatrix(MatrixFactory(Rotate(South, cycle * 360), Translate(camPos)))
+    //val cosmicTrans = TransMatrix(new Matrix4().setToRotation(South.toGdx, cycle * 360))
+    //val cosmicTrans = TransMatrix(new Matrix4().setToTranslation(camPos.toGdx))
+    //val cosmicTrans = TransMatrix(new Matrix4)
+    println(cosmicTrans)
+    val sunMoonRender = Render[ParticleShader](sunMoonRenderable, cosmicTrans, mustRender = true)
+    renders += sunMoonRender
+    /*
+    val sunMoonEval: GEval[Seq[Particle]] = GEval.resourcePack.map(pack => {
+      println("evaling sun and moon")
+      Seq(
+        Particle(sunPos, V4F(1, 1, 1, 1), skyDist / 8, V2F(pack(SunTID).getU, pack(SunTID).getV), V2F(pack(SunTID).getU2, pack(SunTID).getV2)),
+        Particle(moonPos, V4F(1, 1, 1, 1), skyDist / 8, V2F(pack(MoonTID).getU, pack(SunTID).getV), V2F(pack(MoonTID).getU2, pack(MoonTID).getV2))
+      )
+    })
+    val sunMoonRenderable = Renderable[ParticleShader](sunMoonEval)
+    val sunMoonRender = Render[ParticleShader](sunMoonRenderable, TransMatrix(new Matrix4()), mustRender = true)
+    renders += sunMoonRender
+    */
+    * */
+
+    // compute sky color
+    val dayColor = V3F(0.5089f, 0.6941f, 1f)
+    val nightColor = V3F(0.0039f, 0.0471f, 0.1843f)
+    val transFrac = 0.04f
+
+    var trans: Float = 0
+    var from: V3F = null
+    var to: V3F = null
+    if (cycle < transFrac / 2 || cycle > 1 - transFrac / 2) {
+      // sunrise
+      trans = (cycle + transFrac / 2) % 1 / transFrac
+      from = nightColor
+      to = dayColor
+    } else if (cycle > 0.5f - transFrac / 2 && cycle < 0.5f + transFrac / 2) {
+      // sunset
+      trans = (cycle + transFrac / 2 - 0.5f) / transFrac
+      from = dayColor
+      to = nightColor
+    } else if (cycle < 0.5f) {
+      // day
+      from = dayColor
+      to = dayColor
+    } else {
+      // night
+      from = nightColor
+      to = nightColor
+    }
+    val skyColor = ((to - from) * trans) + from
+
+    // compute sun power
+    val fromPow = if (from == dayColor) 1 else -1
+    val toPow = if (to == dayColor) 1 else -1
+    val sunlightPow = ((toPow - fromPow) * trans) + fromPow
+    val (lightPow, lightPos) =
+      if (sunlightPow > 0) (sunlightPow, sunPos)
+      else (0.1f, moonPos)
+
+    // generate stars
+    val starAlpha = Trig.clamp(-sunlightPow, 0, 1)
+    val random = new Random(9287364589374265L)
+    val stars: GEval[Seq[Particle]] = GEval.resourcePack.map(pack => {
+      val p = (1 to 1000).map(_ => {
+        val t = random.nextFloat() * 360
+        val z = random.nextFloat() * 2 - 1
+        val dir = V3F(
+          Math.sqrt(1 - z * z).toFloat * Trig.cos(t),
+          Math.sqrt(1 - z * z).toFloat * Trig.sin(t),
+          z
+        ).rotate(South, cycle * 360).normalize
+        Particle(
+          camPos + (dir * skyDist), V4F(1, 1, 1, starAlpha), skyDist / 128f,
+          V2F(pack(StarTID).getU, pack(StarTID).getV),
+          V2F(pack(StarTID).getU2, pack(StarTID).getV2)
+        )
+      })
+      println(p)
+      p
+    })
+    val starsRenderable = Renderable[ParticleShader](stars)
+    val starRender = Render[ParticleShader](starsRenderable, TransMatrix(new Matrix4()), mustRender = true)
+    renders += starRender
+    */
+
+    // build the globals and return
+    val globals = GlobalRenderData(camPos, camDir, lightPos, lightPow, skyColor.inflate(1), 90)
     renders -> globals
   }
 }
@@ -569,4 +728,6 @@ object GodClient {
   val moveSpeed = 1f
   val margin = 1f
   val loadRad = V3I(12, 5, 12)
+  val dayDuration = 10 seconds
+  val dayTicks = dayDuration.toSeconds * 20
 }

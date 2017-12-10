@@ -69,7 +69,7 @@ class GenericShaderProcedure(resources: ResourcePack) extends ShaderProcedure[Ge
     context.setCullFace(GL20.GL_BACK)
   }
 
-  override def apply(mesh: Mesh, params: BasicParams, globals: GlobalRenderData, context: RenderContext, cam: Camera): Unit = {
+  override def apply(mesh: Mesh, params: Offset, globals: GlobalRenderData, context: RenderContext, cam: Camera): Unit = {
     program.setUniformMatrix(u_worldTrans, params.offset.toTransMatrix)
     mesh.render(program, GL20.GL_TRIANGLES)
   }

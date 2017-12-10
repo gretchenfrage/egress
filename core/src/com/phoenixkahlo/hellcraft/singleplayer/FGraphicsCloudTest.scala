@@ -65,7 +65,7 @@ class FGraphicsCloudTest extends GameState {
     })
 
     val renderable = Renderable[TerrainShader](cloud)
-    val render = Render[TerrainShader](renderable, BasicParams(Origin))
+    val render = Render[TerrainShader](renderable, Offset(Origin))
 
     renders = Seq(render)
 

@@ -164,8 +164,8 @@ class Chunk(
 
   def renders: Seq[Render[_ <: Shader]] = {
     Seq(
-      Render[TerrainShader](terrainRenderable, BasicParams.default),
-      Render[GenericShader](blockRenderable, BasicParams.default)
+      Render[TerrainShader](terrainRenderable, Offset.default),
+      Render[GenericShader](blockRenderable, Offset.default)
     )
   }
   /*

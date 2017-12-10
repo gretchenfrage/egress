@@ -1,6 +1,7 @@
 package com.phoenixkahlo.hellcraft.fgraphics
 
 import com.badlogic.gdx.graphics.Mesh
+import com.badlogic.gdx.math.Matrix4
 import com.phoenixkahlo.hellcraft.graphics.HUDComponent
 import com.phoenixkahlo.hellcraft.math.{Origin, V2F, V3F, V4F}
 
@@ -11,26 +12,27 @@ trait Shader {
 }
 
 case class BasicTriVert(pos: V3F, col: V4F, tex: V2F, nor: V3F)
-case class BasicParams(offset: V3F)
-object BasicParams {
-  val default = BasicParams(Origin)
+case class Offset(offset: V3F)
+case class TransMatrix(mat: Matrix4)
+object Offset {
+  val default = Offset(Origin)
 }
 
 trait TerrainShader extends Shader {
   override type RenderUnit = (Seq[BasicTriVert], Seq[Short])
-  override type Params = BasicParams
+  override type Params = Offset
   override type FinalForm = Mesh
 }
 
 trait GenericShader extends Shader {
   override type RenderUnit = (Seq[BasicTriVert], Seq[Short])
-  override type Params = BasicParams
+  override type Params = Offset
   override type FinalForm = Mesh
 }
 
 trait LineShader extends Shader {
   override type RenderUnit = (Seq[LineShader.Vert], Seq[Short])
-  override type Params = BasicParams
+  override type Params = Offset
   override type FinalForm = Mesh
 }
 object LineShader {
@@ -39,7 +41,7 @@ object LineShader {
 
 trait ParticleShader extends Shader {
   override type RenderUnit = Seq[ParticleShader.Particle]
-  override type Params = BasicParams
+  override type Params = TransMatrix
   override type FinalForm = Mesh
 }
 object ParticleShader {

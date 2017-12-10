@@ -53,6 +53,7 @@ object ClientLogic {
     def pack: ResourcePack
     def executor: UniExecutor
     def cursorPos: V2I
+    def camRange: (Float, Float)
   }
 }
 

@@ -181,6 +181,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     // update controller
     val clientInput = new ClientLogic.Input {
+      override def camRange: (Float, Float) = (renderer.cam.near, renderer.cam.far)
       override def camPos: V3F = V3F(renderer.cam.position)
       override def camDir: V3F = V3F(renderer.cam.direction)
       override def cursorPos: V2I = V2I(Gdx.input.getX, Gdx.input.getY)

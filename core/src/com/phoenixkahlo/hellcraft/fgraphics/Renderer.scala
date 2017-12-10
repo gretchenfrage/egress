@@ -1,5 +1,8 @@
 package com.phoenixkahlo.hellcraft.fgraphics
 
+import java.util.concurrent.{ConcurrentLinkedQueue, LinkedBlockingQueue}
+import java.util.concurrent.atomic.AtomicBoolean
+
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.g3d.utils.{DefaultTextureBinder, RenderContext}
 import com.badlogic.gdx.graphics.{Camera, GL20, PerspectiveCamera}
@@ -23,6 +26,36 @@ trait Renderer {
   * TODO: dispose of old resources
   */
 class DefaultRenderer(pack: ResourcePack) extends Renderer {
+  // task queue
+  val tasks = new LinkedBlockingQueue[Runnable]
+  def runTasks(): Unit = {
+    var task: Runnable = null
+    while ({ task = tasks.poll(); task != null })
+      task.run()
+  }
+  def runTasksWhileAwaiting[T](fut: Fut[T]): T = {
+    val currThread = Thread.currentThread()
+    @volatile var continue = true
+    val monitor = new Object
+
+    fut.onComplete(() => {
+      continue = false
+      monitor.synchronized {
+        monitor.notify()
+      }
+    })
+
+    monitor.synchronized {
+      while (continue) {
+        tasks.take().run()
+      }
+    }
+    fut.query.get
+  }
+  def execOpenGL(task: Runnable): Unit =
+    tasks.add(task)
+
+
   // libgdx camera
   override val cam = new PerspectiveCamera(90, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
   cam.near = 0.1f
@@ -58,7 +91,7 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
   val prepare: GenFunc[Renderable, PreparedFut, Shader] = new GenMemoFunc[Renderable, PreparedFut, Shader] {
     override protected def gen[S <: Shader](renderable: Renderable[S]): Fut[Prepared[S]] =
       renderable.eval.toFut(toFutPack)
-        .map[S#FinalForm](procedures(renderable.shader).toFinalForm(_), Gdx.app.postRunnable(_))
+        .map[S#FinalForm](procedures(renderable.shader).toFinalForm(_), execOpenGL _)
         .map[Prepared[S]]((finalForm: S#FinalForm) => Prepared(renderable.shader, finalForm, renderable.translucentPos))
   }
 
@@ -66,6 +99,9 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
   case class RenderNow[S <: Shader](prepared: Prepared[S], params: S#Params, procedure: ShaderProcedure[S])
 
   override def apply(renders: Seq[Render[_ <: Shader]], globals: GlobalRenderData): Unit = {
+    // run tasks
+    runTasks()
+
     // clear
     Gdx.gl.glClearColor(globals.clearCol.x, globals.clearCol.y, globals.clearCol.z, 1)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
@@ -77,8 +113,14 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     cam.update()
 
     // find what we can render immediately
-    def extract[S <: Shader](render: Render[S]): Option[RenderNow[S]] =
-      prepare(render.renderable).query.map(prepared => RenderNow(prepared, render.params, procedures(render.renderable.shader)))
+    def extract[S <: Shader](render: Render[S]): Option[RenderNow[S]] = {
+      val fut = prepare(render.renderable)
+      val option =
+        if (render.mustRender) Some(runTasksWhileAwaiting(fut))
+        else fut.query
+      option.map(prepared => RenderNow(prepared, render.params, procedures(render.renderable.shader)))
+      //prepare(render.renderable).query.map(prepared => RenderNow(prepared, render.params, procedures(render.renderable.shader)))
+    }
     // the compiler is struggling, this isn't haskell, so we're gonna have to help it out a little
     val renderNow: Seq[RenderNow[_ <: Shader]] = renders.flatMap((render: Render[_ <: Shader]) => extract(render): Option[RenderNow[_ <: Shader]])
 

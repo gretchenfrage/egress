@@ -67,8 +67,8 @@ class ParticleShaderProcedure(resources: ResourcePack) extends ShaderProcedure[P
     Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
   }
 
-  override def apply(mesh: Mesh, params: BasicParams, globals: GlobalRenderData, context: RenderContext, cam: Camera): Unit = {
-    program.setUniformMatrix(u_MV, params.offset.toTransMatrix.mulLeft(cam.view))
+  override def apply(mesh: Mesh, params: TransMatrix, globals: GlobalRenderData, context: RenderContext, cam: Camera): Unit = {
+    program.setUniformMatrix(u_MV, params.mat.cpy().mulLeft(cam.view))
     program.setUniformMatrix(u_P, cam.projection)
     mesh.render(program, GL20.GL_POINTS)
   }
