@@ -32,8 +32,10 @@ object Sky extends MemoFunc[SkyParams, Renderable[ParticleShader]](input => {
         Math.sqrt(1 - z * z).toFloat * Trig.sin(t),
         z
       )
+      val pow = random.nextFloat()
+      val size = random.nextFloat() + 1
       Particle(
-        dir * input.skyDist, V4F(1, 1, 1, 1), input.skyDist / 128f,
+        dir * input.skyDist, V4F(1, 1, 1, pow), input.skyDist / 128f / size,
         V2F(pack(StarTID).getU, pack(StarTID).getV),
         V2F(pack(StarTID).getU2, pack(StarTID).getV2)
       )
