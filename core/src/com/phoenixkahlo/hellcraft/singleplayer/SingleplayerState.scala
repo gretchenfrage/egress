@@ -181,16 +181,16 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     // update controller
     val clientInput = new ClientLogic.Input {
-      override def camRange: (Float, Float) = (renderer.cam.near, renderer.cam.far)
-      override def camPos: V3F = V3F(renderer.cam.position)
-      override def camDir: V3F = V3F(renderer.cam.direction)
-      override def cursorPos: V2I = V2I(Gdx.input.getX, Gdx.input.getY)
-      override def isCursorCaught: Boolean = Gdx.input.isCursorCatched
-      override def windowSize: V2I = V2I(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
-      override def nanoTime: Long = System.nanoTime()
-      override def sessionData: Map[String, Any] = SingleplayerState.this.sessionData
-      override def pack: ResourcePack = SingleplayerState.this.pack
-      override def executor: UniExecutor = UniExecutor.getService
+      override val camRange: (Float, Float) = (renderer.cam.near, renderer.cam.far)
+      override val camPos: V3F = V3F(renderer.cam.position)
+      override val camDir: V3F = V3F(renderer.cam.direction)
+      override val cursorPos: V2I = V2I(Gdx.input.getX, Gdx.input.getY)
+      override val isCursorCaught: Boolean = Gdx.input.isCursorCatched
+      override val windowSize: V2I = V2I(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
+      override val nanoTime: Long = System.nanoTime()
+      override val sessionData: Map[String, Any] = SingleplayerState.this.sessionData
+      override val pack: ResourcePack = SingleplayerState.this.pack
+      override val executor: UniExecutor = UniExecutor.getService
       override def keyToChar(keycode: Int): Option[Char] = {
         val str = keycode match {
           case Keys.SPACE => " "
@@ -235,6 +235,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
           None
         }
       }
+
     }
     clientLogicQueue.add(_.update)
     while (clientLogicQueue.size > 0) {

@@ -1,8 +1,12 @@
 package com.phoenixkahlo.hellcraft.fgraphics
 
+
+import com.badlogic.gdx.graphics.Pixmap.Format
+import com.badlogic.gdx.graphics.{Color, Pixmap, Texture}
 import com.phoenixkahlo.hellcraft.core.request.{Evalable, ExecHint}
 import com.phoenixkahlo.hellcraft.fgraphics.GEval.ToFutPack
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
+import com.phoenixkahlo.hellcraft.math.V4F
 import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, MergeFut, UniExecutor}
 
@@ -14,7 +18,7 @@ trait GEval[+T] {
   def toFut(pack: ToFutPack): Fut[T]
 }
 object GEval {
-  case class ToFutPack(executor: UniExecutor, resourcePack: ResourcePack)
+  case class ToFutPack(executor: UniExecutor, resourcePack: ResourcePack, glExec: Runnable => Unit)
 
   def apply[T](gen: => T)(implicit exec: ExecHint): GEval[T] =
     GECreate(() => gen, exec)
@@ -25,6 +29,27 @@ object GEval {
     private val _toFut = new MemoFunc[ToFutPack, Fut[ResourcePack]](pack => Fut(pack.resourcePack, _.run()))
     override def toFut(pack: ToFutPack): Fut[ResourcePack] = _toFut(pack)
   }
+
+
+  private val _dot = new MemoFunc[Color, GEval[Texture]](col => new GEval[Texture] {
+    override def toFut(pack: ToFutPack): Fut[Texture] = Fut({
+      val pixmap = new Pixmap(1, 1, Format.RGBA8888)
+      pixmap.setColor(col)
+      pixmap.drawPixel(0, 0)
+      new Texture(pixmap)
+    }, pack.glExec)
+  })
+  def dot(color: Color): GEval[Texture] = _dot(color)
+  /*
+  val _dot = new MemoFunc[Color, Texture](col => {
+    val pixmap = new Pixmap(1, 1, Format.RGBA8888)
+    pixmap.setColor(col)
+    pixmap.drawPixel(0, 0)
+    new Texture(pixmap)
+  })
+
+  override def dot(color: Color): Texture = _dot(color)
+  */
 }
 
 private case class GECreate[T](factory: () => T, exec: ExecHint) extends GEval[T] {

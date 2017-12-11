@@ -75,7 +75,7 @@ trait ResourcePack {
 
   def cloud(i: Int): Model
 
-  def dot(color: Color): Texture
+  //def dot(color: Color): Texture
 
 }
 
@@ -193,6 +193,7 @@ class DefaultResourcePack extends ResourcePack {
   override def cloud(i: Int): Model =
     clouds(Math.abs(i) % clouds.size)
 
+  /*
   val _dot = new MemoFunc[Color, Texture](col => {
     val pixmap = new Pixmap(1, 1, Format.RGBA8888)
     pixmap.setColor(col)
@@ -201,4 +202,5 @@ class DefaultResourcePack extends ResourcePack {
   })
 
   override def dot(color: Color): Texture = _dot(color)
+  */
 }

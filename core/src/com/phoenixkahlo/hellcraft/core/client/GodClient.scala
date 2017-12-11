@@ -2,8 +2,9 @@ package com.phoenixkahlo.hellcraft.core.client
 import java.util.UUID
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.math.Matrix4
-import com.phoenixkahlo.hellcraft.core.graphics.{Sky, SkyParams}
+import com.phoenixkahlo.hellcraft.core.graphics._
 import com.phoenixkahlo.hellcraft.core.request.{ExecCheap, ExecSeq}
 import com.phoenixkahlo.hellcraft.core.{Blocks, RenderWorld, SetMat, World}
 import com.phoenixkahlo.hellcraft.fgraphics.ParticleShader.Particle
@@ -76,6 +77,38 @@ case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3
       renders += render
     }
 
+    // render the block outline
+    for (v <- world.placeBlock(input.camPos, input.camDir, 64)) {
+      renders += Render[LineShader](CubeOutline.block(V4F(1, 1, 1, 1)), Offset(v))
+    }
+
+    // do some debug renders
+    val chunkOutline = CubeOutline.chunk(V4F(1, 1, 1, 1))
+    input.sessionData.get("chunk_debug_mode").map(_.asInstanceOf[String]).getOrElse("") match {
+      case "chunk" => for (c <- world.debugLoadedChunks) {
+        renders += Render[LineShader](chunkOutline, Offset(c * 16))
+      }
+      case "terrain" => for (c <- world.debugLoadedTerrain) {
+        renders += Render[LineShader](chunkOutline, Offset(c * 16))
+      }
+      case _ =>
+    }
+    if (input.sessionData.get("show_tasks").exists(_.asInstanceOf[Boolean])) {
+      val (tasks3D, tasks2D, tasksDB3D) = input.executor.getSpatialTasks
+      val task3DRenderable = FreeCube(FreeCubeParams(GrayTID, V4F(1, 1, 1, 1)))
+      for (p <- tasks3D) {
+        renders += Render[GenericShader](task3DRenderable, Offset(p))
+      }
+      val task2DRenderable = FreeCube(FreeCubeParams(GrayTID, V4F(0, 0, 1, 1)))
+      for (p <- tasks2D.map(_.inflate(0))) {
+        renders += Render[GenericShader](task2DRenderable, Offset(p))
+      }
+      val taskDB3DRenderable = FreeCube(FreeCubeParams(GrayTID, V4F(0, 1, 0, 1)))
+      for (p <- tasksDB3D) {
+        renders += Render[GenericShader](taskDB3DRenderable, Offset(p))
+      }
+    }
+
     // render the sky
     // some cosmic data
     val skyDist: Float = input.camRange._2 - 5
@@ -125,6 +158,39 @@ case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3
     val globals = GlobalRenderData(camPos, camDir, lightPos, lightPow, skyColor.inflate(1), 90)
     renders -> globals
   }
+
+  def hud(buffer: String, chatBGColor: Color, input: Input): Seq[Render[HUDShader]] = {
+    implicit val exec = ExecCheap
+    val crosshair = Renderable[HUDShader](GEval.resourcePack.map(pack => {
+      ImgHUDComponent(
+        pack(CrosshairTID),
+        input.windowSize / 2 - V2F(15, 15),
+        V2F(30, 30)
+      )
+    }))
+    val chatbg = Renderable[HUDShader](GEval.dot(chatBGColor).map(tex => {
+      ImgHUDComponent(
+        new TextureRegion(tex),
+        Origin2D,
+        input.windowSize ** V2F(0.4f, 0.5f)
+      )
+    }))
+    // lol imagine if I used this syntax everywhere, that'd be terrible
+    val text = ("" /: (chat.messages :+ buffer)) (_ + _ + "\n") dropRight 1
+    val chattext = Renderable[HUDShader](GEval.resourcePack.map(pack => {
+      StrBoxHUDComponent(
+        text, pack.font(ChatFID),
+        Origin2D, DownLeft, input.windowSize ** V2F(0.4f, 0.5f),
+        new Color(1f, 1f, 1f, 0.5f), 3, 10
+      )
+    }))
+
+    Seq(
+      Render[HUDShader](crosshair, (): Unit, mustRender = true),
+      Render[HUDShader](chatbg, (): Unit, mustRender = true),
+      Render[HUDShader](chattext, (): Unit, mustRender = true)
+    )
+  }
 }
 
 case class GodClientMain(core: ClientCore) extends ClientLogic {
@@ -150,6 +216,8 @@ case class GodClientMain(core: ClientCore) extends ClientLogic {
 
   override def keyDown(keycode: KeyCode)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = keycode match {
     case ESCAPE => become(GodClientMenu(core, input))
+    case T => become(GodClientChat(core))
+    case SLASH => become(GodClientChat(core, buffer = "/"))
     case _ => become(GodClientMain(core.copy(pressed = core.pressed + keycode)))
   }
 
@@ -186,8 +254,12 @@ case class GodClientMain(core: ClientCore) extends ClientLogic {
     } else nothing
   }
 
-  override def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData) =
-    core.render(world, input)
+  override def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData) = {
+    val (wrender, globals) = core.render(world, input)
+    val hud = core.hud("", Color.CLEAR, input)
+    (wrender ++ hud, globals)
+  }
+
 }
 
 case class GodClientMenu(core: ClientCore, buttons: Seq[MenuButton], pressing: Option[MenuButton]) extends ClientLogic {
@@ -243,6 +315,43 @@ object GodClientMenu {
       })
     )
     GodClientMenu(core, buttons, None)
+  }
+}
+
+case class GodClientChat(core: ClientCore, cursor: Boolean = true, buffer: String = "") extends ClientLogic {
+  override def become(replacement: ClientLogic): (ClientLogic, Seq[ClientEffect]) =
+    if (replacement.isInstanceOf[GodClientMain]) replacement -> Seq(CaptureCursor)
+    else super.become(replacement)
+
+  def shouldCursor(input: Input): Boolean = {
+    val interval = 1000000000
+    input.nanoTime % interval > interval / 2
+  }
+
+  override def update(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
+    if (shouldCursor(input) ^ cursor) become(copy(cursor = shouldCursor(input)))
+    else nothing
+
+  override def keyDown(keycode: KeyCode)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = keycode match {
+    case ESCAPE => become(GodClientMain(core))
+    case DEL => become(copy(buffer = buffer.dropRight(1)))
+    case ENTER =>
+      val (newChat, effects) = core.chat + (buffer, world, input)
+      GodClientMain(core.copy(chat = newChat)) -> (effects :+ CaptureCursor)
+    case _ => input.keyToChar(keycode) match {
+      case Some(c) => become(copy(buffer = buffer + c))
+      case None => nothing
+    }
+  }
+
+  override def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData) = {
+    val (wrender, globals) = core.render(world, input)
+    val hud = core.hud(
+      if (cursor) buffer + "|" else buffer,
+      new Color(0.1718f, 0.2422f, 0.3125f, 0.3f),
+      input
+    )
+    (wrender ++ hud, globals)
   }
 }
 

@@ -83,7 +83,7 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
   }
 
   // input data to GEval
-  val toFutPack = GEval.ToFutPack(UniExecutor.getService, pack)
+  val toFutPack = GEval.ToFutPack(UniExecutor.getService, pack, execOpenGL)
   // represents a renderable in form prepared to render
   case class Prepared[S <: Shader](shader: ShaderTag[S], unit: S#FinalForm, translucentPos: Option[V3F])
   type PreparedFut[S <: Shader] = Fut[Prepared[S]]
