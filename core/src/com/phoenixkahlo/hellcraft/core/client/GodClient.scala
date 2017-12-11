@@ -151,8 +151,12 @@ case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3
       if (sunlightPow > 0) (sunlightPow, sunPos)
       else (0.1f, moonPos)
     // sky render
-    val sky = Sky(SkyParams(skyDist))
-    renders += Render[ParticleShader](sky, TransMatrix(MatrixFactory(Rotate(South, cycle * 360), Translate(camPos))))
+    val skyParams = SkyParams(skyDist)
+    val skyTrans = MatrixFactory(Rotate(South, cycle * 360), Translate(camPos))
+    renders += Render[ParticleShader](SunMoon(skyParams), ParticleShader.Params(skyTrans))
+    renders += Render[ParticleShader](Stars(skyParams), ParticleShader.Params(skyTrans, V4F(1, 1, 1, Trig.clamp(-sunlightPow, 0, 1))))
+    //val sky = Sky(SkyParams(skyDist))
+    //renders += Render[ParticleShader](sky, TransMatrix(MatrixFactory(Rotate(South, cycle * 360), Translate(camPos))))
 
     // build the globals and return
     val globals = GlobalRenderData(camPos, camDir, lightPos, lightPow, skyColor.inflate(1), 90)

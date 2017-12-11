@@ -3,7 +3,7 @@ package com.phoenixkahlo.hellcraft.fgraphics
 import com.badlogic.gdx.graphics.Mesh
 import com.badlogic.gdx.math.Matrix4
 import com.phoenixkahlo.hellcraft.graphics.HUDComponent
-import com.phoenixkahlo.hellcraft.math.{Origin, V2F, V3F, V4F}
+import com.phoenixkahlo.hellcraft.math._
 
 trait Shader {
   type RenderUnit
@@ -41,11 +41,12 @@ object LineShader {
 
 trait ParticleShader extends Shader {
   override type RenderUnit = Seq[ParticleShader.Particle]
-  override type Params = TransMatrix
+  override type Params = ParticleShader.Params
   override type FinalForm = Mesh
 }
 object ParticleShader {
   case class Particle(pos: V3F, col: V4F, size: Float, tex0: V2F, tex1: V2F)
+  case class Params(trans: Matrix4, col: V4F = V4I.ones)
 }
 
 trait HUDShader extends Shader {

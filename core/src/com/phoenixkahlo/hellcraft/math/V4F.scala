@@ -58,6 +58,9 @@ class V4F(val x: Float, val y: Float, val z: Float, val w: Float) extends Serial
 
   def toColor: Color = new Color(x, y, z, w)
 
+  def toArray: Array[Float] =
+    Array[Float](x, y, z, w)
+
   override def equals(obj: scala.Any): Boolean =
     obj match {
       case V4F(xx, yy, zz, ww) => x == xx && y == yy && z == zz && w == ww

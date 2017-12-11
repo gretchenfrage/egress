@@ -7,6 +7,7 @@ in vec2 a_texCoord0;
 in vec2 a_texCoord1;
 
 uniform mat4 u_MV;
+uniform vec4 u_color;
 
 out vec2 v_texCoord0;
 out vec2 v_texCoord1;
@@ -18,5 +19,5 @@ void main() {
     v_texCoord0 = a_texCoord0;
     v_texCoord1 = a_texCoord1;
     v_size = a_size;
-    v_color = a_color;
+    v_color = a_color * u_color;
 }

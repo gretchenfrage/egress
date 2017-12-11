@@ -28,6 +28,7 @@ class ParticleShaderProcedure(resources: ResourcePack) extends ShaderProcedure[P
   val u_MV = program.getUniformLocation("u_MV")
   val u_P = program.getUniformLocation("u_P")
   val u_texture = program.getUniformLocation("u_texture")
+  val u_color = program.getUniformLocation("u_color")
 
 
   override def shader: ShaderTag[ParticleShader] = ClassTag(classOf[ParticleShader])
@@ -67,9 +68,10 @@ class ParticleShaderProcedure(resources: ResourcePack) extends ShaderProcedure[P
     Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
   }
 
-  override def apply(mesh: Mesh, params: TransMatrix, globals: GlobalRenderData, context: RenderContext, cam: Camera): Unit = {
-    program.setUniformMatrix(u_MV, params.mat.cpy().mulLeft(cam.view))
+  override def apply(mesh: Mesh, params: ParticleShader.Params, globals: GlobalRenderData, context: RenderContext, cam: Camera): Unit = {
+    program.setUniformMatrix(u_MV, params.trans.cpy().mulLeft(cam.view))
     program.setUniformMatrix(u_P, cam.projection)
+    program.setUniform4fv(u_color, params.col.toArray, 0, 4)
     mesh.render(program, GL20.GL_POINTS)
   }
 
