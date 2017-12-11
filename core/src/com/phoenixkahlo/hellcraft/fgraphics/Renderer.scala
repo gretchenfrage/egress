@@ -1,6 +1,7 @@
 package com.phoenixkahlo.hellcraft.fgraphics
 
-import java.util.concurrent.{ConcurrentLinkedQueue, LinkedBlockingQueue}
+import java.util
+import java.util.concurrent.{ConcurrentLinkedDeque, ConcurrentLinkedQueue, LinkedBlockingDeque, LinkedBlockingQueue}
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.badlogic.gdx.Gdx
@@ -10,6 +11,7 @@ import com.phoenixkahlo.hellcraft.fgraphics.procedures._
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
 import com.phoenixkahlo.hellcraft.math.{V3F, V4F}
 import com.phoenixkahlo.hellcraft.util.collections.{GenFunc, GenMemoFunc, MemoFunc, TypeMatchingMap}
+import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 
 import scala.reflect.ClassTag
@@ -27,35 +29,25 @@ trait Renderer {
   */
 class DefaultRenderer(pack: ResourcePack) extends Renderer {
   // task queue
-  val tasks = new LinkedBlockingQueue[Runnable]
+  val tasks = new LinkedBlockingDeque[Either[Runnable, Unit]]
   def runTasks(): Unit = {
-    var task: Runnable = null
+    var task: Either[Runnable, Unit] = null
     while ({ task = tasks.poll(); task != null })
-      task.run()
+      task.left.foreach(_.run())
   }
   def runTasksWhileAwaiting[T](fut: Fut[T]): T = {
-    val currThread = Thread.currentThread()
-    @volatile var continue = true
-    val monitor = new Object
-
-    fut.onComplete(() => {
-      continue = false
-      monitor.synchronized {
-        monitor.notify()
-      }
-    })
-
-    monitor.synchronized {
-      while (continue) {
-        tasks.take().run()
-      }
+    fut.onComplete(() => tasks.addFirst(Right((): Unit)))
+    var continue = true
+    while (continue) tasks.take() match {
+      case Left(task) => task.run()
+      case Right(()) => continue = false
     }
     fut.query.get
   }
-  def execOpenGL(task: Runnable): Unit =
-    tasks.add(task)
-
-
+  def execOpenGL(task: Runnable): Unit = {
+    tasks.add(Left(task))
+  }
+  
   // libgdx camera
   override val cam = new PerspectiveCamera(90, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
   cam.near = 0.1f
@@ -99,8 +91,12 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
   case class RenderNow[S <: Shader](prepared: Prepared[S], params: S#Params, procedure: ShaderProcedure[S])
 
   override def apply(renders: Seq[Render[_ <: Shader]], globals: GlobalRenderData): Unit = {
+    val p = Profiler("render loop")
+
     // run tasks
     runTasks()
+
+    p.log()
 
     // clear
     Gdx.gl.glClearColor(globals.clearCol.x, globals.clearCol.y, globals.clearCol.z, 1)
@@ -111,6 +107,8 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     cam.direction.set(globals.camDir.toGdx)
     cam.fieldOfView = globals.fov
     cam.update()
+
+    p.log()
 
     // find what we can render immediately
     def extract[S <: Shader](render: Render[S]): Option[RenderNow[S]] = {
@@ -124,6 +122,10 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     // the compiler is struggling, this isn't haskell, so we're gonna have to help it out a little
     val renderNow: Seq[RenderNow[_ <: Shader]] = renders.flatMap((render: Render[_ <: Shader]) => extract(render): Option[RenderNow[_ <: Shader]])
 
+    println("rendering " + renderNow.size + " units")
+
+    p.log()
+
     // sequence it
     // partition out sprite renders, those must be done at end
     val (isSprites, isntSprites) = renderNow.partition(_.procedure.isSprites)
@@ -135,6 +137,8 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     val opaquSeq = opaqu.sortBy(_.prepared.shader.hashCode())
     // form an iterator for the render sequence
     val renderIter = opaquSeq.iterator ++ transSeq.iterator ++ isSprites.iterator
+
+    p.log()
 
     // prepare to render
     var active: Option[ShaderProcedure[_ <: Shader]] = None
@@ -156,30 +160,9 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     // and before I go
     active.foreach(_.end())
     context.end()
-    /*
-    val (trans, opaqu) = renderNow.partition(_.prepared.translucentPos.isDefined)
-    // order the translucent calls by distance to player
-    val transSeq = trans.sortBy(_.prepared.translucentPos.get dist globals.camPos * -1)
-    // cluster the opaque calls by shader to minimize state changes
-    val opaquSeq = opaqu.sortBy(_.prepared.shader.hashCode())
-    // form a iterator for the render sequence
-    val renderSeq = opaquSeq.iterator ++ transSeq.iterator
 
-    // prepare to render
-    var active: Option[ShaderProcedure[_ <: Shader]] = None
-    def render[S <: Shader](rn: RenderNow[S]): Unit = {
-      if (!active.map(_.shader).contains(rn.prepared.shader)) {
-        active.foreach(_.end())
-        active = Some(procedures(rn.prepared.shader))
-        active.get.begin(globals, context, cam)
-      }
-      active.get.asInstanceOf[ShaderProcedure[S]].apply(rn.prepared.unit, rn.params, globals, context, cam)
-    }
-    // ka-chow!
-    renderSeq.foreach(render(_))
-    // and before I go...
-    active.foreach(_.end())
-    */
+    p.log()
+    p.print()
   }
 
   override def onResize(width: Int, height: Int): Unit = {
