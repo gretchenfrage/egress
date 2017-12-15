@@ -30,7 +30,7 @@ class SWorld(
               val active: Set[V3I],
               val min: Option[V3I],
               val max: Option[V3I]
-            ) extends RenderWorld {
+            ) extends World {
 
   override def chunkAt(p: V3I): Option[Chunk] =
     chunks.get(p).flatMap(LeftOption(_))
@@ -45,7 +45,14 @@ class SWorld(
 
   override def debugLoadedTerrain: Iterable[V3I] = chunks.keySet
 
-  override def renderableChunks: Seq[Chunk] = chunks.toSeq.flatMap(_._2.left.toOption)
+  def renderable(_ftime: Float): RenderWorld = new SWorld(time, res, chunks, chunkDomain, terrainDomain, active, min, max)
+    with RenderWorld {
+    override def renderableChunks = chunks.toSeq.flatMap(_._2.left.toOption)
+
+    override def ftime = _ftime
+  }
+
+  //override def renderableChunks: Seq[Chunk] = chunks.toSeq.flatMap(_._2.left.toOption)
 
   override def findEntity(id: EntityID): Option[Entity] =
     chunks.values.toStream.flatMap(LeftOption(_)).flatMap(_.entities.get(id)).headOption
@@ -397,7 +404,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     history = history.rangeImpl(Some(history.lastKey - 20), None)
 
     p.log()
-    //p.print()
+    p.printDisc(50)
 
     // return the accumulated special effects, with default values
     specialEffects.withDefaultValue(Seq.empty)

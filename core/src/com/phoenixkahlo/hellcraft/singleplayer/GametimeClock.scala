@@ -18,6 +18,8 @@ class GametimeClock() {
 
   def gametime: Long = (((System.nanoTime() - nanotimeStart) nanoseconds) / Delta.dt) toLong
 
+  def fgametime: Float = (((System.nanoTime() - nanotimeStart) nanoseconds) / Delta.dt) toFloat
+
   def waitUntil(time: Long): Unit = {
     val duration = (time * Delta.dt) + (nanotimeStart nanoseconds) - (System.nanoTime() nanoseconds)
     if (duration > Duration.Zero)

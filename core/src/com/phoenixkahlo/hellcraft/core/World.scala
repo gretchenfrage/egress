@@ -55,6 +55,8 @@ trait TerrainGrid {
 
 trait RenderWorld extends World {
   def renderableChunks: Seq[Chunk]
+
+  def ftime: Float
 }
 
 trait World extends TerrainGrid {

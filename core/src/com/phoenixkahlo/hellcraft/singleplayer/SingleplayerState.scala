@@ -259,7 +259,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     renderer.cam.update(true)
 
     // get render units
-    val (renders, globals) = clientLogic.render(infinitum(), clientInput)
+    val (renders, globals) = clientLogic.render(infinitum().renderable(clock.fgametime), clientInput)
     renderer(renders, globals)
 
     /*

@@ -47,7 +47,7 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
   def execOpenGL(task: Runnable): Unit = {
     tasks.add(Left(task))
   }
-  
+
   // libgdx camera
   override val cam = new PerspectiveCamera(90, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
   cam.near = 0.1f
@@ -122,8 +122,6 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     // the compiler is struggling, this isn't haskell, so we're gonna have to help it out a little
     val renderNow: Seq[RenderNow[_ <: Shader]] = renders.flatMap((render: Render[_ <: Shader]) => extract(render): Option[RenderNow[_ <: Shader]])
 
-    println("rendering " + renderNow.size + " units")
-
     p.log()
 
     // sequence it
@@ -144,7 +142,6 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     var active: Option[ShaderProcedure[_ <: Shader]] = None
     def render[S <: Shader](rn: RenderNow[S]): Unit = {
       if (!active.contains(rn.procedure)) {
-        //active.foreach(_.end())
         if (active.isDefined) {
           active.get.end()
           context.end()
@@ -162,7 +159,7 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     context.end()
 
     p.log()
-    p.print()
+    p.printDisc(16)
   }
 
   override def onResize(width: Int, height: Int): Unit = {

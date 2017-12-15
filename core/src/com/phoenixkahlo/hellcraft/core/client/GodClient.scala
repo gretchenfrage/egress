@@ -13,7 +13,6 @@ import com.phoenixkahlo.hellcraft.math.MatrixFactory.{Rotate, Translate}
 
 import scala.collection.immutable.IndexedSeq
 import scala.util.Random
-//import com.phoenixkahlo.hellcraft.core.{Blocks, SetMat, World}
 import com.phoenixkahlo.hellcraft.core.client.ClientLogic.Input
 import com.phoenixkahlo.hellcraft.math._
 import com.badlogic.gdx.Input.Keys._
@@ -112,7 +111,7 @@ case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3
     // render the sky
     // some cosmic data
     val skyDist: Float = input.camRange._2 - 5
-    val cycle = world.time.toFloat / GodClient.dayTicks % 1
+    val cycle = world.ftime / GodClient.dayTicks % 1
     val sunDir = V3F(-Trig.cos(cycle * 360), Trig.sin(cycle * 360), 0)
     val sunPos = camPos + (sunDir * skyDist)
     val moonPos = camPos + (sunDir * -1 * skyDist)
