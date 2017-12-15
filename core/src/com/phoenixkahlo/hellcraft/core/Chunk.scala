@@ -166,7 +166,7 @@ class Chunk(
     Seq(
       Render[TerrainShader](terrainRenderable, Offset.default),
       Render[GenericShader](blockRenderable, Offset.default)
-    )
+    ) ++ entities.values.flatMap(_.render)
   }
   /*
   def renderables(pack: ResourcePack, world: World): Seq[RenderUnit] = {

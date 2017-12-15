@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.core
 
 import java.util.UUID
 
-import com.phoenixkahlo.hellcraft.core.entity.{CubeFrame, Entity, Moveable, PhysCube}
+import com.phoenixkahlo.hellcraft.core.entity.{Entity, Moveable, PhysCube}
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.graphics.SoundID
 import com.phoenixkahlo.hellcraft.math.{Directions, RNG, V3F, V3I}

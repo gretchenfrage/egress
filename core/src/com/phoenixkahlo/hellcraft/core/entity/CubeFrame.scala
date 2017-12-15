@@ -15,6 +15,7 @@ import com.phoenixkahlo.hellcraft.util.collections.ResourceNode
 
 import scala.collection.JavaConverters
 
+/*
 case class CubeFrame(color: Color, override val pos: V3F, override val id: UUID) extends Entity {
   @transient private lazy val renderUnit = Seq(new CubeFrameRenderer(this))
 
@@ -41,3 +42,4 @@ class CubeFrameRenderer(cube: CubeFrame) extends RenderUnit {
   override def resources: Seq[ResourceNode] = Seq.empty
 }
 
+*/

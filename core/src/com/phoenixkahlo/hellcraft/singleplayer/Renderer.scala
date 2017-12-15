@@ -8,7 +8,6 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.utils.{RenderableSorter, ShaderProvider}
 import com.badlogic.gdx.utils.{Disposable, Pool}
-import com.phoenixkahlo.hellcraft.core.entity.CloudUnit
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.graphics.shaders._
 import com.phoenixkahlo.hellcraft.math._

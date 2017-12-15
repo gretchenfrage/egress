@@ -18,7 +18,6 @@ import com.phoenixkahlo.hellcraft.math._
 import com.badlogic.gdx.Input.Keys._
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.{BitmapFont, GlyphLayout, TextureRegion}
-import com.phoenixkahlo.hellcraft.core.entity.CubeRenderer
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.graphics.models.{BlockOutline, ChunkOutline}
 import com.phoenixkahlo.hellcraft.math

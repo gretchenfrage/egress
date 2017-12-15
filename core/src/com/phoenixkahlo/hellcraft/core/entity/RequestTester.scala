@@ -17,6 +17,8 @@ class RequestTester(override val id: UUID, request: Request[String]) extends Ent
     }
     Seq.empty
   }
+
+  override def render = Seq.empty
 }
 
 case class OnComplete(result: Requested, entityID: UUID, eventID: UUID) extends ChunkEvent(Origin, eventID) {

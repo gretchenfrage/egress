@@ -4,45 +4,21 @@ import java.util.UUID
 
 import com.badlogic.gdx.graphics.{Color, GL20}
 import com.badlogic.gdx.graphics.g3d.Renderable
+import com.phoenixkahlo.hellcraft.core.graphics.{FreeCube, FreeCubeParams}
 import com.phoenixkahlo.hellcraft.core.{Shift, SoundEffect, UpdateEffect, World}
+import com.phoenixkahlo.hellcraft.fgraphics.{GenericShader, Offset, Render}
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.graphics.models.FreeCubeMesh
 import com.phoenixkahlo.hellcraft.graphics.shaders.{GenericSID, TerrainSID}
-import com.phoenixkahlo.hellcraft.math.{Down, V3F}
+import com.phoenixkahlo.hellcraft.math.{Down, V3F, V4I}
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 import com.phoenixkahlo.hellcraft.util.collections.ResourceNode
 
 class Cube(tid: SheetTextureID, override val pos: V3F, override val id: UUID) extends Entity {
   protected def color: Color = Color.WHITE
 
-  @transient private lazy val renderUnit = new ParamCache[ResourcePack, Seq[RenderUnit]](
-    pack => Seq(CubeRenderer(tid, color, pos)(pack)))
-
-  override def renderables(pack: ResourcePack): Seq[RenderUnit] = renderUnit(pack)
-}
-
-object CubeRenderer {
-  def apply(tid: SheetTextureID, color: Color, pos: V3F)(pack: ResourcePack): RenderUnit = {
-    val renderable = new Renderable
-    renderable.meshPart.mesh = FreeCubeMesh((tid, color), (tid, pack, color))
-    renderable.material = new com.badlogic.gdx.graphics.g3d.Material
-    renderable.meshPart.offset = 0
-    renderable.meshPart.size = renderable.meshPart.mesh.getNumIndices
-    renderable.meshPart.primitiveType = GL20.GL_TRIANGLES
-    renderable.userData = GenericSID
-    renderable.worldTransform.translate(pos toGdx)
-    val renderableSeq = Seq(renderable)
-    new RenderUnit {
-      override def apply(interpolation: Interpolation): Seq[Renderable] = renderableSeq
-
-      override def resources: Seq[ResourceNode] = Seq.empty
-
-      override def locationIfTransparent =
-        if (color.a == 1) None
-        else Some(pos)
-    }
-  }
+  override def render = Seq(Render[GenericShader](FreeCube(FreeCubeParams(tid, V4I.ones)), Offset(pos)))
 }
 
 case class SoundCube(sid: SoundID, freq: Int, override val pos: V3F, override val id: UUID) extends Cube(SoundTID, pos, id) {
