@@ -2,8 +2,10 @@ package com.phoenixkahlo.hellcraft.util.collections
 
 import com.phoenixkahlo.hellcraft.math.{Ones, V3I}
 
-import scala.collection.GenTraversableOnce
+import scala.collection.{GenTraversableOnce, SortedSet}
 import scala.collection.generic.CanBuildFrom
+import scala.collection.mutable.ArrayBuffer
+import scala.util.Random
 
 sealed trait V3ISet extends Set[V3I] {
   def bloat: V3ISet
@@ -12,7 +14,7 @@ sealed trait V3ISet extends Set[V3I] {
 
   def shroat(n: Int): V3ISet
 
-  protected def toNormalSet: NormalV3ISet = NormalV3ISet(Set(iterator.toSeq: _*))
+  protected def toNormalSet: V3IHashSet = V3IHashSet(toSet)
 
   override def +(elem: V3I): V3ISet =
     toNormalSet + elem
@@ -39,18 +41,41 @@ object V3ISet {
 
     override def ++(other: GenTraversableOnce[V3I]): V3ISet =
       if (other.isInstanceOf[V3ISet]) other.asInstanceOf[V3ISet]
-      else NormalV3ISet(other.foldLeft(Set.empty[V3I])(_ + _))
+      else V3IHashSet(other.foldLeft(Set.empty[V3I])(_ + _))
 
     override def --(other: GenTraversableOnce[V3I]): V3ISet = this
   }
 }
 
-case class NormalV3ISet(set: Set[V3I]) extends V3ISet {
+object V3ISetTest extends App {
+  val rand = new Random(28937649832724L)
+  for (i <- 1 to 1000) {
+    val n = 100
+    val r1 = V3IRange(
+      V3I(rand.nextInt(n), rand.nextInt(n), rand.nextInt(n)),
+      V3I(rand.nextInt(n), rand.nextInt(n), rand.nextInt(n))
+    )
+    val r2 = V3IRange(
+      V3I(rand.nextInt(n), rand.nextInt(n), rand.nextInt(n)),
+      V3I(rand.nextInt(n), rand.nextInt(n), rand.nextInt(n))
+    )
+    val optimizedsum = r1 -- r2
+    val hashsum = optimizedsum.toSet
+    if (optimizedsum == hashsum)
+      println("test " + i + " passed")
+    else
+      println("TEST " + i + " FAILED")
+  }
+}
+
+case class V3IHashSet(set: Set[V3I]) extends V3ISet {
+  println("performance warning: V3I hash set created")
+
   override def bloat =
-    NormalV3ISet(set.flatMap(_.neighbors))
+    V3IHashSet(set.flatMap(_.neighbors))
 
   override def shrink =
-    NormalV3ISet(set.filter(_.neighbors.forall(set.contains)))
+    V3IHashSet(set.filter(_.neighbors.forall(set.contains)))
 
   override def shroat(n: Int): V3ISet =
     if (n == 0) this
@@ -64,71 +89,18 @@ case class NormalV3ISet(set: Set[V3I]) extends V3ISet {
     set iterator
 
   override def +(elem: V3I) =
-    NormalV3ISet(set + elem)
+    V3IHashSet(set + elem)
 
   override def -(elem: V3I) =
-    NormalV3ISet(set - elem)
+    V3IHashSet(set - elem)
 
   override def ++(elems: GenTraversableOnce[V3I]) =
-    NormalV3ISet(set ++ elems)
+    V3IHashSet(set ++ elems)
 
   override def --(xs: GenTraversableOnce[V3I]) =
-    NormalV3ISet(set -- xs)
+    V3IHashSet(set -- xs)
 }
-/*
-private object V3ISetTest extends App {
-  val s1min = V3I(4, 3, 6)
-  val s1max = V3I(14, 75, 50)
-  //val s1min = V3I(1, 1, 1)
-  //val s1max = V3I(10, 10, 10)
-  val s1a = V3IRange(s1min, s1max)
-  val s1b = (s1min to s1max) toSet
 
-  val s2min = V3I(3, 5, 7)
-  val s2max = V3I(86, 58, 81)
-  //val s2min = V3I(11, 11, 11)
-  //val s2max = V3I(20, 20, 20)
-  val s2a = V3IRange(s2min, s2max)
-  val s2b = (s2min to s2max) toSet
-
-  // bloat test
-  {
-    val bloat1A = s1a.bloat
-    val bloat1B = s1b.flatMap(_.neighbors)
-    println("bloat 1: " + (bloat1A == bloat1B))
-
-    val bloat2A = s2a.bloat
-    val bloat2B = s2b.flatMap(_.neighbors)
-    println("bloat 2: " + (bloat2A == bloat2B))
-  }
-
-  // shrink test
-  {
-    val shrink1A = s1a.shrink
-    val shrink1B = s1b.filter(_.neighbors.forall(s1b.contains))
-    println("shrink 1: " + (shrink1A == shrink1B))
-
-    val shrink2A = s2a.shrink
-    val shrink2B = s2b.filter(_.neighbors.forall(s2b.contains))
-    println("shrink 2: " + (shrink2A == shrink2B))
-  }
-
-  // add test
-  {
-    val addA = s1a ++ s2a
-    val addB = s1b ++ s2b
-    println("add: " + (addA equals addB))
-  }
-
-  // subtract test
-  {
-    val subA = s1a -- s2a
-    val subB = s1b -- s2b
-    println("sub: " + (subA == subB))
-  }
-
-}
-*/
 case class V3IRange(low: V3I, high: V3I) extends V3ISet {
   override def bloat: V3IRange =
     V3IRange(low - Ones, high + Ones)
@@ -155,6 +127,30 @@ case class V3IRange(low: V3I, high: V3I) extends V3ISet {
 
 }
 
+object Distinct extends ((V3IRange, V3IRange, V3I => Boolean) => Seq[V3IRange]) {
+  override def apply(r1: V3IRange, r2: V3IRange, contains: V3I => Boolean) = {
+    val vs: Seq[V3I] = Seq(r1.low, r1.high, r2.low, r2.high)
+    def ranges(comp: V3I => Int): Seq[(Int, Int)] = {
+      val nums = vs.map(comp).to[SortedSet].toSeq
+      nums.zip(nums.tail.dropRight(1).map(_ - 1) :+ nums.last)
+    }
+    val xranges = ranges(_.xi)
+    val yranges = ranges(_.yi)
+    val zranges = ranges(_.zi)
+    val xyzranges = new ArrayBuffer[V3IRange]
+    for {
+      xrange <- xranges
+      yrange <- yranges
+      zrange <- zranges
+    } yield {
+      val xyzrange = V3IRange(V3I(xrange._1, yrange._1, zrange._1), V3I(xrange._2, yrange._2, zrange._2))
+      if (contains(xyzrange.low))
+        xyzranges += xyzrange
+    }
+    xyzranges
+  }
+}
+
 case class V3IRangeSum(r1: V3IRange, r2: V3IRange) extends V3ISet {
   override def bloat: V3ISet =
     V3IRangeSum(r1.bloat, r2.bloat)
@@ -168,8 +164,10 @@ case class V3IRangeSum(r1: V3IRange, r2: V3IRange) extends V3ISet {
   override def contains(elem: V3I): Boolean =
     (r1 contains elem) || (r2 contains elem)
 
-  override def iterator: Iterator[V3I] =
-    (V3I.componentMin(r1.low, r2.low) toAsSeq V3I.componentMax(r1.high, r2.high)).filter(contains).iterator
+  private lazy val distinct: Seq[V3IRange] = Distinct(r1, r2, this)
+
+  override def iterator =
+    distinct.iterator.flatMap(_.iterator)
 }
 
 case class V3IRangeDiff(r1: V3IRange, r2: V3IRange) extends V3ISet {
@@ -185,6 +183,12 @@ case class V3IRangeDiff(r1: V3IRange, r2: V3IRange) extends V3ISet {
   override def contains(elem: V3I): Boolean =
     (r1 contains elem) && !(r2 contains elem)
 
+  private lazy val distinct: Seq[V3IRange] = Distinct(r1, r2, this)
+  /*
   override def iterator: Iterator[V3I] =
     r1.iterator filterNot (r2 contains)
+    */
+
+  override def iterator =
+    distinct.iterator.flatMap(_.iterator)
 }
