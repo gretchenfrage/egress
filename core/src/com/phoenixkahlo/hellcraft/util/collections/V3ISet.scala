@@ -48,6 +48,13 @@ object V3ISet {
 }
 
 object V3ISetTest extends App {
+  /*
+  val r1 = V3IRange(V3I(26, 31, 89), V3I(99, 47, 98))
+  val r2 = V3IRange(V3I(44, 26, 27), V3I(45, 83, 99))
+  val distinct = Distinct(r1, r2, v => r1(v) || r2(v))
+  */
+  //val sum = r1 ++ r2
+
   val rand = new Random(28937649832724L)
   for (i <- 1 to 1000) {
     val n = 100
@@ -59,13 +66,16 @@ object V3ISetTest extends App {
       V3I(rand.nextInt(n), rand.nextInt(n), rand.nextInt(n)),
       V3I(rand.nextInt(n), rand.nextInt(n), rand.nextInt(n))
     )
-    val optimizedsum = r1 -- r2
-    val hashsum = optimizedsum.toSet
-    if (optimizedsum == hashsum)
-      println("test " + i + " passed")
-    else
-      println("TEST " + i + " FAILED")
+    if (r1.isValid && r2.isValid) {
+      val optimizedsum = r1 ++ r2
+      val hashsum = r1.toSet ++ r2.toSet
+      if (optimizedsum == hashsum)
+        println("test " + i + " passed")
+      else
+        println("TEST " + i + " FAILED")
+    }
   }
+
 }
 
 case class V3IHashSet(set: Set[V3I]) extends V3ISet {
@@ -102,6 +112,11 @@ case class V3IHashSet(set: Set[V3I]) extends V3ISet {
 }
 
 case class V3IRange(low: V3I, high: V3I) extends V3ISet {
+  if (!(high > low))
+    ()//println("warning: invalid range")
+
+  def isValid: Boolean = high >= low
+
   override def bloat: V3IRange =
     V3IRange(low - Ones, high + Ones)
 
@@ -127,7 +142,27 @@ case class V3IRange(low: V3I, high: V3I) extends V3ISet {
 
 }
 
+object StreamTest extends App {
+  // weird....
+  def f(as: Seq[String], bs: Seq[String]): Unit =
+    for {
+      a <- as
+      b <- bs
+    } yield println((a, b))
+
+  val seq = Seq(1, 2, 3).map(_.toString)
+  f(seq, seq)
+
+  println()
+
+  val stream = Stream.iterate(1)(_ + 1).map(_.toString).take(3)
+  f(stream, stream)
+
+}
+
 object Distinct extends ((V3IRange, V3IRange, V3I => Boolean) => Seq[V3IRange]) {
+
+  /*
   override def apply(r1: V3IRange, r2: V3IRange, contains: V3I => Boolean) = {
     val vs: Seq[V3I] = Seq(r1.low, r1.high, r2.low, r2.high)
     def ranges(comp: V3I => Int): Seq[(Int, Int)] = {
@@ -148,6 +183,29 @@ object Distinct extends ((V3IRange, V3IRange, V3I => Boolean) => Seq[V3IRange]) 
         xyzranges += xyzrange
     }
     xyzranges
+  }
+  */
+  override def apply(r1: V3IRange, r2: V3IRange, contains: V3I => Boolean) = {
+    val vs: Seq[V3I] = Seq(
+      r1.low, r1.low - Ones, r2.low, r2.low - Ones,
+      r1.high, r1.high + Ones, r2.high, r2.high + Ones
+    )
+    def ranges(comp: V3I => Int): Seq[(Int, Int)] =
+      vs.map(comp).sorted.drop(1).dropRight(1).sliding(2, 2).map(seq => (seq(0), seq(1))).toSeq.distinct
+    val xrs = ranges(_.xi).toBuffer
+    val yrs = ranges(_.yi).toBuffer
+    val zrs = ranges(_.zi).toBuffer
+    val buffer = new ArrayBuffer[V3IRange]
+    for {
+      xr <- xrs
+      yr <- yrs
+      zr <- zrs
+    } yield {
+      val r = V3IRange(V3I(xr._1, yr._1, zr._1), V3I(xr._2, yr._2, zr._2))
+      if (contains(r.low))
+        buffer += r
+    }
+    buffer
   }
 }
 

@@ -10,6 +10,7 @@ import org.fusesource.leveldbjni.JniDBFactory._
 import java.io._
 
 import com.phoenixkahlo.hellcraft.util.collections.ParGenMutHashMap
+import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -68,24 +69,8 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
     Seq(close)
   }
 
-
-
-  /*
-  override def pull(chunks: Seq[V3I]): Map[V3I, Fut[Chunk]] = {
-    var map = Map.empty[V3I, Fut[Chunk]]
-    for (p <- chunks) {
-      map = map.updated(p, sequences(p)()({
-        if (!closing) {
-          val bytes = db.get(p.toByteArray)
-          if (bytes != null) Fut(deserialize(bytes), _.run())
-          else generator.chunkAt(p)
-        } else Fut(null: Chunk, _.run())
-      }).flatMap(identity))
-    }
-    map
-  }
-  */
   override def pull(chunks: Seq[V3I], terrain: Seq[V3I]): (Map[V3I, Fut[Chunk]], Map[V3I, Fut[Terrain]]) = {
+    val p = Profiler("save.pull: " + chunks.size + " chunks")
     var map = Map.empty[V3I, Fut[Chunk]]
     for (p <- chunks) {
       map = map.updated(p, sequences(p)()({
@@ -96,6 +81,11 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
         } else Fut(null: Chunk, _.run())
       }).flatMap(identity))
     }
-    (map, terrain.map(p => p -> generator.terrainAt(p)).toMap)
+    try {
+      (map, terrain.map(p => p -> generator.terrainAt(p)).toMap)
+    } finally {
+      p.log()
+      p.printDisc(1)
+    }
   }
 }
