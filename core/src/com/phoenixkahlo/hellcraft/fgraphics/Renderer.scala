@@ -112,12 +112,21 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
 
     // find what we can render immediately
     def extract[S <: Shader](render: Render[S]): Option[RenderNow[S]] = {
+      val fut: PreparedFut[S] = render.pin match {
+        case fut if fut.isInstanceOf[Fut[_]] => fut.asInstanceOf[PreparedFut[S]]
+        case _ => prepare(render.renderable)
+      }
+      val option =
+        if (render.mustRender) Some(runTasksWhileAwaiting(fut))
+        else fut.query
+      option.map(prepared => RenderNow(prepared, render.params, procedures(render.renderable.shader)))
+      /*
       val fut = prepare(render.renderable)
       val option =
         if (render.mustRender) Some(runTasksWhileAwaiting(fut))
         else fut.query
       option.map(prepared => RenderNow(prepared, render.params, procedures(render.renderable.shader)))
-      //prepare(render.renderable).query.map(prepared => RenderNow(prepared, render.params, procedures(render.renderable.shader)))
+      */
     }
     // the compiler is struggling, this isn't haskell, so we're gonna have to help it out a little
     val renderNow: Seq[RenderNow[_ <: Shader]] = renders.flatMap((render: Render[_ <: Shader]) => extract(render): Option[RenderNow[_ <: Shader]])

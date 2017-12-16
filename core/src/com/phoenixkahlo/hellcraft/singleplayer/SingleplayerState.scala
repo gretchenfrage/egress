@@ -48,7 +48,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var sessionData: Map[String, Any] = Map.empty
   private val clientLogicQueue = new ConcurrentLinkedQueue[ClientLogic => ((World, ClientLogic.Input) => ClientLogic.Output)]
   private val worldEffectQueue = new ConcurrentLinkedQueue[UpdateEffect]
-  private var vramGraph: DependencyGraph = _
   private var mainLoopTasks = new java.util.concurrent.ConcurrentLinkedQueue[Runnable]
   private var updateThread: Thread = _
   private var g = 0
@@ -120,9 +119,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     }
     Gdx.input.setInputProcessor(processor)
 
-    println("instantiating VRAM graph")
-    vramGraph = new DependencyGraph
-
     Thread.currentThread().setPriority(renderLoopThreadPriority)
 
     println("spawning updating thread")
@@ -177,7 +173,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     // get world and interpolation
     val toRender = infinitum()
-    val interpolation = NoInterpolation
 
     // update controller
     val clientInput = new ClientLogic.Input {
@@ -246,9 +241,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         case SetLoadTarget(c, t) =>
           chunkDomain = c
           terrainDomain = t
-        //case SetCamPos(p) => renderer.cam.position.set(p.x, p.y, p.z)
-        //case SetCamDir(d) => renderer.cam.direction.set(d.x, d.y, d.z)
-        //case SetCamFOV(fov) => renderer.cam.fieldOfView = fov
         case CaptureCursor => Gdx.input.setCursorCatched(true)
         case ReleaseCursor => Gdx.input.setCursorCatched(false)
         case ClientPrint(str) => println(str)
@@ -258,32 +250,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     }
     renderer.cam.update(true)
 
-    // get render units
     val (renders, globals) = clientLogic.render(infinitum().renderable(clock.fgametime), clientInput)
     renderer(renders, globals)
-
-    /*
-    var units: Seq[RenderUnit] = toRender.renderables(pack)
-
-    // do memory management
-    val nodes = units.flatMap(_.resources)
-    vramGraph ++= nodes
-    if (g % 600 == 0) UniExecutor.exec(() => {
-      val garbage = vramGraph.garbage(nodes)
-      Gdx.app.postRunnable(() => {
-        println("deleting " + garbage.size + " resource nodes")
-        garbage.foreach(_.dispose())
-        vramGraph --= garbage.toSeq
-      })
-    })
-
-    // get the client logic graphics
-    val (hud, cUnits) = clientLogic.render(toRender, clientInput)
-    units ++= cUnits
-
-    // render
-    renderer.render(toRender, units, interpolation, hud)
-    */
   }
 
   override def onResize(width: Int, height: Int): Unit = {
@@ -304,7 +272,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     println("saving...")
     val close: Promise = infinitum.finalSave()
     // while that's happening, we can dispose of all graphics resources owned by the VRAM graph
-    vramGraph.managing.foreach(_.dispose())
     // now we wait for the world to finish saving
     close.await
     println("...saved!")

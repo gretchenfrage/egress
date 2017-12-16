@@ -254,10 +254,10 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
   def loading: Set[V3I] = chunkLoadMap.keySet
 
   def finalSave(): Fut[Unit] = {
-    PromiseFold(save.close(this().chunks.flatMap({
+    save.close(this().chunks.flatMap({
       case (p, Left(chunk)) => Some(p -> chunk)
       case _ => None
-    })))
+    }))
   }
 
   /**

@@ -39,15 +39,15 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
     ois.readObject().asInstanceOf[Chunk]
   }
 
-  override def push(chunks: Map[V3I, Chunk]): Seq[Fut[Unit]] = {
-    val futs = new ArrayBuffer[Fut[Unit]]
-    for ((p, chunk) <- chunks) {
-      sequencer(() => futs += sequences(p)()(() => db.put(p.toByteArray, serialize(chunk))))
-    }
-    futs
+  override def push(chunks: Map[V3I, Chunk]): Fut[Unit] = {
+    sequencer[Fut[Unit]](() => {
+      val promises: Seq[Fut[Unit]] =
+        chunks.toSeq.map({ case (p, chunk) => sequences(p)()[Unit](() => db.put(p.toByteArray, serialize(chunk))) })
+      PromiseFold(promises)
+    }).flatten
   }
 
-  override def close(chunks: Map[V3I, Chunk]): Seq[Fut[Unit]] = {
+  override def close(chunks: Map[V3I, Chunk]): Fut[Unit] = {
     // disrupt pull futures
     closing = true
     // disrupt generator
@@ -63,23 +63,13 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
     // after that, close the database
     val close: Fut[Unit] = finish.afterwards(() => db.close(), UniExecutor.db)
     // return that
-    Seq(close)
+    close
   }
 
   override def pull(chunks: Seq[V3I], terrain: Seq[V3I]): (Map[V3I, Fut[Chunk]], Map[V3I, Fut[Terrain]]) = {
     val p = Profiler("save.pull: " + chunks.size + " chunks")
     var map = Map.empty[V3I, Fut[Chunk]]
     for (p <- chunks) {
-      /*
-      map = map.updated(p, sequences(p)()(() => {
-        if (!closing) {
-          val bytes = db.get(p.toByteArray)
-          if (bytes != null) Fut(deserialize(bytes), _.run())
-          else generator.chunkAt(p)
-        } else Fut(null: Chunk, _.run())
-      }).flatMap(identity))
-      */
-
       map += p -> sequencer(() => sequences(p)()(() => {
         if (!closing) {
           val bytes = db.get(p.toByteArray)

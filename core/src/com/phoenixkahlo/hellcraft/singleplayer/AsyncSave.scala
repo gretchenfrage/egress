@@ -11,11 +11,11 @@ import scala.collection.mutable
 
 trait AsyncSave {
 
-  def push(chunks: Map[V3I, Chunk]): Seq[Fut[Unit]]
+  def push(chunks: Map[V3I, Chunk]): Fut[Unit]
 
-  def close(chunks: Map[V3I, Chunk]): Seq[Fut[Unit]]
+  def close(chunks: Map[V3I, Chunk]): Fut[Unit]
 
-  def push(chunks: Seq[Chunk]): Seq[Fut[Unit]] =
+  def push(chunks: Seq[Chunk]): Fut[Unit] =
     push(chunks.map(c => (c.pos, c)).toMap)
 
   def pull(chunks: Seq[V3I], terrain: Seq[V3I]): (Map[V3I, Fut[Chunk]], Map[V3I, Fut[Terrain]])
