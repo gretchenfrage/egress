@@ -48,31 +48,24 @@ object V3ISet {
 }
 
 object V3ISetTest extends App {
-  /*
-  val r1 = V3IRange(V3I(26, 31, 89), V3I(99, 47, 98))
-  val r2 = V3IRange(V3I(44, 26, 27), V3I(45, 83, 99))
-  val distinct = Distinct(r1, r2, v => r1(v) || r2(v))
-  */
-  //val sum = r1 ++ r2
-
   val rand = new Random(28937649832724L)
   for (i <- 1 to 1000) {
-    val n = 100
+    val n = 10
     val r1 = V3IRange(
-      V3I(rand.nextInt(n), rand.nextInt(n), rand.nextInt(n)),
-      V3I(rand.nextInt(n), rand.nextInt(n), rand.nextInt(n))
+      V3I(rand.nextInt(n), rand.nextInt(n), /*rand.nextInt(n)*/0),
+      V3I(rand.nextInt(n), rand.nextInt(n), /*rand.nextInt(n)*/0)
     )
     val r2 = V3IRange(
-      V3I(rand.nextInt(n), rand.nextInt(n), rand.nextInt(n)),
-      V3I(rand.nextInt(n), rand.nextInt(n), rand.nextInt(n))
+      V3I(rand.nextInt(n), rand.nextInt(n), /*rand.nextInt(n)*/0),
+      V3I(rand.nextInt(n), rand.nextInt(n), /*rand.nextInt(n)*/0)
     )
     if (r1.isValid && r2.isValid) {
-      val optimizedsum = r1 ++ r2
-      val hashsum = r1.toSet ++ r2.toSet
+      val optimizedsum = r1 -- r2
+      val hashsum = r1.toSet -- r2.toSet
       if (optimizedsum == hashsum)
         println("test " + i + " passed")
       else
-        println("TEST " + i + " FAILED")
+        System.err.println("test " + i + " failed")
     }
   }
 
@@ -142,70 +135,41 @@ case class V3IRange(low: V3I, high: V3I) extends V3ISet {
 
 }
 
-object StreamTest extends App {
-  // weird....
-  def f(as: Seq[String], bs: Seq[String]): Unit =
-    for {
-      a <- as
-      b <- bs
-    } yield println((a, b))
-
-  val seq = Seq(1, 2, 3).map(_.toString)
-  f(seq, seq)
-
-  println()
-
-  val stream = Stream.iterate(1)(_ + 1).map(_.toString).take(3)
-  f(stream, stream)
-
-}
-
 object Distinct extends ((V3IRange, V3IRange, V3I => Boolean) => Seq[V3IRange]) {
-
-  /*
-  override def apply(r1: V3IRange, r2: V3IRange, contains: V3I => Boolean) = {
-    val vs: Seq[V3I] = Seq(r1.low, r1.high, r2.low, r2.high)
-    def ranges(comp: V3I => Int): Seq[(Int, Int)] = {
-      val nums = vs.map(comp).to[SortedSet].toSeq
-      nums.zip(nums.tail.dropRight(1).map(_ - 1) :+ nums.last)
-    }
-    val xranges = ranges(_.xi)
-    val yranges = ranges(_.yi)
-    val zranges = ranges(_.zi)
-    val xyzranges = new ArrayBuffer[V3IRange]
-    for {
-      xrange <- xranges
-      yrange <- yranges
-      zrange <- zranges
-    } yield {
-      val xyzrange = V3IRange(V3I(xrange._1, yrange._1, zrange._1), V3I(xrange._2, yrange._2, zrange._2))
-      if (contains(xyzrange.low))
-        xyzranges += xyzrange
-    }
-    xyzranges
+  private case class Range(start: Int, end: Int)
+  private case class RangeState(a: Boolean, b: Boolean)
+  private case class RangeBuilder(min: Int, max: Int, state: RangeState) {
+    def +(n: Int) = copy(max = n)
+    def build = Range(min, max)
   }
-  */
   override def apply(r1: V3IRange, r2: V3IRange, contains: V3I => Boolean) = {
-    val vs: Seq[V3I] = Seq(
+    def state(n: Int)(implicit comp: V3I => Int): RangeState =
+      RangeState(n >= comp(r1.low) && n <= comp(r1.high), n >= comp(r2.low) && n <= comp(r2.high))
+
+    def ranges(curr: Option[RangeBuilder], criticals: List[Int])(implicit comp: V3I => Int): Seq[Range] = criticals match {
+      case n :: tail => curr match {
+        case Some(builder) if state(n) == builder.state => ranges(Some(builder + n), tail)
+        case Some(builder) => builder.build +: ranges(Some(RangeBuilder(n, n, state(n))), tail)
+        case None => ranges(Some(RangeBuilder(n,n, state(n))), tail)
+      }
+      case Nil => Nil
+    }
+
+    val criticals: List[V3I] = List(
       r1.low, r1.low - Ones, r2.low, r2.low - Ones,
       r1.high, r1.high + Ones, r2.high, r2.high + Ones
     )
-    def ranges(comp: V3I => Int): Seq[(Int, Int)] =
-      vs.map(comp).sorted.drop(1).dropRight(1).sliding(2, 2).map(seq => (seq(0), seq(1))).toSeq.distinct
-    val xrs = ranges(_.xi).toBuffer
-    val yrs = ranges(_.yi).toBuffer
-    val zrs = ranges(_.zi).toBuffer
-    val buffer = new ArrayBuffer[V3IRange]
-    for {
+
+    val xrs = ranges(None, criticals.map(_.xi).sorted.distinct)(_.xi)
+    val yrs = ranges(None, criticals.map(_.yi).sorted.distinct)(_.yi)
+    val zrs = ranges(None, criticals.map(_.zi).sorted.distinct)(_.zi)
+
+    (for {
       xr <- xrs
       yr <- yrs
       zr <- zrs
-    } yield {
-      val r = V3IRange(V3I(xr._1, yr._1, zr._1), V3I(xr._2, yr._2, zr._2))
-      if (contains(r.low))
-        buffer += r
-    }
-    buffer
+    } yield V3IRange(V3I(xr.start, yr.start, zr.start), V3I(xr.end, yr.end, zr.end)))
+      .filter(range => contains(range.low))
   }
 }
 
@@ -242,10 +206,6 @@ case class V3IRangeDiff(r1: V3IRange, r2: V3IRange) extends V3ISet {
     (r1 contains elem) && !(r2 contains elem)
 
   private lazy val distinct: Seq[V3IRange] = Distinct(r1, r2, this)
-  /*
-  override def iterator: Iterator[V3I] =
-    r1.iterator filterNot (r2 contains)
-    */
 
   override def iterator =
     distinct.iterator.flatMap(_.iterator)
