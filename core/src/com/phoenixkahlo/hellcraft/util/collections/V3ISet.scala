@@ -146,10 +146,10 @@ object Distinct extends ((V3IRange, V3IRange, V3I => Boolean) => Seq[V3IRange]) 
     def state(n: Int)(implicit comp: V3I => Int): RangeState =
       RangeState(n >= comp(r1.low) && n <= comp(r1.high), n >= comp(r2.low) && n <= comp(r2.high))
 
-    def ranges(curr: Option[RangeBuilder], criticals: List[Int])(implicit comp: V3I => Int): Seq[Range] = criticals match {
+    def ranges(curr: Option[RangeBuilder], criticals: List[Int])(implicit comp: V3I => Int): List[Range] = criticals match {
       case n :: tail => curr match {
         case Some(builder) if state(n) == builder.state => ranges(Some(builder + n), tail)
-        case Some(builder) => builder.build +: ranges(Some(RangeBuilder(n, n, state(n))), tail)
+        case Some(builder) => builder.build :: ranges(Some(RangeBuilder(n, n, state(n))), tail)
         case None => ranges(Some(RangeBuilder(n,n, state(n))), tail)
       }
       case Nil => Nil

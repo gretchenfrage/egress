@@ -10,7 +10,7 @@ import org.fusesource.leveldbjni.JniDBFactory._
 import java.io._
 
 import com.phoenixkahlo.hellcraft.util.collections.ParGenMutHashMap
-import com.phoenixkahlo.hellcraft.util.debugging.Profiler
+import com.phoenixkahlo.hellcraft.util.debugging.{Profiler}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -23,6 +23,7 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
     factory.open(path.toFile, options)
   }
   private val sequences = new ParGenMutHashMap[V3I, FutSequences](p => new FutSequences(UniExecutor.db(p * 16)))
+  private val sequencer = new FutSequences(UniExecutor.db)
 
   private def serialize(chunk: Chunk): Array[Byte] = {
     val baos = new ByteArrayOutputStream
@@ -41,9 +42,7 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
   override def push(chunks: Map[V3I, Chunk]): Seq[Fut[Unit]] = {
     val futs = new ArrayBuffer[Fut[Unit]]
     for ((p, chunk) <- chunks) {
-      futs += sequences(p)()({
-        db.put(p.toByteArray, serialize(chunk))
-      })
+      sequencer(() => futs += sequences(p)()(() => db.put(p.toByteArray, serialize(chunk))))
     }
     futs
   }
@@ -57,14 +56,12 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
     UniExecutor.getService.makeDBSequential()
     // add the pushes to all the sequences
     for ((p, chunk) <- chunks) {
-      sequences(p)()({
-        db.put(p.toByteArray, serialize(chunk))
-      })
+      sequencer(() => sequences(p)()(() => db.put(p.toByteArray, serialize(chunk))))
     }
     // fold all sequences into a promise that all operations are completed
     val finish: Fut[Unit] = PromiseFold(sequences.toSeq.map(_._2.getLast))
     // after that, close the database
-    val close: Fut[Unit] = finish.afterwards(db.close(), UniExecutor.db)
+    val close: Fut[Unit] = finish.afterwards(() => db.close(), UniExecutor.db)
     // return that
     Seq(close)
   }
@@ -73,19 +70,30 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
     val p = Profiler("save.pull: " + chunks.size + " chunks")
     var map = Map.empty[V3I, Fut[Chunk]]
     for (p <- chunks) {
-      map = map.updated(p, sequences(p)()({
+      /*
+      map = map.updated(p, sequences(p)()(() => {
         if (!closing) {
           val bytes = db.get(p.toByteArray)
           if (bytes != null) Fut(deserialize(bytes), _.run())
           else generator.chunkAt(p)
         } else Fut(null: Chunk, _.run())
       }).flatMap(identity))
+      */
+
+      map += p -> sequencer(() => sequences(p)()(() => {
+        if (!closing) {
+          val bytes = db.get(p.toByteArray)
+          if (bytes != null) Fut(deserialize(bytes), _.run())
+          else generator.chunkAt(p)
+        } else Fut(null: Chunk, _.run())
+      })).flatten.flatten
+
     }
-    try {
-      (map, terrain.map(p => p -> generator.terrainAt(p)).toMap)
-    } finally {
-      p.log()
-      p.printDisc(1)
-    }
+    p.log()
+    val tmap = terrain.map(p => p -> Fut(generator.terrainAt(p), UniExecutor.exec).flatten).toMap
+    p.log()
+    p.printDisc(10)
+
+    (map, tmap)
   }
 }

@@ -2,6 +2,7 @@ package com.phoenixkahlo.hellcraft.util.collections
 
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
+
 import scala.collection.mutable
 
 class ParGenMutHashMap[K, V](gen: K => V) {

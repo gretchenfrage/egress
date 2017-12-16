@@ -39,9 +39,11 @@ trait Fut[+T] {
   def flatMap[E](func: T => Fut[E]): Fut[E] =
     new FlatMapFut(this, func)
 
+  def flatten[E](implicit asFut: T => Fut[E]) = flatMap(asFut)
+
   def onComplete(runnable: Runnable): Unit
 
-  def afterwards[N](factory: => N, executor: Runnable => Unit): Fut[N] =
+  def afterwards[N](factory: () => N, executor: Runnable => Unit): Fut[N] =
     new SeqFut(this, factory, executor)
 }
 
@@ -517,7 +519,7 @@ case class Promise(task: Runnable, executor: Runnable => Unit) extends Fut[Unit]
 }
 */
 
-private class SeqFut[T](last: Fut[_], factory: => T, executor: Runnable => Unit) extends Fut[T] {
+private class SeqFut[T](last: Fut[_], factory: () => T, executor: Runnable => Unit) extends Fut[T] {
   @volatile private var status: Option[T] = None
   private val listeners = new ArrayBuffer[Runnable]
   private val monitor = new Object
@@ -526,7 +528,7 @@ private class SeqFut[T](last: Fut[_], factory: => T, executor: Runnable => Unit)
     executor(() => {
       val result = factory
       monitor.synchronized {
-        status = Some(result)
+        status = Some(result())
         monitor.notifyAll()
       }
       listeners.foreach(_.run())
