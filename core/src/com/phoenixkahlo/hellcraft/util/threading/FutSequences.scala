@@ -28,7 +28,7 @@ class FutSequences(executor: Runnable => Unit) {
   def getLast: Fut[_] = {
     lock.readLock.lock()
     try last
-    finally lock.writeLock().unlock()
+    finally lock.readLock().unlock()
   }
 
 }

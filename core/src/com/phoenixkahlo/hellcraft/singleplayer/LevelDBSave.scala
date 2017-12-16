@@ -58,12 +58,16 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
     for ((p, chunk) <- chunks) {
       sequencer(() => sequences(p)()(() => db.put(p.toByteArray, serialize(chunk))))
     }
+    // fold all sequences into a promise that all operations are completed, and then close it
+    sequencer(() => PromiseFold(sequences.toSeq.map(_._2.getLast)).afterwards(() => db.close(), UniExecutor.db)).flatten
+    /*
     // fold all sequences into a promise that all operations are completed
     val finish: Fut[Unit] = PromiseFold(sequences.toSeq.map(_._2.getLast))
     // after that, close the database
     val close: Fut[Unit] = finish.afterwards(() => db.close(), UniExecutor.db)
     // return that
     close
+    */
   }
 
   override def pull(chunks: Seq[V3I], terrain: Seq[V3I]): (Map[V3I, Fut[Chunk]], Map[V3I, Fut[Terrain]]) = {

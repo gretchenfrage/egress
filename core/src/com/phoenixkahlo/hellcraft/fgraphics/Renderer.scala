@@ -10,7 +10,7 @@ import com.badlogic.gdx.graphics.{Camera, GL20, PerspectiveCamera}
 import com.phoenixkahlo.hellcraft.fgraphics.procedures._
 import com.phoenixkahlo.hellcraft.graphics.ResourcePack
 import com.phoenixkahlo.hellcraft.math.{V3F, V4F}
-import com.phoenixkahlo.hellcraft.util.collections.{GenFunc, GenMemoFunc, MemoFunc, TypeMatchingMap}
+import com.phoenixkahlo.hellcraft.util.collections._
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 
@@ -81,10 +81,17 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
   type PreparedFut[S <: Shader] = Fut[Prepared[S]]
   // typesafe memoizing function from renderable to fut of prepared
   val prepare: GenFunc[Renderable, PreparedFut, Shader] = new GenMemoFunc[Renderable, PreparedFut, Shader] {
-    override protected def gen[S <: Shader](renderable: Renderable[S]): Fut[Prepared[S]] =
+    override protected def gen[S <: Shader](renderable: Renderable[S]): Fut[Prepared[S]] = {
       renderable.eval.toFut(toFutPack)
         .map[S#FinalForm](procedures(renderable.shader).toFinalForm(_), execOpenGL _)
         .map[Prepared[S]]((finalForm: S#FinalForm) => Prepared(renderable.shader, finalForm, renderable.translucentPos))
+    }
+  }
+  val immediate: GenFunc[Renderable, Prepared, Shader] = new GenMemoFunc[Renderable, Prepared, Shader] {
+    override protected def gen[S <: Shader](renderable: Renderable[S]): Prepared[S] = {
+      val finalForm = procedures(renderable.shader).toFinalForm(renderable.eval.eval(toFutPack))
+      Prepared(renderable.shader, finalForm, renderable.translucentPos)
+    }
   }
 
   // just a little fusion of a prepared renderable and params
@@ -112,21 +119,16 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
 
     // find what we can render immediately
     def extract[S <: Shader](render: Render[S]): Option[RenderNow[S]] = {
-      val fut: PreparedFut[S] = render.pin match {
-        case fut if fut.isInstanceOf[Fut[_]] => fut.asInstanceOf[PreparedFut[S]]
-        case _ => prepare(render.renderable)
-      }
-      val option =
-        if (render.mustRender) Some(runTasksWhileAwaiting(fut))
-        else fut.query
+      val option: Option[Prepared[S]] =
+        if (render.mustRender) Some(immediate(render.renderable))
+        else (render.renderable.pin match {
+          case fut if fut.isInstanceOf[Fut[_]] => fut.asInstanceOf[PreparedFut[S]]
+          case _ =>
+            val prep = prepare(render.renderable)
+            render.renderable.pin = prep
+            prep
+        }).query
       option.map(prepared => RenderNow(prepared, render.params, procedures(render.renderable.shader)))
-      /*
-      val fut = prepare(render.renderable)
-      val option =
-        if (render.mustRender) Some(runTasksWhileAwaiting(fut))
-        else fut.query
-      option.map(prepared => RenderNow(prepared, render.params, procedures(render.renderable.shader)))
-      */
     }
     // the compiler is struggling, this isn't haskell, so we're gonna have to help it out a little
     val renderNow: Seq[RenderNow[_ <: Shader]] = renders.flatMap((render: Render[_ <: Shader]) => extract(render): Option[RenderNow[_ <: Shader]])
