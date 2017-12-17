@@ -5,7 +5,7 @@ import java.util.concurrent.ThreadLocalRandom
 
 import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.core.{PutEntity, World}
-import com.phoenixkahlo.hellcraft.graphics._
+import com.phoenixkahlo.hellcraft.fgraphics._
 import com.phoenixkahlo.hellcraft.math._
 import org.json.simple.{JSONObject, JSONValue}
 

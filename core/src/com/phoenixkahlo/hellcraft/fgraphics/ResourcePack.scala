@@ -1,21 +1,18 @@
-package com.phoenixkahlo.hellcraft.graphics
+package com.phoenixkahlo.hellcraft.fgraphics
 
 import java.io.DataInputStream
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.audio.Sound
-import com.badlogic.gdx.graphics.Pixmap.Format
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
+import com.badlogic.gdx.graphics._
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter
-import com.badlogic.gdx.graphics.g2d.{BitmapFont, SpriteBatch, TextureRegion}
-import com.badlogic.gdx.graphics.g3d.{Material, Model}
+import com.badlogic.gdx.graphics.g2d.{BitmapFont, TextureRegion}
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.model.MeshPart
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
-import com.badlogic.gdx.graphics.glutils.ShaderProgram
-import com.badlogic.gdx.graphics._
-import com.badlogic.gdx.scenes.scene2d.ui.Skin
+import com.badlogic.gdx.graphics.g3d.{Material, Model}
 import com.phoenixkahlo.hellcraft.menu.util.FrameFactory
 import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
 

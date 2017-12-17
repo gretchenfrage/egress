@@ -8,9 +8,8 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.phoenixkahlo.hellcraft.core.request.ExecSeq
 import com.phoenixkahlo.hellcraft.fgraphics
-import com.phoenixkahlo.hellcraft.fgraphics._
+import com.phoenixkahlo.hellcraft.fgraphics.{DefaultResourcePack, _}
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
-import com.phoenixkahlo.hellcraft.graphics.DefaultResourcePack
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.collections.spatial.SpatialTemporalQueue
 import com.phoenixkahlo.hellcraft.util.threading.UniExecutor

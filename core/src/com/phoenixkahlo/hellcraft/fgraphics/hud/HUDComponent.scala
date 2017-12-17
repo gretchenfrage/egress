@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.graphics
+package com.phoenixkahlo.hellcraft.fgraphics.hud
 
 import java.util.Scanner
 

@@ -7,8 +7,7 @@ import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.graphics.glutils.GeomShaderProgram.ShaderPart
 import com.badlogic.gdx.graphics.glutils.{GeomShaderProgram, ShaderStage}
 import com.badlogic.gdx.utils.GdxRuntimeException
-import com.phoenixkahlo.hellcraft.fgraphics._
-import com.phoenixkahlo.hellcraft.graphics.ResourcePack
+import com.phoenixkahlo.hellcraft.fgraphics.{ResourcePack, _}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.ClassTag

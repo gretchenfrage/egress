@@ -6,7 +6,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Cube
-import com.phoenixkahlo.hellcraft.graphics.StoneTID
+import com.phoenixkahlo.hellcraft.fgraphics.StoneTID
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.collections.{Domain, MemoFunc, V3ISet}
 import com.phoenixkahlo.hellcraft.util.fields._

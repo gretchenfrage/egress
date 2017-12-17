@@ -1,7 +1,7 @@
 package com.phoenixkahlo.hellcraft.gamedriver
 
 import com.badlogic.gdx.ApplicationAdapter
-import com.phoenixkahlo.hellcraft.graphics.ResourcePack
+import com.phoenixkahlo.hellcraft.fgraphics.ResourcePack
 
 class GameDriver(startState: GameState) extends ApplicationAdapter {
 

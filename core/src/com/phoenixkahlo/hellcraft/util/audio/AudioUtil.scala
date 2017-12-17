@@ -1,7 +1,7 @@
 package com.phoenixkahlo.hellcraft.util.audio
 
 import com.phoenixkahlo.hellcraft.core.SoundEffect
-import com.phoenixkahlo.hellcraft.graphics.ResourcePack
+import com.phoenixkahlo.hellcraft.fgraphics.ResourcePack
 import com.phoenixkahlo.hellcraft.math.V3F
 
 object AudioUtil {

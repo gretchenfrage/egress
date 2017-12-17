@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.fgraphics
 
 import com.badlogic.gdx.graphics.Mesh
 import com.badlogic.gdx.math.Matrix4
-import com.phoenixkahlo.hellcraft.graphics.HUDComponent
+import com.phoenixkahlo.hellcraft.fgraphics.hud.HUDComponent
 import com.phoenixkahlo.hellcraft.math._
 
 trait Shader {

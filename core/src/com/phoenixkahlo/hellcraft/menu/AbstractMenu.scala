@@ -8,8 +8,9 @@ import com.badlogic.gdx.scenes.scene2d.{InputEvent, Stage}
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.viewport.ScreenViewport
+import com.phoenixkahlo.hellcraft.fgraphics.{MenuPatchActivePID, MenuPatchPID, ResourcePack, XFID}
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
-import com.phoenixkahlo.hellcraft.graphics.{MenuPatchActivePID, MenuPatchPID, ResourcePack, XFID}
+import com.phoenixkahlo.hellcraft.graphics.{MenuPatchActivePID, MenuPatchPID, XFID}
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 import com.phoenixkahlo.hellcraft.menu.util.{EButton, EButtonStyle}
 import com.phoenixkahlo.hellcraft.util.caches.Cache

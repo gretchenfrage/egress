@@ -2,8 +2,8 @@ package com.phoenixkahlo.hellcraft.core.graphics
 
 import com.phoenixkahlo.hellcraft.core.request.ExecSeq
 import com.phoenixkahlo.hellcraft.fgraphics.ParticleShader.Particle
-import com.phoenixkahlo.hellcraft.fgraphics.{GEval, ParticleShader, Renderable}
-import com.phoenixkahlo.hellcraft.graphics.{MoonTID, StarTID, SunTID}
+import com.phoenixkahlo.hellcraft.fgraphics._
+import com.phoenixkahlo.hellcraft.graphics.{MoonTID, StarTID}
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
 

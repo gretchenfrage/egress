@@ -1,6 +1,6 @@
 package com.phoenixkahlo.hellcraft.gamedriver
 
-import com.phoenixkahlo.hellcraft.graphics.ResourcePack
+import com.phoenixkahlo.hellcraft.fgraphics.ResourcePack
 
 trait GameState {
 
