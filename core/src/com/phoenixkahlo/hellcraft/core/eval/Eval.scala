@@ -6,7 +6,7 @@ import com.phoenixkahlo.hellcraft.core.{Chunk, Terrain}
 import com.phoenixkahlo.hellcraft.core.eval.Eval.{CriticalData, EFlatMap, EMap}
 import com.phoenixkahlo.hellcraft.core.request.ExecHint
 import com.phoenixkahlo.hellcraft.fgraphics.ResourcePack
-import com.phoenixkahlo.hellcraft.math.{V3I, V4F}
+import com.phoenixkahlo.hellcraft.math.{V2F, V3I, V4F}
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 import com.phoenixkahlo.hellcraft.util.collections.{MemoFunc, MemoHintFunc, SingleMemoFunc, SingleMemoHintFunc}
 import com.phoenixkahlo.hellcraft.util.threading._
@@ -20,8 +20,11 @@ trait EvalContext {
 }
 
 trait Eval[+T, E <: EvalContext] {
-  def map[R](func: T => R)(implicit exec: ExecHint): Eval[R, E] = EMap(this, func, exec)
-  def flatMap[R](func: T => Eval[R, E]): Eval[R, E] = EFlatMap(this, func)
+  def map[R](func: T => R)(implicit exec: ExecHint): Eval[R, E] =
+    EMap(this, func, exec)
+  def flatMap[R](func: T => Eval[R, E]): Eval[R, E] =
+    EFlatMap(this, func)
+
   def toFut(pack: E#ToFutPack): Fut[T]
   def evalNow(pack: E#EvalNowPack): Option[T]
   def futCriticalData(pack: E#ToFutPack): CriticalData
@@ -144,8 +147,9 @@ object GEval {
 
   def apply[T](gen: => T)(implicit exec: ExecHint): GEval[T] = Eval[T, GEvalContext](gen)
 
-  case class ToFutPack(executor: UniExecutor, resourcePack: ResourcePack, glExec: Runnable => Unit)
-  case class EvalNowPack(resourcePack: ResourcePack)
+  case class CamRange(near: Float, far: Float)
+  case class ToFutPack(executor: UniExecutor, resourcePack: ResourcePack, glExec: Runnable => Unit, res: V2F, range: CamRange)
+  case class EvalNowPack(resourcePack: ResourcePack, res: V2F, range: CamRange)
 
   val resourcePack: GEval[ResourcePack] = new GEval[ResourcePack] {
     override def toFut(pack: ToFutPack): Fut[ResourcePack] = Fut(pack.resourcePack, _.run())
@@ -174,4 +178,18 @@ object GEval {
     override def futCriticalData(pack: ToFutPack): CriticalData = ()
     override def evalCriticalData(pack: EvalNowPack): CriticalData = ()
   })
+
+  val res: GEval[V2F] = new GEval[V2F] {
+    override def toFut(pack: ToFutPack): Fut[V2F] = Fut(pack.res, _.run())
+    override def evalNow(pack: EvalNowPack): Option[V2F] = Some(pack.res)
+    override def futCriticalData(pack: ToFutPack): CriticalData = pack.res
+    override def evalCriticalData(pack: EvalNowPack): CriticalData = pack.res
+  }
+
+  val camRange: GEval[CamRange] = new GEval[CamRange] {
+    override def toFut(pack: ToFutPack): Fut[CamRange] = Fut(pack.range, _.run())
+    override def evalNow(pack: EvalNowPack): Option[CamRange] = Some(pack.range)
+    override def futCriticalData(pack: ToFutPack): CriticalData = pack.range
+    override def evalCriticalData(pack: EvalNowPack): CriticalData = pack.range
+  }
 }
