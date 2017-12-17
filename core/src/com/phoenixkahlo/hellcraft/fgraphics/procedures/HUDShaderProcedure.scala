@@ -4,8 +4,8 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.{Camera, Mesh}
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext
+import com.phoenixkahlo.hellcraft.fgraphics.hud.HUDComponent
 import com.phoenixkahlo.hellcraft.fgraphics.{GlobalRenderData, HUDShader, ShaderProcedure, ShaderTag}
-import com.phoenixkahlo.hellcraft.graphics.HUDComponent
 
 import scala.reflect.ClassTag
 

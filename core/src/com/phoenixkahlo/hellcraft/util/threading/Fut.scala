@@ -392,6 +392,12 @@ class FulfillmentContext[K, V] {
     lock.writeLock.unlock()
   }
 
+  def get(k: K): Option[V] = {
+    lock.readLock.lock()
+    try map.get(k).flatMap(_.left.toOption)
+    finally lock.readLock.unlock()
+  }
+
   def put(kvs: Seq[(K, V)]): Unit = {
     for ((k, v) <- kvs) put(k, v)
   }
