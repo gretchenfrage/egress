@@ -71,13 +71,13 @@ case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3
     val renders = new ArrayBuffer[Render[_ <: Shader]]
 
     // render the chunks
-    for (render <- world.renderableChunks.flatMap(_.renders)) {
+    for (render <- world.renderableChunks.flatMap(_.render(world))) {
       renders += render
     }
 
     // render the block outline
     for (v <- world.placeBlock(input.camPos, input.camDir, 64)) {
-      renders += Render[LineShader](CubeOutline.block(V4F(1, 1, 1, 1)), Offset(v))
+      renders += Render[LineShader](CubeOutline.block(V4I.ones), Offset(v))
     }
 
     // do some debug renders

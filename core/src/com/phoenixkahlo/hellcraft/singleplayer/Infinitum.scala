@@ -45,12 +45,14 @@ class SWorld(
 
   override def debugLoadedTerrain: Iterable[V3I] = chunks.keySet
 
-  def renderable(_ftime: Float): RenderWorld = new SWorld(time, res, chunks, chunkDomain, terrainDomain, active, min, max)
-    with RenderWorld {
-    override def renderableChunks = chunks.toSeq.flatMap(_._2.left.toOption)
+  def renderable(_ftime: Float, _interp: Float): RenderWorld =
+    new SWorld(time, res, chunks, chunkDomain, terrainDomain, active, min, max) with RenderWorld {
+      override def renderableChunks = chunks.toSeq.flatMap(_._2.left.toOption)
 
-    override def ftime = _ftime
-  }
+      override def ftime = _ftime
+
+      override def interp: Float = _interp
+    }
 
   //override def renderableChunks: Seq[Chunk] = chunks.toSeq.flatMap(_._2.left.toOption)
 

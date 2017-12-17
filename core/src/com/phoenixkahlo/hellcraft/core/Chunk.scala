@@ -162,15 +162,10 @@ class Chunk(
 
   def isActive: Boolean = entities.nonEmpty
 
-  def renders: Seq[Render[_ <: Shader]] = {
+  def render(world: RenderWorld): Seq[Render[_ <: Shader]] = {
     Seq(
       Render[TerrainShader](terrainRenderable, Offset.default),
       Render[GenericShader](blockRenderable, Offset.default)
-    ) ++ entities.values.flatMap(_.render)
+    ) ++ entities.values.flatMap(_.render(world))
   }
-  /*
-  def renderables(pack: ResourcePack, world: World): Seq[RenderUnit] = {
-    entities.values.flatMap(_.renderables(pack)).toSeq ++ terrainMesher(world, pack) ++ blockMesher(world, pack)
-  }
-  */
 }

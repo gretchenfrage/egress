@@ -171,8 +171,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     Gdx.graphics.setTitle(Gdx.graphics.getFramesPerSecond.toString)
     g += 1
 
-    // get world and interpolation
-    val toRender = infinitum()
+    // get world
+    val world = infinitum()
 
     // update controller
     val clientInput = new ClientLogic.Input {
@@ -234,7 +234,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     }
     clientLogicQueue.add(_.update)
     while (clientLogicQueue.size > 0) {
-      val (newClientLogic, effects) = clientLogicQueue.remove()(clientLogic)(toRender, clientInput)
+      val (newClientLogic, effects) = clientLogicQueue.remove()(clientLogic)(world, clientInput)
       clientLogic = newClientLogic
       effects.foreach {
         case CauseUpdateEffect(worldEffects) => worldEffects.foreach(worldEffectQueue.add)
@@ -250,7 +250,9 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     }
     renderer.cam.update(true)
 
-    val (renders, globals) = clientLogic.render(infinitum().renderable(clock.fgametime), clientInput)
+    val (renders, globals) = clientLogic.render(infinitum().renderable(
+      clock.fgametime, Trig.clamp(1 - clock.fractionalTicksSince(world.time - 1), 0, 1)
+    ), clientInput)
     renderer(renders, globals)
   }
 

@@ -5,8 +5,8 @@ import java.util.UUID
 import com.badlogic.gdx.graphics.{Color, GL20}
 import com.badlogic.gdx.graphics.g3d.Renderable
 import com.phoenixkahlo.hellcraft.core.graphics.{FreeCube, FreeCubeParams}
-import com.phoenixkahlo.hellcraft.core.{Shift, SoundEffect, UpdateEffect, World}
-import com.phoenixkahlo.hellcraft.fgraphics.{GenericShader, Offset, Render}
+import com.phoenixkahlo.hellcraft.core.{RenderWorld, Shift, SoundEffect, UpdateEffect, World}
+import com.phoenixkahlo.hellcraft.fgraphics.{GenericShader, Offset, Render, Shader}
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.graphics.models.FreeCubeMesh
@@ -18,7 +18,12 @@ import com.phoenixkahlo.hellcraft.util.collections.ResourceNode
 class Cube(tid: SheetTextureID, override val pos: V3F, override val id: UUID) extends Entity {
   protected def color: Color = Color.WHITE
 
-  override def render = Seq(Render[GenericShader](FreeCube(FreeCubeParams(tid, V4I.ones)), Offset(pos)))
+  def lastPos: V3F = pos
+
+  override def render(world: RenderWorld): Seq[Render[_ <: Shader]] = Seq(Render[GenericShader](
+    FreeCube(FreeCubeParams(tid, V4I.ones)),
+    Offset(pos + ((lastPos - pos) * world.interp))
+  ))
 }
 
 case class SoundCube(sid: SoundID, freq: Int, override val pos: V3F, override val id: UUID) extends Cube(SoundTID, pos, id) {

@@ -2,8 +2,9 @@ package com.phoenixkahlo.hellcraft.core.entity
 
 import java.util.UUID
 
-import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent, MakeRequest, PutEntity, UpdateEffect, World}
+import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent, MakeRequest, PutEntity, RenderWorld, UpdateEffect, World}
 import com.phoenixkahlo.hellcraft.core.request.{Evalable, ExecSeq, Request, Requested}
+import com.phoenixkahlo.hellcraft.fgraphics.{Render, Shader}
 import com.phoenixkahlo.hellcraft.graphics.{RenderUnit, ResourcePack, StarTID}
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
@@ -18,7 +19,7 @@ class RequestTester(override val id: UUID, request: Request[String]) extends Ent
     Seq.empty
   }
 
-  override def render = Seq.empty
+  override def render(world: RenderWorld): Seq[Render[_ <: Shader]] = Seq.empty
 }
 
 case class OnComplete(result: Requested, entityID: UUID, eventID: UUID) extends ChunkEvent(Origin, eventID) {
