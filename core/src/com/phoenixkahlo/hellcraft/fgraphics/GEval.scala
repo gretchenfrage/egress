@@ -3,7 +3,7 @@ package com.phoenixkahlo.hellcraft.fgraphics
 
 import com.badlogic.gdx.graphics.Pixmap.Format
 import com.badlogic.gdx.graphics.{Color, Pixmap, Texture}
-import com.phoenixkahlo.hellcraft.core.request.{Evalable, ExecHint}
+import com.phoenixkahlo.hellcraft.core.eval.ExecHint
 import com.phoenixkahlo.hellcraft.fgraphics.GEval.ToFutPack
 import com.phoenixkahlo.hellcraft.math.V4F
 import com.phoenixkahlo.hellcraft.util.collections.MemoFunc

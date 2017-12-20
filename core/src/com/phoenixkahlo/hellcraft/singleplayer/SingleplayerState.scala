@@ -17,8 +17,6 @@ import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.client._
 import com.phoenixkahlo.hellcraft.fgraphics.{DefaultRenderer, Renderer, ResourcePack}
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
-import com.phoenixkahlo.hellcraft.graphics._
-import com.phoenixkahlo.hellcraft.graphics.shaders.ParticleSID
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.util.audio.AudioUtil

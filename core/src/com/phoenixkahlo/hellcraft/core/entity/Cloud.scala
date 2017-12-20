@@ -9,8 +9,6 @@ import com.badlogic.gdx.graphics.VertexAttributes.Usage
 import com.badlogic.gdx.graphics.g3d.{ModelInstance, Renderable}
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core.TerrainSoup
-import com.phoenixkahlo.hellcraft.graphics.shaders.{GenericSID, LineSID, TerrainSID}
-import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.caches.{DisposableParamCache, ParamCache}
 import com.phoenixkahlo.hellcraft.util.collections.ResourceNode

@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Entity
-import com.phoenixkahlo.hellcraft.core.request.Evalable.ToFutPack
+import com.phoenixkahlo.hellcraft.core.eval.WEval
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.math.{Ones, Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.util.LeftOption
@@ -217,15 +217,6 @@ class SWorld(
   def effects(dt: Float): Seq[UpdateEffect] = {
     active.toSeq.map(chunks(_).left.get).flatMap(_.update(this))
   }
-
-  /**
-    * The render units of all chunks
-    */
-  /*
-  def renderables(resources: ResourcePack): Seq[RenderUnit] = {
-    chunks.values.flatMap(_.left.toOption).flatMap(_.renderables(resources, this)).toSeq
-  }
-  */
 }
 
 /**
@@ -383,7 +374,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     p.log()
 
     // process request events
-    val toFutPack = ToFutPack(UniExecutor.getService, chunkFulfill, terrainFulfill)
+    val toFutPack = WEval.ToFutPack(UniExecutor.getService, chunkFulfill, terrainFulfill)
     for (make <- specialEffects.getOrElse(MakeRequest, Seq.empty).map(_.asInstanceOf[MakeRequest[_]])) {
       val request: Request[_] = make.request
       val fut: Fut[Any] = request.eval.toFut(toFutPack)

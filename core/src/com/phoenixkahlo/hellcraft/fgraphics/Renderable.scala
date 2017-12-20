@@ -2,7 +2,6 @@ package com.phoenixkahlo.hellcraft.fgraphics
 
 import java.util.Objects
 
-import com.phoenixkahlo.hellcraft.core.request.Evalable
 import com.phoenixkahlo.hellcraft.math.V3F
 
 import scala.reflect.ClassTag

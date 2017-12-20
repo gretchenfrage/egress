@@ -2,7 +2,8 @@ package com.phoenixkahlo.hellcraft.core.request
 
 import java.util.UUID
 
-import com.phoenixkahlo.hellcraft.core.request.Evalable.ToFutPack
+import com.phoenixkahlo.hellcraft.core.eval.ExecHint
+import com.phoenixkahlo.hellcraft.core.eval.WEval.WEval
 import com.phoenixkahlo.hellcraft.core.{Chunk, Terrain}
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.util.collections.IdentityKey
@@ -10,7 +11,7 @@ import com.phoenixkahlo.hellcraft.util.threading._
 
 import scala.collection.mutable
 
-case class Request[T](eval: Evalable[T], id: UUID) {
+case class Request[T](eval: WEval[T], id: UUID) {
   def unlock(requested: Requested): Option[T] =
     if (requested.id == this.id) Some(requested.result.asInstanceOf[T])
     else None
@@ -18,6 +19,7 @@ case class Request[T](eval: Evalable[T], id: UUID) {
 
 class Requested(val id: UUID, private[request] val result: Any)
 
+/*
 sealed trait Evalable[+T] {
   def map[R](func: T => R)(implicit exec: ExecHint): Evalable[R] = EMap(this, func, exec)
 
@@ -122,3 +124,4 @@ private case class EMerge[S1, S2, R](s1: Evalable[S1], s2: Evalable[S2], func: (
     }
   }
 }
+*/

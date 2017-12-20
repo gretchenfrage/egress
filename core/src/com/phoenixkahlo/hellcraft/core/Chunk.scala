@@ -4,9 +4,10 @@ import java.util.{Objects, UUID}
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.phoenixkahlo.hellcraft.core.entity.Entity
+import com.phoenixkahlo.hellcraft.core.eval.WEval.WEval
+import com.phoenixkahlo.hellcraft.core.eval.{Exec3D, ExecCheap, WEval}
 import com.phoenixkahlo.hellcraft.core.request._
 import com.phoenixkahlo.hellcraft.fgraphics._
-import com.phoenixkahlo.hellcraft.graphics._
 import com.phoenixkahlo.hellcraft.math.physics._
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.LeftOption
@@ -93,6 +94,7 @@ class Chunk(
   def invalidate(ids: Stream[UUID], meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true): (Chunk, Seq[UpdateEffect]) = {
     val e3d = Exec3D(pos * 16)
 
+    /*
     val emicroworld: Evalable[TerrainGrid] =
       pos.neighbors
         .map(Evalable.terrain)
@@ -107,10 +109,12 @@ class Chunk(
             override def terrainAt(p: V3I): Option[Terrain] = terrains.get(p)
           }
         })(ExecCheap)
-    val ets: Evalable[TerrainSoup] = emicroworld.map(world => TerrainSoup(terrain, world).get)(
+        */
+    val emicroworld = WEval.terrains(pos.neighbors)
+    val ets: WEval[TerrainSoup] = emicroworld.map(world => TerrainSoup(terrain, world).get)(
       if (meshTerrFast) ExecCheap else e3d
     )
-    val ebs: Evalable[BlockSoup] = emicroworld.map(world => BlockSoup(terrain, world).get)(
+    val ebs: WEval[BlockSoup] = emicroworld.map(world => BlockSoup(terrain, world).get)(
       if (meshBlocksFast) ExecCheap else e3d
     )
     val rts: Request[TerrainSoup] = Request(ets, ids.drop(0).head)

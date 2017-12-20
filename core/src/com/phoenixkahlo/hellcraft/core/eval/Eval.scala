@@ -2,9 +2,8 @@ package com.phoenixkahlo.hellcraft.core.eval
 
 import com.badlogic.gdx.graphics.Pixmap.Format
 import com.badlogic.gdx.graphics.{Pixmap, Texture}
-import com.phoenixkahlo.hellcraft.core.{Chunk, Terrain}
+import com.phoenixkahlo.hellcraft.core.{Chunk, Terrain, TerrainGrid}
 import com.phoenixkahlo.hellcraft.core.eval.Eval.{CriticalData, EFlatMap, EMap}
-import com.phoenixkahlo.hellcraft.core.request.ExecHint
 import com.phoenixkahlo.hellcraft.fgraphics.ResourcePack
 import com.phoenixkahlo.hellcraft.math.{V2F, V3I, V4F}
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
@@ -33,7 +32,7 @@ trait Eval[+T, E <: EvalContext] {
 object Eval {
   def apply[T, E <: EvalContext](gen: => T)(implicit exec: ExecHint): Eval[T, E] =
     ECreate(() => gen, exec)
-  def merge[A, B, T, E <: EvalContext](a: Eval[A, E], b: Eval[B, E], func: (A, B) => T)(implicit exec: ExecHint): Eval[T, E] =
+  def merge[A, B, T, E <: EvalContext](a: Eval[A, E], b: Eval[B, E])(func: (A, B) => T)(implicit exec: ExecHint): Eval[T, E] =
     EMerge(a, b, func, exec)
 
   private [eval] type CriticalData = Any
@@ -106,11 +105,11 @@ trait WEvalContext extends EvalContext {
   override type EvalNowPack = WEval.EvalNowPack
 }
 object WEval {
-  type WEval[T] = Eval[T, WEvalContext]
+  type WEval[+T] = Eval[T, WEvalContext]
 
   def apply[T](gen: => T)(implicit exec: ExecHint): WEval[T] = Eval[T, WEvalContext](gen)
 
-  case class ToFutPack(executor: UniExecutor, cfulfill: FulfillmentContext[V3I, Chunk], tfulfill: FulfillmentContext[V3I, Terrain])
+  case class ToFutPack(executor: UniExecutor, cfulfill: FulfillmentContext[V3I, Chunk], tfulfill: FulfillmentContext[V3I, Terrain]) extends UniExecProvider
   case class EvalNowPack(cfulfill: FulfillmentContext[V3I, Chunk], tfulfill: FulfillmentContext[V3I, Terrain])
 
   def chunk(p: V3I): WEval[Chunk] = EChunk(p)
@@ -136,6 +135,43 @@ object WEval {
     override def futCriticalData(pack: ToFutPack): CriticalData = pack.tfulfill
     override def evalCriticalData(pack: EvalNowPack): CriticalData = pack.tfulfill
   }
+
+  private val emptyTerr = WEval(Map.empty[V3I, Terrain])(ExecCheap)
+  def terrains(ps: Seq[V3I]): WEval[TerrainGrid] =
+    ps.map(terrain)
+      .map(_.map(terr => Map(terr.pos -> terr))(ExecCheap))
+      .fold(emptyTerr)(Eval.merge(_, _)(_ ++ _)(ExecCheap))
+      .map(TerrainGrid.fromMap)(ExecCheap)
+
+
+  /*
+    ps.map(terrain)
+    .fold(WEval(Map.empty[V3I, Terrain])(ExecCheap))(
+      (emap: WEval[Map[V3I, Terrain]], eterr: WEval[Terrain]) =>
+    Eval.merge[Map[V3I, Terrain], Terrain, Map[V3I, Terrain], WEvalContext](emap, eterr)((map: Map[V3I, Terrain], terr: Terrain) => ???)
+    )
+    .map(terrains => {
+          new TerrainGrid {
+            override def terrainAt(p: V3I): Option[Terrain] = terrains.get(p)
+          }
+        })(ExecCheap)
+    */
+
+  /*
+  pos.neighbors
+        .map(Evalable.terrain)
+        .foldLeft(Evalable(Map.empty[V3I, Terrain])(ExecCheap))(
+          (emap: Evalable[Map[V3I, Terrain]], eterr: Evalable[Terrain]) =>
+            Evalable.merge(emap, eterr,
+              (map: Map[V3I, Terrain], chunk: Terrain) => map + (chunk.pos -> chunk)
+            )(ExecCheap)
+        )
+        .map(terrains => {
+          new TerrainGrid {
+            override def terrainAt(p: V3I): Option[Terrain] = terrains.get(p)
+          }
+        })(ExecCheap)
+   */
 }
 
 trait GEvalContext extends EvalContext {
@@ -148,7 +184,7 @@ object GEval {
   def apply[T](gen: => T)(implicit exec: ExecHint): GEval[T] = Eval[T, GEvalContext](gen)
 
   case class CamRange(near: Float, far: Float)
-  case class ToFutPack(executor: UniExecutor, resourcePack: ResourcePack, glExec: Runnable => Unit, res: V2F, range: CamRange)
+  case class ToFutPack(executor: UniExecutor, resourcePack: ResourcePack, glExec: Runnable => Unit, res: V2F, range: CamRange) extends UniExecProvider
   case class EvalNowPack(resourcePack: ResourcePack, res: V2F, range: CamRange)
 
   val resourcePack: GEval[ResourcePack] = new GEval[ResourcePack] {

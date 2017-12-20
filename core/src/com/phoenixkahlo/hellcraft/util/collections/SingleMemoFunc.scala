@@ -24,7 +24,7 @@ class SingleMemoFunc[I, O](func: I => O) extends (I => O) {
             fut.await
           case _ =>
             val exec = new util.LinkedList[Runnable]
-            val fut = Fut(func(input), exec.add)
+            val fut = Fut(func(input), exec.add(_))
             curr = Some(input -> fut)
             lock.writeLock().unlock()
             fut.await
@@ -53,7 +53,7 @@ class SingleMemoHintFunc[I, H, O](func: (I, H) => O) extends ((I, H) => O) {
             fut.await
           case _ =>
             val exec = new util.LinkedList[Runnable]
-            val fut = Fut(func(input, hint), exec.add)
+            val fut = Fut(func(input, hint), exec.add(_))
             curr = Some(input -> fut)
             lock.writeLock().unlock()
             fut.await

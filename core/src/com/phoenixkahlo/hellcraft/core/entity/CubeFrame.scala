@@ -6,8 +6,6 @@ import com.badlogic.gdx.graphics.{Color, GL20}
 import com.badlogic.gdx.graphics.g3d.{ModelInstance, Renderable}
 import com.badlogic.gdx.utils.Pool
 import com.phoenixkahlo.hellcraft.core._
-import com.phoenixkahlo.hellcraft.graphics._
-import com.phoenixkahlo.hellcraft.graphics.shaders.{LineSID, TerrainSID}
 import com.phoenixkahlo.hellcraft.math.V3F
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 import com.phoenixkahlo.hellcraft.util.collections.ResourceNode

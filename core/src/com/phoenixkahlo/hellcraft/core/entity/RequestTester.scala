@@ -2,8 +2,9 @@ package com.phoenixkahlo.hellcraft.core.entity
 
 import java.util.UUID
 
+import com.phoenixkahlo.hellcraft.core.eval.{ExecSeq, WEval}
 import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent, MakeRequest, PutEntity, RenderWorld, UpdateEffect, World}
-import com.phoenixkahlo.hellcraft.core.request.{Evalable, ExecSeq, Request, Requested}
+import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.fgraphics.{Render, Shader}
 import com.phoenixkahlo.hellcraft.math.{Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
@@ -30,7 +31,7 @@ object RequestTester {
   implicit val exec = ExecSeq
 
   def apply(gen: => String, ids: Stream[UUID]): Seq[UpdateEffect] = {
-    val request = Request[String](Evalable(gen), ids.drop(0).head)
+    val request = Request[String](WEval(gen), ids.drop(0).head)
     val entity = new RequestTester(ids.drop(1).head, request)
     Seq(
       PutEntity(entity, ids.drop(2).head),
@@ -39,7 +40,7 @@ object RequestTester {
   }
 
   def chunkHash(p: V3I, ids: Stream[UUID]): Seq[UpdateEffect] = {
-    val request = Request[String](Evalable.chunk(p).map("hear it hurgling: " + _.pos.toString), ids.drop(0).head)
+    val request = Request[String](WEval.chunk(p).map("hear it hurgling: " + _.pos.toString), ids.drop(0).head)
     val entity = new RequestTester(ids.drop(1).head, request)
     Seq(
       PutEntity(entity, ids.drop(2).head),

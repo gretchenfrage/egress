@@ -5,7 +5,6 @@ import java.util.UUID
 import com.phoenixkahlo.hellcraft.core.{DoPhysics, PutEntity, Shift, TerrainSoup, UpdateEffect, World}
 import com.phoenixkahlo.hellcraft.fgraphics.PhysTID
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
-import com.phoenixkahlo.hellcraft.graphics.PhysTID
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.math.physics.{ComplexCollider, EmptyBroadphase, MeshRequest, Triangle}
 

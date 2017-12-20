@@ -52,6 +52,9 @@ trait TerrainGrid {
       case _ => None
     }).map(v => (v / 6).normalize)
 }
+object TerrainGrid {
+  def fromMap(map: Map[V3I, Terrain]): TerrainGrid = (p: V3I) => map.get(p)
+}
 
 trait RenderWorld extends World {
   def renderableChunks: Seq[Chunk]
