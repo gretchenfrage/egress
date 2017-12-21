@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.graphics.glutils.GeomShaderProgram.ShaderPart
 import com.badlogic.gdx.graphics.glutils.{GeomShaderProgram, ShaderStage}
 import com.badlogic.gdx.utils.GdxRuntimeException
+import com.phoenixkahlo.hellcraft.ShaderTag
 
 trait ShaderProcedure[S <: Shader] {
   def toFinalForm(renderUnit: S#RenderUnit): S#FinalForm

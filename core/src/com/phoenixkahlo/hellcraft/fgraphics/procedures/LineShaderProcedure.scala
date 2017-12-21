@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.{Camera, GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.utils.GdxRuntimeException
+import com.phoenixkahlo.hellcraft.ShaderTag
 import com.phoenixkahlo.hellcraft.fgraphics._
 
 import scala.collection.mutable.ArrayBuffer
@@ -22,7 +23,7 @@ class LineShaderProcedure extends ShaderProcedure[LineShader] {
   val u_worldTrans = program.getUniformLocation("u_worldTrans")
 
 
-  override def shader: ShaderTag[LineShader] = ClassTag(classOf[LineShader])
+  override def shader: ShaderTag[LineShader] = LineTag
 
   override def toFinalForm(renderUnit: (Seq[LineShader.Vert], Seq[Short])): Mesh = {
     val (verts, indices) = renderUnit

@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.graphics.glutils.GeomShaderProgram.ShaderPart
 import com.badlogic.gdx.graphics.glutils.{GeomShaderProgram, ShaderStage}
 import com.badlogic.gdx.utils.GdxRuntimeException
+import com.phoenixkahlo.hellcraft.ShaderTag
 import com.phoenixkahlo.hellcraft.fgraphics.{ResourcePack, _}
 
 import scala.collection.mutable.ArrayBuffer
@@ -31,7 +32,7 @@ class GenericShaderProcedure(resources: ResourcePack) extends ShaderProcedure[Ge
   val u_texture = program.getUniformLocation("u_texture")
   val u_lightPow = program.getUniformLocation("u_lightPow")
 
-  override def shader: ShaderTag[GenericShader] = ClassTag(classOf[GenericShader])
+  override def shader: ShaderTag[GenericShader] = GenericTag
 
   override def toFinalForm(renderUnit: (Seq[BasicTriVert], Seq[Short])): Mesh = {
     val (verts, indices) = renderUnit

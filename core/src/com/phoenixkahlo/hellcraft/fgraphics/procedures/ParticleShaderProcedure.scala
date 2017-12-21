@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.graphics.glutils.GeomShaderProgram.ShaderPart
 import com.badlogic.gdx.graphics.glutils.{GeomShaderProgram, ShaderStage}
 import com.badlogic.gdx.utils.GdxRuntimeException
+import com.phoenixkahlo.hellcraft.ShaderTag
 import com.phoenixkahlo.hellcraft.fgraphics.{ResourcePack, _}
 
 import scala.collection.mutable.ArrayBuffer
@@ -30,7 +31,7 @@ class ParticleShaderProcedure(resources: ResourcePack) extends ShaderProcedure[P
   val u_color = program.getUniformLocation("u_color")
 
 
-  override def shader: ShaderTag[ParticleShader] = ClassTag(classOf[ParticleShader])
+  override def shader: ShaderTag[ParticleShader] = ParticleTag
 
   override def toFinalForm(particles: Seq[ParticleShader.Particle]): Mesh = {
     val floats = new ArrayBuffer[Float](particles.size * 9)

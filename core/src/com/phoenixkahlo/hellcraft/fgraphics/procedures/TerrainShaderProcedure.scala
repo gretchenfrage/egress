@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.glutils.GeomShaderProgram.ShaderPart
 import com.badlogic.gdx.graphics.glutils.{GeomShaderProgram, ShaderStage}
 import com.badlogic.gdx.graphics._
 import com.badlogic.gdx.utils.GdxRuntimeException
+import com.phoenixkahlo.hellcraft.ShaderTag
 import com.phoenixkahlo.hellcraft.fgraphics.{ResourcePack, _}
 
 import scala.collection.mutable.ArrayBuffer
@@ -32,7 +33,7 @@ class TerrainShaderProcedure(resources: ResourcePack) extends ShaderProcedure[Te
   val u_lightPow = program.getUniformLocation("u_lightPow")
 
 
-  override def shader: ShaderTag[TerrainShader] = ClassTag(classOf[TerrainShader])
+  override def shader: ShaderTag[TerrainShader] = TerrainTag
 
   override def toFinalForm(renderUnit: (Seq[BasicTriVert], Seq[Short])): Mesh = {
     val (verts, indices) = renderUnit

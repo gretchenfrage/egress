@@ -2,6 +2,7 @@ package com.phoenixkahlo.hellcraft.fgraphics
 
 import java.util.Objects
 
+import com.phoenixkahlo.hellcraft.ShaderTag
 import com.phoenixkahlo.hellcraft.core.eval.GEval.GEval
 import com.phoenixkahlo.hellcraft.math.V3F
 

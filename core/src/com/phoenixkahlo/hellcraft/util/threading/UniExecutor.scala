@@ -80,13 +80,21 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
   }
 
   def exec(pos: V3F)(task: Runnable): Unit = {
-    queue3D.add(pos -> task)
-    ticketQueue.add(() => Option(queue3D.poll()).map(_._2))
+    exec(() => {
+      queue3D.add(pos -> task)
+      ticketQueue.add(() => Option(queue3D.poll()).map(_._2))
+    })
+    //queue3D.add(pos -> task)
+    //ticketQueue.add(() => Option(queue3D.poll()).map(_._2))
   }
 
   def exec(pos: V2F)(task: Runnable): Unit = {
-    queue2D.add(pos -> task)
-    ticketQueue.add(() => Option(queue2D.poll()).map(_._2))
+    exec(() => {
+      queue2D.add(pos -> task)
+      ticketQueue.add(() => Option(queue2D.poll()).map(_._2))
+    })
+    //queue2D.add(pos -> task)
+    //ticketQueue.add(() => Option(queue2D.poll()).map(_._2))
   }
 
   def db(task: Runnable): Unit = {

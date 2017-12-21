@@ -29,9 +29,11 @@ class Profiler(name: String) {
     out.println("]")
   }
 
-  def printDisc(threshhold: Double, out: PrintStream = System.out): Unit = {
-    if (deltas.find(_ > (threshhold milliseconds)).isDefined)
+  def printDisc(threshhold: Double, out: PrintStream = System.out): Boolean = {
+    if (deltas.find(_ > (threshhold milliseconds)).isDefined) {
       print(out)
+      true
+    } else false
   }
 
 }

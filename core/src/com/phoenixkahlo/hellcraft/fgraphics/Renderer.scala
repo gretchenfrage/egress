@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.g3d.utils.{DefaultTextureBinder, RenderContext}
 import com.badlogic.gdx.graphics.{Camera, GL20, PerspectiveCamera}
+import com.phoenixkahlo.hellcraft.ShaderTag
 import com.phoenixkahlo.hellcraft.core.eval.{ExecCheap, GEval}
 import com.phoenixkahlo.hellcraft.core.eval.GEval.{CamRange, GEval, GLMap}
 import com.phoenixkahlo.hellcraft.fgraphics.procedures._
@@ -61,6 +62,7 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
   val context = new RenderContext(new DefaultTextureBinder(DefaultTextureBinder.WEIGHTED, 1))
 
   // typesafe mapping from shader to shader procedure
+  /*
   val procedures: TypeMatchingMap[ShaderTag, ShaderProcedure, Shader] = {
     var map = TypeMatchingMap.empty[ShaderTag, ShaderProcedure, Shader]
     def reg[S <: Shader](proc: ShaderProcedure[S])(implicit tag: ShaderTag[S]): Unit =
@@ -74,6 +76,13 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
 
     map
   }
+  */
+  val procedures = new ShaderTagMap[ShaderProcedure]
+  procedures += new GenericShaderProcedure(pack)
+  procedures += new TerrainShaderProcedure(pack)
+  procedures += new ParticleShaderProcedure(pack)
+  procedures += new LineShaderProcedure
+  procedures += new HUDShaderProcedure
 
   /*
   def genFutPack(): GEval.ToFutPack
@@ -197,7 +206,9 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     context.end()
 
     p.log()
-    p.printDisc(16)
+    if (p.printDisc(16)) {
+      println("render unit count: " + renders.size)
+    }
   }
 
   override def onResize(width: Int, height: Int): Unit = {
@@ -208,7 +219,7 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
 
   override def close(): Unit = {
     // just dispose of all the procedures
-    for (procedure <- procedures.toSeq.map(_._2)) {
+    for (procedure <- procedures.toSeq) {
       procedure.close()
     }
   }

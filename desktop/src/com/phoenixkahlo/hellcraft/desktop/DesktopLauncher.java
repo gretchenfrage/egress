@@ -10,6 +10,7 @@ import java.awt.*;
 
 public class DesktopLauncher {
 	public static void main (String[] arg) {
+		//new GCNotifier();
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 		double factor = 0.18;

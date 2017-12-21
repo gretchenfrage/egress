@@ -4,8 +4,9 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.{Camera, Mesh}
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext
+import com.phoenixkahlo.hellcraft.ShaderTag
 import com.phoenixkahlo.hellcraft.fgraphics.hud.HUDComponent
-import com.phoenixkahlo.hellcraft.fgraphics.{GlobalRenderData, HUDShader, ShaderProcedure, ShaderTag}
+import com.phoenixkahlo.hellcraft.fgraphics.{GlobalRenderData, HUDShader, HUDTag, ShaderProcedure}
 
 import scala.reflect.ClassTag
 
@@ -14,7 +15,7 @@ class HUDShaderProcedure extends ShaderProcedure[HUDShader] {
 
   override def toFinalForm(comp: HUDComponent): HUDComponent = comp
 
-  override def shader: ShaderTag[HUDShader] = ClassTag(classOf[HUDShader])
+  override def shader: ShaderTag[HUDShader] = HUDTag
 
   override def isSprites: Boolean = true
 
