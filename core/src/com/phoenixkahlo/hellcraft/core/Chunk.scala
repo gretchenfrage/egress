@@ -5,7 +5,7 @@ import java.util.{Objects, UUID}
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.core.eval.WEval.WEval
-import com.phoenixkahlo.hellcraft.core.eval.{Exec3D, ExecCheap, WEval}
+import com.phoenixkahlo.hellcraft.core.eval.{Exec3D, ExecCheap, GEval, WEval}
 import com.phoenixkahlo.hellcraft.core.request._
 import com.phoenixkahlo.hellcraft.fgraphics._
 import com.phoenixkahlo.hellcraft.math.physics._
@@ -55,7 +55,7 @@ class Chunk(
     }), identityHash = true))
 
   @transient lazy val broadphase: Broadphase =
-    Option(lastBroadphase).map(_ ()).getOrElse(new OctreeBroadphase(
+    Option(lastBroadphase).map(_ apply).getOrElse(new OctreeBroadphase(
       terrainSoup.iterator ++ blockSoup.iterator,
       pos * 16 + Repeated(8), 64
     ))
@@ -93,23 +93,6 @@ class Chunk(
 
   def invalidate(ids: Stream[UUID], meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true): (Chunk, Seq[UpdateEffect]) = {
     val e3d = Exec3D(pos * 16)
-
-    /*
-    val emicroworld: Evalable[TerrainGrid] =
-      pos.neighbors
-        .map(Evalable.terrain)
-        .foldLeft(Evalable(Map.empty[V3I, Terrain])(ExecCheap))(
-          (emap: Evalable[Map[V3I, Terrain]], eterr: Evalable[Terrain]) =>
-            Evalable.merge(emap, eterr,
-              (map: Map[V3I, Terrain], chunk: Terrain) => map + (chunk.pos -> chunk)
-            )(ExecCheap)
-        )
-        .map(terrains => {
-          new TerrainGrid {
-            override def terrainAt(p: V3I): Option[Terrain] = terrains.get(p)
-          }
-        })(ExecCheap)
-        */
     val emicroworld = WEval.terrains(pos.neighbors)
     val ets: WEval[TerrainSoup] = emicroworld.map(world => TerrainSoup(terrain, world).get)(
       if (meshTerrFast) ExecCheap else e3d
@@ -172,4 +155,5 @@ class Chunk(
       Render[GenericShader](blockRenderable, Offset.default)
     ) ++ entities.values.flatMap(_.render(world))
   }
+
 }

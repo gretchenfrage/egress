@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.core.graphics
 
 import java.awt.Color
 
-import com.phoenixkahlo.hellcraft.core.eval.ExecSeq
+import com.phoenixkahlo.hellcraft.core.eval.{ExecSeq, GEval}
 import com.phoenixkahlo.hellcraft.fgraphics._
 import com.phoenixkahlo.hellcraft.math.{V3F, V4F}
 import com.phoenixkahlo.hellcraft.util.collections.MemoFunc

@@ -17,7 +17,7 @@ import com.phoenixkahlo.hellcraft.math._
 import com.badlogic.gdx.Input.Keys._
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.{BitmapFont, GlyphLayout, TextureRegion}
-import com.phoenixkahlo.hellcraft.core.eval.ExecCheap
+import com.phoenixkahlo.hellcraft.core.eval.{ExecCheap, GEval}
 import com.phoenixkahlo.hellcraft.fgraphics.hud.{DownLeft, ImgHUDComponent, StrBoxHUDComponent, StrHUDComponent}
 import com.phoenixkahlo.hellcraft.math
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
@@ -169,7 +169,7 @@ case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3
         V2F(30, 30)
       )
     }))
-    val chatbg = Renderable[HUDShader](GEval.dot(chatBGColor).map(tex => {
+    val chatbg = Renderable[HUDShader](GEval.dot(V4F(chatBGColor)).map(tex => {
       ImgHUDComponent(
         new TextureRegion(tex),
         Origin2D,

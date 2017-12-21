@@ -4,11 +4,11 @@ package com.phoenixkahlo.hellcraft.fgraphics
 import com.badlogic.gdx.graphics.Pixmap.Format
 import com.badlogic.gdx.graphics.{Color, Pixmap, Texture}
 import com.phoenixkahlo.hellcraft.core.eval.ExecHint
-import com.phoenixkahlo.hellcraft.fgraphics.GEval.ToFutPack
 import com.phoenixkahlo.hellcraft.math.V4F
 import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, MergeFut, UniExecutor}
 
+/*
 trait GEval[+T] {
   def map[N](func: T => N)(implicit exec: ExecHint): GEval[N] =
     GEMap(this, func, exec)
@@ -81,3 +81,4 @@ private case class GEMerge[A, B, R](a: GEval[A], b: GEval[B], func: (A, B) => R,
   private val _eval = new MemoFunc[ToFutPack, R](pack => func(a.eval(pack), b.eval(pack)))
   override def eval(pack: ToFutPack): R = _eval(pack)
 }
+*/

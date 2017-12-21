@@ -143,35 +143,6 @@ object WEval {
       .fold(emptyTerr)(Eval.merge(_, _)(_ ++ _)(ExecCheap))
       .map(TerrainGrid.fromMap)(ExecCheap)
 
-
-  /*
-    ps.map(terrain)
-    .fold(WEval(Map.empty[V3I, Terrain])(ExecCheap))(
-      (emap: WEval[Map[V3I, Terrain]], eterr: WEval[Terrain]) =>
-    Eval.merge[Map[V3I, Terrain], Terrain, Map[V3I, Terrain], WEvalContext](emap, eterr)((map: Map[V3I, Terrain], terr: Terrain) => ???)
-    )
-    .map(terrains => {
-          new TerrainGrid {
-            override def terrainAt(p: V3I): Option[Terrain] = terrains.get(p)
-          }
-        })(ExecCheap)
-    */
-
-  /*
-  pos.neighbors
-        .map(Evalable.terrain)
-        .foldLeft(Evalable(Map.empty[V3I, Terrain])(ExecCheap))(
-          (emap: Evalable[Map[V3I, Terrain]], eterr: Evalable[Terrain]) =>
-            Evalable.merge(emap, eterr,
-              (map: Map[V3I, Terrain], chunk: Terrain) => map + (chunk.pos -> chunk)
-            )(ExecCheap)
-        )
-        .map(terrains => {
-          new TerrainGrid {
-            override def terrainAt(p: V3I): Option[Terrain] = terrains.get(p)
-          }
-        })(ExecCheap)
-   */
 }
 
 trait GEvalContext extends EvalContext {
@@ -194,6 +165,7 @@ object GEval {
     override def evalCriticalData(pack: EvalNowPack): CriticalData = pack.resourcePack
   }
 
+  def dot(col: V4F): GEval[Texture] = _dot(col)
   private val _dot = new MemoFunc[V4F, GEval[Texture]](col => new GEval[Texture] {
     @transient private lazy val _toFut = new ParamCache[Runnable => Unit, Fut[Texture]](glexec => Fut({
       val pixmap = new Pixmap(1, 1, Format.RGBA8888)
@@ -227,5 +199,20 @@ object GEval {
     override def evalNow(pack: EvalNowPack): Option[CamRange] = Some(pack.range)
     override def futCriticalData(pack: ToFutPack): CriticalData = pack.range
     override def evalCriticalData(pack: EvalNowPack): CriticalData = pack.range
+  }
+
+  case class GLMap[S, R](source: GEval[S], func: S => R) extends GEval[R] {
+    @transient private lazy val _toFut = new SingleMemoHintFunc[CriticalData, ToFutPack, Fut[R]](
+      (cs, pack) => source.toFut(pack).map(func, pack.glExec)
+    )
+    override def toFut(pack: ToFutPack): Fut[R] = _toFut(source.futCriticalData(pack), pack)
+
+    @transient private lazy val _evalNow = new SingleMemoHintFunc[CriticalData, EvalNowPack, Option[R]](
+      (cs, pack) => source.evalNow(pack).map(func)
+    )
+    override def evalNow(pack: EvalNowPack): Option[R] = _evalNow(source.evalCriticalData(pack), pack)
+
+    override def futCriticalData(pack: ToFutPack): CriticalData = source.futCriticalData(pack)
+    override def evalCriticalData(pack: EvalNowPack): CriticalData = source.evalCriticalData(pack)
   }
 }

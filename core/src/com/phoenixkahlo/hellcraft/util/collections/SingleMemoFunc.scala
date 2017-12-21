@@ -27,6 +27,8 @@ class SingleMemoFunc[I, O](func: I => O) extends (I => O) {
             val fut = Fut(func(input), exec.add(_))
             curr = Some(input -> fut)
             lock.writeLock().unlock()
+            while (exec.size > 0)
+              exec.remove().run()
             fut.await
         }
     }
@@ -56,6 +58,8 @@ class SingleMemoHintFunc[I, H, O](func: (I, H) => O) extends ((I, H) => O) {
             val fut = Fut(func(input, hint), exec.add(_))
             curr = Some(input -> fut)
             lock.writeLock().unlock()
+            while (exec.size > 0)
+              exec.remove().run()
             fut.await
         }
     }

@@ -2,9 +2,9 @@ package com.phoenixkahlo.hellcraft.fgraphics
 
 import java.util.Objects
 
+import com.phoenixkahlo.hellcraft.core.eval.GEval.GEval
 import com.phoenixkahlo.hellcraft.math.V3F
 
-import scala.reflect.ClassTag
 
 case class Renderable[S <: Shader](eval: GEval[S#RenderUnit], identityHash: Boolean = false, translucentPos: Option[V3F] = None)(implicit val shader: ShaderTag[S]) {
   override def hashCode(): Int =

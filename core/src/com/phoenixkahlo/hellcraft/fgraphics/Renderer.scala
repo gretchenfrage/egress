@@ -7,8 +7,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.g3d.utils.{DefaultTextureBinder, RenderContext}
 import com.badlogic.gdx.graphics.{Camera, GL20, PerspectiveCamera}
+import com.phoenixkahlo.hellcraft.core.eval.{ExecCheap, GEval}
+import com.phoenixkahlo.hellcraft.core.eval.GEval.{CamRange, GEval, GLMap}
 import com.phoenixkahlo.hellcraft.fgraphics.procedures._
-import com.phoenixkahlo.hellcraft.math.{V3F, V4F}
+import com.phoenixkahlo.hellcraft.math.{V2F, V3F, V4F}
 import com.phoenixkahlo.hellcraft.util.collections._
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
@@ -73,8 +75,9 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     map
   }
 
-  // input data to GEval
-  val toFutPack = GEval.ToFutPack(UniExecutor.getService, pack, execOpenGL)
+  /*
+  def genFutPack(): GEval.ToFutPack
+  var toFutPack = GEval.ToFutPack(UniExecutor.getService, pack, execOpenGL, )
   // represents a renderable in form prepared to render
   case class Prepared[S <: Shader](shader: ShaderTag[S], unit: S#FinalForm, translucentPos: Option[V3F])
   type PreparedFut[S <: Shader] = Fut[Prepared[S]]
@@ -91,6 +94,14 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
       val finalForm = procedures(renderable.shader).toFinalForm(renderable.eval.eval(toFutPack))
       Prepared(renderable.shader, finalForm, renderable.translucentPos)
     }
+  }
+  */
+  case class Prepared[S <: Shader](shader: ShaderTag[S], unit: S#FinalForm, translucentPos: Option[V3F])
+  type PreparedEval[S <: Shader] = GEval[Prepared[S]]
+  val prepare: GenFunc[Renderable, PreparedEval, Shader] = new GenMemoFunc[Renderable, PreparedEval, Shader] {
+    override protected def gen[S <: Shader](ren: Renderable[S]) =
+      GLMap[S#RenderUnit, S#FinalForm](ren.eval, procedures(ren.shader).toFinalForm)
+      .map[Prepared[S]]((ff: S#FinalForm) => Prepared(ren.shader, ff, ren.translucentPos))(ExecCheap)
   }
 
   // just a little fusion of a prepared renderable and params
@@ -117,6 +128,7 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     p.log()
 
     // find what we can render immediately
+    /*
     def extract[S <: Shader](render: Render[S]): Option[RenderNow[S]] = {
       val option: Option[Prepared[S]] =
         if (render.mustRender) Some(immediate(render.renderable))
@@ -127,6 +139,22 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
             render.renderable.pin = prep
             prep
         }).query
+      option.map(prepared => RenderNow(prepared, render.params, procedures(render.renderable.shader)))
+    }
+    */
+    /*
+    val toFutPack = GEval.ToFutPack(UniExecutor.getService, pack, execOpenGL,
+      V2F())
+    */
+    val screenRes = V2F(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
+    val camRange = CamRange(cam.near, cam.far)
+    val toFutPack = GEval.ToFutPack(UniExecutor.getService, pack, execOpenGL, screenRes, camRange)
+    val evalNowPack = GEval.EvalNowPack(pack, screenRes, camRange)
+
+    def extract[S <: Shader](render: Render[S]): Option[RenderNow[S]] = {
+      val option: Option[Prepared[S]] =
+        if (render.mustRender) prepare(render.renderable).evalNow(evalNowPack)
+        else prepare(render.renderable).toFut(toFutPack).query
       option.map(prepared => RenderNow(prepared, render.params, procedures(render.renderable.shader)))
     }
     // the compiler is struggling, this isn't haskell, so we're gonna have to help it out a little
