@@ -8,7 +8,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.g3d.utils.{DefaultTextureBinder, RenderContext}
 import com.badlogic.gdx.graphics.{Camera, GL20, PerspectiveCamera}
 import com.phoenixkahlo.hellcraft.ShaderTag
-import com.phoenixkahlo.hellcraft.core.eval.{ExecCheap, GEval}
+import com.phoenixkahlo.hellcraft.core.eval.{Eval, ExecCheap, GEval}
 import com.phoenixkahlo.hellcraft.core.eval.GEval.{CamRange, GEval, GLMap}
 import com.phoenixkahlo.hellcraft.fgraphics.procedures._
 import com.phoenixkahlo.hellcraft.math.{V2F, V3F, V4F}
@@ -161,9 +161,21 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     val evalNowPack = GEval.EvalNowPack(pack, screenRes, camRange)
 
     def extract[S <: Shader](render: Render[S]): Option[RenderNow[S]] = {
+      val eval: GEval[Prepared[S]] = render.renderable.pin match {
+        case eval: Eval[_, _] => eval.asInstanceOf[GEval[Prepared[S]]]
+        case _ =>
+          val eval = prepare(render.renderable)
+          render.renderable.pin = eval
+          eval
+      }
+      val option: Option[Prepared[S]] =
+        if (render.mustRender) eval.evalNow(evalNowPack)
+        else eval.toFut(toFutPack).query
+      /*
       val option: Option[Prepared[S]] =
         if (render.mustRender) prepare(render.renderable).evalNow(evalNowPack)
         else prepare(render.renderable).toFut(toFutPack).query
+        */
       option.map(prepared => RenderNow(prepared, render.params, procedures(render.renderable.shader)))
     }
     // the compiler is struggling, this isn't haskell, so we're gonna have to help it out a little
