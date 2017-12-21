@@ -25,6 +25,7 @@ trait Eval[+T, E <: EvalContext] {
     EFlatMap(this, func)
 
   def toFut(pack: E#ToFutPack): Fut[T]
+  def weakFutQuery(pack: E#ToFutPack): Option[T]
   def evalNow(pack: E#EvalNowPack): Option[T]
   def futCriticalData(pack: E#ToFutPack): CriticalData
   def evalCriticalData(pack: E#EvalNowPack): CriticalData

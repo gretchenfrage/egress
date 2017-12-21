@@ -25,12 +25,17 @@ class Chunk(
              val tsRequest: Option[Request[TerrainSoup]],
              val bsRequest: Option[Request[BlockSoup]],
              @transient lastBroadphase: () => Broadphase = null,
-             @transient lastTerrainRenderable: () => Renderable[TerrainShader] = null,
-             @transient lastBlockRenderable: () => Renderable[GenericShader] = null
+             //@transient lastTerrainRenderable: () => Renderable[TerrainShader] = null,
+             lastTerrainRenderable: Option[Renderable[TerrainShader]] = None,
+             lastTerrainRenderableValid: Boolean = false,
+             //@transient lastBlockRenderable: () => Renderable[GenericShader] = null
+             lastBlockRenderable: Option[Renderable[GenericShader]] = None,
+             lastBlockRenderableValid: Boolean = false
            ) extends Serializable {
 
   implicit val exec = Exec3D(pos * 16)
 
+  /*
   @transient lazy val terrainRenderable: Renderable[TerrainShader] =
     Option(lastTerrainRenderable).map(_ apply).getOrElse(Renderable[TerrainShader](GEval.resourcePack.map(pack => {
       val verts = new ArrayBuffer[BasicTriVert]
@@ -53,6 +58,35 @@ class Chunk(
       }
       (verts, blockSoup.indices)
     }), identityHash = true))
+    */
+  val terrainRenderable: Renderable[TerrainShader] =
+    lastTerrainRenderable match {
+      case Some(ltr) if lastTerrainRenderableValid => ltr
+      case _ => Renderable[TerrainShader](GEval.resourcePack.map(pack => {
+        val verts = new ArrayBuffer[BasicTriVert]
+        for (v: V3I <- terrainSoup.indexToVert) {
+          val vert: TerrainSoup.Vert = terrainSoup.verts(v).get
+          val tex: TextureRegion = pack(vert.mat.tid)
+          verts += BasicTriVert(vert.pos, V4I.ones, V2F(tex.getU, tex.getV), vert.nor)
+        }
+        (verts, terrainSoup.indices)
+      }), identityHash = true)
+    }
+
+  val blockRenderable: Renderable[GenericShader] =
+    lastBlockRenderable match {
+      case Some(lbr) if lastBlockRenderableValid => lbr
+      case _ => Renderable[GenericShader](GEval.resourcePack.map(pack => {
+        val verts = new ArrayBuffer[BasicTriVert]
+        for (vert <- blockSoup.verts) {
+          val tex = pack(vert.block.tid)
+          verts += BasicTriVert(vert.pos, V4I.ones, V2F(
+            tex.getU + (vert.uvDelta.x / 16f), tex.getV + (vert.uvDelta.y / 16f)
+          ), vert.nor)
+        }
+        (verts, blockSoup.indices)
+      }), identityHash = true)
+    }
 
   @transient lazy val broadphase: Broadphase =
     Option(lastBroadphase).map(_ apply).getOrElse(new OctreeBroadphase(
@@ -67,7 +101,7 @@ class Chunk(
       terrainSoup, blockSoup,
       tsRequest, bsRequest,
       () => broadphase,
-      () => terrainRenderable, () => blockRenderable
+      Some(terrainRenderable), true, Some(blockRenderable), true
     )
 
   def removeEntity(entity: UUID): Chunk =
@@ -77,7 +111,7 @@ class Chunk(
       terrainSoup, blockSoup,
       tsRequest, bsRequest,
       () => broadphase,
-      () => terrainRenderable, () => blockRenderable
+      Some(terrainRenderable), true, Some(blockRenderable), true
     )
 
   def setTerrain(newTerrain: Terrain, ids: Stream[UUID], meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true): (Chunk, Seq[UpdateEffect]) =
@@ -87,8 +121,8 @@ class Chunk(
       terrainSoup, blockSoup,
       tsRequest, bsRequest,
       () => broadphase,
-      () => terrainRenderable,
-      () => blockRenderable
+      Some(terrainRenderable), true,
+      Some(blockRenderable), true
     ).invalidate(ids, meshTerrFast, meshBlocksFast)
 
   def invalidate(ids: Stream[UUID], meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true): (Chunk, Seq[UpdateEffect]) = {
@@ -107,10 +141,9 @@ class Chunk(
       entities,
       terrainSoup, blockSoup,
       Some(rts), Some(rbs),
-      // TODO: don't make a chain of old chunks
       () => broadphase,
-      () => terrainRenderable,
-      () => blockRenderable
+      Some(terrainRenderable), true,
+      Some(blockRenderable), true
     ) -> Seq(
       MakeRequest(rts, (requested, world) => Seq(FulfillChunk(pos, requested, ids.drop(2).head))),
       MakeRequest(rbs, (requested, world) => Seq(FulfillChunk(pos, requested, ids.drop(3).head)))
@@ -125,8 +158,8 @@ class Chunk(
         tsRequest.get.unlock(requested).get, blockSoup,
         None, bsRequest,
         () => broadphase,
-        null,
-        () => blockRenderable
+        Some(terrainRenderable), false,
+        Some(blockRenderable), true
       )
     } else if (bsRequest.isDefined && bsRequest.get.unlock(requested).isDefined) {
       new Chunk(
@@ -135,8 +168,8 @@ class Chunk(
         terrainSoup, bsRequest.get.unlock(requested).get,
         tsRequest, None,
         () => broadphase,
-        () => terrainRenderable,
-        null
+        Some(terrainRenderable), true,
+        Some(blockRenderable), false
       )
     } else this
   }
@@ -151,8 +184,10 @@ class Chunk(
 
   def render(world: RenderWorld): Seq[Render[_ <: Shader]] = {
     Seq(
-      Render[TerrainShader](terrainRenderable, Offset.default),
-      Render[GenericShader](blockRenderable, Offset.default)
+      Render[TerrainShader](terrainRenderable, Offset.default,
+        alt = lastTerrainRenderable.map(rend => Render[TerrainShader](rend, Offset.default))),
+      Render[GenericShader](blockRenderable, Offset.default,
+        alt = lastBlockRenderable.map(rend => Render[GenericShader](rend, Offset.default)))
     ) ++ entities.values.flatMap(_.render(world))
   }
 

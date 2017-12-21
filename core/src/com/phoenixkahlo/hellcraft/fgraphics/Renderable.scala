@@ -22,4 +22,5 @@ case class Renderable[S <: Shader](eval: GEval[S#RenderUnit], identityHash: Bool
   @transient var pin: Any = null
 }
 
-case class Render[S <: Shader](renderable: Renderable[S], params: S#Params, mustRender: Boolean = false)
+case class Render[S <: Shader](renderable: Renderable[S], params: S#Params, mustRender: Boolean = false,
+                               alt: Option[Render[_ <: Shader]] = None)

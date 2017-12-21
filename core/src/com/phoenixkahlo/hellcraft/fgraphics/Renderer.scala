@@ -16,6 +16,7 @@ import com.phoenixkahlo.hellcraft.util.collections._
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 
+import scala.annotation.tailrec
 import scala.reflect.ClassTag
 
 trait Renderer {
@@ -62,49 +63,13 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
   val context = new RenderContext(new DefaultTextureBinder(DefaultTextureBinder.WEIGHTED, 1))
 
   // typesafe mapping from shader to shader procedure
-  /*
-  val procedures: TypeMatchingMap[ShaderTag, ShaderProcedure, Shader] = {
-    var map = TypeMatchingMap.empty[ShaderTag, ShaderProcedure, Shader]
-    def reg[S <: Shader](proc: ShaderProcedure[S])(implicit tag: ShaderTag[S]): Unit =
-      map += (tag -> proc)
-
-    reg(new GenericShaderProcedure(pack))
-    reg(new TerrainShaderProcedure(pack))
-    reg(new ParticleShaderProcedure(pack))
-    reg(new LineShaderProcedure)
-    reg(new HUDShaderProcedure)
-
-    map
-  }
-  */
-  val procedures = new ShaderTagMap[ShaderProcedure]
+  val procedures = new ShaderTagTable[ShaderProcedure]
   procedures += new GenericShaderProcedure(pack)
   procedures += new TerrainShaderProcedure(pack)
   procedures += new ParticleShaderProcedure(pack)
   procedures += new LineShaderProcedure
   procedures += new HUDShaderProcedure
 
-  /*
-  def genFutPack(): GEval.ToFutPack
-  var toFutPack = GEval.ToFutPack(UniExecutor.getService, pack, execOpenGL, )
-  // represents a renderable in form prepared to render
-  case class Prepared[S <: Shader](shader: ShaderTag[S], unit: S#FinalForm, translucentPos: Option[V3F])
-  type PreparedFut[S <: Shader] = Fut[Prepared[S]]
-  // typesafe memoizing function from renderable to fut of prepared
-  val prepare: GenFunc[Renderable, PreparedFut, Shader] = new GenMemoFunc[Renderable, PreparedFut, Shader] {
-    override protected def gen[S <: Shader](renderable: Renderable[S]): Fut[Prepared[S]] = {
-      renderable.eval.toFut(toFutPack)
-        .map[S#FinalForm](procedures(renderable.shader).toFinalForm(_), execOpenGL _)
-        .map[Prepared[S]]((finalForm: S#FinalForm) => Prepared(renderable.shader, finalForm, renderable.translucentPos))
-    }
-  }
-  val immediate: GenFunc[Renderable, Prepared, Shader] = new GenMemoFunc[Renderable, Prepared, Shader] {
-    override protected def gen[S <: Shader](renderable: Renderable[S]): Prepared[S] = {
-      val finalForm = procedures(renderable.shader).toFinalForm(renderable.eval.eval(toFutPack))
-      Prepared(renderable.shader, finalForm, renderable.translucentPos)
-    }
-  }
-  */
   case class Prepared[S <: Shader](shader: ShaderTag[S], unit: S#FinalForm, translucentPos: Option[V3F])
   type PreparedEval[S <: Shader] = GEval[Prepared[S]]
   val prepare: GenFunc[Renderable, PreparedEval, Shader] = new GenMemoFunc[Renderable, PreparedEval, Shader] {
@@ -137,30 +102,12 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     p.log()
 
     // find what we can render immediately
-    /*
-    def extract[S <: Shader](render: Render[S]): Option[RenderNow[S]] = {
-      val option: Option[Prepared[S]] =
-        if (render.mustRender) Some(immediate(render.renderable))
-        else (render.renderable.pin match {
-          case fut if fut.isInstanceOf[Fut[_]] => fut.asInstanceOf[PreparedFut[S]]
-          case _ =>
-            val prep = prepare(render.renderable)
-            render.renderable.pin = prep
-            prep
-        }).query
-      option.map(prepared => RenderNow(prepared, render.params, procedures(render.renderable.shader)))
-    }
-    */
-    /*
-    val toFutPack = GEval.ToFutPack(UniExecutor.getService, pack, execOpenGL,
-      V2F())
-    */
     val screenRes = V2F(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     val camRange = CamRange(cam.near, cam.far)
     val toFutPack = GEval.ToFutPack(UniExecutor.getService, pack, execOpenGL, screenRes, camRange)
     val evalNowPack = GEval.EvalNowPack(pack, screenRes, camRange)
 
-    def extract[S <: Shader](render: Render[S]): Option[RenderNow[S]] = {
+    def extract[S <: Shader](render: Render[S], renderAlt: Boolean = true): Option[RenderNow[_ <: Shader]] = {
       val eval: GEval[Prepared[S]] = render.renderable.pin match {
         case eval: Eval[_, _] => eval.asInstanceOf[GEval[Prepared[S]]]
         case _ =>
@@ -171,12 +118,15 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
       val option: Option[Prepared[S]] =
         if (render.mustRender) eval.evalNow(evalNowPack)
         else eval.toFut(toFutPack).query
-      /*
-      val option: Option[Prepared[S]] =
-        if (render.mustRender) prepare(render.renderable).evalNow(evalNowPack)
-        else prepare(render.renderable).toFut(toFutPack).query
-        */
-      option.map(prepared => RenderNow(prepared, render.params, procedures(render.renderable.shader)))
+      option match {
+        case Some(prepared) => Some(RenderNow(prepared, render.params, procedures(render.renderable.shader)))
+        case None =>
+          if (renderAlt) render.alt match {
+            case Some(alt) => extract(alt, renderAlt = false)
+            case None => None
+          } else None
+      }
+      //option.map(prepared => RenderNow(prepared, render.params, procedures(render.renderable.shader)))
     }
     // the compiler is struggling, this isn't haskell, so we're gonna have to help it out a little
     val renderNow: Seq[RenderNow[_ <: Shader]] = renders.flatMap((render: Render[_ <: Shader]) => extract(render): Option[RenderNow[_ <: Shader]])
