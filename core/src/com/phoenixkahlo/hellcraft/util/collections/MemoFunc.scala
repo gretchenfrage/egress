@@ -56,6 +56,8 @@ abstract class GenMemoFunc[I[_ <: B], O[_ <: B], B] extends GenFunc[I, O, B] {
   }
 }
 
+
+
 object GenMemoFuncTest extends App {
   // we demonstrate a generic memoizing boxing function that wraps an element into a tuple
   val box: GenWrapper[Tuple1, Any] = new GenMemoFunc[Identity, Tuple1, Any] {

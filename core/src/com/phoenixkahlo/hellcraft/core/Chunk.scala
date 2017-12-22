@@ -74,7 +74,7 @@ class Chunk(
     lastTerrainRenderable match {
       case Some(ltr) if lastTerrainRenderableValid => ltr
       case Some(ltr) => ltr.update(gen)
-      case None => Renderable[TerrainShader](gen, identityHash = true)
+      case None => Renderable[TerrainShader](gen)
     }
     /*
     lastTerrainRenderable match {
@@ -107,7 +107,7 @@ class Chunk(
     lastBlockRenderable match {
       case Some(lbr) if lastBlockRenderableValid => lbr
       case Some(lbr) => lbr.update(gen)
-      case None => Renderable[GenericShader](gen, identityHash = true)
+      case None => Renderable[GenericShader](gen)
     }
   }
     /*
