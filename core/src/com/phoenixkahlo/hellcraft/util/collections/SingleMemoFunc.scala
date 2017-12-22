@@ -33,6 +33,13 @@ class SingleMemoFunc[I, O](func: I => O) extends (I => O) {
         }
     }
   }
+
+  def query(input: I): Option[O] = {
+    lock.readLock().lock()
+    val o = curr.filter(_._1 == input).flatMap(_._2.query)
+    lock.readLock().unlock()
+    o
+  }
 }
 
 
@@ -63,5 +70,12 @@ class SingleMemoHintFunc[I, H, O](func: (I, H) => O) extends ((I, H) => O) {
             fut.await
         }
     }
+  }
+
+  def query(input: I): Option[O] = {
+    lock.readLock().lock()
+    val o = curr.filter(_._1 == input).flatMap(_._2.query)
+    lock.readLock().unlock()
+    o
   }
 }

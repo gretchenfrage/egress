@@ -72,6 +72,7 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
 
   case class Prepared[S <: Shader](shader: ShaderTag[S], unit: S#FinalForm, translucentPos: Option[V3F])
   type PreparedEval[S <: Shader] = GEval[Prepared[S]]
+  case class PrepareInput[S <: Shader](eval: GEval[S#RenderUnit], shader: ShaderTag[S], translucentPos: Option[V3F])
   val prepare: GenFunc[Renderable, PreparedEval, Shader] = new GenMemoFunc[Renderable, PreparedEval, Shader] {
     override protected def gen[S <: Shader](ren: Renderable[S]) =
       GLMap[S#RenderUnit, S#FinalForm](ren.eval, procedures(ren.shader).toFinalForm)
@@ -107,7 +108,7 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     val toFutPack = GEval.ToFutPack(UniExecutor.getService, pack, execOpenGL, screenRes, camRange)
     val evalNowPack = GEval.EvalNowPack(pack, screenRes, camRange)
 
-    def extract[S <: Shader](render: Render[S], renderAlt: Boolean = true): Option[RenderNow[_ <: Shader]] = {
+    def extract[S <: Shader](render: Render[S], strong: Boolean = true): Option[RenderNow[_ <: Shader]] = {
       val eval: GEval[Prepared[S]] = render.renderable.pin match {
         case eval: Eval[_, _] => eval.asInstanceOf[GEval[Prepared[S]]]
         case _ =>
@@ -117,14 +118,25 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
       }
       val option: Option[Prepared[S]] =
         if (render.mustRender) eval.evalNow(evalNowPack)
-        else eval.toFut(toFutPack).query
+        else {
+          if (strong) eval.toFut(toFutPack).query
+          else {
+            println("doing weak fut query")
+            val w = eval.weakFutQuery(toFutPack)
+            println("wfq == " + w)
+            w
+          }
+        }
+        //eval.toFut(toFutPack).query
       option match {
         case Some(prepared) => Some(RenderNow(prepared, render.params, procedures(render.renderable.shader)))
-        case None =>
+        case None => render.deupdate.flatMap(extract(_, false))
+          /*
           if (renderAlt) render.alt match {
             case Some(alt) => extract(alt, renderAlt = false)
             case None => None
           } else None
+          */
       }
       //option.map(prepared => RenderNow(prepared, render.params, procedures(render.renderable.shader)))
     }

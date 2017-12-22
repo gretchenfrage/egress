@@ -14,6 +14,10 @@ class ParamCache[P,T](factory: P => T) {
     value isDefined
   }
 
+  def query: Option[T] = this.synchronized {
+    value
+  }
+
   def invalidate =
     this.synchronized {
       value = None

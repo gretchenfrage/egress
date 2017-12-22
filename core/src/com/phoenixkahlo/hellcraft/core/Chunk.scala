@@ -4,6 +4,7 @@ import java.util.{Objects, UUID}
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.phoenixkahlo.hellcraft.core.entity.Entity
+import com.phoenixkahlo.hellcraft.core.eval.GEval.GEval
 import com.phoenixkahlo.hellcraft.core.eval.WEval.WEval
 import com.phoenixkahlo.hellcraft.core.eval.{Exec3D, ExecCheap, GEval, WEval}
 import com.phoenixkahlo.hellcraft.core.request._
@@ -59,7 +60,23 @@ class Chunk(
       (verts, blockSoup.indices)
     }), identityHash = true))
     */
-  val terrainRenderable: Renderable[TerrainShader] =
+  val terrainRenderable: Renderable[TerrainShader] = {
+    def gen: GEval[TerrainShader#RenderUnit] = GEval.resourcePack.map(pack => {
+      val verts = new ArrayBuffer[BasicTriVert]
+      for (v: V3I <- terrainSoup.indexToVert) {
+        val vert: TerrainSoup.Vert = terrainSoup.verts(v).get
+        val tex: TextureRegion = pack(vert.mat.tid)
+        verts += BasicTriVert(vert.pos, V4I.ones, V2F(tex.getU, tex.getV), vert.nor)
+      }
+      (verts, terrainSoup.indices)
+    })
+
+    lastTerrainRenderable match {
+      case Some(ltr) if lastTerrainRenderableValid => ltr
+      case Some(ltr) => ltr.update(gen)
+      case None => Renderable[TerrainShader](gen, identityHash = true)
+    }
+    /*
     lastTerrainRenderable match {
       case Some(ltr) if lastTerrainRenderableValid => ltr
       case _ => Renderable[TerrainShader](GEval.resourcePack.map(pack => {
@@ -72,8 +89,28 @@ class Chunk(
         (verts, terrainSoup.indices)
       }), identityHash = true)
     }
+    */
+  }
 
-  val blockRenderable: Renderable[GenericShader] =
+  val blockRenderable: Renderable[GenericShader] = {
+    def gen: GEval[GenericShader#RenderUnit] = GEval.resourcePack.map(pack => {
+      val verts = new ArrayBuffer[BasicTriVert]
+      for (vert <- blockSoup.verts) {
+        val tex = pack(vert.block.tid)
+        verts += BasicTriVert(vert.pos, V4I.ones, V2F(
+          tex.getU + (vert.uvDelta.x / 16f), tex.getV + (vert.uvDelta.y / 16f)
+        ), vert.nor)
+      }
+      (verts, blockSoup.indices)
+    })
+
+    lastBlockRenderable match {
+      case Some(lbr) if lastBlockRenderableValid => lbr
+      case Some(lbr) => lbr.update(gen)
+      case None => Renderable[GenericShader](gen, identityHash = true)
+    }
+  }
+    /*
     lastBlockRenderable match {
       case Some(lbr) if lastBlockRenderableValid => lbr
       case _ => Renderable[GenericShader](GEval.resourcePack.map(pack => {
@@ -87,6 +124,7 @@ class Chunk(
         (verts, blockSoup.indices)
       }), identityHash = true)
     }
+    */
 
   @transient lazy val broadphase: Broadphase =
     Option(lastBroadphase).map(_ apply).getOrElse(new OctreeBroadphase(
@@ -184,10 +222,8 @@ class Chunk(
 
   def render(world: RenderWorld): Seq[Render[_ <: Shader]] = {
     Seq(
-      Render[TerrainShader](terrainRenderable, Offset.default,
-        alt = lastTerrainRenderable.map(rend => Render[TerrainShader](rend, Offset.default))),
-      Render[GenericShader](blockRenderable, Offset.default,
-        alt = lastBlockRenderable.map(rend => Render[GenericShader](rend, Offset.default)))
+      Render[TerrainShader](terrainRenderable, Offset.default),
+      Render[GenericShader](blockRenderable, Offset.default)
     ) ++ entities.values.flatMap(_.render(world))
   }
 

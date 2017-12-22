@@ -41,6 +41,7 @@ object Eval {
   private case class ECreate[T, E <: EvalContext](factory: () => T, exec: ExecHint) extends Eval[T, E] {
     @transient private lazy val _toFut = new SingleMemoFunc[UniExecutor, Fut[T]](service => Fut(factory(), exec.exec(_)(service)))
     override def toFut(pack: E#ToFutPack): Fut[T] = _toFut(pack.executor)
+    override def weakFutQuery(pack: E#ToFutPack): Option[T] = _toFut.query(pack.executor).flatMap(_.query)
 
     @transient private lazy val _evalNow = Some(factory())
     override def evalNow(pack: E#EvalNowPack): Option[T] = _evalNow
@@ -55,6 +56,7 @@ object Eval {
         case (crits, service) => source.toFut(pack).map(func, exec.exec(_)(service))
       })
     override def toFut(pack: E#ToFutPack): Fut[R] = _toFut((source.futCriticalData(pack), pack.executor), pack)
+    override def weakFutQuery(pack: E#ToFutPack): Option[R] = _toFut.query((source.futCriticalData(pack), pack.executor)).flatMap(_.query)
 
     @transient private lazy val _evalNow = new SingleMemoHintFunc[CriticalData, E#EvalNowPack, Option[R]](
       (crits, pack) => source.evalNow(pack).map(func)
@@ -72,6 +74,7 @@ object Eval {
       }
     )
     override def toFut(pack: E#ToFutPack): Fut[R] = _toFut((source.futCriticalData(pack), pack.executor), pack)
+    override def weakFutQuery(pack: E#ToFutPack): Option[R] = _toFut.query((source.futCriticalData(pack), pack.executor)).flatMap(_.query)
 
     @transient private lazy val _evalNow = new SingleMemoHintFunc[CriticalData, E#EvalNowPack, Option[R]](
       (crits, pack) => source.evalNow(pack).flatMap(func(_).evalNow(pack))
@@ -87,6 +90,7 @@ object Eval {
       (crits, pack) => MergeFut(a.toFut(pack), b.toFut(pack), func(_, _))(exec.exec(_)(pack.executor))
     )
     override def toFut(pack: E#ToFutPack): Fut[R] = _toFut((a.futCriticalData(pack), b.futCriticalData(pack), pack.executor), pack)
+    override def weakFutQuery(pack: E#ToFutPack): Option[R] = _toFut.query((a.futCriticalData(pack), b.futCriticalData(pack), pack.executor)).flatMap(_.query)
 
     @transient private lazy val _evalNow = new SingleMemoHintFunc[(CriticalData, CriticalData), E#EvalNowPack, Option[R]](
       (crits, pack) => (a.evalNow(pack), b.evalNow(pack)) match {
@@ -121,6 +125,9 @@ object WEval {
     override def evalNow(pack: EvalNowPack): Option[Chunk] =
       pack.cfulfill.get(p)
 
+    override def weakFutQuery(pack: ToFutPack): Option[Chunk] =
+      pack.cfulfill.get(p)
+
     override def futCriticalData(pack: ToFutPack): CriticalData = pack.cfulfill
     override def evalCriticalData(pack: EvalNowPack): CriticalData = pack.cfulfill
   }
@@ -131,6 +138,9 @@ object WEval {
       FulfillFut(p)(pack.tfulfill)
 
     override def evalNow(pack: EvalNowPack): Option[Terrain] =
+      pack.tfulfill.get(p)
+
+    override def weakFutQuery(pack: ToFutPack): Option[Terrain] =
       pack.tfulfill.get(p)
 
     override def futCriticalData(pack: ToFutPack): CriticalData = pack.tfulfill
@@ -161,6 +171,7 @@ object GEval {
 
   val resourcePack: GEval[ResourcePack] = new GEval[ResourcePack] {
     override def toFut(pack: ToFutPack): Fut[ResourcePack] = Fut(pack.resourcePack, _.run())
+    override def weakFutQuery(pack: ToFutPack) = Some(pack.resourcePack)
     override def evalNow(pack: EvalNowPack): Option[ResourcePack] = Some(pack.resourcePack)
     override def futCriticalData(pack: ToFutPack): CriticalData = pack.resourcePack
     override def evalCriticalData(pack: EvalNowPack): CriticalData = pack.resourcePack
@@ -175,6 +186,7 @@ object GEval {
       new Texture(pixmap)
     }, glexec))
     override def toFut(pack: ToFutPack): Fut[Texture] = _toFut(pack.glExec)
+    override def weakFutQuery(pack: ToFutPack) = _toFut.query.flatMap(_.query)
 
     @transient private lazy val _evalNow: Some[Texture] = {
       val pixmap = new Pixmap(1, 1, Format.RGBA8888)
@@ -190,6 +202,7 @@ object GEval {
 
   val res: GEval[V2F] = new GEval[V2F] {
     override def toFut(pack: ToFutPack): Fut[V2F] = Fut(pack.res, _.run())
+    override def weakFutQuery(pack: ToFutPack) = Some(pack.res)
     override def evalNow(pack: EvalNowPack): Option[V2F] = Some(pack.res)
     override def futCriticalData(pack: ToFutPack): CriticalData = pack.res
     override def evalCriticalData(pack: EvalNowPack): CriticalData = pack.res
@@ -197,6 +210,7 @@ object GEval {
 
   val camRange: GEval[CamRange] = new GEval[CamRange] {
     override def toFut(pack: ToFutPack): Fut[CamRange] = Fut(pack.range, _.run())
+    override def weakFutQuery(pack: ToFutPack) = Some(pack.range)
     override def evalNow(pack: EvalNowPack): Option[CamRange] = Some(pack.range)
     override def futCriticalData(pack: ToFutPack): CriticalData = pack.range
     override def evalCriticalData(pack: EvalNowPack): CriticalData = pack.range
@@ -207,6 +221,7 @@ object GEval {
       (cs, pack) => source.toFut(pack).map(func, pack.glExec)
     )
     override def toFut(pack: ToFutPack): Fut[R] = _toFut(source.futCriticalData(pack), pack)
+    override def weakFutQuery(pack: ToFutPack): Option[R] = _toFut.query(source.futCriticalData(pack)).flatMap(_.query)
 
     @transient private lazy val _evalNow = new SingleMemoHintFunc[CriticalData, EvalNowPack, Option[R]](
       (cs, pack) => source.evalNow(pack).map(func)
