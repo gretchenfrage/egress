@@ -12,12 +12,13 @@ trait TreeDim[VI, VF] {
   def mul(a: VF, s: Float): VF
   def div(a: VF, s: Float): VF
   def dist(a: VF, b: VF): Float
+  //def distsqrd(a: VF, b: VF): Float
   def >=(a: VF, b: VF): Boolean
   def <=(a: VF, b: VF): Boolean
   def >(a: VF, b: VF): Boolean
   def <(a: VF, b: VF): Boolean
   def upcast(v: VI): VF
-  def signs: Seq[VI]
+  def signs: Array[VI]
   def signOf(v: VF): VI
   def indexof(v: VI): Int
 }
@@ -37,8 +38,8 @@ case class Domain[VI, VF](center: VF, range: Float, sign: Option[VI], dim: TreeD
   def subdomain(subsign: VI): Domain[VI, VF] =
     Domain[VI, VF](dim.add(center, dim.mul(dim.upcast(subsign), range / 2)), range / 2, Some(subsign), dim)
 
-  def children: Seq[Domain[VI, VF]] =
-    dim.signs.map(subdomain)
+  def children: Vector[Domain[VI, VF]] =
+    dim.signs.map(subdomain).to[Vector]
 
   private def maxdist(v: VF): Float =
     dim.signs.map(sign => dim.add(center, dim.mul(dim.upcast(sign), range))).map(dim.dist(_, v)).max
@@ -59,9 +60,11 @@ sealed trait DimTree[+E, VI, VF] extends Map[VF, E] {
 
   def closest(point: VF, within: Float): Option[(VF, E)]
 
-  def within(point: VF, within: Float): Seq[(VF, E)]
+  def within(point: VF, within: Float): Vector[(VF, E)]
 
   def domain: Domain[VI, VF]
+
+  def couldContain(point: VF, within: Float): Boolean
 
   def height: Int
 }
@@ -76,7 +79,7 @@ private case class Empty[VI, VF](domain: Domain[VI, VF])(implicit dim: TreeDim[V
 
   override def closest(point: VF, within: Float): Option[(VF, Nothing)] = None
 
-  override def within(point: VF, within: Float): Seq[(VF, Nothing)] = Seq.empty
+  override def within(point: VF, within: Float): Vector[(VF, Nothing)] = Vector.empty
 
   override def get(key: VF): Option[Nothing] = None
 
@@ -88,7 +91,10 @@ private case class Empty[VI, VF](domain: Domain[VI, VF])(implicit dim: TreeDim[V
 
   override def isEmpty = true
 
+  override def couldContain(point: VF, within: Float): Boolean = false
+
   override def nonEmpty = false
+
 }
 
 private case class Leaf[+E, VI, VF](elem: (VF, E), domain: Domain[VI, VF])(implicit dim: TreeDim[VI, VF]) extends DimTree[E, VI, VF] {
@@ -97,7 +103,7 @@ private case class Leaf[+E, VI, VF](elem: (VF, E), domain: Domain[VI, VF])(impli
 
     if (kv._1 == elem._1) Leaf[V1, VI, VF](kv, domain)
     else {
-      @tailrec def fork(trace: Seq[Domain[VI, VF]]): DimTree[V1, VI, VF] = {
+      @tailrec def fork(trace: Vector[Domain[VI, VF]]): DimTree[V1, VI, VF] = {
         val s1 = trace.head.subsign(elem._1)
         val s2 = trace.head.subsign(kv._1)
         if (s1 == s2) fork(trace.head.subdomain(s1) +: trace)
@@ -109,7 +115,7 @@ private case class Leaf[+E, VI, VF](elem: (VF, E), domain: Domain[VI, VF])(impli
           }), trace)
         }
       }
-      fork(Seq(domain))
+      fork(Vector(domain))
     }
   }
 
@@ -123,9 +129,9 @@ private case class Leaf[+E, VI, VF](elem: (VF, E), domain: Domain[VI, VF])(impli
     else None
   }
 
-  override def within(point: VF, within: Float): Seq[(VF, E)] = {
-    if (dim.dist(elem._1, point) <= within) Seq(elem)
-    else Seq.empty
+  override def within(point: VF, within: Float): Vector[(VF, E)] = {
+    if (dim.dist(elem._1, point) <= within) Vector(elem)
+    else Vector.empty
   }
 
   override def get(key: VF): Option[E] = {
@@ -141,10 +147,12 @@ private case class Leaf[+E, VI, VF](elem: (VF, E), domain: Domain[VI, VF])(impli
 
   override def isEmpty = false
 
+  override def couldContain(point: VF, within: Float): Boolean = dim.dist(point, elem._1) <= within
+
   override def nonEmpty = true
 }
 
-private case class Branch[+E, VI, VF](children: Seq[DimTree[E, VI, VF]], domains: Seq[Domain[VI, VF]])(implicit dim: TreeDim[VI, VF]) extends DimTree[E, VI, VF] {
+private case class Branch[+E, VI, VF](children: Vector[DimTree[E, VI, VF]], domains: Vector[Domain[VI, VF]])(implicit dim: TreeDim[VI, VF]) extends DimTree[E, VI, VF] {
   override def +[V1 >: E](kv: (VF, V1)): DimTree[V1, VI, VF] = {
     if (!domains.last.contains(kv._1)) throw new IllegalArgumentException(kv + " out of range " + domains)
 
@@ -153,7 +161,7 @@ private case class Branch[+E, VI, VF](children: Seq[DimTree[E, VI, VF]], domains
       val i = dim.indexof(domains.head.subsign(k))
       Branch(children.updated(i, children(i) + kv), domains)
     } else {
-      @tailrec def fork(trace: Seq[Domain[VI, VF]], upcoming: Seq[Domain[VI, VF]]): DimTree[V1, VI, VF] = {
+      @tailrec def fork(trace: Vector[Domain[VI, VF]], upcoming: Vector[Domain[VI, VF]]): DimTree[V1, VI, VF] = {
         val curr = upcoming.head
         if (curr.contains(k)) {
           val kSign = curr.subsign(k)
@@ -166,7 +174,7 @@ private case class Branch[+E, VI, VF](children: Seq[DimTree[E, VI, VF]], domains
           fork(trace :+ curr, upcoming.tail)
         }
       }
-      fork(Seq(domains.head), domains.drop(1))
+      fork(Vector(domains.head), domains.drop(1))
     }
   }
 
@@ -190,7 +198,7 @@ private case class Branch[+E, VI, VF](children: Seq[DimTree[E, VI, VF]], domains
   override def closest(point: VF, within: Float): Option[(VF, E)] = {
     if (domains.head couldContain (point, within)) {
       val searchPattern: List[DimTree[E, VI, VF]] = children
-        .filter(_.domain couldContain(point, within))
+        .filter(_.couldContain(point, within))
         .sortBy(c => dim.dist(c.domain.center, point))
         .toList
 
@@ -206,9 +214,9 @@ private case class Branch[+E, VI, VF](children: Seq[DimTree[E, VI, VF]], domains
     } else None
   }
 
-  override def within(point: VF, within: Float): Seq[(VF, E)] =
+  override def within(point: VF, within: Float): Vector[(VF, E)] =
     children
-      .filter(_.domain couldContain(point, within))
+      .filter(_.couldContain(point, within))
       .flatMap(_ within(point, within))
 
   override def get(key: VF): Option[E] = {
@@ -234,6 +242,8 @@ private case class Branch[+E, VI, VF](children: Seq[DimTree[E, VI, VF]], domains
   override def nonEmpty = true
 
   override def domain = domains.last
+
+  override def couldContain(point: VF, within: Float): Boolean = domains.head.couldContain(point, within)
 }
 
 /**
@@ -253,7 +263,7 @@ object BiTree extends TreeDim[Int, Float] {
   override def <(a: Float, b: Float) = a < b
   override def upcast(v: Int) = v
   override def indexof(v: Int) = (v & 0x2) >> 1
-  override def signs = Seq(-1, 1).sortBy(indexof)
+  override def signs = Array(-1, 1).sortBy(indexof)
   override def signOf(v: Float) = if (v >= 0) 1 else -1
 
   type BiTree[+E] = DimTree[E, Int, Float]
@@ -279,7 +289,7 @@ object QuadTree extends TreeDim[V2I, V2F] {
     ((v.xi & 0x2) >> 1) | (v.yi & 0x2)
   }
 
-  override val signs: Seq[V2I] = {
+  override val signs: Array[V2I] = {
     val signs = new Array[V2I](4)
     for {
       x <- Seq(-1, 1)
@@ -316,7 +326,7 @@ object Octree extends TreeDim[V3I, V3F] {
   override def indexof(v: V3I): Int =
     ((v.xi & 0x2) >> 1) | (v.yi & 0x2) | ((v.zi & 0x2) << 1)
 
-  override val signs: Seq[V3I] = {
+  override val signs: Array[V3I] = {
     val signs = new Array[V3I](8)
     for {
       x <- Seq(-1, 1)
@@ -354,7 +364,7 @@ object HexadecaTree extends TreeDim[V4I, V4F] {
   override def indexof(v: V4I): Int =
     ((v.xi & 0x2) >> 1) | (v.yi & 0x2) | ((v.zi & 0x2) << 1) | ((v.wi & 0x2) << 2)
 
-  override val signs: Seq[V4I] = {
+  override val signs: Array[V4I] = {
     val signs = new Array[V4I](16)
     for {
       x <- Seq(-1, 1)
