@@ -26,40 +26,14 @@ class Chunk(
              val tsRequest: Option[Request[TerrainSoup]],
              val bsRequest: Option[Request[BlockSoup]],
              @transient lastBroadphase: () => Broadphase = null,
-             //@transient lastTerrainRenderable: () => Renderable[TerrainShader] = null,
              lastTerrainRenderable: Option[Renderable[TerrainShader]] = None,
              lastTerrainRenderableValid: Boolean = false,
-             //@transient lastBlockRenderable: () => Renderable[GenericShader] = null
              lastBlockRenderable: Option[Renderable[GenericShader]] = None,
              lastBlockRenderableValid: Boolean = false
            ) extends Serializable {
 
   implicit val exec = Exec3D(pos * 16)
 
-  /*
-  @transient lazy val terrainRenderable: Renderable[TerrainShader] =
-    Option(lastTerrainRenderable).map(_ apply).getOrElse(Renderable[TerrainShader](GEval.resourcePack.map(pack => {
-      val verts = new ArrayBuffer[BasicTriVert]
-      for (v: V3I <- terrainSoup.indexToVert) {
-        val vert: TerrainSoup.Vert = terrainSoup.verts(v).get
-        val tex: TextureRegion = pack(vert.mat.tid)
-        verts += BasicTriVert(vert.pos, V4I.ones, V2F(tex.getU, tex.getV), vert.nor)
-      }
-      (verts, terrainSoup.indices)
-    }), identityHash = true))
-
-  @transient lazy val blockRenderable: Renderable[GenericShader] =
-    Option(lastBlockRenderable).map(_ apply).getOrElse(Renderable[GenericShader](GEval.resourcePack.map(pack => {
-      val verts = new ArrayBuffer[BasicTriVert]
-      for (vert <- blockSoup.verts) {
-        val tex = pack(vert.block.tid)
-        verts += BasicTriVert(vert.pos, V4I.ones, V2F(
-          tex.getU + (vert.uvDelta.x / 16f), tex.getV + (vert.uvDelta.y / 16f)
-        ), vert.nor)
-      }
-      (verts, blockSoup.indices)
-    }), identityHash = true))
-    */
   val terrainRenderable: Renderable[TerrainShader] = {
     def gen: GEval[TerrainShader#RenderUnit] = GEval.resourcePack.map(pack => {
       val verts = new ArrayBuffer[BasicTriVert]
@@ -76,20 +50,6 @@ class Chunk(
       case Some(ltr) => ltr.update(gen)
       case None => Renderable[TerrainShader](gen)
     }
-    /*
-    lastTerrainRenderable match {
-      case Some(ltr) if lastTerrainRenderableValid => ltr
-      case _ => Renderable[TerrainShader](GEval.resourcePack.map(pack => {
-        val verts = new ArrayBuffer[BasicTriVert]
-        for (v: V3I <- terrainSoup.indexToVert) {
-          val vert: TerrainSoup.Vert = terrainSoup.verts(v).get
-          val tex: TextureRegion = pack(vert.mat.tid)
-          verts += BasicTriVert(vert.pos, V4I.ones, V2F(tex.getU, tex.getV), vert.nor)
-        }
-        (verts, terrainSoup.indices)
-      }), identityHash = true)
-    }
-    */
   }
 
   val blockRenderable: Renderable[GenericShader] = {
@@ -110,21 +70,6 @@ class Chunk(
       case None => Renderable[GenericShader](gen)
     }
   }
-    /*
-    lastBlockRenderable match {
-      case Some(lbr) if lastBlockRenderableValid => lbr
-      case _ => Renderable[GenericShader](GEval.resourcePack.map(pack => {
-        val verts = new ArrayBuffer[BasicTriVert]
-        for (vert <- blockSoup.verts) {
-          val tex = pack(vert.block.tid)
-          verts += BasicTriVert(vert.pos, V4I.ones, V2F(
-            tex.getU + (vert.uvDelta.x / 16f), tex.getV + (vert.uvDelta.y / 16f)
-          ), vert.nor)
-        }
-        (verts, blockSoup.indices)
-      }), identityHash = true)
-    }
-    */
 
   @transient lazy val broadphase: Broadphase =
     Option(lastBroadphase).map(_ apply).getOrElse(new OctreeBroadphase(
@@ -219,6 +164,8 @@ class Chunk(
   }
 
   def isActive: Boolean = entities.nonEmpty
+
+  def isRenderable: Boolean = entities.nonEmpty || terrainSoup.verts.nonEmpty || blockSoup.verts.nonEmpty
 
   def render(world: RenderWorld): Seq[Render[_ <: Shader]] = {
     Seq(

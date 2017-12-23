@@ -27,6 +27,7 @@ class SWorld(
               val chunkDomain: V3ISet,
               val terrainDomain: V3ISet,
               val active: Set[V3I],
+              val renderable: Set[V3I],
               val min: Option[V3I],
               val max: Option[V3I]
             ) extends World {
@@ -45,8 +46,9 @@ class SWorld(
   override def debugLoadedTerrain: Iterable[V3I] = chunks.keySet
 
   def renderable(_ftime: Float, _interp: Float): RenderWorld =
-    new SWorld(time, res, chunks, chunkDomain, terrainDomain, active, min, max) with RenderWorld {
-      override def renderableChunks = chunks.toSeq.flatMap(_._2.left.toOption)
+    new SWorld(time, res, chunks, chunkDomain, terrainDomain, active, renderable, min, max) with RenderWorld {
+      override def renderableChunks = renderable.toSeq.map(chunks).map(_.left.get)
+      //chunks.toSeq.flatMap(_._2.left.toOption)
 
       override def ftime = _ftime
 
@@ -65,9 +67,9 @@ class SWorld(
 
   private def compBoundingBox: SWorld =
     if (chunks isEmpty)
-      new SWorld(time, res, chunks, chunkDomain, terrainDomain, active, None, None)
+      new SWorld(time, res, chunks, chunkDomain, terrainDomain, active, renderable, None, None)
     else
-      new SWorld(time, res, chunks, chunkDomain, terrainDomain, active,
+      new SWorld(time, res, chunks, chunkDomain, terrainDomain, active, renderable,
         Some(V3I(chunks.keySet.toSeq.map(_.xi).min, chunks.keySet.toSeq.map(_.yi).min, chunks.keySet.toSeq.map(_.zi).min)),
         Some(V3I(chunks.keySet.toSeq.map(_.xi).max, chunks.keySet.toSeq.map(_.yi).max, chunks.keySet.toSeq.map(_.zi).max))
       )
@@ -76,18 +78,18 @@ class SWorld(
     * Remove those chunks from this world,
     */
   def --(ps: Seq[V3I]): SWorld = {
-    new SWorld(time, res, chunks -- ps, chunkDomain, terrainDomain, active -- ps, None, None).compBoundingBox
+    new SWorld(time, res, chunks -- ps, chunkDomain, terrainDomain, active -- ps, renderable -- ps, None, None).compBoundingBox
   }
 
   def downgrade(ps: Seq[V3I]): SWorld = {
     new SWorld(time, res, ps.foldLeft(chunks)({ case (map, p) => map.get(p) match {
       case Some(Left(chunk)) => map.updated(p, Right(chunk.terrain))
       case _ => map
-    }}), chunkDomain, terrainDomain, active -- ps, None, None)
+    }}), chunkDomain, terrainDomain, active -- ps, renderable -- ps, None, None)
   }
 
   def -(p: V3I): SWorld = {
-    new SWorld(time, res, chunks - p, chunkDomain, terrainDomain, active - p, None, None).compBoundingBox
+    new SWorld(time, res, chunks - p, chunkDomain, terrainDomain, active - p, renderable - p, None, None).compBoundingBox
   }
 
   /**
@@ -106,6 +108,10 @@ class SWorld(
       chunkDomain, terrainDomain,
       removed.active ++ cs.filter({
         case Left(chunk) => chunk.isActive
+        case _ => false
+      }).map(pos),
+      removed.renderable ++ cs.filter({
+        case Left(chunk) => chunk.isRenderable
         case _ => false
       }).map(pos),
       Some(V3I(
@@ -134,6 +140,10 @@ class SWorld(
       c match {
         case Left(chunk) if chunk isActive => removed.active + chunk.pos
         case _ => removed.active
+      },
+      c match {
+        case Left(chunk) if chunk isRenderable => removed.renderable + chunk.pos
+        case _ => removed.renderable
       },
       Some(V3I(
         Math.min(pos(c).xi, min.map(_.xi).getOrElse(Int.MaxValue)),
@@ -204,11 +214,11 @@ class SWorld(
     * Increment the time
     */
   def incrTime: SWorld = {
-    new SWorld(time + 1, res, chunks, chunkDomain, terrainDomain, active, min, max)
+    new SWorld(time + 1, res, chunks, chunkDomain, terrainDomain, active, renderable, min, max)
   }
 
   def setDomain(newChunkDomain: V3ISet, newTerrainDomain: V3ISet): SWorld = {
-    new SWorld(time, res, chunks, newChunkDomain, newTerrainDomain, active, min, max)
+    new SWorld(time, res, chunks, newChunkDomain, newTerrainDomain, active, renderable, min, max)
   }
 
   /**
@@ -224,7 +234,7 @@ class SWorld(
   */
 class Infinitum(res: Int, save: AsyncSave, dt: Float) {
 
-  @volatile private var history = SortedMap(0L -> new SWorld(0, res, Map.empty, V3ISet.empty, V3ISet.empty, Set.empty, None, None))
+  @volatile private var history = SortedMap(0L -> new SWorld(0, res, Map.empty, V3ISet.empty, V3ISet.empty, Set.empty, Set.empty, None, None))
 
   private implicit val chunkFulfill = new FulfillmentContext[V3I, Chunk]
   private implicit val terrainFulfill = new FulfillmentContext[V3I, Terrain]

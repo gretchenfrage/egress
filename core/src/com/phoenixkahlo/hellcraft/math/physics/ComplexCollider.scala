@@ -25,7 +25,8 @@ case class ComplexCollider(pos: V3F, vel: V3F, rad: V3F, scale: Float, dt: Float
 
     p.log()
 
-    val eMeshes = Seq(broadphase(bRequest)(mRequest))
+    val eMeshes: Seq[Seq[Triangle]] = Seq(broadphase(bRequest)(mRequest))
+    //println("triangle count: " + eMeshes.head.size)
 
     p.log()
 
@@ -64,7 +65,7 @@ case class ComplexCollider(pos: V3F, vel: V3F, rad: V3F, scale: Float, dt: Float
     fVel = fVel / scale
 
     p.log()
-    p.print()
+    //p.printMicro()
 
     // update the complex collider
     copy(pos = fPos, vel = fVel, friction = 1, walk = Origin)
