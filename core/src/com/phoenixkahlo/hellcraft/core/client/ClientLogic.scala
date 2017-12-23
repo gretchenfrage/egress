@@ -75,7 +75,7 @@ trait ClientLogic {
 
   def touchUp(pos: V2I, pointer: Int, button: Button)(world: World, input: Input): Output = nothing
 
-  def touchDragged(pos: V2I, delta: V2I, pointer: Int)(world: World, input: Input): Output = nothing
+  def touchDragged(pos: V2I, delta: V2I, pointer: Int)(world: World, input: Input): Output = mouseMoved(pos, delta)(world, input)
 
   def mouseMoved(pos: V2I, delta: V2I)(world: World, input: Input): Output = nothing
 

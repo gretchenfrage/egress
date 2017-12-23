@@ -1,9 +1,10 @@
 package com.phoenixkahlo.hellcraft.fgraphics
 
-import java.io.DataInputStream
+import java.io.{ByteArrayInputStream, DataInputStream}
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.audio.Sound
+import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
 import com.badlogic.gdx.graphics._
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
@@ -13,6 +14,9 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.model.MeshPart
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.g3d.{Material, Model}
+import com.phoenixkahlo.hellcraft.core.eval.GEval.GEval
+import com.phoenixkahlo.hellcraft.core.eval.{Eval, GEval, GEvalContext}
+import com.phoenixkahlo.hellcraft.math.{V2F, V3F, V4F}
 import com.phoenixkahlo.hellcraft.menu.util.FrameFactory
 import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
 
@@ -70,7 +74,7 @@ trait ResourcePack {
 
   def sound(soundID: SoundID): Sound
 
-  def cloud(i: Int): Model
+  //def cloud(i: Int): Renderable[TerrainShader]
 
   //def dot(color: Color): Texture
 
@@ -149,55 +153,4 @@ class DefaultResourcePack extends ResourcePack {
   override def frame(pixmapID: PixmapID, depth: Int, width: Int, height: Int): Texture =
     _frame((pixmapID, depth, width, height))
 
-  val clouds: Seq[Model] =
-    Stream.iterate(0)(_ + 1)
-      .map(i => Gdx.files.internal("clouds/" + i + "_verts.dat") -> Gdx.files.internal("clouds/" + i + "_indices.dat"))
-      .takeWhile({ case (f1, f2) => f1.exists() && f2.exists() })
-      .map({ case (f1, f2) => {
-        val vertIn = new DataInputStream(f1.read())
-        val verts = new ArrayBuffer[Float]
-        while (vertIn.available() > 0)
-          verts += vertIn.readFloat()
-        vertIn.close()
-
-        val indexIn = new DataInputStream(f2.read())
-        val indices = new ArrayBuffer[Short]
-        while (indexIn.available() > 0)
-          indices += indexIn.readShort()
-        indexIn.close()
-
-        val m = new Mesh(true, verts.size, indices.size,
-          new VertexAttribute(Usage.Position, 3, "a_position"),
-          new VertexAttribute(Usage.ColorPacked, 4, "a_color"),
-          new VertexAttribute(Usage.TextureCoordinates, 2, "a_texCoord0"),
-          new VertexAttribute(Usage.Normal, 3, "a_normal")
-        )
-        m.setVertices(verts.toArray)
-        m.setIndices(indices.toArray)
-
-        val material = new Material()
-        material.set(ColorAttribute.createDiffuse(Color.WHITE))
-
-        val meshPart = new MeshPart("outline", m, 0, m.getNumIndices, GL20.GL_TRIANGLES)
-
-        val builder = new ModelBuilder()
-        builder.begin()
-        builder.part(meshPart, material)
-        builder.end()
-      }})
-    .to[Vector]
-
-  override def cloud(i: Int): Model =
-    clouds(Math.abs(i) % clouds.size)
-
-  /*
-  val _dot = new MemoFunc[Color, Texture](col => {
-    val pixmap = new Pixmap(1, 1, Format.RGBA8888)
-    pixmap.setColor(col)
-    pixmap.drawPixel(0, 0)
-    new Texture(pixmap)
-  })
-
-  override def dot(color: Color): Texture = _dot(color)
-  */
 }

@@ -3,6 +3,7 @@ package com.phoenixkahlo.hellcraft.math.physics
 import com.phoenixkahlo.hellcraft.math.V3F
 import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
 import com.phoenixkahlo.hellcraft.util.collections.spatial.Octree
+import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -35,8 +36,18 @@ class OctreeBroadphase(source: Iterator[Triangle], center: V3F, range: Float) ex
     else 0
 
   override def apply(bRequest: BroadphaseRequest)(mRequest: MeshRequest) = {
-    tree.within(bRequest.center, bRequest.radius + maxDim / 2).map(_._2)
+    val p = Profiler("octree broadphase apply")
+    val within: Seq[(V3F, Triangle)] = tree.within(bRequest.center, bRequest.radius + maxDim / 2)//.map(_._2)
+    p.log()
+    val mesh = within.map(_._2).map(_.map(p => (p * mRequest.scale) \\ mRequest.sRad))
+    p.log()
+    p.printMicro()
+    mesh
+    /*
+    tree
+      .within(bRequest.center, bRequest.radius + maxDim / 2).map(_._2)
       .map(_.map(p => (p * mRequest.scale) \\ mRequest.sRad))
+      */
   }
 
   override def +(other: Broadphase) = new BroadphaseCombination(this, other)

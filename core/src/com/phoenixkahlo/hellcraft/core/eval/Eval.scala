@@ -1,12 +1,15 @@
 package com.phoenixkahlo.hellcraft.core.eval
 
+import java.nio.file.Path
+
+import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Pixmap.Format
 import com.badlogic.gdx.graphics.{Pixmap, Texture}
 import com.phoenixkahlo.hellcraft.core.{Chunk, Terrain, TerrainGrid}
 import com.phoenixkahlo.hellcraft.core.eval.Eval.{CriticalData, EFilter, EFlatMap, EMap}
 import com.phoenixkahlo.hellcraft.fgraphics.ResourcePack
 import com.phoenixkahlo.hellcraft.math.{V2F, V2I, V3I, V4F}
-import com.phoenixkahlo.hellcraft.util.caches.ParamCache
+import com.phoenixkahlo.hellcraft.util.caches.{Cache, ParamCache}
 import com.phoenixkahlo.hellcraft.util.collections.{MemoFunc, MemoHintFunc, SingleMemoFunc, SingleMemoHintFunc}
 import com.phoenixkahlo.hellcraft.util.threading._
 
@@ -19,14 +22,17 @@ trait EvalContext {
 }
 
 // wheeee, i'm a monad!
-trait Eval[+T, E <: EvalContext] {
+trait Eval[+T, E <: EvalContext] extends Serializable {
   def map[R](func: T => R)(implicit exec: ExecHint): Eval[R, E] =
     EMap(this, func, exec)
   def flatMap[R](func: T => Eval[R, E]): Eval[R, E] =
     EFlatMap(this, func)
-  def filter(test: T => Boolean)(implicit exec: ExecHint): Eval[T, E] =
+  def filter(test: T => Boolean): Eval[T, E] =
+    EFilter(this, test, ExecCheap)
+  def withFilter(test: T => Boolean): Eval[T, E] =
+    filter(test)
+  def filter(test: T => Boolean, exec: ExecHint): Eval[T, E] =
     EFilter(this, test, exec)
-  def withFilter(test: T => Boolean): Eval[T, E] = filter(test)(ExecCheap)
 
   def toFut(pack: E#ToFutPack): Fut[T]
   def weakFutQuery(pack: E#ToFutPack): Option[T]
@@ -184,6 +190,8 @@ object GEval {
   type GEval[T] = Eval[T, GEvalContext]
 
   def apply[T](gen: => T)(implicit exec: ExecHint): GEval[T] = Eval[T, GEvalContext](gen)
+  def readFile(handle: FileHandle): GEval[Either[Array[Byte], Throwable]] =
+    FileRead(handle.file.toPath)
 
   case class CamRange(near: Float, far: Float)
   case class ToFutPack(executor: UniExecutor, resourcePack: ResourcePack, glExec: Runnable => Unit, res: V2I, range: CamRange) extends UniExecProvider
@@ -250,5 +258,15 @@ object GEval {
 
     override def futCriticalData(pack: ToFutPack): CriticalData = source.futCriticalData(pack)
     override def evalCriticalData(pack: EvalNowPack): CriticalData = source.evalCriticalData(pack)
+  }
+
+  private case class FileRead(path: Path) extends GEval[Either[Array[Byte], Throwable]] {
+    @transient private lazy val fut = new Cache(new FileReadFut(path))
+    override def toFut(pack: ToFutPack): Fut[Either[Array[Byte], Throwable]] = fut()
+    override def weakFutQuery(pack: ToFutPack): Option[Either[Array[Byte], Throwable]] = fut.query.flatMap(_.query)
+
+    override def evalNow(pack: EvalNowPack): Option[Either[Array[Byte], Throwable]] = Some(fut().await)
+    override def futCriticalData(pack: ToFutPack): CriticalData = ()
+    override def evalCriticalData(pack: EvalNowPack): CriticalData = ()
   }
 }

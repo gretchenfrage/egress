@@ -29,6 +29,14 @@ class Profiler(name: String) {
     out.println("]")
   }
 
+  def printMicro(out: PrintStream = System.out): Unit = {
+    out.print(name + ": [")
+    for (d <- deltas) {
+      out.print(d.toMicros + "µs, ")
+    }
+    out.println("]")
+  }
+
   def printDisc(threshhold: Double, out: PrintStream = System.out): Boolean = {
     if (deltas.find(_ > (threshhold milliseconds)).isDefined) {
       print(out)

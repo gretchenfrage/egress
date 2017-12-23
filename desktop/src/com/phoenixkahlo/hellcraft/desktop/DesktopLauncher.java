@@ -4,7 +4,6 @@ import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
 import com.phoenixkahlo.hellcraft.gamedriver.GameDriver;
 import com.phoenixkahlo.hellcraft.menu.MainMenu;
-import com.phoenixkahlo.hellcraft.singleplayer.FGraphicsCloudTest;
 
 import java.awt.*;
 

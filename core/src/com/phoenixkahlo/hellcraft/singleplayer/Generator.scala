@@ -53,12 +53,6 @@ class DefaultGenerator(res: Int) extends Generator {
                 else Materials.Grass
               })
             }
-          /*Terrain(p, IDField[TerrainUnit](V3I(res, res, res), (i: V3I) => {
-            val depth = (p.yi * res + i.yi) - height(V3I(i.xi, 0, i.zi))
-            if (depth >= 0) Air
-            else if (p.flatten % 2 == Origin2D) Blocks.Stone
-            else Materials.Grass
-          }))*/
           Terrain(p, field)
         }
       , UniExecutor.exec(p * 16))

@@ -20,6 +20,7 @@ import com.badlogic.gdx.graphics.g2d.{BitmapFont, GlyphLayout, TextureRegion}
 import com.phoenixkahlo.hellcraft.core.eval.GEval.GEval
 import com.phoenixkahlo.hellcraft.core.eval.{ExecCheap, GEval}
 import com.phoenixkahlo.hellcraft.fgraphics.hud.{DownLeft, ImgHUDComponent, StrBoxHUDComponent, StrHUDComponent}
+import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.math
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
@@ -96,7 +97,33 @@ case class MenuButton(range: V2I => (V2I, V2I), str: String, onclick: (ClientLog
   }
 }
 
-case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3F) {
+case class Cloud(pos: V3F, ren: Renderable[TerrainShader]) {
+  def render(interp: Float): Render[TerrainShader] =
+    Render[TerrainShader](ren, Offset(pos + (East * Cloud.speed * interp)))
+
+  def move: Cloud = {
+    copy(pos = pos + (East * Cloud.speed))
+  }
+}
+object Cloud {
+  val speed = 10
+}
+case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3F, clouds: Seq[Cloud] = Seq.empty) {
+  def update(world: World, input: Input): ClientCore = {
+    val numClouds = 75
+    val cloudDist = Repeated(input.camRange._2 + 300)
+    val filteredClouds = clouds.filter({ case Cloud(pos, _) => pos > input.camPos - cloudDist && pos < camPos + cloudDist })
+    val random = new Random()
+    val positions = RNG.v3fs(RNG(random.nextLong)).map(p => ((p * 2 - Ones) * cloudDist.x).copy(y = 400))
+    val ordinals = RNG.ints(RNG(random.nextLong))
+    val addedClouds =
+      filteredClouds ++ (positions zip ordinals)
+        .map({ case (pos, ord) => Cloud(pos, Clouds.cloud(ord)) })
+        .take(numClouds - filteredClouds.size)
+    val movedClouds = addedClouds.map(_.move)
+    copy(clouds = movedClouds)
+  }
+
   def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData) = {
     implicit val exec = ExecCheap
 
@@ -186,6 +213,10 @@ case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3
     val skyTrans = MatrixFactory(Rotate(South, cycle * 360), Translate(camPos))
     renders += Render[ParticleShader](SunMoon(skyParams), ParticleShader.Params(skyTrans))
     renders += Render[ParticleShader](Stars(skyParams), ParticleShader.Params(skyTrans, V4F(1, 1, 1, Trig.clamp(-sunlightPow, 0, 1))))
+    // clouds render
+    renders ++= clouds.map(_.render(world.interp))
+
+    //renders += Render[TerrainShader](Clouds.cloud(0), Offset.default)
 
     // build the globals and return
     val globals = GlobalRenderData(camPos, camDir, lightPos, lightPow, skyColor.inflate(1), 90)
@@ -246,7 +277,7 @@ case class GodClientMain(core: ClientCore) extends ClientLogic {
     val chunkPos = core.camPos / 16 toInts
     val loadTarget = (chunkPos - GodClient.loadRad) toAsSet (chunkPos + GodClient.loadRad)
 
-    GodClientMain(core.copy(camPos = core.camPos + (movDir * GodClient.moveSpeed))) -> Seq(
+    GodClientMain(core.copy(camPos = core.camPos + (movDir * GodClient.moveSpeed)).update(world, input)) -> Seq(
       SetLoadTarget(loadTarget, loadTarget.shroat(4))
     )
   }

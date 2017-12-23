@@ -1,5 +1,9 @@
 package com.phoenixkahlo.hellcraft.util.threading
 
+import java.io.File
+import java.nio.ByteBuffer
+import java.nio.channels.{AsynchronousFileChannel, CompletionHandler}
+import java.nio.file.{Path, StandardOpenOption}
 import java.util.Objects
 import java.util.concurrent.{ArrayBlockingQueue, ConcurrentLinkedQueue, Executors}
 import java.util.concurrent.atomic.AtomicBoolean
@@ -74,6 +78,8 @@ trait CancellableFut[+T] extends Fut[Option[T]] {
     new CancellableContentsMapFut(this, func, exec)
 
 }
+
+
 
 object AlwaysCancelled extends CancellableFut[Nothing] {
   override def cancel(): Unit = ()
@@ -216,6 +222,59 @@ private class CancellableMapFut[S, R](source: Fut[S], func: S => R, executor: Ru
   }
 
   override def query: Option[Option[R]] =
+    status
+
+  override def onComplete(runnable: Runnable): Unit = {
+    if (status isDefined) runnable.run()
+    else monitor.synchronized {
+      if (status isDefined) runnable.run()
+      else listeners += runnable
+    }
+  }
+}
+
+class FileReadFut(handle: Path) extends Fut[Either[Array[Byte], Throwable]] {
+  @volatile private var status: Option[Either[Array[Byte], Throwable]] = None
+  private val listeners = new ArrayBuffer[Runnable]
+  private val monitor = new Object
+
+  {
+    def fulfill(result: Either[Array[Byte], Throwable]): Unit = {
+      monitor.synchronized {
+        status = Some(result)
+        monitor.notifyAll()
+      }
+      listeners.foreach(_.run())
+    }
+
+    val file = handle.toFile
+    if (file.length > Int.MaxValue)
+      fulfill(Right(new Exception("File too long to store in array")))
+
+    val channel = AsynchronousFileChannel.open(handle, StandardOpenOption.READ)
+    val buffer = ByteBuffer.allocate(file.length.toInt)
+
+    channel.read(buffer, 0, buffer, new CompletionHandler[Integer, ByteBuffer] {
+      override def completed(result: Integer, attachment: ByteBuffer): Unit =
+        if (result == file.length)
+          fulfill(Left(attachment.array()))
+        else
+          fulfill(Right(new Exception("Insufficient bytes read")))
+
+      override def failed(exc: Throwable, attachment: ByteBuffer): Unit =
+        fulfill(Right(exc))
+    })
+  }
+
+  override def await: Either[Array[Byte], Throwable] = {
+    if (status isDefined) status.get
+    else monitor.synchronized {
+      while (status isEmpty) monitor.wait()
+      status.get
+    }
+  }
+
+  override def query: Option[Either[Array[Byte], Throwable]] =
     status
 
   override def onComplete(runnable: Runnable): Unit = {

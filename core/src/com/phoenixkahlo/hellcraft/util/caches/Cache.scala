@@ -10,6 +10,8 @@ class Cache[T](factory: => T) {
       value.get
     }
 
+  def query: Option[T] = value
+
   def invalidate =
     this.synchronized {
       value = None
