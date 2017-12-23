@@ -27,6 +27,9 @@ trait Fut[+T] {
 
   def query: Option[T]
 
+  def filter(test: T => Boolean, executor: Runnable => Unit): Fut[T] =
+    new FilterFut(this, test, executor)
+
   def map[E](func: T => E, executor: Runnable => Unit): Fut[E] =
     new MapFut(this, func, executor)
 
@@ -224,126 +227,6 @@ private class CancellableMapFut[S, R](source: Fut[S], func: S => R, executor: Ru
   }
 }
 
-
-
-/*
-trait WeakFut[+T] extends Fut[Option[T]] {
-  def cancel(): Unit
-
-  def wmap[E](func: T => E, executor: Runnable => Unit): Fut[Option[E]] = super.map(_.map(func))
-}
-
-trait WeakHandle[+T] {
-  def getFut: WeakFut[T]
-}
-
-private class WeakFutData[T](ref: WeakReference[WeakHandle[T]], factory: () => T) extends Runnable {
-  @volatile private var status: Option[Option[T]] = None
-  private val listeners = new ArrayBuffer[Runnable]
-  private val monitor = new Object
-  private val cancelled = new AtomicBoolean(false)
-
-  override def run(): Unit = {
-    if (!cancelled.get()) {
-      if (ref.get.isDefined) {
-        val result = factory()
-        monitor.synchronized {
-          status = Some(Some(result))
-          monitor.notifyAll()
-        }
-        listeners.foreach(_.run())
-      } else {
-        monitor.synchronized {
-          status = Some(None)
-          monitor.notifyAll()
-        }
-        listeners.foreach(_.run())
-      }
-    }
-  }
-
-  def cancel(): Unit = {
-    if (!cancelled.getAndSet(true)) {
-      monitor.synchronized {
-        status = Some(None)
-        monitor.notifyAll()
-      }
-      listeners.foreach(_.run())
-    }
-  }
-
-  def await: Option[T] = {
-    if (status isDefined) status.get
-    else monitor.synchronized {
-      while (status isEmpty) monitor.wait()
-      status.get
-    }
-  }
-
-  def query: Option[Option[T]] = status
-
-  def onComplete(runnable: Runnable): Unit = {
-    if (status isDefined) runnable.run()
-    else monitor.synchronized {
-      if (status isDefined) runnable.run()
-      else listeners += runnable
-    }
-  }
-}
-
-private class WeakEvalFut[T](factory: () => T, exec: Runnable => Unit, onGC: Runnable, putHandle: WeakHandle[T] => Unit) extends WeakFut[T] {
-  private val data: WeakFutData[T] = {
-    val dataQueue = new ArrayBlockingQueue[WeakFutData[T]](1)
-    val handle = new WeakHandle[T] {
-      override def finalize(): Unit = {
-        dataQueue.peek().cancel()
-        onGC.run()
-      }
-      override def getFut: WeakFut[T] = WeakEvalFut.this
-    }
-    val data = new WeakFutData[T](WeakReference(handle), factory)
-    dataQueue.add(data)
-    exec(data)
-    putHandle(handle)
-    data
-  }
-
-  override def cancel(): Unit = data.cancel()
-
-  override def await: Option[T] = data.await
-
-  override def query: Option[Option[T]] = data.query
-
-  override def onComplete(runnable: Runnable): Unit = data.onComplete(runnable)
-
-  override def finalize(): Unit = onGC.run()
-}
-
-object WeakFut {
-  def apply[T](factory: => T, exec: Runnable => Unit, onGC: Runnable = () => ()): (WeakFut[T], WeakHandle[T]) = {
-    var handle: WeakHandle[T] = null
-    val fut = new WeakEvalFut[T](() => factory, exec, onGC, handle = _)
-    (fut, Objects.requireNonNull(handle))
-  }
-}
-*/
-/*
-object WeakFutTest extends App {
-  val queue = new ConcurrentLinkedQueue[Runnable]
-  def make: (Fut[Option[String]], Option[WeakHandle[String]]) = {
-    val (f, h) = WeakFut("hello world", queue.add, () => println("finalizing"))
-    (f.wmap(_.toUpperCase, queue.add), None)
-  }
-  val (fut, handle) = make
-  fut.onComplete(() => println(fut.query.get))
-
-  System.gc()
-  Thread.sleep(1000)
-  while (queue.size > 0)
-    queue.remove().run()
-}
-*/
-
 private class EvalFut[T](factory: => T, executor: Runnable => Unit) extends Fut[T] {
   @volatile private var status: Option[T] = None
   private val listeners = new ArrayBuffer[Runnable]
@@ -490,40 +373,6 @@ object FulfillTest extends App {
 
 
 }
-/*
-case class Promise(task: Runnable, executor: Runnable => Unit) extends Fut[Unit] {
-  @volatile private var done: Boolean = false
-  private val listeners = new ArrayBuffer[Runnable]
-  private val monitor = new Object
-
-  executor(() => {
-    task.run()
-    monitor.synchronized {
-      done = true
-      monitor.notifyAll()
-    }
-    listeners.foreach(_.run())
-  })
-
-  override def await: Unit = {
-    if (!done) monitor.synchronized {
-      while (!done) monitor.wait()
-    }
-  }
-
-  override def query: Option[Unit] =
-    if (done) Some(())
-    else None
-
-  override def onComplete(runnable: Runnable): Unit = {
-    if (done) runnable.run()
-    else monitor.synchronized {
-      if (done) runnable.run()
-      else listeners += runnable
-    }
-  }
-}
-*/
 
 private class SeqFut[T](last: Fut[_], factory: () => T, executor: Runnable => Unit) extends Fut[T] {
   @volatile private var status: Option[T] = None
@@ -593,6 +442,55 @@ private class MapFut[S, R](source: Fut[S], func: S => R, executor: Runnable => U
     if (status isDefined) runnable.run()
     else monitor.synchronized {
       if (status isDefined) runnable.run()
+      else listeners += runnable
+    }
+  }
+}
+object AwaitOnNever extends Exception
+object Never extends Fut[Nothing] {
+  override def await: Nothing = throw AwaitOnNever
+  override def query: Option[Nothing] = None
+  override def onComplete(runnable: Runnable): Unit = ()
+}
+private class FilterFut[T](source: Fut[T], filter: T => Boolean, executor: Runnable => Unit) extends Fut[T] {
+  @volatile private var status: Option[Option[T]] = None
+  private val listeners = new ArrayBuffer[Runnable]
+  private val monitor = new Object
+
+  source.onComplete(() => {
+    executor(() => {
+      val result =
+        if (filter(source.query.get)) Some(source.query.get)
+        else None
+      monitor.synchronized {
+        status = Some(result)
+        monitor.notifyAll()
+      }
+      if (result.isDefined)
+        listeners.foreach(_.run())
+    })
+  })
+
+  override def await: T = {
+    {
+      if (status isDefined) status.get
+      else monitor.synchronized {
+        while (status isEmpty) monitor.wait()
+        status.get
+      }
+    } match {
+      case Some(t) => t
+      case None => throw AwaitOnNever
+    }
+  }
+
+  override def query: Option[T] =
+    status.flatten
+
+  override def onComplete(runnable: Runnable): Unit = {
+    if (status.isDefined && status.get.isDefined) runnable.run()
+    else monitor.synchronized {
+      if (status.isDefined && status.get.isDefined) runnable.run()
       else listeners += runnable
     }
   }

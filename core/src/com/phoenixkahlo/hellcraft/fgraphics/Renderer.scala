@@ -12,7 +12,7 @@ import com.phoenixkahlo.hellcraft.ShaderTag
 import com.phoenixkahlo.hellcraft.core.eval.{Eval, ExecCheap, GEval}
 import com.phoenixkahlo.hellcraft.core.eval.GEval.{CamRange, GEval, GLMap}
 import com.phoenixkahlo.hellcraft.fgraphics.procedures._
-import com.phoenixkahlo.hellcraft.math.{V2F, V3F, V4F}
+import com.phoenixkahlo.hellcraft.math.{V2F, V2I, V3F, V4F}
 import com.phoenixkahlo.hellcraft.util.collections.ContextPin.{ContextPinFunc, ContextPinID}
 import com.phoenixkahlo.hellcraft.util.collections._
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
@@ -35,7 +35,8 @@ trait Renderer {
   * TODO: dispose of old resources
   */
 class DefaultRenderer(pack: ResourcePack) extends Renderer {
-  // task queue
+  // openGL task queue
+  // the right unit singleton represents a special interruption value
   val tasks = new LinkedBlockingDeque[Either[Runnable, Unit]]
   def runTasks(): Unit = {
     var task: Either[Runnable, Unit] = null
@@ -82,10 +83,10 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
       .map[RenderableNow[S]]((ff: S#FinalForm) => RenderableNow(renderable.shader, ff, renderable.transPos))(ExecCheap)
   }
 
-  val _prepareContextID = UUID.randomUUID()
-  def prepareContextID[S <: Shader]: ContextPinID[RNE[S]] = _prepareContextID.asInstanceOf[ContextPinID[RNE[S]]]
+  val _prepareContextID: UUID = UUID.randomUUID()
+  def prepareContextID[S <: Shader]: ContextPinID[RNE[S]] = _prepareContextID
 
-  def prepare[S <: Shader](renderable: Renderable[S]): RNE[S] = {
+  def prepare[S <: Shader](renderable: Renderable[S]): GEval[RenderableNow[S]] = {
     val pinFunc: ContextPinFunc[RNE[S]] = () => prepareRaw(renderable)
     val pinID: ContextPinID[RNE[S]] = prepareContextID[S]
 
@@ -118,14 +119,14 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     p.log()
 
     // find what we can render immediately
-    val screenRes = V2F(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
+    val screenRes = V2I(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     val camRange = CamRange(cam.near, cam.far)
     val toFutPack = GEval.ToFutPack(UniExecutor.getService, pack, execOpenGL, screenRes, camRange)
     val evalNowPack = GEval.EvalNowPack(pack, screenRes, camRange)
 
     def extract[S <: Shader](render: Render[S], strong: Boolean = true): Option[RenderNow[S]] = {
-      val eval = prepare(render.renderable)
-      val option =
+      val eval: GEval[RenderableNow[S]] = prepare(render.renderable)
+      val option: Option[RenderableNow[S]] =
         if (render.mustRender) eval.evalNow(evalNowPack)
         else {
           if (strong) eval.toFut(toFutPack).query
@@ -151,7 +152,7 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     val opaquSeq: Seq[RenderNow[_ <: Shader]] = {
       type RenderNowBuffer[S <: Shader] = mutable.Buffer[RenderNow[S]]
       val bins = new ShaderTagTable[RenderNowBuffer]
-      
+
       def prep[S <: Shader](implicit tag: ShaderTag[S]): Unit =
         bins += new ArrayBuffer[RenderNow[S]]
       ShaderTag.tags.foreach(prep(_))
@@ -178,7 +179,7 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
         }
         context.begin()
         active = Some(procedure)
-        active.get.begin(globals, context, cam)
+        procedure.begin(globals, context, cam)
       }
       procedure(rn.renderable.unit, rn.params, globals, context, cam)
     }
@@ -189,7 +190,7 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     context.end()
 
     p.log()
-    p.printDisc(16)
+    p.printDisc(1000 / 60)
   }
 
   override def onResize(width: Int, height: Int): Unit = {

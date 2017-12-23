@@ -45,7 +45,7 @@ object ClientLogic {
     def isCursorCaught: Boolean
     def camPos: V3F
     def camDir: V3F
-    def windowSize: V2I
+    def currentRes: V2I
     def nanoTime: Long
     def keyToChar(keycode: Int): Option[Char]
     def sessionData: Map[String, Any]

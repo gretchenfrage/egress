@@ -3,9 +3,9 @@ package com.phoenixkahlo.hellcraft.core.eval
 import com.badlogic.gdx.graphics.Pixmap.Format
 import com.badlogic.gdx.graphics.{Pixmap, Texture}
 import com.phoenixkahlo.hellcraft.core.{Chunk, Terrain, TerrainGrid}
-import com.phoenixkahlo.hellcraft.core.eval.Eval.{CriticalData, EFlatMap, EMap}
+import com.phoenixkahlo.hellcraft.core.eval.Eval.{CriticalData, EFilter, EFlatMap, EMap}
 import com.phoenixkahlo.hellcraft.fgraphics.ResourcePack
-import com.phoenixkahlo.hellcraft.math.{V2F, V3I, V4F}
+import com.phoenixkahlo.hellcraft.math.{V2F, V2I, V3I, V4F}
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 import com.phoenixkahlo.hellcraft.util.collections.{MemoFunc, MemoHintFunc, SingleMemoFunc, SingleMemoHintFunc}
 import com.phoenixkahlo.hellcraft.util.threading._
@@ -18,11 +18,15 @@ trait EvalContext {
   type EvalNowPack
 }
 
+// wheeee, i'm a monad!
 trait Eval[+T, E <: EvalContext] {
   def map[R](func: T => R)(implicit exec: ExecHint): Eval[R, E] =
     EMap(this, func, exec)
   def flatMap[R](func: T => Eval[R, E]): Eval[R, E] =
     EFlatMap(this, func)
+  def filter(test: T => Boolean)(implicit exec: ExecHint): Eval[T, E] =
+    EFilter(this, test, exec)
+  def withFilter(test: T => Boolean): Eval[T, E] = filter(test)(ExecCheap)
 
   def toFut(pack: E#ToFutPack): Fut[T]
   def weakFutQuery(pack: E#ToFutPack): Option[T]
@@ -65,6 +69,22 @@ object Eval {
 
     override def futCriticalData(pack: E#ToFutPack): CriticalData = (pack.executor, source.futCriticalData(pack))
     override def evalCriticalData(pack: E#EvalNowPack): CriticalData = source.evalCriticalData(pack)
+  }
+
+  private case class EFilter[T, E <: EvalContext](src: Eval[T, E], filter: T => Boolean, exec: ExecHint) extends Eval[T, E] {
+    @transient private lazy val _toFut = new SingleMemoHintFunc[(CriticalData, UniExecutor), E#ToFutPack, Fut[T]](
+      (cs, pack) => src.toFut(pack).filter(filter, exec.exec(_)(pack.executor))
+    )
+    override def toFut(pack: E#ToFutPack): Fut[T] = _toFut((src.futCriticalData(pack), pack.executor), pack)
+    override def weakFutQuery(pack: E#ToFutPack): Option[T] = _toFut.query((src.futCriticalData(pack), pack.executor)).flatMap(_.query)
+
+    @transient private lazy val _evalNow = new SingleMemoHintFunc[CriticalData, E#EvalNowPack, Option[T]](
+      (crits, pack) => src.evalNow(pack).filter(filter)
+    )
+    override def evalNow(pack: E#EvalNowPack): Option[T] = _evalNow(src.evalCriticalData(pack), pack)
+
+    override def futCriticalData(pack: E#ToFutPack): CriticalData = (pack.executor, src.futCriticalData(pack))
+    override def evalCriticalData(pack: E#EvalNowPack): CriticalData = src.evalCriticalData(pack)
   }
 
   private case class EFlatMap[S, R, E <: EvalContext](source: Eval[S, E], func: S => Eval[R, E]) extends Eval[R, E] {
@@ -166,8 +186,8 @@ object GEval {
   def apply[T](gen: => T)(implicit exec: ExecHint): GEval[T] = Eval[T, GEvalContext](gen)
 
   case class CamRange(near: Float, far: Float)
-  case class ToFutPack(executor: UniExecutor, resourcePack: ResourcePack, glExec: Runnable => Unit, res: V2F, range: CamRange) extends UniExecProvider
-  case class EvalNowPack(resourcePack: ResourcePack, res: V2F, range: CamRange)
+  case class ToFutPack(executor: UniExecutor, resourcePack: ResourcePack, glExec: Runnable => Unit, res: V2I, range: CamRange) extends UniExecProvider
+  case class EvalNowPack(resourcePack: ResourcePack, res: V2I, range: CamRange)
 
   val resourcePack: GEval[ResourcePack] = new GEval[ResourcePack] {
     override def toFut(pack: ToFutPack): Fut[ResourcePack] = Fut(pack.resourcePack, _.run())
@@ -200,10 +220,10 @@ object GEval {
     override def evalCriticalData(pack: EvalNowPack): CriticalData = ()
   })
 
-  val res: GEval[V2F] = new GEval[V2F] {
-    override def toFut(pack: ToFutPack): Fut[V2F] = Fut(pack.res, _.run())
+  val res: GEval[V2I] = new GEval[V2I] {
+    override def toFut(pack: ToFutPack): Fut[V2I] = Fut(pack.res, _.run())
     override def weakFutQuery(pack: ToFutPack) = Some(pack.res)
-    override def evalNow(pack: EvalNowPack): Option[V2F] = Some(pack.res)
+    override def evalNow(pack: EvalNowPack): Option[V2I] = Some(pack.res)
     override def futCriticalData(pack: ToFutPack): CriticalData = pack.res
     override def evalCriticalData(pack: EvalNowPack): CriticalData = pack.res
   }

@@ -5,7 +5,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.math.Matrix4
 import com.phoenixkahlo.hellcraft.core.graphics._
-import com.phoenixkahlo.hellcraft.core.{Blocks, RenderWorld, SetMat, World}
+import com.phoenixkahlo.hellcraft.core.{Blocks, Materials, RenderWorld, SetMat, World}
 import com.phoenixkahlo.hellcraft.fgraphics.ParticleShader.Particle
 import com.phoenixkahlo.hellcraft.fgraphics._
 import com.phoenixkahlo.hellcraft.math.MatrixFactory.{Rotate, Translate}
@@ -17,6 +17,7 @@ import com.phoenixkahlo.hellcraft.math._
 import com.badlogic.gdx.Input.Keys._
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.{BitmapFont, GlyphLayout, TextureRegion}
+import com.phoenixkahlo.hellcraft.core.eval.GEval.GEval
 import com.phoenixkahlo.hellcraft.core.eval.{ExecCheap, GEval}
 import com.phoenixkahlo.hellcraft.fgraphics.hud.{DownLeft, ImgHUDComponent, StrBoxHUDComponent, StrHUDComponent}
 import com.phoenixkahlo.hellcraft.math
@@ -26,20 +27,52 @@ import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
 import scala.concurrent.duration._
 import scala.collection.mutable.ArrayBuffer
 
-
-case class MenuButton(min: V2I, max: V2I, str: String, onclick: (ClientLogic, World, ClientLogic.Input) => ClientLogic.Output) {
-  def contains(v: V2I): Boolean = {
-    val v2 = V2I(v.xi, Gdx.graphics.getHeight - v.yi)
+case class MenuButton(range: V2I => (V2I, V2I), str: String, onclick: (ClientLogic, World, ClientLogic.Input) => ClientLogic.Output) {
+  def contains(v: V2I, input: Input): Boolean = {
+    val (min, max) = range(input.currentRes)
+    val v2 = V2I(v.xi, input.currentRes.yi - v.yi)
     v2 >= min && v2 <= max
   }
   
   val components: (Seq[Render[HUDShader]], Seq[Render[HUDShader]]) = {
     implicit val exec = ExecCheap
+    /*
     val frameOff = GEval.resourcePack.map(pack => ImgHUDComponent(
       new TextureRegion(pack.frame(MenuPatchPID, 18, max.xi - min.xi, max.yi - min.yi)),
       min,
       max - min
     ))
+    */
+    val frameOff = for {
+      pack <- GEval.resourcePack
+      (min, max) <- {GEval.res.map(range)}
+    } yield ImgHUDComponent(
+      new TextureRegion(pack.frame(MenuPatchPID, 18, max.xi - min.xi, max.yi - min.yi)),
+      min,
+      max - min
+    )
+    val frameOn = for {
+      pack <- GEval.resourcePack
+      (min, max) <- GEval.res.map(range)
+    } yield ImgHUDComponent(
+      new TextureRegion(pack.frame(MenuPatchActivePID, 18, max.xi - min.xi, max.yi - min.yi)),
+      min,
+      max - min
+    )
+    val text = for {
+      pack <- GEval.resourcePack
+      (min, max) <- GEval.res.map(range)
+    } yield {
+      val font = pack.font(ButtonFID)
+      val layout = new GlyphLayout
+      layout.setText(font, str)
+      StrHUDComponent(
+        str, font,
+        (min + max) / 2 + V2F(-layout.width / 2, layout.height / 2),
+        Color.BLACK
+      )
+    }
+    /*
     val frameOn = GEval.resourcePack.map(pack => ImgHUDComponent(
       new TextureRegion(pack.frame(MenuPatchActivePID, 18, max.xi - min.xi, max.yi - min.yi)),
       min,
@@ -55,6 +88,7 @@ case class MenuButton(min: V2I, max: V2I, str: String, onclick: (ClientLogic, Wo
         Color.BLACK
       )
     })
+    */
     (
       Seq(frameOff, text).map(Renderable[HUDShader](_)).map(Render[HUDShader](_, (): Unit)),
       Seq(frameOn, text).map(Renderable[HUDShader](_)).map(Render[HUDShader](_, (): Unit))
@@ -152,8 +186,6 @@ case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3
     val skyTrans = MatrixFactory(Rotate(South, cycle * 360), Translate(camPos))
     renders += Render[ParticleShader](SunMoon(skyParams), ParticleShader.Params(skyTrans))
     renders += Render[ParticleShader](Stars(skyParams), ParticleShader.Params(skyTrans, V4F(1, 1, 1, Trig.clamp(-sunlightPow, 0, 1))))
-    //val sky = Sky(SkyParams(skyDist))
-    //renders += Render[ParticleShader](sky, TransMatrix(MatrixFactory(Rotate(South, cycle * 360), Translate(camPos))))
 
     // build the globals and return
     val globals = GlobalRenderData(camPos, camDir, lightPos, lightPow, skyColor.inflate(1), 90)
@@ -162,29 +194,33 @@ case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3
 
   def hud(buffer: String, chatBGColor: Color, input: Input): Seq[Render[HUDShader]] = {
     implicit val exec = ExecCheap
-    val crosshair = Renderable[HUDShader](GEval.resourcePack.map(pack => {
-      ImgHUDComponent(
-        pack(CrosshairTID),
-        input.windowSize / 2 - V2F(15, 15),
-        V2F(30, 30)
-      )
-    }))
-    val chatbg = Renderable[HUDShader](GEval.dot(V4F(chatBGColor)).map(tex => {
-      ImgHUDComponent(
-        new TextureRegion(tex),
-        Origin2D,
-        input.windowSize ** V2F(0.4f, 0.5f)
-      )
-    }))
+    val crosshair = Renderable[HUDShader](for {
+      pack <- GEval.resourcePack
+      res <- GEval.res
+    } yield ImgHUDComponent(
+      pack(CrosshairTID),
+      res / 2 - V2F(15, 15),
+      V2F(30, 30)
+    ))
+    val chatbg = Renderable[HUDShader](for {
+      dot <- GEval.dot(V4F(chatBGColor))
+      res <- GEval.res
+    } yield ImgHUDComponent(
+      new TextureRegion(dot),
+      Origin2D,
+      res ** V2F(0.4f, 0.5f)
+    ))
     // lol imagine if I used this syntax everywhere, that'd be terrible
+    // but I wanted to do this just once
     val text = ("" /: (chat.messages :+ buffer)) (_ + _ + "\n") dropRight 1
-    val chattext = Renderable[HUDShader](GEval.resourcePack.map(pack => {
-      StrBoxHUDComponent(
-        text, pack.font(ChatFID),
-        Origin2D, DownLeft, input.windowSize ** V2F(0.4f, 0.5f),
-        new Color(1f, 1f, 1f, 0.5f), 3, 10
-      )
-    }))
+    val chattext = Renderable[HUDShader](for {
+      pack <- GEval.resourcePack
+      res <- GEval.res
+    } yield StrBoxHUDComponent(
+      text, pack.font(ChatFID),
+      Origin2D, DownLeft, res ** V2F(0.4f, 0.5f),
+      new Color(1f, 1f, 1f, 0.5f), 3, 10
+    ))
 
     Seq(
       Render[HUDShader](crosshair, (): Unit, mustRender = true),
@@ -281,37 +317,48 @@ case class GodClientMenu(core: ClientCore, buttons: Seq[MenuButton], pressing: O
 
 
   override def touchDown(pos: V2I, pointer: KeyCode, button: Button)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
-    buttons.reverse.find(_ contains pos).map(button => become(copy(pressing = Some(button)))).getOrElse(nothing)
+    buttons.reverse.find(_ contains (pos, input)).map(button => become(copy(pressing = Some(button)))).getOrElse(nothing)
 
   override def touchUp(pos: V2I, pointer: KeyCode, button: Button)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
     pressing match {
-      case Some(pressing) => buttons.reverse.find(_ contains pos).filter(_ == pressing).map(_.onclick(this, world, input)).getOrElse(nothing)
+      case Some(pressing) => buttons.reverse.find(_ contains (pos, input)).filter(_ == pressing).map(_.onclick(this, world, input)).getOrElse(nothing)
       case None => nothing
     }
 
   override def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData) = {
     val (renders, globals) = core.render(world, input)
     val menu: Seq[Render[HUDShader]] = buttons.flatMap(b => b.components match {
-      case (off, on) => if (b contains input.cursorPos) on else off
+      case (off, on) => if (b contains (input.cursorPos, input)) on else off
     })
     (renders ++: menu, globals)
   }
 
-  override def resize(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
-    become(GodClientMenu(core, input))
+  //override def resize(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
+  //  become(GodClientMenu(core, input))
 }
 object GodClientMenu {
   def apply(core: ClientCore, input: Input): GodClientMenu = {
-    val center = input.windowSize / 2 toInts
     val rad = V2I(150, 18)
     val buttons = Seq(
-      MenuButton(center - rad + V2I(0, 50), center + rad + V2I(0, 50), "Resume Game", (c, w, i) => {
+      MenuButton(
+        res => {
+          val center = res / 2 toInts;
+          (center - rad + V2I(0, 50), center + rad + V2I(0, 50))
+        },
+        "Resume Game",
+        (c, w, i) => {
         GodClientMain(c.asInstanceOf[GodClientMenu].core) -> Seq(
           CaptureCursor,
           ClientPrint("resuming game")
         )
       }),
-      MenuButton(center - rad - V2I(0, 50), center + rad - V2I(0, 50), "Exit Game", (c, w, i) => {
+      MenuButton(
+        res => {
+          val center = res / 2 toInts;
+          (center - rad - V2I(0, 50), center + rad - V2I(0, 50))
+        },
+        "Exit Game",
+        (c, w, i) => {
         c.cause(ClientPrint("exiting game"), Exit)
       })
     )

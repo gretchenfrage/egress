@@ -178,7 +178,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       override val camDir: V3F = V3F(renderer.cam.direction)
       override val cursorPos: V2I = V2I(Gdx.input.getX, Gdx.input.getY)
       override val isCursorCaught: Boolean = Gdx.input.isCursorCatched
-      override val windowSize: V2I = V2I(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
+      override val currentRes: V2I = V2I(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
       override val nanoTime: Long = System.nanoTime()
       override val sessionData: Map[String, Any] = SingleplayerState.this.sessionData
       override val pack: ResourcePack = SingleplayerState.this.pack
