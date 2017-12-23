@@ -37,6 +37,9 @@ class V4F(val x: Float, val y: Float, val z: Float, val w: Float) extends Serial
   def magnitude: Float =
     Math.sqrt(x * x + y * y + z * z + w * w).toFloat
 
+  def magnitudeSqrd: Float =
+    x * x + y * y + z * z + w * w
+
   def dist(v: V4F): Float =
     (this - v).magnitude
 

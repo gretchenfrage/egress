@@ -1,6 +1,8 @@
 package com.phoenixkahlo.hellcraft.util.collections.spatial
 
 import com.phoenixkahlo.hellcraft.math._
+import com.phoenixkahlo.hellcraft.util.collections.spatial.BiTree.BiTree
+import com.phoenixkahlo.hellcraft.util.collections.spatial.QuadTree.QuadTree
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
@@ -12,7 +14,7 @@ trait TreeDim[VI, VF] {
   def mul(a: VF, s: Float): VF
   def div(a: VF, s: Float): VF
   def dist(a: VF, b: VF): Float
-  //def distsqrd(a: VF, b: VF): Float
+  def distsqrd(a: VF, b: VF): Float
   def >=(a: VF, b: VF): Boolean
   def <=(a: VF, b: VF): Boolean
   def >(a: VF, b: VF): Boolean
@@ -26,7 +28,7 @@ trait TreeDim[VI, VF] {
 case class Domain[VI, VF](center: VF, range: Float, sign: Option[VI], dim: TreeDim[VI, VF]) {
   val min: VF = dim.sub(center, dim.repeated(range))
   val max: VF = dim.add(center, dim.repeated(range))
-  val diagonal: Float = dim.dist(min, max)
+  val diagonalsqrd: Float = dim.distsqrd(min, max)
 
   def contains(v: VF): Boolean = {
     dim.>=(v, min) && dim.<(v, max)
@@ -41,15 +43,17 @@ case class Domain[VI, VF](center: VF, range: Float, sign: Option[VI], dim: TreeD
   def children: Vector[Domain[VI, VF]] =
     dim.signs.map(subdomain).to[Vector]
 
-  private def maxdist(v: VF): Float =
-    dim.signs.map(sign => dim.add(center, dim.mul(dim.upcast(sign), range))).map(dim.dist(_, v)).max
+  private def maxdistsqrd(v: VF): Float =
+    dim.signs.map(sign => dim.add(center, dim.mul(dim.upcast(sign), range))).map(dim.distsqrd(_, v)).max
 
-  def couldContain(point: VF, within: Float): Boolean = {
-    val md = maxdist(point)
-    if (md == Float.PositiveInfinity) true
+  def couldContainSqrd(point: VF, withinsqrd: Float): Boolean = {
+    val mds = maxdistsqrd(point)
+    if (mds == Float.PositiveInfinity) true
     else if (dim.>=(point, dim.sub(center, dim.repeated(range))) && dim.<=(point, dim.add(center, dim.repeated(range)))) true
-    else md - diagonal <= within
+    else mds - diagonalsqrd <= withinsqrd
   }
+
+  def couldContain(point: VF, within: Float): Boolean = couldContainSqrd(point, within * within)
 
 }
 
@@ -60,11 +64,15 @@ sealed trait DimTree[+E, VI, VF] extends Map[VF, E] {
 
   def closest(point: VF, within: Float): Option[(VF, E)]
 
+  def closestsqrd(point: VF, withinSqrd: Float): Option[(VF, E)]
+
   def within(point: VF, within: Float): Vector[(VF, E)]
 
   def domain: Domain[VI, VF]
 
   def couldContain(point: VF, within: Float): Boolean
+
+  def couldContainSqrd(point: VF, withinsqrd: Float): Boolean
 
   def height: Int
 }
@@ -81,6 +89,8 @@ private case class Empty[VI, VF](domain: Domain[VI, VF])(implicit dim: TreeDim[V
 
   override def within(point: VF, within: Float): Vector[(VF, Nothing)] = Vector.empty
 
+  override def closestsqrd(point: VF, withinSqrd: Float): Option[(VF, Nothing)] = Option.empty
+
   override def get(key: VF): Option[Nothing] = None
 
   override def iterator: Iterator[(VF, Nothing)] = Iterator.empty
@@ -92,6 +102,9 @@ private case class Empty[VI, VF](domain: Domain[VI, VF])(implicit dim: TreeDim[V
   override def isEmpty = true
 
   override def couldContain(point: VF, within: Float): Boolean = false
+
+
+  override def couldContainSqrd(point: VF, withinsqrd: Float): Boolean = false
 
   override def nonEmpty = false
 
@@ -124,15 +137,26 @@ private case class Leaf[+E, VI, VF](elem: (VF, E), domain: Domain[VI, VF])(impli
     else this
   }
 
+  /*
   override def closest(point: VF, within: Float): Option[(VF, E)] = {
-    if (dim.dist(elem._1, point) <= within) Some(elem)
+    if (dim.distsqrd(elem._1, point) <= (within * within)) Some(elem)
+    else None
+  }
+  */
+
+  override def within(point: VF, within: Float): Vector[(VF, E)] = {
+    if (dim.distsqrd(elem._1, point) <= (within * within)) Vector(elem)
+    else Vector.empty
+  }
+
+
+  override def closestsqrd(point: VF, withinsqrd: Float): Option[(VF, E)] = {
+    if (dim.distsqrd(elem._1, point) <= withinsqrd) Some(elem)
     else None
   }
 
-  override def within(point: VF, within: Float): Vector[(VF, E)] = {
-    if (dim.dist(elem._1, point) <= within) Vector(elem)
-    else Vector.empty
-  }
+
+  override def closest(point: VF, within: Float): Option[(VF, E)] = closestsqrd(point, within * within)
 
   override def get(key: VF): Option[E] = {
     if (key == elem._1) Some(elem._2)
@@ -147,7 +171,10 @@ private case class Leaf[+E, VI, VF](elem: (VF, E), domain: Domain[VI, VF])(impli
 
   override def isEmpty = false
 
-  override def couldContain(point: VF, within: Float): Boolean = dim.dist(point, elem._1) <= within
+  override def couldContain(point: VF, within: Float): Boolean = dim.distsqrd(point, elem._1) <= (within * within)
+
+
+  override def couldContainSqrd(point: VF, withinsqrd: Float): Boolean = dim.distsqrd(point, elem._1) <= withinsqrd
 
   override def nonEmpty = true
 }
@@ -195,24 +222,26 @@ private case class Branch[+E, VI, VF](children: Vector[DimTree[E, VI, VF]], doma
     } else this
   }
 
-  override def closest(point: VF, within: Float): Option[(VF, E)] = {
-    if (domains.head couldContain (point, within)) {
+  override def closestsqrd(point: VF, withinsqrd: Float): Option[(VF, E)] = {
+    if (domains.head couldContainSqrd (point, withinsqrd)) {
       val searchPattern: List[DimTree[E, VI, VF]] = children
-        .filter(_.couldContain(point, within))
-        .sortBy(c => dim.dist(c.domain.center, point))
+        .filter(_.couldContainSqrd(point, withinsqrd))
+        .sortBy(c => dim.distsqrd(c.domain.center, point))
         .toList
 
-      def search(pattern: List[DimTree[E, VI, VF]], within: Float): List[(VF, E)] = pattern match {
-        case curr :: next => curr.closest(point, within) match {
-          case Some(kv) => kv :: search(next, dim.dist(kv._1, point))
-          case None => search(next, within)
+      def search(pattern: List[DimTree[E, VI, VF]], ws: Float): List[(VF, E)] = pattern match {
+        case curr :: next => curr.closestsqrd(point, ws) match {
+          case Some(kv) => kv :: search(next, dim.distsqrd(kv._1, point))
+          case None => search(next, ws)
         }
         case Nil => Nil
       }
 
-      search(searchPattern, within).sortBy(kv => dim.dist(kv._1, point)).headOption
+      search(searchPattern, withinsqrd).sortBy(kv => dim.distsqrd(kv._1, point)).headOption
     } else None
   }
+
+  override def closest(point: VF, within: Float): Option[(VF, E)] = closestsqrd(point, within * within)
 
   override def within(point: VF, within: Float): Vector[(VF, E)] =
     children
@@ -244,6 +273,8 @@ private case class Branch[+E, VI, VF](children: Vector[DimTree[E, VI, VF]], doma
   override def domain = domains.last
 
   override def couldContain(point: VF, within: Float): Boolean = domains.head.couldContain(point, within)
+
+  override def couldContainSqrd(point: VF, withinsqrd: Float): Boolean = domains.head.couldContainSqrd(point, withinsqrd)
 }
 
 /**
@@ -265,6 +296,10 @@ object BiTree extends TreeDim[Int, Float] {
   override def indexof(v: Int) = (v & 0x2) >> 1
   override def signs = Array(-1, 1).sortBy(indexof)
   override def signOf(v: Float) = if (v >= 0) 1 else -1
+  override def distsqrd(a: Float, b: Float): Float =  {
+    val diff = a - b
+    diff * diff
+  }
 
   type BiTree[+E] = DimTree[E, Int, Float]
   def empty[E](center: Float, range: Float): BiTree[E] =
@@ -284,6 +319,7 @@ object QuadTree extends TreeDim[V2I, V2F] {
   override def >(a: V2F, b: V2F) = a > b
   override def <(a: V2F, b: V2F) = a < b
   override def upcast(v: V2I): V2F = v
+  override def distsqrd(a: V2F, b: V2F): Float = (a - b).magnitudeSqrd
 
   override def indexof(v: V2I): Int = {
     ((v.xi & 0x2) >> 1) | (v.yi & 0x2)
@@ -322,6 +358,7 @@ object Octree extends TreeDim[V3I, V3F] {
   override def >(a: V3F, b: V3F) = a > b
   override def <(a: V3F, b: V3F) = a < b
   override def upcast(v: V3I): V3F = v
+  override def distsqrd(a: V3F, b: V3F): Float = (a - b).magnitudeSqrd
 
   override def indexof(v: V3I): Int =
     ((v.xi & 0x2) >> 1) | (v.yi & 0x2) | ((v.zi & 0x2) << 1)
@@ -360,6 +397,7 @@ object HexadecaTree extends TreeDim[V4I, V4F] {
   override def >(a: V4F, b: V4F) = a > b
   override def <(a: V4F, b: V4F) = a < b
   override def upcast(v: V4I): V4F = v
+  override def distsqrd(a: V4F, b: V4F): Float = (a - b).magnitudeSqrd
 
   override def indexof(v: V4I): Int =
     ((v.xi & 0x2) >> 1) | (v.yi & 0x2) | ((v.zi & 0x2) << 1) | ((v.wi & 0x2) << 2)
@@ -399,6 +437,8 @@ object Tree5D extends TreeDim[(Int, Int, Int, Int, Int), (Float, Float, Float, F
     (a._1 / s, a._2 / s, a._3 / s, a._4 / s, a._5 / s)
   override def dist(a: (Float, Float, Float, Float, Float), b: (Float, Float, Float, Float, Float)) =
     Math.sqrt(sub(a, b).productIterator.map(_.asInstanceOf[Float]).map(n => n * n).sum).toFloat
+  override def distsqrd(a: (Float, Float, Float, Float, Float), b: (Float, Float, Float, Float, Float)): Float =
+    sub(a, b).productIterator.map(_.asInstanceOf[Float]).map(n => n * n).sum
   override def >=(a: (Float, Float, Float, Float, Float), b: (Float, Float, Float, Float, Float)) =
     a._1 >= b._1 && a._2 >= b._2 && a._3 >= b._3 && a._4 >= b._4 && a._5 >= b._5
   override def <=(a: (Float, Float, Float, Float, Float), b: (Float, Float, Float, Float, Float)) =
@@ -453,6 +493,8 @@ class NthDimension(dim: Int) extends TreeDim[Seq[Int], Seq[Float]] {
     a.map(_ / s)
   override def dist(a: Seq[Float], b: Seq[Float]) =
     Math.sqrt(sub(a, b).map(n => n * n).sum).toFloat
+  override def distsqrd(a: Seq[Float], b: Seq[Float]): Float =
+    sub(a, b).map(n => n * n).sum
   override def >=(a: Seq[Float], b: Seq[Float]) =
     a.zip(b).forall({ case (aa, bb) => aa >= bb })
   override def <=(a: Seq[Float], b: Seq[Float]) =

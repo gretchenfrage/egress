@@ -54,6 +54,9 @@ case class V2F(x: Float, y: Float) extends Serializable {
   lazy val magnitude: Float =
     Math.sqrt(x * x + y * y).toFloat
 
+  lazy val magnitudeSqrd: Float =
+    x *x + y * y
+
   lazy val normalize: V2F =
     this / magnitude
 
