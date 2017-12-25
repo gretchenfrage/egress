@@ -347,7 +347,6 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
 
     // recursively modifies the world and specialEffects
     @tailrec def applyEvents(eventsIn: Seq[ChunkEvent]): Unit = {
-      println("applying " + eventsIn.size + " events")
       var events = eventsIn
       // partition events by whether they can be integrated immediately
       val (integrateNow: Seq[ChunkEvent], integrateLater: Seq[ChunkEvent]) =

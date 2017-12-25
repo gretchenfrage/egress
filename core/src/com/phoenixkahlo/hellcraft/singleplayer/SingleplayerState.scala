@@ -14,6 +14,7 @@ import com.badlogic.gdx.utils.Pool
 import com.badlogic.gdx._
 import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.core._
+import com.phoenixkahlo.hellcraft.core.client.ClientSessionData.ClientSessionData
 import com.phoenixkahlo.hellcraft.core.client._
 import com.phoenixkahlo.hellcraft.fgraphics.{DefaultRenderer, Renderer, ResourcePack}
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
@@ -22,7 +23,7 @@ import com.phoenixkahlo.hellcraft.menu.MainMenu
 import com.phoenixkahlo.hellcraft.util.audio.AudioUtil
 import com.phoenixkahlo.hellcraft.util.caches.Cache
 import com.phoenixkahlo.hellcraft.util.collections.spatial.SpatialTemporalQueue
-import com.phoenixkahlo.hellcraft.util.collections.{DependencyGraph, ResourceNode, V3ISet}
+import com.phoenixkahlo.hellcraft.util.collections._
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, Promise, UniExecutor}
 import other.AppDirs
 
@@ -42,7 +43,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   @volatile private var chunkDomain = V3ISet.empty
   @volatile private var terrainDomain = V3ISet.empty
   private var clientLogic: ClientLogic = _
-  private var sessionData: Map[String, Any] = Map.empty
+  private var sessionData: ClientSessionData = TypeMatchingMap.empty[ClientSessionData.Field, Identity, Any]
   private val clientLogicQueue = new ConcurrentLinkedQueue[ClientLogic => ((World, ClientLogic.Input) => ClientLogic.Output)]
   private val worldEffectQueue = new ConcurrentLinkedQueue[UpdateEffect]
   private var mainLoopTasks = new java.util.concurrent.ConcurrentLinkedQueue[Runnable]
@@ -180,7 +181,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       override val isCursorCaught: Boolean = Gdx.input.isCursorCatched
       override val currentRes: V2I = V2I(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
       override val nanoTime: Long = System.nanoTime()
-      override val sessionData: Map[String, Any] = SingleplayerState.this.sessionData
+      override val sessionData: ClientSessionData = SingleplayerState.this.sessionData
       override val pack: ResourcePack = SingleplayerState.this.pack
       override val executor: UniExecutor = UniExecutor.getService
       override def keyToChar(keycode: Int): Option[Char] = {

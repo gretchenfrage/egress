@@ -3,6 +3,7 @@ package com.phoenixkahlo.hellcraft.core.client
 import java.util.UUID
 import java.util.concurrent.ThreadLocalRandom
 
+import com.phoenixkahlo.hellcraft.core.client.ClientSessionData.{ChunkDebugMode, ShowTasks}
 import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.core.{PutEntity, World}
 import com.phoenixkahlo.hellcraft.fgraphics._
@@ -86,7 +87,7 @@ object Commands {
     ).toSeq
 
   def showtasks(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
-    Seq(SetSessionProperty("show_tasks", j.asInstanceOf[Boolean]))
+    Seq(SetSessionProperty(ShowTasks, j.asInstanceOf[Boolean]))
 
   def requesttest(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
     Seq(CauseUpdateEffect(RequestTester(j.asInstanceOf[String], RNG.uuids(RNG(ThreadLocalRandom.current.nextLong())))))
@@ -120,7 +121,7 @@ object Commands {
     )
 
   def chunkdebugmode(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
-    Seq(SetSessionProperty("chunk_debug_mode", j.asInstanceOf[String]))
+    Seq(SetSessionProperty(ChunkDebugMode, j.asInstanceOf[String]))
 
   val commands: Map[String, (World, ClientLogic.Input) => (AnyRef => Seq[ClientEffect])] = Map(
     "print" -> print,

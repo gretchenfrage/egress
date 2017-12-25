@@ -3,9 +3,10 @@ package com.phoenixkahlo.hellcraft.core.client
 import com.badlogic.gdx.Input.Buttons
 import com.phoenixkahlo.hellcraft.core.{RenderWorld, UpdateEffect, World}
 import com.phoenixkahlo.hellcraft.core.client.ClientLogic.{Input, Output}
+import com.phoenixkahlo.hellcraft.core.client.ClientSessionData.ClientSessionData
 import com.phoenixkahlo.hellcraft.fgraphics.{GlobalRenderData, Render, ResourcePack, Shader}
 import com.phoenixkahlo.hellcraft.math.{V2F, V2I, V3F, V3I}
-import com.phoenixkahlo.hellcraft.util.collections.V3ISet
+import com.phoenixkahlo.hellcraft.util.collections.{Identity, TypeMatchingMap, V3ISet}
 import com.phoenixkahlo.hellcraft.util.threading.UniExecutor
 
 sealed trait ClientEffect
@@ -14,14 +15,11 @@ object CauseUpdateEffect {
   def apply(effect: UpdateEffect): CauseUpdateEffect = CauseUpdateEffect(Seq(effect))
 }
 case class SetLoadTarget(target: V3ISet, terrains: V3ISet) extends ClientEffect
-//case class SetCamPos(p: V3F) extends ClientEffect
-//case class SetCamDir(p: V3F) extends ClientEffect
-//case class SetCamFOV(fov: Float) extends ClientEffect
 case object CaptureCursor extends ClientEffect
 case object ReleaseCursor extends ClientEffect
 case object Exit extends ClientEffect
 case class ClientPrint(str: String) extends ClientEffect
-case class SetSessionProperty(k: String, v: Any) extends ClientEffect
+case class SetSessionProperty[T](k: ClientSessionData.Field[T], v: T) extends ClientEffect
 
 sealed trait Button
 case object Left extends Button
@@ -39,6 +37,13 @@ object Button {
   }
 }
 
+object ClientSessionData {
+  sealed trait Field[T]
+  case object ChunkDebugMode extends Field[String]
+  case object ShowTasks extends Field[Boolean]
+  type ClientSessionData = TypeMatchingMap[Field, Identity, Any]
+}
+
 object ClientLogic {
   type Output = (ClientLogic, Seq[ClientEffect])
   trait Input {
@@ -48,7 +53,7 @@ object ClientLogic {
     def currentRes: V2I
     def nanoTime: Long
     def keyToChar(keycode: Int): Option[Char]
-    def sessionData: Map[String, Any]
+    def sessionData: ClientSessionData
     def pack: ResourcePack
     def executor: UniExecutor
     def cursorPos: V2I

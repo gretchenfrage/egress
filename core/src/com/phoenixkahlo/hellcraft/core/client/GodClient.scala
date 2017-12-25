@@ -17,6 +17,7 @@ import com.phoenixkahlo.hellcraft.math._
 import com.badlogic.gdx.Input.Keys._
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.{BitmapFont, GlyphLayout, TextureRegion}
+import com.phoenixkahlo.hellcraft.core.client.ClientSessionData.{ChunkDebugMode, ShowTasks}
 import com.phoenixkahlo.hellcraft.core.eval.GEval.GEval
 import com.phoenixkahlo.hellcraft.core.eval.{ExecCheap, GEval}
 import com.phoenixkahlo.hellcraft.fgraphics.hud.{DownLeft, ImgHUDComponent, StrBoxHUDComponent, StrHUDComponent}
@@ -142,7 +143,7 @@ case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3
 
     // do some debug renders
     val chunkOutline = CubeOutline.chunk(V4F(1, 1, 1, 1))
-    input.sessionData.get("chunk_debug_mode").map(_.asInstanceOf[String]).getOrElse("") match {
+    input.sessionData.get(ChunkDebugMode).getOrElse("") match {
       case "chunk" => for (c <- world.debugLoadedChunks) {
         renders += Render[LineShader](chunkOutline, Offset(c * 16))
       }
@@ -151,7 +152,7 @@ case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3
       }
       case _ =>
     }
-    if (input.sessionData.get("show_tasks").exists(_.asInstanceOf[Boolean])) {
+    if (input.sessionData.get(ShowTasks).exists(identity)) {
       val (tasks3D, tasks2D, tasksDB3D) = input.executor.getSpatialTasks
       val task3DRenderable = FreeCube(FreeCubeParams(GrayTID, V4F(1, 1, 1, 1)))
       for (p <- tasks3D) {
@@ -438,6 +439,9 @@ object GodClient {
   val turnSpeed = 0.25f
   val moveSpeed = 1f
   val margin = 1f
+  //val loadDist = "load_dist"
+  //val dayDuration = "day_duration"
+  //val moveSpeed = "move_speed"
   val loadRad = V3I(12, 5, 12)
   val dayDuration = 10 seconds
   val dayTicks = dayDuration.toSeconds * 20
