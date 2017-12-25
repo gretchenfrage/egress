@@ -17,7 +17,7 @@ import com.phoenixkahlo.hellcraft.math._
 import com.badlogic.gdx.Input.Keys._
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.{BitmapFont, GlyphLayout, TextureRegion}
-import com.phoenixkahlo.hellcraft.core.client.ClientSessionData.{ChunkDebugMode, ShowTasks}
+import com.phoenixkahlo.hellcraft.core.client.ClientSessionData._
 import com.phoenixkahlo.hellcraft.core.eval.GEval.GEval
 import com.phoenixkahlo.hellcraft.core.eval.{ExecCheap, GEval}
 import com.phoenixkahlo.hellcraft.fgraphics.hud.{DownLeft, ImgHUDComponent, StrBoxHUDComponent, StrHUDComponent}
@@ -171,7 +171,7 @@ case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3
     // render the sky
     // some cosmic data
     val skyDist: Float = input.camRange._2 - 5
-    val cycle = world.ftime / GodClient.dayTicks % 1
+    val cycle = world.ftime / (input.sessionData(DayCycle).toSeconds * 20) % 1
     val sunDir = V3F(-Trig.cos(cycle * 360), Trig.sin(cycle * 360), 0)
     val sunPos = camPos + (sunDir * skyDist)
     val moonPos = camPos + (sunDir * -1 * skyDist)
@@ -276,9 +276,9 @@ case class GodClientMain(core: ClientCore) extends ClientLogic {
     if (core.pressed(A)) movDir -= (core.camDir cross Up).normalize
 
     val chunkPos = core.camPos / 16 toInts
-    val loadTarget = (chunkPos - GodClient.loadRad) toAsSet (chunkPos + GodClient.loadRad)
+    val loadTarget = (chunkPos - input.sessionData(LoadDist)) toAsSet (chunkPos + input.sessionData(LoadDist))
 
-    GodClientMain(core.copy(camPos = core.camPos + (movDir * GodClient.moveSpeed)).update(world, input)) -> Seq(
+    GodClientMain(core.copy(camPos = core.camPos + (movDir * input.sessionData(Speed))).update(world, input)) -> Seq(
       SetLoadTarget(loadTarget, loadTarget.shroat(4))
     )
   }
@@ -307,10 +307,10 @@ case class GodClientMain(core: ClientCore) extends ClientLogic {
     if (input.isCursorCaught) {
       var camDir = core.camDir
 
-      val dx = -delta.x * GodClient.turnSpeed
+      val dx = -delta.x * input.sessionData(Sensitivity)
       camDir = camDir.rotate(Up, dx)
 
-      var dy = -delta.y * GodClient.turnSpeed
+      var dy = -delta.y * input.sessionData(Sensitivity)
       val awd = core.camDir angleWith Down
       val awu = core.camDir angleWith Up
       if (awd + dy < GodClient.margin)
@@ -339,7 +339,7 @@ case class GodClientMenu(core: ClientCore, buttons: Seq[MenuButton], pressing: O
 
   override def tick(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = {
     val chunkPos = core.camPos / 16 toInts
-    val loadTarget = (chunkPos - GodClient.loadRad) toAsSet (chunkPos + GodClient.loadRad)
+    val loadTarget = (chunkPos - input.sessionData(LoadDist)) toAsSet (chunkPos + input.sessionData(LoadDist))
     cause(SetLoadTarget(loadTarget, loadTarget.shroat(4)))
   }
 
@@ -436,13 +436,13 @@ case class GodClientChat(core: ClientCore, cursor: Boolean = true, buffer: Strin
 }
 
 object GodClient {
-  val turnSpeed = 0.25f
-  val moveSpeed = 1f
+  //val turnSpeed = 0.25f
+  //val moveSpeed = 1f
   val margin = 1f
   //val loadDist = "load_dist"
   //val dayDuration = "day_duration"
   //val moveSpeed = "move_speed"
-  val loadRad = V3I(12, 5, 12)
-  val dayDuration = 10 seconds
-  val dayTicks = dayDuration.toSeconds * 20
+  //val loadRad = V3I(12, 5, 12)
+  //val dayDuration = 10 seconds
+  //val dayTicks = dayDuration.toSeconds * 20
 }

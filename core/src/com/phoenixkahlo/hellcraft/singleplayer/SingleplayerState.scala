@@ -37,13 +37,12 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var clock: GametimeClock = _
   private var infinitum: Infinitum = _
   private var pack: ResourcePack = _
-  //private var renderer: Renderer = _
   private var renderer: Renderer = _
   private var processor: InputProcessor = _
   @volatile private var chunkDomain = V3ISet.empty
   @volatile private var terrainDomain = V3ISet.empty
   private var clientLogic: ClientLogic = _
-  private var sessionData: ClientSessionData = TypeMatchingMap.empty[ClientSessionData.Field, Identity, Any]
+  private var sessionData: ClientSessionData = ClientSessionData.empty
   private val clientLogicQueue = new ConcurrentLinkedQueue[ClientLogic => ((World, ClientLogic.Input) => ClientLogic.Output)]
   private val worldEffectQueue = new ConcurrentLinkedQueue[UpdateEffect]
   private var mainLoopTasks = new java.util.concurrent.ConcurrentLinkedQueue[Runnable]

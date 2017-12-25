@@ -86,8 +86,8 @@ object Commands {
       }
     ).toSeq
 
-  def showtasks(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
-    Seq(SetSessionProperty(ShowTasks, j.asInstanceOf[Boolean]))
+  //def showtasks(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
+  //  Seq(SetSessionProperty(ShowTasks, j.asInstanceOf[Boolean]))
 
   def requesttest(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
     Seq(CauseUpdateEffect(RequestTester(j.asInstanceOf[String], RNG.uuids(RNG(ThreadLocalRandom.current.nextLong())))))
@@ -120,8 +120,8 @@ object Commands {
       ClientPrint("")
     )
 
-  def chunkdebugmode(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
-    Seq(SetSessionProperty(ChunkDebugMode, j.asInstanceOf[String]))
+  //def chunkdebugmode(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
+  //  Seq(SetSessionProperty(ChunkDebugMode, j.asInstanceOf[String]))
 
   val commands: Map[String, (World, ClientLogic.Input) => (AnyRef => Seq[ClientEffect])] = Map(
     "print" -> print,

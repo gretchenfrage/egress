@@ -6,8 +6,11 @@ import com.phoenixkahlo.hellcraft.core.client.ClientLogic.{Input, Output}
 import com.phoenixkahlo.hellcraft.core.client.ClientSessionData.ClientSessionData
 import com.phoenixkahlo.hellcraft.fgraphics.{GlobalRenderData, Render, ResourcePack, Shader}
 import com.phoenixkahlo.hellcraft.math.{V2F, V2I, V3F, V3I}
+import com.phoenixkahlo.hellcraft.util.collections.TypeMatchingMap.Default
 import com.phoenixkahlo.hellcraft.util.collections.{Identity, TypeMatchingMap, V3ISet}
 import com.phoenixkahlo.hellcraft.util.threading.UniExecutor
+
+import scala.concurrent.duration._
 
 sealed trait ClientEffect
 case class CauseUpdateEffect(effects: Seq[UpdateEffect]) extends ClientEffect
@@ -38,10 +41,17 @@ object Button {
 }
 
 object ClientSessionData {
-  sealed trait Field[T]
-  case object ChunkDebugMode extends Field[String]
-  case object ShowTasks extends Field[Boolean]
+  sealed class Field[T](val default: Option[T])
+  case object ChunkDebugMode extends Field[String](Some(""))
+  case object ShowTasks extends Field[Boolean](Some(false))
+  case object Sensitivity extends Field[Float](Some(0.25f))
+  case object Speed extends Field[Float](Some(1))
+  case object LoadDist extends Field[V3I](Some(V3I(12, 5, 12)))
+  case object DayCycle extends Field[Duration](Some(10 seconds))
   type ClientSessionData = TypeMatchingMap[Field, Identity, Any]
+  val empty: ClientSessionData = TypeMatchingMap.empty[Field, Identity, Any].withDefault(new Default[Field, Identity, Any] {
+    override def apply[T <: Any](k: Field[T]): Option[T] = k.default
+  })
 }
 
 object ClientLogic {

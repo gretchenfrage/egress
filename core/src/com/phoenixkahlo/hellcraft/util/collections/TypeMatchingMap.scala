@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.util.collections
 
 import java.util.UUID
 
-import com.phoenixkahlo.hellcraft.util.collections.TypeMatchingMap.Identified
+import com.phoenixkahlo.hellcraft.util.collections.TypeMatchingMap.{Default, Identified}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -10,22 +10,28 @@ import scala.collection.mutable.ArrayBuffer
   * A map where the keys and values accept a type parameter, with a bound, and key-value pairs in the map have the same
   * type parameter.
   */
-class TypeMatchingMap[K[_ <: B], V[_ <: B], B](private val contents: Map[Any, Any]) {
+class TypeMatchingMap[K[_ <: B], V[_ <: B], B](private val contents: Map[Any, Any], default: Default[K, V, B]) {
   def +[T <: B](kv: (K[T], V[T])): TypeMatchingMap[K, V, B] =
-    new TypeMatchingMap[K, V, B](contents + kv)
+    new TypeMatchingMap[K, V, B](contents + kv, default)
 
   def -(k: K[_]): TypeMatchingMap[K, V, B] =
-    new TypeMatchingMap[K, V, B](contents - k)
+    new TypeMatchingMap[K, V, B](contents - k, default)
 
   def apply[T <: B](k: K[T]): V[T] =
-    contents(k).asInstanceOf[V[T]]
+    get(k).get
 
   def get[T <: B](k: K[T]): Option[V[T]] =
-    contents.get(k).map(_.asInstanceOf[V[T]])
+    contents.get(k).map(_.asInstanceOf[V[T]]) match {
+      case some@Some(v) => some
+      case None => default(k)
+    }
+
+  def withDefault(d: Default[K, V, B]): TypeMatchingMap[K, V, B] =
+    new TypeMatchingMap[K, V, B](contents, d)
 
   type Pair[T <: B] = (K[T], V[T])
   def toSeq: Seq[Pair[_]] =
-    contents.toSeq.map(_.asInstanceOf[Pair[_]])
+    contents.keySet.toSeq.flatMap(k => get(k.asInstanceOf[K[B]]).map(v => (k, v).asInstanceOf[Pair[_]]))
 
   override def toString: String = contents.toString
 
@@ -38,10 +44,17 @@ class TypeMatchingMap[K[_ <: B], V[_ <: B], B](private val contents: Map[Any, An
 }
 
 object TypeMatchingMap {
+  trait Default[K[_ <: B], V[_ <: B], B] {
+    def apply[T <: B](k: K[T]): Option[V[T]]
+  }
+  object NoDefault extends Default[Identity, Identity, Any] {
+    override def apply[T <: Any](k: T): Option[T] = None
+  }
+
   type Identified[K[_ <: B], B] = TypeMatchingMap[K, Identity, B]
   type Identifying[V[_ <: B], B] = TypeMatchingMap[Identity, V, B]
 
-  private val _empty = new TypeMatchingMap[Identity, Identity, Any](Map.empty)
+  private val _empty = new TypeMatchingMap[Identity, Identity, Any](Map.empty, NoDefault)
   def empty[K[_ <: B], V[_ <: B], B]: TypeMatchingMap[K, V, B] = _empty.asInstanceOf[TypeMatchingMap[K, V, B]]
 }
 
