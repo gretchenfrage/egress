@@ -272,15 +272,17 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     val p = Profiler("main update")
 
     // downgrade chunks that left the chunk domain
-    val toDowngrade = (world.chunkDomain -- chunkDomain).toSeq.flatMap(world.chunks.get).flatMap(_.left.toOption)
-    save.push(toDowngrade)
-    world = world.downgrade(toDowngrade.map(_.pos))
-    chunkFulfill.remove(toDowngrade.map(_.pos))
+    val toDowngrade: Seq[V3I] = (world.chunkDomain -- chunkDomain).toSeq
+    save.push(toDowngrade.flatMap(world.chunks.get).flatMap(_.left.toOption))
+    world = world.downgrade(toDowngrade)
+    chunkFulfill.remove(toDowngrade)
+    chunkLoadMap --= toDowngrade
 
     // remove terrain that left the terrain domain
-    val toRemove = world.terrainDomain -- terrainDomain filter (world.chunks contains)
-    world --= toRemove.toSeq
+    val toRemove: Seq[V3I] = (world.terrainDomain -- terrainDomain).toSeq
+    world --= toRemove
     terrainFulfill.remove(toRemove)
+    terrainLoadMap --= toRemove
 
     p.log()
 

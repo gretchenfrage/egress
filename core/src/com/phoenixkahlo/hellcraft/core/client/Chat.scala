@@ -8,9 +8,11 @@ import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.core.{PutEntity, World}
 import com.phoenixkahlo.hellcraft.fgraphics._
 import com.phoenixkahlo.hellcraft.math._
+import com.phoenixkahlo.hellcraft.util.collections.TypeMatchingMap
 import org.json.simple.{JSONObject, JSONValue}
 
 import scala.collection.JavaConverters
+import scala.concurrent.duration.Duration
 
 object Commands {
 
@@ -35,6 +37,28 @@ object Commands {
     "snap" -> SnapSID
   )
 
+  def parseVec(json: Any): V3F = {
+    val floats = JavaConverters.asScalaBuffer(json.asInstanceOf[java.util.List[_]]).map(_.asInstanceOf[Number].floatValue)
+    V3F(floats(0), floats(1), floats(2))
+  }
+
+  def parseDuration(json: Any): Duration = {
+    import scala.concurrent.duration._
+
+    val str = json.asInstanceOf[String]
+    val n = java.lang.Double.parseDouble(str.split("\\s+")(0))
+    val u = str.split("\\s+")(1)
+    u match {
+      case "seconds" => n seconds
+      case "minutes" => n minutes
+      case "hours" => n hours
+      case "days" => n days
+      case "ms" => n milliseconds
+      case "us" => n microseconds
+      case "ns" => n nanoseconds
+    }
+  }
+
   val spawnable: Map[String, (V3F, JSONObject) => Entity] = Map(
     "sound" -> ((v, j) => SoundCube(
       sounds(j.get("sound").asInstanceOf[String]),
@@ -51,21 +75,52 @@ object Commands {
     "ghost" -> ((v, j) => GhostCube(v, UUID.randomUUID())),
     "walker" -> ((v, j) => {
       val walk = Option(j.get("walk"))
+        .map(parseVec)
+        /*
         .map(_.asInstanceOf[java.util.List[_]])
         .map(JavaConverters.asScalaBuffer(_))
         .map(_.map(_.asInstanceOf[Number].floatValue))
         .map(floats => V3F(floats(0), floats(1), floats(2)))
+        */
         .getOrElse(Origin)
       val vel = Option(j.get("vel"))
+        .map(parseVec)
+        /*
         .map(_.asInstanceOf[java.util.List[_]])
         .map(JavaConverters.asScalaBuffer(_))
         .map(_.map(_.asInstanceOf[Number].floatValue))
         .map(floats => V3F(floats(0), floats(1), floats(2)))
+        */
         .getOrElse(Origin)
 
       PhysCube(vel, v + (Up * 10), UUID.randomUUID(), walk)
     })
   )
+
+  /*
+  type SetterParser[T] = JSONObject => T
+  val settable = TypeMatchingMap[ClientSessionData.Field, SetterParser, Any](
+    "ch
+  )
+  */
+  case class Setter[T](field: ClientSessionData.Field[T], parser: AnyRef => T)
+  val setters: Map[String, Setter[_]] = Map(
+    "chunk_debug_mode" -> Setter(ClientSessionData.ChunkDebugMode, _.asInstanceOf[String]),
+    "show_tasks" -> Setter(ClientSessionData.ShowTasks, _.asInstanceOf[Boolean]),
+    "sensitivity" -> Setter(ClientSessionData.Sensitivity, _.asInstanceOf[Number].floatValue),
+    "speed" -> Setter(ClientSessionData.Speed, _.asInstanceOf[Number].floatValue),
+    "load_dist" -> Setter(ClientSessionData.LoadDist, parseVec(_).toInts),
+    "day_cycle" -> Setter(ClientSessionData.DayCycle, parseDuration)
+  )
+
+  def setEffect[T](j: AnyRef)(setter: Setter[T]): ClientEffect =
+    SetSessionProperty(setter.field, setter.parser(j))
+
+  def set(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
+    setters
+      .get(j.asInstanceOf[java.util.List[_]].get(0).asInstanceOf[String])
+      .map(setEffect(j.asInstanceOf[java.util.List[_]].get(1).asInstanceOf[AnyRef])(_))
+      .toSeq
 
   def print(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
     Seq(ClientPrint(j.asInstanceOf[String]))
@@ -127,11 +182,12 @@ object Commands {
     "print" -> print,
     "stevie" -> stevie,
     "spawn" -> spawn,
-    "showtasks" -> showtasks,
+    //"showtasks" -> showtasks,
     "requesttest" -> requesttest,
     "queuestats" -> queuestats,
     "requestchunktest" -> requestchunktest,
-    "chunkdebugmode" -> chunkdebugmode
+    //"chunkdebugmode" -> chunkdebugmode
+    "set" -> set
   )
 
   def apply(command: String, world: World, input: ClientLogic.Input): Seq[ClientEffect] = {

@@ -29,9 +29,9 @@ class TypeMatchingMap[K[_ <: B], V[_ <: B], B](private val contents: Map[Any, An
   def withDefault(d: Default[K, V, B]): TypeMatchingMap[K, V, B] =
     new TypeMatchingMap[K, V, B](contents, d)
 
-  type Pair[T <: B] = (K[T], V[T])
-  def toSeq: Seq[Pair[_]] =
-    contents.keySet.toSeq.flatMap(k => get(k.asInstanceOf[K[B]]).map(v => (k, v).asInstanceOf[Pair[_]]))
+  type ThisPair[T <: B] = TypeMatchingMap.Pair[K, V, B, T]
+  def toSeq: Seq[ThisPair[_]] =
+    contents.keySet.toSeq.flatMap(k => get(k.asInstanceOf[K[B]]).map(v => (k, v).asInstanceOf[ThisPair[_]]))
 
   override def toString: String = contents.toString
 
@@ -56,6 +56,10 @@ object TypeMatchingMap {
 
   private val _empty = new TypeMatchingMap[Identity, Identity, Any](Map.empty, NoDefault)
   def empty[K[_ <: B], V[_ <: B], B]: TypeMatchingMap[K, V, B] = _empty.asInstanceOf[TypeMatchingMap[K, V, B]]
+
+  type Pair[K[_ <: B], V[_ <: B], B, T <: B] = (K[T], V[T])
+  def apply[K[_ <: B], V[_ <: B], B](seq: Pair[K, V, B, _ <: B]*): TypeMatchingMap[K, V, B] =
+    seq.foldLeft(empty[K, V, B])(_ + _)
 }
 
 object TypeMatchingMapTest extends App {
@@ -66,7 +70,9 @@ object TypeMatchingMapTest extends App {
   case class DoubleBox(n: Double) extends NumBox
   case class IntBox(n: Int) extends NumBox
 
+  /*
   var map: Identified[BoxID, NumBox] = TypeMatchingMap.empty[BoxID, Identity, NumBox]
+
 
   val id5f: BoxID[FloatBox] = UUID.randomUUID()
   map = map + (id5f -> FloatBox(5f))
@@ -76,6 +82,16 @@ object TypeMatchingMapTest extends App {
 
   val id7i: BoxID[IntBox] = UUID.randomUUID()
   map = map + (id7i -> IntBox(7))
+  */
+  val id5f: BoxID[FloatBox] = UUID.randomUUID()
+  val id6d: BoxID[DoubleBox] = UUID.randomUUID()
+  val id7i: BoxID[IntBox] = UUID.randomUUID()
+
+  val map = TypeMatchingMap[BoxID, Identity, NumBox](
+    id5f -> FloatBox(5f),
+    id6d -> DoubleBox(6d),
+    id7i -> IntBox(7)
+  )
 
   val f5: FloatBox = map(id5f)
   val d6: DoubleBox = map(id6d)
