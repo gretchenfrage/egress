@@ -12,7 +12,9 @@ import com.phoenixkahlo.hellcraft.util.LeftOption
 import com.phoenixkahlo.hellcraft.util.collections.{MergeBinned, V3ISet}
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 import com.phoenixkahlo.hellcraft.util.threading._
+import com.phoenixkahlo.hellcraft.util.time.Timer
 
+import scala.concurrent.duration._
 import scala.annotation.tailrec
 import scala.collection.{SortedMap, mutable}
 
@@ -314,7 +316,10 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     p.log()
 
     // pull loaded chunks from the queue and add them to the world if they're valid, also accumulate pending events
-    while (chunkLoadQueue.size > 0) {
+    val pullLimit = 15 milliseconds
+
+    val cLoadTimer = Timer.start
+    while (cLoadTimer.elapsed < pullLimit && chunkLoadQueue.size > 0) {
       val (chunk, loadID) = chunkLoadQueue.remove()
       if (chunkLoadMap.get(chunk.pos).contains(loadID)) {
         chunkLoadMap -= chunk.pos
@@ -327,7 +332,9 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
         }
       }
     }
-    while (terrainLoadQueue.size > 0) {
+
+    val tLoadTimer = Timer.start
+    while (tLoadTimer.elapsed < pullLimit && terrainLoadQueue.size > 0) {
       val (terrain, loadID) = terrainLoadQueue.remove()
       if (!world.chunks.contains(terrain.pos) && terrainLoadMap.get(terrain.pos).contains(loadID)) {
         terrainLoadMap -= terrain.pos
