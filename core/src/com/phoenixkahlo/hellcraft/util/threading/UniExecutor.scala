@@ -61,7 +61,7 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
           }
         }
       } catch {
-        case e: InterruptedException => println("uniexecutor thread shutting down")
+        case e: InterruptedException => //println("uniexecutor thread shutting down")
       }
     }
   }

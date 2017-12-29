@@ -42,6 +42,8 @@ class SpatialTemporalQueue2D[E](timeToSpace: Long => Float, sca: V2F) extends Sp
 object SpatialTemporalQueue {
   val secondEqualsMeter: Long => Float = _ / 1000000000f
 
+  val timeDoesntMatter: Long => Float = l => 0
+
   def equate(time: Duration, meters: Float): Long => Float =
     nanotime => (nanotime nanoseconds) / time * meters toFloat
 }

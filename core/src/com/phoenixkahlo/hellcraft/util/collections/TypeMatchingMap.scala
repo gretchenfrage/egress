@@ -17,11 +17,23 @@ class TypeMatchingMap[K[_ <: B], V[_ <: B], B](private val contents: Map[Any, An
   def -(k: K[_]): TypeMatchingMap[K, V, B] =
     new TypeMatchingMap[K, V, B](contents - k, default)
 
+  def ++(kvs: Seq[(K[_ <: B], V[_ <: B])]): TypeMatchingMap[K, V, B] =
+    new TypeMatchingMap[K, V, B](contents ++ kvs, default)
+
+  def --(ks: Seq[K[_ <: B]]): TypeMatchingMap[K, V, B] =
+    new TypeMatchingMap[K, V, B](contents -- ks, default)
+
   def apply[T <: B](k: K[T]): V[T] =
     get(k).get
 
   def get[T <: B](k: K[T]): Option[V[T]] =
     contents.get(k).map(_.asInstanceOf[V[T]]) match {
+      case some@Some(v) => some
+      case None => default(k)
+    }
+
+  def unsafeget(k: K[_ <: B]): Option[V[_]] =
+    contents.get(k).map(_.asInstanceOf[V[_]]) match {
       case some@Some(v) => some
       case None => default(k)
     }
