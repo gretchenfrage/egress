@@ -4,15 +4,15 @@ import java.util.UUID
 import java.util.concurrent.ThreadFactory
 import java.util.function.Consumer
 
-import com.phoenixkahlo.hellcraft.core.eval.StateGraph._
+import com.phoenixkahlo.hellcraft.core.eval.Eval._
 import com.phoenixkahlo.hellcraft.util.collections.spatial.SpatialTemporalQueue
 import com.phoenixkahlo.hellcraft.util.collections.{Identity, IdentityKey, IdentityMap, TypeMatchingMap}
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, Never, UniExecutor}
 
 import scala.collection.mutable.ArrayBuffer
 
-class AsyncStateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
-  private type Node[T] = StateGraph.Node[T, C]
+class AsyncEval[T, C <: Eval.Context](root: Eval[T, C]) {
+  private type Node[T] = Eval[T, C]
   private type InputMap = TypeMatchingMap[C#InKey, Identity, Any]
   private type NID = IdentityKey[Node[Any]]
   private def iden(node: Node[_]): NID = IdentityKey(node)
@@ -26,7 +26,7 @@ class AsyncStateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
 
   private def reify[T](node: Node[T])(implicit inputs: InputMap, pack: C#EvalAsync): Fut[T] = synchronized {
     node match {
-      case ncreate@NCreate(fac, hint) =>
+      case ncreate@ECreate(fac, hint) =>
         // create will always be known and will be triggered by nothing
         // so it's like a memo func but with simpler locking mechanism
         known.get(IdentityKey(ncreate)) match {
@@ -36,7 +36,7 @@ class AsyncStateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
             known += (IdentityKey(ncreate) -> fut)
             fut
         }
-      case ninput@NInput(key: C#InKey[T]) =>
+      case ninput@EInput(key: C#InKey[T]) =>
         // input will also always be known and will be triggered by input changes
         known.get(IdentityKey(ninput)) match {
           case Some(fut) => fut.asInstanceOf[Fut[T]]
@@ -46,13 +46,13 @@ class AsyncStateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
             itriggers += (key -> (itriggers.getOrElse(key, Seq.empty) :+ iden(ninput)))
             fut
         }
-      case nmap: NMap[_, T, C] =>
+      case nmap: EMap[_, T, C] =>
         // map will always be known and will be triggered by its source
         known.get(IdentityKey(nmap)) match {
           case Some(fut) => fut.asInstanceOf[Fut[T]]
           case None =>
             // some helping the type system
-            def f[S](nmap: NMap[S, T, C]): Fut[T] = {
+            def f[S](nmap: EMap[S, T, C]): Fut[T] = {
               val fut = reify(nmap.src).map(nmap.func, nmap.hint.exec(_)(pack.service))
               known += (IdentityKey(nmap) -> fut)
               triggers += (IdentityKey(nmap.src) -> (triggers.getOrElse(IdentityKey(nmap.src), Seq.empty) :+ iden(nmap)))
@@ -60,7 +60,7 @@ class AsyncStateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
             }
             f(nmap)
         }
-      case nfmap: NFMap[_, T, C] =>
+      case nfmap: EFMap[_, T, C] =>
         // flat map will not be immediately known and will be triggered by its source and by the function result
         known.get(IdentityKey(nfmap)) match {
             // first, look in the known section
@@ -72,14 +72,14 @@ class AsyncStateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
                 // then create
               case None =>
                 // we help the type system
-                def f[S](nfmap: NFMap[S, T, C]): Fut[T] = {
+                def f[S](nfmap: EFMap[S, T, C]): Fut[T] = {
                   val fut0: Fut[Node[T]] = reify(nfmap.src).map(nfmap.func)
                   val fut1: Fut[T] = fut0.flatMap(reify(_))
                   unknown += (IdentityKey(nfmap) -> fut1)
                   // on initial mapping completion, transfer to known section, if ID is unchanged
                   val beforeID = applyID
-                  fut0.onComplete(() => AsyncStateGraph.this.synchronized {
-                    if (AsyncStateGraph.this.applyID == beforeID) {
+                  fut0.onComplete(() => AsyncEval.this.synchronized {
+                    if (AsyncEval.this.applyID == beforeID) {
                       val n: Node[T] = fut0.query.get
                       unknown -= IdentityKey(nfmap)
                       known += (IdentityKey(nfmap) -> fut1)
@@ -92,7 +92,7 @@ class AsyncStateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
                 f(nfmap)
             }
         }
-      case nfilter@NFilter(src, test, hint) =>
+      case nfilter@EFilter(src, test, hint) =>
         // filter will always be known and will be triggered by its source
         known.get(iden(nfilter)) match {
           case Some(fut) => fut.asInstanceOf[Fut[T]]
@@ -102,7 +102,7 @@ class AsyncStateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
             triggers += (iden(src) -> (triggers.getOrElse(iden(src), Seq.empty) :+ iden(nfilter)))
             fut
         }
-      case nextern@NExtern(sync, async, trigs) =>
+      case nextern@EExtern(sync, async, trigs) =>
         known.get(iden(nextern)) match {
           case Some(fut) => fut.asInstanceOf[Fut[T]]
           case None =>
@@ -162,8 +162,8 @@ class AsyncStateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
     query(in, unitIsPack(()))
 }
 
-class SyncStateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
-  private type Node[T] = StateGraph.Node[T, C]
+class SyncEval[T, C <: Eval.Context](root: Eval[T, C]) {
+  private type Node[T] = Eval[T, C]
   private type InputMap = TypeMatchingMap[C#InKey, Identity, Any]
   private type NID = IdentityKey[Node[Any]]
   private implicit def iden(node: Node[_]): NID = IdentityKey(node)
@@ -175,7 +175,7 @@ class SyncStateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
 
   private def reify[T](node: Node[T])(implicit inputs: InputMap, pack: C#EvalSync): Option[T] =
     node match {
-      case ncreate@NCreate(fac, hint) =>
+      case ncreate@ECreate(fac, hint) =>
         known.get(ncreate) match {
           case Some(opt) => opt.asInstanceOf[Option[T]]
           case None =>
@@ -183,7 +183,7 @@ class SyncStateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
             known += (iden(ncreate) -> opt)
             opt
         }
-      case ninput@NInput(key: C#InKey[T]) =>
+      case ninput@EInput(key: C#InKey[T]) =>
         known.get(ninput) match {
           case Some(opt) => opt.asInstanceOf[Option[T]]
           case None =>
@@ -192,11 +192,11 @@ class SyncStateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
             itriggers += (key -> (itriggers.getOrElse(key, Seq.empty) :+ iden(ninput)))
             opt
         }
-      case nmap: NMap[_, T, C] =>
+      case nmap: EMap[_, T, C] =>
         known.get(nmap) match {
           case Some(opt) => opt.asInstanceOf[Option[T]]
           case None =>
-            def f[S](nmap: NMap[S, T, C]): Option[T] = {
+            def f[S](nmap: EMap[S, T, C]): Option[T] = {
               val opt = reify(nmap.src).map(nmap.func)
               known += (iden(nmap) -> opt)
               triggers += (iden(nmap.src) -> (triggers.getOrElse(nmap.src, Seq.empty) :+ iden(nmap)))
@@ -204,11 +204,11 @@ class SyncStateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
             }
             f(nmap)
         }
-      case nfmap: NFMap[_, T, C] =>
+      case nfmap: EFMap[_, T, C] =>
         known.get(nfmap) match {
           case Some(opt) => opt.asInstanceOf[Option[T]]
           case None =>
-            def f[S](nfmap: NFMap[S, T, C]): Option[T] = {
+            def f[S](nfmap: EFMap[S, T, C]): Option[T] = {
               val opt0: Option[Node[T]] = reify(nfmap.src).map(nfmap.func)
               val opt1: Option[T] = opt0.flatMap(n => reify(n))
               known += (iden(nfmap) -> opt1)
@@ -220,7 +220,7 @@ class SyncStateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
             }
             f(nfmap)
         }
-      case nfilter@NFilter(src, test, hint) =>
+      case nfilter@EFilter(src, test, hint) =>
         known.get(nfilter) match {
           case Some(opt) => opt.asInstanceOf[Option[T]]
           case None =>
@@ -229,7 +229,7 @@ class SyncStateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
             triggers += (iden(src) -> (triggers.getOrElse(src, Seq.empty) :+ iden(nfilter)))
             opt
         }
-      case nextern@NExtern(sync, async, trigs) =>
+      case nextern@EExtern(sync, async, trigs) =>
         known.get(iden(nextern)) match {
           case Some(opt) => opt.asInstanceOf[Option[T]]
           case None =>
@@ -264,7 +264,7 @@ class SyncStateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
 
         roots.foldLeft(roots.to[Set])({ case (a, n) => a ++ traverse(n, a) })
       }
-      
+
       // clear the triggered nodes
       known --= triggered
     }
@@ -277,8 +277,8 @@ class SyncStateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
   def query(in: TypeMatchingMap[C#InKey, Identity, Any])(implicit unitIsPack: Unit => C#EvalSync): Option[T] =
     query(in, unitIsPack(()))
 }
-
-object StateGraphTest extends App {
+/*
+object EvalTest extends App {
   import scala.concurrent.duration._
   UniExecutor.activate(
     1,
@@ -295,9 +295,9 @@ object StateGraphTest extends App {
 
 
 
-  trait TestContext extends StateGraph.Context {
+  trait TestContext extends Eval.Context {
     override type InKey[+T] = IK[T]
-    override type EvalAsync = StateGraph.UniExecProvider
+    override type EvalAsync = Eval.UniExecProvider
     override type EvalSync = Unit
   }
 
@@ -313,7 +313,7 @@ object StateGraphTest extends App {
     n <- i3
   } yield str1 + Stream.iterate("-")(identity).take(n).fold("")(_ + _) + str2
 
-  val graph = new SyncStateGraph(r)
+  val graph = new SyncEval(r)
 
   var in = TypeMatchingMap[IK, Identity, Any](
     K1 -> "hello",
@@ -345,9 +345,9 @@ object StateGraphTest extends App {
   println(graph.query(in))
 
   /*
-  val graph = new AsyncStateGraph(r)
+  val graph = new AsyncEval(r)
 
-  val provider = new StateGraph.UniExecProvider {
+  val provider = new Eval.UniExecProvider {
     override def service: UniExecutor = UniExecutor.getService
   }
 
@@ -386,7 +386,9 @@ object StateGraphTest extends App {
 
   UniExecutor.deactivate()
 }
-object StateGraph {
+*/
+/*
+object Eval {
   trait UniExecProvider {
     def service: UniExecutor
   }
@@ -396,7 +398,7 @@ object StateGraph {
     type EvalSync
   }
 
-  sealed trait Node[+T, C <: Context] {
+  sealed trait Node[+T, C <: Context] extends Serializable {
     def map[N](func: T => N)(implicit hint: ExecHint): Node[N, C] = NMap(this, func, hint)
     def flatMap[N](func: T => Node[N, C])(implicit hint: ExecHint): Node[N, C] = NFMap(this, func, hint)
     def filter(test: T => Boolean)(implicit hint: ExecHint): Node[T, C] = NFilter(this, test, hint)
@@ -409,3 +411,4 @@ object StateGraph {
   case class NFilter[T, C <: Context](src: Node[T, C], test: T => Boolean, hint: ExecHint) extends Node[T, C]
   case class NExtern[T, C <: Context](sync: C#EvalSync => Option[T], async: C#EvalAsync => Fut[T], triggers: Seq[C#InKey[Any]]) extends Node[T, C]
 }
+*/

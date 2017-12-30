@@ -121,8 +121,8 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     // find what we can render immediately
     val screenRes = V2I(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     val camRange = CamRange(cam.near, cam.far)
-    val toFutPack = GEval.ToFutPack(UniExecutor.getService, pack, execOpenGL, screenRes, camRange)
-    val evalNowPack = GEval.EvalNowPack(pack, screenRes, camRange)
+    val toFutPack = GEval.EvalAsync(UniExecutor.getService, pack, execOpenGL, screenRes, camRange)
+    val evalNowPack = GEval.EvalSync(pack, screenRes, camRange)
 
     def extract[S <: Shader](render: Render[S], strong: Boolean = true): Option[RenderNow[S]] = {
       val eval: GEval[RenderableNow[S]] = prepare(render.renderable)

@@ -340,6 +340,10 @@ class FulfillmentContext[K, V] {
     finally lock.readLock.unlock()
   }
 
+  def fut(k: K): Fut[V] = {
+    FulfillFut(k)(this)
+  }
+
   def put(kvs: Seq[(K, V)]): Unit = {
     for ((k, v) <- kvs) put(k, v)
   }
