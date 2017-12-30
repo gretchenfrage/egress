@@ -1,6 +1,7 @@
 package com.phoenixkahlo.hellcraft.core.eval
 
-import java.nio.file.Path
+import java.io.{FileInputStream, IOException}
+import java.nio.file.{Files, Path}
 
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Pixmap.Format
@@ -43,6 +44,7 @@ object Eval {
   case class EFMap[S, T, C <: Context](src: Eval[S, C], func: S => Eval[T, C], hint: ExecHint) extends Eval[T, C]
   case class EFilter[T, C <: Context](src: Eval[T, C], test: T => Boolean, hint: ExecHint) extends Eval[T, C]
   case class EExtern[T, C <: Context](sync: C#EvalSync => Option[T], async: C#EvalAsync => Fut[T], triggers: Seq[C#InKey[Any]]) extends Eval[T, C]
+  case class ESpecialMap[S, T, C <: Context](src: Eval[S, C], func: S => T, exec: C#EvalAsync => (Runnable => Unit)) extends Eval[T, C]
 }
 
 object WEval {
@@ -115,6 +117,20 @@ object GEval {
     pack => Fut[Texture](genDot(col), pack.glExec),
     Seq.empty
   ))
+
+  def glMap[S, R](src: GEval[S], func: S => R): GEval[R] =
+    ESpecialMap(src, func, _.glExec)
+
+  def readFile(path: Path): GEval[Either[Array[Byte], Throwable]] = EExtern[Either[Array[Byte], Throwable], Context](
+    unit => {
+      try Some(Left(Files.readAllBytes(path)))
+      catch {
+        case e: IOException => Some(Right(e))
+      }
+    },
+    pack => new FileReadFut(path),
+    Seq.empty
+  )
 }
 
 /*

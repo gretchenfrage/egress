@@ -112,6 +112,19 @@ class AsyncEval[T, C <: Eval.Context](root: Eval[T, C]) {
               itriggers += (t -> (itriggers.getOrElse(t, Seq.empty) :+ iden(nextern)))
             fut
         }
+      case nsmap: ESpecialMap[_, T, C] =>
+        // special map will always be known and will be triggered by its source
+        known.get(iden(nsmap)) match {
+          case Some(fut) => fut.asInstanceOf[Fut[T]]
+          case None =>
+            def f[S](nsmap: ESpecialMap[S, T, C]): Fut[T] = {
+              val fut = reify(nsmap.src).map(nsmap.func, nsmap.exec(pack))
+              known += (iden(nsmap) -> fut)
+              triggers += (iden(nsmap.src) -> (triggers.getOrElse(iden(nsmap.src), Seq.empty) :+ iden(nsmap)))
+              fut
+            }
+            f(nsmap)
+        }
     }
   }
 
@@ -238,6 +251,18 @@ class SyncEval[T, C <: Eval.Context](root: Eval[T, C]) {
             for (t <- trigs)
               itriggers += (t -> (itriggers.getOrElse(t, Seq.empty) :+ iden(nextern)))
             opt
+        }
+      case nsmap@ESpecialMap(src, func, exec) =>
+        known.get(nsmap) match {
+          case Some(opt) => opt.asInstanceOf[Option[T]]
+          case None =>
+            def f[S](nsmap: ESpecialMap[S, T, C]): Option[T] = {
+              val opt = reify(nsmap.src).map(nsmap.func)
+              known += (iden(nsmap) -> opt)
+              triggers += (iden(nsmap.src) -> (triggers.getOrElse(nsmap.src, Seq.empty) :+ iden(nsmap)))
+              opt
+            }
+            f(nsmap)
         }
     }
 
