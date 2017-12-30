@@ -38,6 +38,8 @@ class TypeMatchingMap[K[_ <: B], V[_ <: B], B](private val contents: Map[Any, An
       case None => default(k)
     }
 
+  def keySet: Set[K[_ <: B]] = contents.keySet.asInstanceOf[Set[K[_ <: B]]]
+
   def withDefault(d: Default[K, V, B]): TypeMatchingMap[K, V, B] =
     new TypeMatchingMap[K, V, B](contents, d)
 
