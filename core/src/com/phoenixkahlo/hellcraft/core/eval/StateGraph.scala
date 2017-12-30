@@ -4,15 +4,14 @@ import java.util.UUID
 import java.util.concurrent.ThreadFactory
 import java.util.function.Consumer
 
-import com.phoenixkahlo.hellcraft.core.eval.StateGraph.{NCreate, NFMap, NInput, NMap}
+import com.phoenixkahlo.hellcraft.core.eval.StateGraph._
 import com.phoenixkahlo.hellcraft.util.collections.spatial.SpatialTemporalQueue
 import com.phoenixkahlo.hellcraft.util.collections.{Identity, IdentityKey, IdentityMap, TypeMatchingMap}
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 
 import scala.collection.mutable.ArrayBuffer
 
-
-class StateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
+class AsyncStateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
   private type Node[T] = StateGraph.Node[T, C]
   private type InputMap = TypeMatchingMap[C#InKey, Identity, Any]
   private type NID = IdentityKey[Node[Any]]
@@ -25,15 +24,15 @@ class StateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
   private var itriggers: Map[C#InKey[Any], Seq[NID]] = Map.empty
   private var lastin: Option[InputMap] = None
 
-  private def reify[T](node: Node[T])(implicit inputs: InputMap): Fut[T] = synchronized {
+  private def reify[T](node: Node[T])(implicit inputs: InputMap, pack: C#EvalAsync): Fut[T] = synchronized {
     node match {
-      case ncreate@NCreate(fac) =>
+      case ncreate@NCreate(fac, hint) =>
         // create will always be known and will be triggered by nothing
         // so it's like a memo func but with simpler locking mechanism
         known.get(IdentityKey(ncreate)) match {
           case Some(fut) => fut.asInstanceOf[Fut[T]]
           case None =>
-            val fut = Fut(fac(), UniExecutor.exec)
+            val fut = Fut(fac(), hint.exec(_)(pack.service))
             known += (IdentityKey(ncreate) -> fut)
             fut
         }
@@ -54,7 +53,7 @@ class StateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
           case None =>
             // some helping the type system
             def f[S](nmap: NMap[S, T, C]): Fut[T] = {
-              val fut = reify(nmap.src).map(nmap.func, UniExecutor.exec)
+              val fut = reify(nmap.src).map(nmap.func, nmap.hint.exec(_)(pack.service))
               known += (IdentityKey(nmap) -> fut)
               triggers += (IdentityKey(nmap.src) -> (triggers.getOrElse(IdentityKey(nmap.src), Seq.empty) :+ iden(nmap)))
               fut
@@ -79,8 +78,8 @@ class StateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
                   unknown += (IdentityKey(nfmap) -> fut1)
                   // on initial mapping completion, transfer to known section, if ID is unchanged
                   val beforeID = applyID
-                  fut0.onComplete(() => StateGraph.this.synchronized {
-                    if (StateGraph.this.applyID == beforeID) {
+                  fut0.onComplete(() => AsyncStateGraph.this.synchronized {
+                    if (AsyncStateGraph.this.applyID == beforeID) {
                       val n: Node[T] = fut0.query.get
                       unknown -= IdentityKey(nfmap)
                       known += (IdentityKey(nfmap) -> fut1)
@@ -93,11 +92,30 @@ class StateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
                 f(nfmap)
             }
         }
-
+      case nfilter@NFilter(src, test, hint) =>
+        // filter will always be known and will be triggered by its source
+        known.get(iden(nfilter)) match {
+          case Some(fut) => fut.asInstanceOf[Fut[T]]
+          case None =>
+            val fut = reify(src).filter(test, hint.exec(_)(pack.service))
+            known += (iden(nfilter) -> fut)
+            triggers += (iden(src) -> (triggers.getOrElse(iden(src), Seq.empty) :+ iden(nfilter)))
+            fut
+        }
+      case nextern@NExtern(sync, async, trigs) =>
+        known.get(iden(nextern)) match {
+          case Some(fut) => fut.asInstanceOf[Fut[T]]
+          case None =>
+            val fut = async(pack)
+            known += (iden(nextern) -> fut)
+            for (t <- trigs)
+              itriggers += (t -> (itriggers.getOrElse(t, Seq.empty) :+ iden(nextern)))
+            fut
+        }
     }
   }
 
-  def apply(in: TypeMatchingMap[C#InKey, Identity, Any]): Fut[T] = this.synchronized {
+  def fut(in: TypeMatchingMap[C#InKey, Identity, Any], pack: C#EvalAsync): Fut[T] = this.synchronized {
     // step 1: create new ID to kill phantom changes from last application
     applyID = UUID.randomUUID()
 
@@ -137,11 +155,12 @@ class StateGraph[T, C <: StateGraph.Context](root: StateGraph.Node[T, C]) {
     lastin = Some(in)
 
     // step 4: reify the root, recursively reifying the whole monad graph as needed
-    reify(root)(in)
+    reify(root)(in, pack)
   }
 
+  def query(in: TypeMatchingMap[C#InKey, Identity, Any], pack: C#EvalAsync): Option[T] = fut(in, pack).query
 }
-
+/*
 object StateGraphTest extends App {
   import scala.concurrent.duration._
   UniExecutor.activate(
@@ -177,6 +196,7 @@ object StateGraphTest extends App {
   val r =
     i1.flatMap(i2.flatMap())
     */
+  /*
   val i1i2 = i1.flatMap(a => i2.map(b => {
     println("ab computed")
     (a, b)
@@ -189,6 +209,7 @@ object StateGraphTest extends App {
     println("r computed")
     a + Stream.iterate("-")(identity).take(c).fold("")(_ + _) + b + Stream.iterate("*")(identity).take(d).fold("")(_ + _)
   }})})
+  */
 
   val graph = new StateGraph(r)
 
@@ -226,18 +247,27 @@ object StateGraphTest extends App {
 
   UniExecutor.deactivate()
 }
-
+*/
 object StateGraph {
+  trait UniExecProvider {
+    def service: UniExecutor
+  }
   trait Context {
     type InKey[+T]
+    type EvalAsync <: UniExecProvider
+    type EvalSync
   }
 
   sealed trait Node[+T, C <: Context] {
-    def map[N](func: T => N): Node[N, C] = NMap(this, func)
-    def flatMap[N](func: T => Node[N, C]): Node[N, C] = NFMap(this, func)
+    def map[N](func: T => N)(implicit hint: ExecHint): Node[N, C] = NMap(this, func, hint)
+    def flatMap[N](func: T => Node[N, C])(implicit hint: ExecHint): Node[N, C] = NFMap(this, func, hint)
+    def filter(test: T => Boolean)(implicit hint: ExecHint): Node[T, C] = NFilter(this, test, hint)
+    def withFilter(test: T => Boolean)(implicit hint: ExecHint): Node[T, C] = filter(test)
   }
-  case class NCreate[T, C <: Context](fac: () => T) extends Node[T, C]
+  case class NCreate[T, C <: Context](fac: () => T, hint: ExecHint) extends Node[T, C]
   case class NInput[T, C <: Context](key: C#InKey[T]) extends Node[T, C]
-  case class NMap[S, T, C <: Context](src: Node[S, C], func: S => T) extends Node[T, C]
-  case class NFMap[S, T, C <: Context](src: Node[S, C], func: S => Node[T, C]) extends Node[T, C]
+  case class NMap[S, T, C <: Context](src: Node[S, C], func: S => T, hint: ExecHint) extends Node[T, C]
+  case class NFMap[S, T, C <: Context](src: Node[S, C], func: S => Node[T, C], hint: ExecHint) extends Node[T, C]
+  case class NFilter[T, C <: Context](src: Node[T, C], test: T => Boolean, hint: ExecHint) extends Node[T, C]
+  case class NExtern[T, C <: Context](sync: C#EvalSync => Option[T], async: C#EvalAsync => Fut[T], triggers: Seq[C#InKey[Any]]) extends Node[T, C]
 }
