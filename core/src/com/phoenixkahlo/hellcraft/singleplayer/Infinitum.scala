@@ -67,14 +67,22 @@ class SWorld(
     case _ => (Origin, Origin)
   }
 
-  private def compBoundingBox: SWorld =
-    if (chunks isEmpty)
-      new SWorld(time, res, chunks, chunkDomain, terrainDomain, active, renderable, None, None)
-    else
-      new SWorld(time, res, chunks, chunkDomain, terrainDomain, active, renderable,
-        Some(V3I(chunks.keySet.toSeq.map(_.xi).min, chunks.keySet.toSeq.map(_.yi).min, chunks.keySet.toSeq.map(_.zi).min)),
-        Some(V3I(chunks.keySet.toSeq.map(_.xi).max, chunks.keySet.toSeq.map(_.yi).max, chunks.keySet.toSeq.map(_.zi).max))
-      )
+  private def compBoundingBox: SWorld = {
+    System.err.println("comping bounding box")
+    val p = Profiler("comp bounding box")
+    try {
+      if (chunks isEmpty)
+        new SWorld(time, res, chunks, chunkDomain, terrainDomain, active, renderable, None, None)
+      else
+        new SWorld(time, res, chunks, chunkDomain, terrainDomain, active, renderable,
+          Some(V3I(chunks.keySet.toSeq.map(_.xi).min, chunks.keySet.toSeq.map(_.yi).min, chunks.keySet.toSeq.map(_.zi).min)),
+          Some(V3I(chunks.keySet.toSeq.map(_.xi).max, chunks.keySet.toSeq.map(_.yi).max, chunks.keySet.toSeq.map(_.zi).max))
+        )
+    } finally {
+      p.log()
+      p.printDisc(1)
+    }
+  }
 
   /**
     * Remove those chunks from this world,
@@ -131,12 +139,13 @@ class SWorld(
   def addTerrains(ts: Seq[Terrain]): SWorld = this ++ (ts map (Right(_)))
 
   def +(c: Either[Chunk, Terrain]): SWorld = {
+    val p = Profiler("world add")
     def pos(c: Either[Chunk, Terrain]): V3I = c match {
       case Left(chunk) => chunk.pos
       case Right(terrain) => terrain.pos
     }
     val removed = this - pos(c)
-    new SWorld(time, res,
+    try new SWorld(time, res,
       removed.chunks + (pos(c) -> c),
       chunkDomain, terrainDomain,
       c match {
@@ -156,6 +165,10 @@ class SWorld(
         Math.max(pos(c).yi, max.map(_.yi).getOrElse(Int.MinValue)),
         Math.max(pos(c).zi, max.map(_.zi).getOrElse(Int.MinValue))
       )))
+    finally {
+      p.log()
+      p.printDisc(1)
+    }
   }
 
   def +(c: Chunk): SWorld = this + Left(c)
@@ -318,8 +331,9 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     // pull loaded chunks from the queue and add them to the world if they're valid, also accumulate pending events
     val pullLimit = 15 milliseconds
 
+    val lp = Profiler("chunk load")
     val cLoadTimer = Timer.start
-    while (cLoadTimer.elapsed < pullLimit && chunkLoadQueue.size > 0) {
+    while (cLoadTimer.elapsed < pullLimit && !chunkLoadQueue.isEmpty) {
       val (chunk, loadID) = chunkLoadQueue.remove()
       if (chunkLoadMap.get(chunk.pos).contains(loadID)) {
         chunkLoadMap -= chunk.pos
@@ -331,17 +345,29 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
           pendingEvents -= chunk.pos
         }
       }
+      lp.log()
     }
+    lp.printDisc(pullLimit.toMillis)
 
+    val tp = Profiler("terrain load")
     val tLoadTimer = Timer.start
-    while (tLoadTimer.elapsed < pullLimit && terrainLoadQueue.size > 0) {
+    while (tLoadTimer.elapsed < pullLimit && !terrainLoadQueue.isEmpty) {
+      val ltp = Profiler("single terrain load")
       val (terrain, loadID) = terrainLoadQueue.remove()
+      ltp.log()
       if (!world.chunks.contains(terrain.pos) && terrainLoadMap.get(terrain.pos).contains(loadID)) {
+        ltp.log()
         terrainLoadMap -= terrain.pos
+        ltp.log()
         world += terrain
+        ltp.log()
         terrainFulfill.put(terrain.pos, terrain)
       }
+      ltp.log()
+      ltp.printDisc(1)
+      tp.log()
     }
+    tp.printDisc(pullLimit.toMillis)
 
     p.log()
 

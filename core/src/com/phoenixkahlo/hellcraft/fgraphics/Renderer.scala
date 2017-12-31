@@ -115,6 +115,9 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
   case class RenderableNow[S <: Shader](shader: ShaderTag[S], unit: S#FinalForm, transPos: Option[V3F])
   case class RenderNow[S <: Shader](renderable: RenderableNow[S], params: S#Params)
 
+  // cache of eval input map, we cache because identity improves state graph performance
+  var evalIn: TypeMatchingMap[GEval.InKey, Identity, Any] = TypeMatchingMap.empty[GEval.InKey, Identity, Any]
+
   // render a frame
   override def apply(renders: Seq[Render[_ <: Shader]], globals: GlobalRenderData): Unit = {
     val p = Profiler("render loop")
@@ -139,13 +142,23 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     // find what we can render immediately
     val screenRes = V2I(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     val camRange = CamRange(cam.near, cam.far)
-    val toFutPack = GEval.EvalAsync(UniExecutor.getService, execOpenGL)
-    // todo: cache identity between runs
+    val toFutPack = GEval.EvalAsync(UniExecutor.getService, execOpenGL);
+    {
+      val newEvalIn = TypeMatchingMap[GEval.InKey, Identity, Any](
+        ResourcePackKey -> pack,
+        ResKey -> screenRes,
+        CamRangeKey -> camRange
+      )
+      if (evalIn != newEvalIn)
+        evalIn = newEvalIn
+    }
+    /*
     val evalIn = TypeMatchingMap[GEval.InKey, Identity, Any](
       ResourcePackKey -> pack,
       ResKey -> screenRes,
       CamRangeKey -> camRange
     )
+    */
 
     /*
     def extract[S <: Shader](render: Render[S], strong: Boolean = true): Option[RenderNow[S]] = {
