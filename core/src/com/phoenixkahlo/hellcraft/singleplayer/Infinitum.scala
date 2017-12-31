@@ -5,11 +5,11 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Entity
-import com.phoenixkahlo.hellcraft.core.eval.WEval
+import com.phoenixkahlo.hellcraft.core.eval.{AsyncEval, WEval}
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.math.{Ones, Origin, V3F, V3I}
 import com.phoenixkahlo.hellcraft.util.LeftOption
-import com.phoenixkahlo.hellcraft.util.collections.{MergeBinned, V3ISet}
+import com.phoenixkahlo.hellcraft.util.collections.{MergeBinned, TypeMatchingMap, V3ISet}
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 import com.phoenixkahlo.hellcraft.util.threading._
 import com.phoenixkahlo.hellcraft.util.time.Timer
@@ -396,7 +396,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     val toFutPack = WEval.EvalAsync(UniExecutor.getService, chunkFulfill, terrainFulfill)
     for (make <- specialEffects.getOrElse(MakeRequest, Seq.empty).map(_.asInstanceOf[MakeRequest[_]])) {
       val request: Request[_] = make.request
-      val fut: Fut[Any] = request.eval.toFut(toFutPack)
+      val fut: Fut[Any] = new AsyncEval(request.eval).fut(WEval.input, toFutPack)
       fut.onComplete(() => {
         val result: Requested = new Requested(request.id, fut.query.get)
         requestedQueue.add(world => make.onComplete(result, world))

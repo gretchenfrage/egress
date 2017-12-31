@@ -9,8 +9,9 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.g3d.utils.{DefaultTextureBinder, RenderContext}
 import com.badlogic.gdx.graphics.{Camera, GL20, PerspectiveCamera}
 import com.phoenixkahlo.hellcraft.ShaderTag
-import com.phoenixkahlo.hellcraft.core.eval.{Eval, ExecCheap, GEval}
-import com.phoenixkahlo.hellcraft.core.eval.GEval.{CamRange, GEval, GLMap}
+import com.phoenixkahlo.hellcraft.core.eval._
+import com.phoenixkahlo.hellcraft.core.eval.GEval.{CamRangeKey, GEval, ResKey, ResourcePackKey}
+import com.phoenixkahlo.hellcraft.core.graphics.CamRange
 import com.phoenixkahlo.hellcraft.fgraphics.procedures._
 import com.phoenixkahlo.hellcraft.math.{V2F, V2I, V3F, V4F}
 import com.phoenixkahlo.hellcraft.util.collections.ContextPin.{ContextPinFunc, ContextPinID}
@@ -78,19 +79,36 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
   // typesafe pinned immediate renderable monad preperation
   type RNE[S <: Shader] = GEval[RenderableNow[S]]
 
-  def prepareRaw[S <: Shader](renderable: Renderable[S]): RNE[S] = {
+  def prepareRaw[S <: Shader](renderable: Renderable[S]): RNE[S] =
+    GEval.glMap[S#RenderUnit, S#FinalForm](renderable.eval, procedures(renderable.shader).toFinalForm)
+      .map[RenderableNow[S]]((ff: S#FinalForm) => RenderableNow(renderable.shader, ff, renderable.transPos))(ExecCheap)
+  /*{
     GLMap[S#RenderUnit, S#FinalForm](renderable.eval, procedures(renderable.shader).toFinalForm)
       .map[RenderableNow[S]]((ff: S#FinalForm) => RenderableNow(renderable.shader, ff, renderable.transPos))(ExecCheap)
   }
+  */
 
   val _prepareContextID: UUID = UUID.randomUUID()
-  def prepareContextID[S <: Shader]: ContextPinID[RNE[S]] = _prepareContextID
+  //def prepareContextID[S <: Shader]: ContextPinID[RNE[S]] = _prepareContextID
 
+  /*
   def prepare[S <: Shader](renderable: Renderable[S]): GEval[RenderableNow[S]] = {
     val pinFunc: ContextPinFunc[RNE[S]] = () => prepareRaw(renderable)
     val pinID: ContextPinID[RNE[S]] = prepareContextID[S]
 
     renderable.pin(pinID, pinFunc)
+  }
+  */
+  def prepare[S <: Shader](renderable: Renderable[S]): EvalGraphs[S] = {
+    val pinFunc: ContextPinFunc[EvalGraphs[S]] = () => new EvalGraphs(renderable)
+    val pinID: ContextPinID[EvalGraphs[S]] = _prepareContextID
+    renderable.pin(pinID, pinFunc)
+  }
+
+  class EvalGraphs[S <: Shader](renderable: Renderable[S]) {
+    val rne: RNE[S] = prepareRaw(renderable)
+    lazy val sync = new SyncEval(rne)
+    lazy val async = new AsyncEval(rne)
   }
 
   // immediate rendering algebra
@@ -121,9 +139,15 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     // find what we can render immediately
     val screenRes = V2I(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     val camRange = CamRange(cam.near, cam.far)
-    val toFutPack = GEval.EvalAsync(UniExecutor.getService, pack, execOpenGL, screenRes, camRange)
-    val evalNowPack = GEval.EvalSync(pack, screenRes, camRange)
+    val toFutPack = GEval.EvalAsync(UniExecutor.getService, execOpenGL)
+    // todo: cache identity between runs
+    val evalIn = TypeMatchingMap[GEval.InKey, Identity, Any](
+      ResourcePackKey -> pack,
+      ResKey -> screenRes,
+      CamRangeKey -> camRange
+    )
 
+    /*
     def extract[S <: Shader](render: Render[S], strong: Boolean = true): Option[RenderNow[S]] = {
       val eval: GEval[RenderableNow[S]] = prepare(render.renderable)
       val option: Option[RenderableNow[S]] =
@@ -131,6 +155,20 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
         else {
           if (strong) eval.toFut(toFutPack).query
           else eval.weakFutQuery(toFutPack)
+        }
+      option match {
+        case Some(renderable) => Some(RenderNow(renderable, render.params))
+        case None => render.deupdate.flatMap(extract(_, false))
+      }
+    }
+    */
+    def extract[S <: Shader](render: Render[S], strong: Boolean = true): Option[RenderNow[S]] = {
+      val graphs = prepare(render.renderable)
+      val option =
+        if (render.mustRender) graphs.sync.query(evalIn)
+        else {
+          if (strong) graphs.async.query(evalIn, toFutPack)
+          else None // todo: weak query
         }
       option match {
         case Some(renderable) => Some(RenderNow(renderable, render.params))

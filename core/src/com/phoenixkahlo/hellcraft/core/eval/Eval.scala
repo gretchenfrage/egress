@@ -12,13 +12,12 @@ import com.phoenixkahlo.hellcraft.core.{Chunk, Terrain, TerrainGrid}
 import com.phoenixkahlo.hellcraft.fgraphics.ResourcePack
 import com.phoenixkahlo.hellcraft.math.{V2F, V2I, V3I, V4F}
 import com.phoenixkahlo.hellcraft.util.caches.{Cache, ParamCache}
-import com.phoenixkahlo.hellcraft.util.collections.{MemoFunc, MemoHintFunc, SingleMemoFunc, SingleMemoHintFunc}
+import com.phoenixkahlo.hellcraft.util.collections._
 import com.phoenixkahlo.hellcraft.util.threading._
 
 trait UniExecProvider {
   def service: UniExecutor
 }
-
 
 trait Eval[+T, C <: Eval.Context] extends Serializable {
   def map[N](func: T => N)(implicit hint: ExecHint): Eval[N, C] = EMap(this, func, hint)
@@ -56,18 +55,19 @@ object WEval {
     override type EvalAsync = WEval.EvalAsync
     override type EvalSync = WEval.EvalSync
   }
+  val input = TypeMatchingMap.empty[Context#InKey, Identity, Any]
 
   type WEval[+T] = Eval[T, Context]
 
   def apply[T](gen: => T)(implicit exec: ExecHint): WEval[T] = Eval[T, Context](gen)
 
-  def chunk(p: V3I): WEval[Chunk] = EExtern(
+  def chunk(p: V3I): WEval[Chunk] = EExtern[Chunk, Context](
     _.cfulfill.get(p),
     _.cfulfill.fut(p),
     Seq.empty
   )
 
-  def terrain(p: V3I): WEval[Terrain] = EExtern(
+  def terrain(p: V3I): WEval[Terrain] = EExtern[Terrain, Context](
     _.tfulfill.get(p),
     _.tfulfill.fut(p),
     Seq.empty

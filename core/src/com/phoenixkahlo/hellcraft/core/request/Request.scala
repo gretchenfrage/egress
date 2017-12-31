@@ -10,4 +10,18 @@ case class Request[T](eval: WEval[T], id: UUID) {
     else None
 }
 
-class Requested(val id: UUID, private[request] val result: Any)
+class Requested(val id: UUID, private[request] val result: Any) extends Serializable {
+  def canEqual(other: Any): Boolean = other.isInstanceOf[Requested]
+
+  override def equals(other: Any): Boolean = other match {
+    case that: Requested =>
+      (that canEqual this) &&
+        id == that.id
+    case _ => false
+  }
+
+  override def hashCode(): Int = {
+    val state = Seq(id)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+}

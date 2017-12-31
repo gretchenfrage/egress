@@ -10,7 +10,6 @@ import com.phoenixkahlo.hellcraft.fgraphics._
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.math.{Down, V3F, V4I}
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
-import com.phoenixkahlo.hellcraft.util.collections.ResourceNode
 
 class Cube(tid: SheetTextureID, override val pos: V3F, override val id: UUID) extends Entity {
   protected def color: Color = Color.WHITE
