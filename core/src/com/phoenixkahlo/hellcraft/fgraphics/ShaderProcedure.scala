@@ -16,5 +16,6 @@ trait ShaderProcedure[S <: Shader] {
   def end(): Unit
   def close(): Unit
   def shader: ShaderTag[S]
+  def delete(ff: S#FinalForm): Unit
 }
 

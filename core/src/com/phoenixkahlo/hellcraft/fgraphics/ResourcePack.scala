@@ -74,10 +74,6 @@ trait ResourcePack {
 
   def sound(soundID: SoundID): Sound
 
-  //def cloud(i: Int): Renderable[TerrainShader]
-
-  //def dot(color: Color): Texture
-
 }
 
 class DefaultResourcePack extends ResourcePack {

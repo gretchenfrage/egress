@@ -57,6 +57,42 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     tasks.add(Left(task))
   }
 
+  // resource management
+  var resources: Fut[Set[EvalGraphs[_]]] = Fut(Set.empty, _.run())
+
+  def register[T](seq: Seq[T], toGraph: T => EvalGraphs[_]): Unit = {
+    resources = resources.map(_ ++ seq.map(toGraph))
+  }
+
+  def clean[T](seq: Seq[T], toGraph: T => EvalGraphs[_]): Unit = {
+    resources = resources.map(set => {
+      val curr = seq.map(toGraph)
+      val garbage = set -- curr
+      for (graph <- garbage) {
+        graph.async.dispose()
+        graph.sync.dispose()
+      }
+      curr.toSet
+    })
+  }
+  /*
+  case class DisposableUnit[S <: Shader](tag: ShaderTag[S], unit: S#FinalForm)
+  type DisposableSet = Map[IdentityKey[DisposableUnit[_ <: Shader]], DisposableUnit[_ <: Shader]]
+  var disposables: Fut[DisposableSet] = Fut(Map.empty, _.run())
+
+  def register(renders: Seq[RenderableNow[_ <: Shader]]): Unit = {
+    def toDisUnit[S <: Shader](r: RenderableNow[S]): DisposableUnit[S] = DisposableUnit(r.shader, r.unit)
+    disposables = disposables.map(_ ++ renders.map(render => {
+      val disUnit = toDisUnit(render)
+      IdentityKey(disUnit) -> disUnit
+    }))
+  }
+
+  def clean(curr: Seq[RenderableNow[_ <: Shader]]): Unit = {
+
+  }
+  */
+
   // libgdx camera
   override val cam = new PerspectiveCamera(90, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
   cam.near = 0.1f
@@ -82,23 +118,8 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
   def prepareRaw[S <: Shader](renderable: Renderable[S]): RNE[S] =
     GEval.glMap[S#RenderUnit, S#FinalForm](renderable.eval, procedures(renderable.shader).toFinalForm)
       .map[RenderableNow[S]]((ff: S#FinalForm) => RenderableNow(renderable.shader, ff, renderable.transPos))(ExecCheap)
-  /*{
-    GLMap[S#RenderUnit, S#FinalForm](renderable.eval, procedures(renderable.shader).toFinalForm)
-      .map[RenderableNow[S]]((ff: S#FinalForm) => RenderableNow(renderable.shader, ff, renderable.transPos))(ExecCheap)
-  }
-  */
 
   val _prepareContextID: UUID = UUID.randomUUID()
-  //def prepareContextID[S <: Shader]: ContextPinID[RNE[S]] = _prepareContextID
-
-  /*
-  def prepare[S <: Shader](renderable: Renderable[S]): GEval[RenderableNow[S]] = {
-    val pinFunc: ContextPinFunc[RNE[S]] = () => prepareRaw(renderable)
-    val pinID: ContextPinID[RNE[S]] = prepareContextID[S]
-
-    renderable.pin(pinID, pinFunc)
-  }
-  */
   def prepare[S <: Shader](renderable: Renderable[S]): EvalGraphs[S] = {
     val pinFunc: ContextPinFunc[EvalGraphs[S]] = () => new EvalGraphs(renderable)
     val pinID: ContextPinID[EvalGraphs[S]] = _prepareContextID
@@ -106,9 +127,13 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
   }
 
   class EvalGraphs[S <: Shader](renderable: Renderable[S]) {
+    def dispose(r: RenderableNow[S]): Unit = {
+      procedures(r.shader).delete(r.unit)
+    }
+
     val rne: RNE[S] = prepareRaw(renderable)
-    lazy val sync = new SyncEval(rne)
-    lazy val async = new AsyncEval(rne)
+    val sync = new SyncEval(rne, Some(dispose))
+    val async = new AsyncEval(rne, Some(fut => fut.map(dispose)))
   }
 
   // immediate rendering algebra
@@ -152,36 +177,13 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
       if (evalIn != newEvalIn)
         evalIn = newEvalIn
     }
-    /*
-    val evalIn = TypeMatchingMap[GEval.InKey, Identity, Any](
-      ResourcePackKey -> pack,
-      ResKey -> screenRes,
-      CamRangeKey -> camRange
-    )
-    */
-
-    /*
-    def extract[S <: Shader](render: Render[S], strong: Boolean = true): Option[RenderNow[S]] = {
-      val eval: GEval[RenderableNow[S]] = prepare(render.renderable)
-      val option: Option[RenderableNow[S]] =
-        if (render.mustRender) eval.evalNow(evalNowPack)
-        else {
-          if (strong) eval.toFut(toFutPack).query
-          else eval.weakFutQuery(toFutPack)
-        }
-      option match {
-        case Some(renderable) => Some(RenderNow(renderable, render.params))
-        case None => render.deupdate.flatMap(extract(_, false))
-      }
-    }
-    */
     def extract[S <: Shader](render: Render[S], strong: Boolean = true): Option[RenderNow[S]] = {
       val graphs = prepare(render.renderable)
       val option =
         if (render.mustRender) graphs.sync.query(evalIn)
         else {
           if (strong) graphs.async.query(evalIn, toFutPack)
-          else None // todo: weak query
+          else graphs.async.weakQuery(evalIn, toFutPack)
         }
       option match {
         case Some(renderable) => Some(RenderNow(renderable, render.params))
@@ -197,7 +199,7 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     val (isSprites, isntSprites) = renderNow.partition(ren => procedures(ren.renderable.shader).isSprites)
     // partition again by translucency
     val (trans, opaqu) = isntSprites.partition(_.renderable.transPos.isDefined)
-    // order translucent calls be distance to player
+    // order translucent calls by distance to player
     val transSeq = trans.sortBy(_.renderable.transPos.get dist globals.camPos * -1)
     // cluster opaque calls by shader to minimize state changes
     val opaquSeq: Seq[RenderNow[_ <: Shader]] = {

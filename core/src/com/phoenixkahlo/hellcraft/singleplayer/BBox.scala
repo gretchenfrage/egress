@@ -4,32 +4,6 @@ import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
 import scala.collection.immutable.{SortedMap, SortedSet}
 
-/*
-case class BBox(x: SortedSet[Int], y: SortedSet[Int], z: SortedSet[Int], v: Set[V3I]) {
-  def apply() =
-    if (v.nonEmpty) (V3I(x.min, y.min, z.min), V3I(x.max, y.max, z.max))
-    else (Origin, Origin)
-
-  def +(p: V3I) = BBox(
-    x + p.xi,
-    y + p.yi,
-    z + p.zi,
-    v + p
-  )
-  def -(p: V3I): BBox = {
-    val nv = v - p
-    BBox(
-
-    )
-  }
-  /*
-  def +(v: V3I) = BBox(x + v.xi, y + v.yi, z + v.zi)
-  def -(v: V3I) = BBox(x - v.xi, y - v.yi, z - v.zi)
-  def ++(vs: Iterable[V3I]) = BBox(x ++ vs.map(_.xi), y ++ vs.map(_.yi), z ++ vs.map(_.zi))
-  def --(vs: Iterable[V3I]) = BBox(x -- vs.map(_.xi), y -- vs.map(_.yi), z -- vs.map(_.zi))
-  */
-}
-*/
 case class BBox(x: SortedMap[Int, Int], y: SortedMap[Int, Int], z: SortedMap[Int, Int], v: Set[V3I]) {
   def apply() =
     if (v.nonEmpty) (V3I(x.min._1, y.min._1, z.min._1), V3I(x.max._1, y.max._1, z.max._1))
