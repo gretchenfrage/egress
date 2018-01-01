@@ -68,25 +68,31 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     resources = resources.map(_ ++ seq.map(toGraph).filter(_.isDisposable))
   }
 
-  val cleanDuration = 10 seconds
+  val cleanDuration = 2 seconds//10 seconds
   var misterClean: Timer = Timer.start
 
   def clean[T](seq: Seq[T])(implicit toGraph: T => EvalGraphs[_]): Unit = {
-    // TODO: split up and place limit
+    val batch = 50
 
-    resources = resources.map(set => {
+    def f(list: List[EvalGraphs[_]]): Fut[List[EvalGraphs[_]]] =
+      if (list.isEmpty) Fut(Nil, _.run())
+      else {
+        val now = list.take(batch)
+        val later = list.drop(batch)
+        Fut[Unit]({
+          //println("deleting " + now.size + " resources")
+          for (graph <- now) {
+            graph.async.dispose()
+            graph.sync.dispose()
+          }
+        }, execOpenGL).flatMap(unit => f(later))
+      }
+
+    resources = resources.flatMap(set => {
       val curr = seq.map(toGraph)
       val garbage = set -- curr
-      (curr.toSet, garbage)
-    }).map({
-      case (curr, garbage) =>
-        println("deleting " + garbage.size + " graphs")
-        for (graph <- garbage) {
-          graph.async.dispose()
-          graph.sync.dispose()
-        }
-        curr
-    }, execOpenGL)
+      f(garbage.toList).map(nil => curr.toSet)
+    })
   }
 
   def maybeClean[T](seq: Seq[T])(implicit toGraph: T => EvalGraphs[_]): Unit = {
@@ -135,7 +141,7 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     def dispose(r: RenderableNow[S]): Unit = {
       procedures(r.shader).disposer match {
         case Some(dispose) => dispose(r.unit)
-        case None => println("warning attempted to dispose of undisposable renderable")
+        case None => //println("warning attempted to dispose of undisposable renderable")
       }
     }
 
