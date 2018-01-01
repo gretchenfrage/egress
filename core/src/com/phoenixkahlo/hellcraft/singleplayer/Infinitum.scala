@@ -427,7 +427,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     val toFutPack = WEval.EvalAsync(UniExecutor.getService, chunkFulfill, terrainFulfill)
     for (make <- specialEffects.getOrElse(MakeRequest, Seq.empty).map(_.asInstanceOf[MakeRequest[_]])) {
       val request: Request[_] = make.request
-      val fut: Fut[Any] = new AsyncEval(request.eval).fut(WEval.input, toFutPack)
+      val fut: Fut[Any] = new AsyncEval(request.eval)().fut(WEval.input, toFutPack)
       fut.onComplete(() => {
         val result: Requested = new Requested(request.id, fut.query.get)
         requestedQueue.add(world => make.onComplete(result, world))

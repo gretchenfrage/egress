@@ -166,12 +166,12 @@ object Commands {
       ClientPrint("seq queue size = " + input.executor.sizeSeq),
       ClientPrint("3D queue size = " + input.executor.size3D),
       ClientPrint("2D queue size = " + input.executor.size2D),
-      ClientPrint("DB seq queue size = " + input.executor.sizeDBSeq),
-      ClientPrint("DB 3D queue size = " + input.executor.sizeDB3D),
+      ClientPrint("DB seq queue size = " + input.executor.sizeCSeq),
+      ClientPrint("DB 3D queue size = " + input.executor.sizeC3D),
       ClientPrint(""),
       ClientPrint("3D queue height = " + input.executor.height3D),
       ClientPrint("2D queue height = " + input.executor.height2D),
-      ClientPrint("DB 3D queue height = " + input.executor.heightDB3D),
+      ClientPrint("DB 3D queue height = " + input.executor.heightC3D),
       ClientPrint("")
     )
 

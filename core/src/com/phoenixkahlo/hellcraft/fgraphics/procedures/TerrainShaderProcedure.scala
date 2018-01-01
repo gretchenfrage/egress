@@ -75,6 +75,8 @@ class TerrainShaderProcedure(resources: ResourcePack) extends ShaderProcedure[Te
     mesh.render(program, GL20.GL_TRIANGLES)
   }
 
+  override val disposer = Some((ff: Mesh) => ff.dispose())
+
   override def end(): Unit = {
     program.end()
   }

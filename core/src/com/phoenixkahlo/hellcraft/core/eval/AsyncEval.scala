@@ -11,7 +11,8 @@ import com.phoenixkahlo.hellcraft.util.threading.{Fut, Never, UniExecutor}
 
 import scala.collection.mutable.ArrayBuffer
 
-class AsyncEval[T, C <: Eval.Context](root: Eval[T, C], disposer: Option[Fut[T] => Unit] = None) {
+class AsyncEval[T, C <: Eval.Context](root: Eval[T, C])(disposer: Option[Fut[T] => Unit] = None) {
+
   private type Node[T] = Eval[T, C]
   private type InputMap = TypeMatchingMap[C#InKey, Identity, Any]
   private type NID = IdentityKey[Node[Any]]

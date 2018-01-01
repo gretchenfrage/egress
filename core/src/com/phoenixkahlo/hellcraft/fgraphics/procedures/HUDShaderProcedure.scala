@@ -28,6 +28,8 @@ class HUDShaderProcedure extends ShaderProcedure[HUDShader] {
     comp.draw(batch, cam)
   }
 
+  override val disposer = None
+
   override def end(): Unit = {
     batch.end()
   }

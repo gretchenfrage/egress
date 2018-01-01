@@ -15,7 +15,7 @@ import com.badlogic.gdx.graphics.g3d.model.MeshPart
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.g3d.{Material, Model}
 import com.phoenixkahlo.hellcraft.core.eval.GEval.GEval
-import com.phoenixkahlo.hellcraft.core.eval.{Eval, GEval, GEvalContext}
+import com.phoenixkahlo.hellcraft.core.eval.{Eval, GEval}
 import com.phoenixkahlo.hellcraft.math.{V2F, V3F, V4F}
 import com.phoenixkahlo.hellcraft.menu.util.FrameFactory
 import com.phoenixkahlo.hellcraft.util.collections.MemoFunc

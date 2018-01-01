@@ -15,39 +15,20 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
   private val seqQueue = new LinkedBlockingQueue[Runnable]
   private val queue3D = new SpatialTemporalQueue3D[Runnable](equator, V3F(1, 2, 1))
   private val queue2D = new SpatialTemporalQueue2D[Runnable](equator, V2I(1, 1))
-  private val dbQueue = new LinkedBlockingQueue[Runnable]
-  private val dbQueue3D = new SpatialTemporalQueue3D[Runnable](equator, V3F(1, 2, 1))
+  private val cQueue = new LinkedBlockingQueue[Runnable]
+  private val cQueue3D = new SpatialTemporalQueue3D[Runnable](equator, V3F(1, 2, 1))
 
   private val ticketQueue = new LinkedBlockingQueue[Supplier[Option[Runnable]]]
   private val workers = new ArrayBuffer[Thread]
-
-  /*
-  workers += new Thread(() => {
-    try {
-      while (true) {
-        Thread.sleep(1000)
-        println("3D queue size = " + queue3D.size)
-        //println("3D queue height = " + octQueue.height)
-        println("2D queue size = " + queue2D.size)
-        //println("2D queue height = " + quadQueue.height)
-        println("seq queue size = " + seqQueue.size)
-        println("DB 3D queue size = " + dbQueue3D.size)
-        println("DB seq queue size = " + dbQueue.size)
-      }
-    } catch {
-      case e: InterruptedException =>
-    }
-  })
-  */
 
   def sizeSeq: Int = seqQueue.size
   def size3D: Int = queue3D.size
   def height3D: Int = queue3D.height
   def size2D: Int = queue2D.size
   def height2D: Int = queue2D.height
-  def sizeDBSeq: Int = dbQueue.size
-  def sizeDB3D: Int = dbQueue3D.size
-  def heightDB3D: Int = dbQueue3D.height
+  def sizeCSeq: Int = cQueue.size
+  def sizeC3D: Int = cQueue3D.size
+  def heightC3D: Int = cQueue3D.height
 
   case class Worker(work: Runnable) extends Runnable {
     override def run(): Unit = {
@@ -71,8 +52,8 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
   workers += threadFactory.newThread(Worker(() => seqQueue.take().run()))
   workers += threadFactory.newThread(Worker(() => queue3D.take()._2.run()))
   workers += threadFactory.newThread(Worker(() => queue2D.take()._2.run()))
-  workers += threadFactory.newThread(Worker(() => dbQueue.take().run()))
-  workers += threadFactory.newThread(Worker(() => dbQueue3D.take()._2.run()))
+  workers += threadFactory.newThread(Worker(() => cQueue.take().run()))
+  workers += threadFactory.newThread(Worker(() => cQueue3D.take()._2.run()))
 
   def exec(task: Runnable): Unit = {
     seqQueue.add(task)
@@ -84,8 +65,6 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
       queue3D.add(pos -> task)
       ticketQueue.add(() => Option(queue3D.poll()).map(_._2))
     })
-    //queue3D.add(pos -> task)
-    //ticketQueue.add(() => Option(queue3D.poll()).map(_._2))
   }
 
   def exec(pos: V2F)(task: Runnable): Unit = {
@@ -93,33 +72,31 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
       queue2D.add(pos -> task)
       ticketQueue.add(() => Option(queue2D.poll()).map(_._2))
     })
-    //queue2D.add(pos -> task)
-    //ticketQueue.add(() => Option(queue2D.poll()).map(_._2))
   }
 
-  def db(task: Runnable): Unit = {
-    dbQueue.add(task)
-    ticketQueue.add(() => Option(dbQueue.poll()))
+  def execc(task: Runnable): Unit = {
+    cQueue.add(task)
+    ticketQueue.add(() => Option(cQueue.poll()))
   }
 
-  def db(pos: V3F)(task: Runnable): Unit = {
+  def execc(pos: V3F)(task: Runnable): Unit = {
     if (dbSequential) {
-      db(task)
+      execc(task)
     } else {
-      dbQueue3D.add(pos -> task)
-      ticketQueue.add(() => Option(dbQueue3D.poll()).map(_._2))
+      cQueue3D.add(pos -> task)
+      ticketQueue.add(() => Option(cQueue3D.poll()).map(_._2))
     }
   }
 
   @volatile private var dbSequential = false
 
-  def makeDBSequential(): Unit = {
+  def makeCSequential(): Unit = {
     dbSequential = true
     val al = new util.ArrayList[(Any, Runnable)]
-    dbQueue3D.drainTo(al)
+    cQueue3D.drainTo(al)
     val iter = al.iterator()
     while (iter.hasNext) {
-      dbQueue.add(iter.next()._2)
+      cQueue.add(iter.next()._2)
     }
   }
 
@@ -128,7 +105,7 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
   def point_=(p: V3F): Unit = {
     queue3D.point = p
     queue2D.point = p.flatten
-    dbQueue3D.point = p
+    cQueue3D.point = p
   }
 
   def start(): Unit =
@@ -138,7 +115,7 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
     workers.foreach(_.interrupt())
 
   def getSpatialTasks: (Seq[V3F], Seq[V2F], Seq[V3F]) = {
-    (queue3D.toSeq.map(_._1), queue2D.toSeq.map(_._1), dbQueue3D.toSeq.map(_._1))
+    (queue3D.toSeq.map(_._1), queue2D.toSeq.map(_._1), cQueue3D.toSeq.map(_._1))
   }
 
 }
@@ -153,9 +130,9 @@ object UniExecutor {
 
   def exec(pos: V2F)(task: Runnable): Unit = service.exec(pos)(task)
 
-  def db(task: Runnable): Unit = service.db(task)
+  def execc(task: Runnable): Unit = service.execc(task)
 
-  def db(pos: V3F)(task: Runnable): Unit = service.db(pos)(task)
+  def execc(pos: V3F)(task: Runnable): Unit = service.execc(pos)(task)
 
   def point: V3F = service.point
 

@@ -59,4 +59,6 @@ class LineShaderProcedure extends ShaderProcedure[LineShader] {
   override def close(): Unit = {
     program.dispose()
   }
+
+  override val disposer = Some((ff: Mesh) => ff.dispose())
 }

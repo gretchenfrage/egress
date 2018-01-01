@@ -18,11 +18,13 @@ import com.phoenixkahlo.hellcraft.util.collections.ContextPin.{ContextPinFunc, C
 import com.phoenixkahlo.hellcraft.util.collections._
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
+import com.phoenixkahlo.hellcraft.util.time.Timer
 
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.ClassTag
+import scala.concurrent.duration._
 
 trait Renderer {
   def apply(renders: Seq[Render[_ <: Shader]], globals: GlobalRenderData): Unit
@@ -39,9 +41,11 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
   // openGL task queue
   // the right unit singleton represents a special interruption value
   val tasks = new LinkedBlockingDeque[Either[Runnable, Unit]]
-  def runTasks(): Unit = {
+  val tickTaskLimit = 4 milliseconds
+  def runTasks(limit: Duration = tickTaskLimit): Unit = {
+    val timer = Timer.start
     var task: Either[Runnable, Unit] = null
-    while ({ task = tasks.poll(); task != null })
+    while (timer.elapsed < tickTaskLimit && { task = tasks.poll(); task != null })
       task.left.foreach(_.run())
   }
   def runTasksWhileAwaiting[T](fut: Fut[T]): T = {
@@ -60,38 +64,37 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
   // resource management
   var resources: Fut[Set[EvalGraphs[_]]] = Fut(Set.empty, _.run())
 
-  def register[T](seq: Seq[T], toGraph: T => EvalGraphs[_]): Unit = {
-    resources = resources.map(_ ++ seq.map(toGraph))
+  def register[T](seq: Seq[T])(implicit toGraph: T => EvalGraphs[_]): Unit = {
+    resources = resources.map(_ ++ seq.map(toGraph).filter(_.isDisposable))
   }
 
-  def clean[T](seq: Seq[T], toGraph: T => EvalGraphs[_]): Unit = {
+  val cleanDuration = 10 seconds
+  var misterClean: Timer = Timer.start
+
+  def clean[T](seq: Seq[T])(implicit toGraph: T => EvalGraphs[_]): Unit = {
+    // TODO: split up and place limit
+
     resources = resources.map(set => {
       val curr = seq.map(toGraph)
       val garbage = set -- curr
-      for (graph <- garbage) {
-        graph.async.dispose()
-        graph.sync.dispose()
-      }
-      curr.toSet
-    })
-  }
-  /*
-  case class DisposableUnit[S <: Shader](tag: ShaderTag[S], unit: S#FinalForm)
-  type DisposableSet = Map[IdentityKey[DisposableUnit[_ <: Shader]], DisposableUnit[_ <: Shader]]
-  var disposables: Fut[DisposableSet] = Fut(Map.empty, _.run())
-
-  def register(renders: Seq[RenderableNow[_ <: Shader]]): Unit = {
-    def toDisUnit[S <: Shader](r: RenderableNow[S]): DisposableUnit[S] = DisposableUnit(r.shader, r.unit)
-    disposables = disposables.map(_ ++ renders.map(render => {
-      val disUnit = toDisUnit(render)
-      IdentityKey(disUnit) -> disUnit
-    }))
+      (curr.toSet, garbage)
+    }).map({
+      case (curr, garbage) =>
+        println("deleting " + garbage.size + " graphs")
+        for (graph <- garbage) {
+          graph.async.dispose()
+          graph.sync.dispose()
+        }
+        curr
+    }, execOpenGL)
   }
 
-  def clean(curr: Seq[RenderableNow[_ <: Shader]]): Unit = {
-
+  def maybeClean[T](seq: Seq[T])(implicit toGraph: T => EvalGraphs[_]): Unit = {
+    if (misterClean.elapsed >= cleanDuration) {
+      clean(seq)
+      misterClean = Timer.start
+    }
   }
-  */
 
   // libgdx camera
   override val cam = new PerspectiveCamera(90, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
@@ -127,13 +130,18 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
   }
 
   class EvalGraphs[S <: Shader](renderable: Renderable[S]) {
+    val isDisposable: Boolean = procedures(renderable.shader).disposer.isDefined
+
     def dispose(r: RenderableNow[S]): Unit = {
-      procedures(r.shader).delete(r.unit)
+      procedures(r.shader).disposer match {
+        case Some(dispose) => dispose(r.unit)
+        case None => println("warning attempted to dispose of undisposable renderable")
+      }
     }
 
     val rne: RNE[S] = prepareRaw(renderable)
-    val sync = new SyncEval(rne, Some(dispose))
-    val async = new AsyncEval(rne, Some(fut => fut.map(dispose)))
+    val sync: SyncEval[RenderableNow[S], GEval.Context] = new SyncEval(rne)(Some(dispose))
+    val async: AsyncEval[RenderableNow[S], GEval.Context] = new AsyncEval(rne)(Some(_.map(dispose)))
   }
 
   // immediate rendering algebra
@@ -142,6 +150,9 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
 
   // cache of eval input map, we cache because identity improves state graph performance
   var evalIn: TypeMatchingMap[GEval.InKey, Identity, Any] = TypeMatchingMap.empty[GEval.InKey, Identity, Any]
+
+  // eval async pack
+  val toFutPack = GEval.EvalAsync(UniExecutor.getService, execOpenGL);
 
   // render a frame
   override def apply(renders: Seq[Render[_ <: Shader]], globals: GlobalRenderData): Unit = {
@@ -164,10 +175,9 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
 
     p.log()
 
-    // find what we can render immediately
+    // find what we can render immediately, and accumulate the graph buffer
     val screenRes = V2I(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
-    val camRange = CamRange(cam.near, cam.far)
-    val toFutPack = GEval.EvalAsync(UniExecutor.getService, execOpenGL);
+    val camRange = CamRange(cam.near, cam.far);
     {
       val newEvalIn = TypeMatchingMap[GEval.InKey, Identity, Any](
         ResourcePackKey -> pack,
@@ -177,8 +187,10 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
       if (evalIn != newEvalIn)
         evalIn = newEvalIn
     }
+    val extractedGraphs: mutable.Buffer[EvalGraphs[_]] = new mutable.ArrayBuffer[EvalGraphs[_]]
     def extract[S <: Shader](render: Render[S], strong: Boolean = true): Option[RenderNow[S]] = {
       val graphs = prepare(render.renderable)
+      extractedGraphs += graphs
       val option =
         if (render.mustRender) graphs.sync.query(evalIn)
         else {
@@ -191,6 +203,12 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
       }
     }
     val renderNow: Seq[RenderNow[_ <: Shader]] = renders.flatMap((render: Render[_ <: Shader]) => extract(render): Option[RenderNow[_ <: Shader]])
+
+    p.log()
+
+    // memory management
+    register(extractedGraphs)
+    maybeClean(extractedGraphs)
 
     p.log()
 
@@ -253,9 +271,9 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
   }
 
   override def close(): Unit = {
-    // just dispose of all the procedures
     for (procedure <- procedures.toSeq) {
       procedure.close()
     }
+    clean(Seq.empty)
   }
 }

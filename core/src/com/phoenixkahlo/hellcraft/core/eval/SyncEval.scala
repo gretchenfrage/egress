@@ -8,7 +8,8 @@ import scala.collection.mutable.ArrayBuffer
 /**
   * Created by Phoenix on 12/31/2017.
   */
-class SyncEval[T, C <: Eval.Context](root: Eval[T, C], disposer: Option[T => Unit] = None) {
+class SyncEval[T, C <: Eval.Context](root: Eval[T, C])(disposer: Option[T => Unit] = None) {
+
   private type Node[T] = Eval[T, C]
   private type InputMap = TypeMatchingMap[C#InKey, Identity, Any]
   private type NID = IdentityKey[Node[Any]]

@@ -68,6 +68,8 @@ class ParticleShaderProcedure(resources: ResourcePack) extends ShaderProcedure[P
     Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
   }
 
+  override val disposer = Some((ff: Mesh) => ff.dispose())
+
   override def apply(mesh: Mesh, params: ParticleShader.Params, globals: GlobalRenderData, context: RenderContext, cam: Camera): Unit = {
     program.setUniformMatrix(u_MV, params.trans.cpy().mulLeft(cam.view))
     program.setUniformMatrix(u_P, cam.projection)
@@ -82,4 +84,6 @@ class ParticleShaderProcedure(resources: ResourcePack) extends ShaderProcedure[P
   override def close(): Unit = {
     program.dispose()
   }
+
+
 }

@@ -74,6 +74,8 @@ class GenericShaderProcedure(resources: ResourcePack) extends ShaderProcedure[Ge
     mesh.render(program, GL20.GL_TRIANGLES)
   }
 
+  override val disposer = Some((ff: Mesh) => ff.dispose())
+
   override def end(): Unit = {
     program.end()
   }

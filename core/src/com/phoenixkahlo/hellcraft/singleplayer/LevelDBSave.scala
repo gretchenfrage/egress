@@ -22,8 +22,8 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
     options.createIfMissing(true)
     factory.open(path.toFile, options)
   }
-  private val sequences = new ParGenMutHashMap[V3I, FutSequences](p => new FutSequences(UniExecutor.db(p * 16)))
-  private val sequencer = new FutSequences(UniExecutor.db)
+  private val sequences = new ParGenMutHashMap[V3I, FutSequences](p => new FutSequences(UniExecutor.execc(p * 16)))
+  private val sequencer = new FutSequences(UniExecutor.execc)
 
   private def serialize(chunk: Chunk): Array[Byte] = {
     val baos = new ByteArrayOutputStream
@@ -53,13 +53,13 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
     // disrupt generator
     generator.cancel()
     // drain the db 3d queue into the db seq queue to reduce tree overhead
-    UniExecutor.getService.makeDBSequential()
+    UniExecutor.getService.makeCSequential()
     // add the pushes to all the sequences
     for ((p, chunk) <- chunks) {
       sequencer(() => sequences(p)()(() => db.put(p.toByteArray, serialize(chunk))))
     }
     // fold all sequences into a promise that all operations are completed, and then close it
-    sequencer(() => PromiseFold(sequences.toSeq.map(_._2.getLast)).afterwards(() => db.close(), UniExecutor.db)).flatten
+    sequencer(() => PromiseFold(sequences.toSeq.map(_._2.getLast)).afterwards(() => db.close(), UniExecutor.execc)).flatten
   }
 
   override def pull(chunks: Seq[V3I], terrain: Seq[V3I]): (Map[V3I, Fut[Chunk]], Map[V3I, Fut[Terrain]]) = {
