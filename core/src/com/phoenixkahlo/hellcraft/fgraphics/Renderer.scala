@@ -88,10 +88,19 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
         }, execOpenGL).flatMap(unit => f(later))
       }
 
+    /*
     resources = resources.flatMap(set => {
       val curr = seq.map(toGraph)
       val garbage = set -- curr
       f(garbage.toList).map(nil => curr.toSet)
+    })
+    */
+    resources = resources.map(set => {
+      val curr = seq.map(toGraph)
+      val garbage = set -- curr
+      (curr.toSet, garbage.toList)
+    }, UniExecutor.execc).flatMap({
+      case (curr, garbage) => f(garbage).map({ case Nil => curr })
     })
   }
 
