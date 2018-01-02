@@ -38,16 +38,9 @@ case class MenuButton(range: V2I => (V2I, V2I), str: String, onclick: (ClientLog
   
   val components: (Seq[Render[HUDShader]], Seq[Render[HUDShader]]) = {
     implicit val exec = ExecCheap
-    /*
-    val frameOff = GEval.resourcePack.map(pack => ImgHUDComponent(
-      new TextureRegion(pack.frame(MenuPatchPID, 18, max.xi - min.xi, max.yi - min.yi)),
-      min,
-      max - min
-    ))
-    */
     val frameOff = for {
       pack <- GEval.resourcePack
-      (min, max) <- {GEval.res.map(range)}
+      (min, max) <- GEval.res.map(range)
     } yield ImgHUDComponent(
       new TextureRegion(pack.frame(MenuPatchPID, 18, max.xi - min.xi, max.yi - min.yi)),
       min,
@@ -74,23 +67,6 @@ case class MenuButton(range: V2I => (V2I, V2I), str: String, onclick: (ClientLog
         Color.BLACK
       )
     }
-    /*
-    val frameOn = GEval.resourcePack.map(pack => ImgHUDComponent(
-      new TextureRegion(pack.frame(MenuPatchActivePID, 18, max.xi - min.xi, max.yi - min.yi)),
-      min,
-      max - min
-    ))
-    val text = GEval.resourcePack.map(pack => {
-      val font = pack.font(ButtonFID)
-      val layout = new GlyphLayout
-      layout.setText(font, str)
-      StrHUDComponent(
-        str, font,
-        (min + max) / 2 + V2F(-layout.width / 2, layout.height / 2),
-        Color.BLACK
-      )
-    })
-    */
     (
       Seq(frameOff, text).map(Renderable[HUDShader](_)).map(Render[HUDShader](_, (): Unit)),
       Seq(frameOn, text).map(Renderable[HUDShader](_)).map(Render[HUDShader](_, (): Unit))
@@ -99,15 +75,12 @@ case class MenuButton(range: V2I => (V2I, V2I), str: String, onclick: (ClientLog
 }
 
 case class Cloud(pos: V3F, ren: Renderable[TerrainShader]) {
-  def render(interp: Float): Render[TerrainShader] =
-    Render[TerrainShader](ren, Offset(pos + (East * Cloud.speed * interp)))
+  def render(interp: Float, speed: Float): Render[TerrainShader] =
+    Render[TerrainShader](ren, Offset(pos + (East * speed * interp)))
 
-  def move: Cloud = {
-    copy(pos = pos + (East * Cloud.speed))
+  def move(speed: Float): Cloud = {
+    copy(pos = pos + (East * speed))
   }
-}
-object Cloud {
-  val speed = 10
 }
 case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3F, clouds: Seq[Cloud] = Seq.empty) {
   def update(world: World, input: Input): ClientCore = {
@@ -117,11 +90,12 @@ case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3
     val random = new Random()
     val positions = RNG.v3fs(RNG(random.nextLong)).map(p => ((p * 2 - Ones) * cloudDist.x).copy(y = 400))
     val ordinals = RNG.ints(RNG(random.nextLong))
+    val speed = input.sessionData(CloudSpeed) * input.dt
     val addedClouds =
       filteredClouds ++ (positions zip ordinals)
         .map({ case (pos, ord) => Cloud(pos, Clouds.cloud(ord)) })
         .take(numClouds - filteredClouds.size)
-    val movedClouds = addedClouds.map(_.move)
+    val movedClouds = addedClouds.map(_.move(speed))
     copy(clouds = movedClouds)
   }
 
@@ -215,9 +189,7 @@ case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3
     renders += Render[ParticleShader](SunMoon(skyParams), ParticleShader.Params(skyTrans))
     renders += Render[ParticleShader](Stars(skyParams), ParticleShader.Params(skyTrans, V4F(1, 1, 1, Trig.clamp(-sunlightPow, 0, 1))))
     // clouds render
-    renders ++= clouds.map(_.render(world.interp))
-
-    //renders += Render[TerrainShader](Clouds.cloud(0), Offset.default)
+    renders ++= clouds.map(_.render(world.interp, input.sessionData(CloudSpeed) * input.dt))
 
     // build the globals and return
     val globals = GlobalRenderData(camPos, camDir, lightPos, lightPow, skyColor.inflate(1), 90)
@@ -278,9 +250,9 @@ case class GodClientMain(core: ClientCore) extends ClientLogic {
     val chunkPos = core.camPos / 16 toInts
     val loadTarget = (chunkPos - input.sessionData(LoadDist)) toAsSet (chunkPos + input.sessionData(LoadDist))
 
-    GodClientMain(core.copy(camPos = core.camPos + (movDir * input.sessionData(Speed))).update(world, input)) -> Seq(
-      SetLoadTarget(loadTarget, loadTarget.shroat(4))
-    )
+    val newPos = core.camPos + (movDir * input.sessionData(Speed) * input.dt)
+
+    GodClientMain(core.copy(camPos = newPos).update(world, input)) -> Seq(SetLoadTarget(loadTarget, loadTarget.shroat(4)))
   }
 
   override def keyDown(keycode: KeyCode)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = keycode match {

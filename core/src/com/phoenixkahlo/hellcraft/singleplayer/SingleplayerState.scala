@@ -183,6 +183,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       override val sessionData: ClientSessionData = SingleplayerState.this.sessionData
       override val pack: ResourcePack = SingleplayerState.this.pack
       override val executor: UniExecutor = UniExecutor.getService
+      override def dt: Float = Gdx.graphics.getDeltaTime
       override def keyToChar(keycode: Int): Option[Char] = {
         val str = keycode match {
           case Keys.SPACE => " "

@@ -45,13 +45,15 @@ object ClientSessionData {
   case object ChunkDebugMode extends Field[String](Some(""))
   case object ShowTasks extends Field[Boolean](Some(false))
   case object Sensitivity extends Field[Float](Some(0.25f))
-  case object Speed extends Field[Float](Some(1))
+  case object Speed extends Field[Float](Some(50))
   case object LoadDist extends Field[V3I](Some(V3I(12, 5, 12)))
-  case object DayCycle extends Field[Duration](Some(10 seconds))
+  case object DayCycle extends Field[Duration](Some(3 minutes))
+  case object CloudSpeed extends Field[Float](Some(10))
   type ClientSessionData = TypeMatchingMap[Field, Identity, Any]
-  val empty: ClientSessionData = TypeMatchingMap.empty[Field, Identity, Any].withDefault(new Default[Field, Identity, Any] {
-    override def apply[T <: Any](k: Field[T]): Option[T] = k.default
-  })
+  val empty: ClientSessionData = TypeMatchingMap.empty[Field, Identity, Any].withDefault(
+    new Default[Field, Identity, Any] {
+      override def apply[T](k: Field[T]): Option[T] = k.default
+    })
 }
 
 object ClientLogic {
@@ -68,6 +70,7 @@ object ClientLogic {
     def executor: UniExecutor
     def cursorPos: V2I
     def camRange: (Float, Float)
+    def dt: Float
   }
 }
 
