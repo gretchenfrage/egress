@@ -61,25 +61,6 @@ class SWorld(
 
   override def boundingBox: (V3I, V3I) = bbox()
 
-  /*
-  private def compBoundingBox: SWorld = {
-    System.err.println("comping bounding box")
-    val p = Profiler("comp bounding box")
-    try {
-      if (chunks isEmpty)
-        new SWorld(time, res, chunks, chunkDomain, terrainDomain, active, renderable, None, None)
-      else
-        new SWorld(time, res, chunks, chunkDomain, terrainDomain, active, renderable,
-          Some(V3I(chunks.keySet.toSeq.map(_.xi).min, chunks.keySet.toSeq.map(_.yi).min, chunks.keySet.toSeq.map(_.zi).min)),
-          Some(V3I(chunks.keySet.toSeq.map(_.xi).max, chunks.keySet.toSeq.map(_.yi).max, chunks.keySet.toSeq.map(_.zi).max))
-        )
-    } finally {
-      p.log()
-      p.printDisc(1)
-    }
-  }
-  */
-
   /**
     * Remove those chunks from this world,
     */
@@ -121,16 +102,6 @@ class SWorld(
         case _ => false
       }).map(pos),
       removed.bbox ++ cs.flatMap(_.left.toOption.map(_.pos)))
-      /*
-      Some(V3I(
-        Math.min(cs.map(pos(_).xi).min, min.map(_.xi).getOrElse(Int.MaxValue)),
-        Math.min(cs.map(pos(_).yi).min, min.map(_.yi).getOrElse(Int.MaxValue)),
-        Math.min(cs.map(pos(_).zi).min, min.map(_.zi).getOrElse(Int.MaxValue))
-      )), Some(V3I(
-        Math.max(cs.map(pos(_).xi).max, max.map(_.xi).getOrElse(Int.MinValue)),
-        Math.max(cs.map(pos(_).yi).max, max.map(_.yi).getOrElse(Int.MinValue)),
-        Math.max(cs.map(pos(_).zi).max, max.map(_.zi).getOrElse(Int.MinValue))
-      )))*/
   }
 
   def addChunks(cs: Seq[Chunk]): SWorld = this ++ (cs map (Left(_)))
@@ -159,17 +130,6 @@ class SWorld(
         case _ => removed.bbox
       }
     )
-      /*
-      Some(V3I(
-        Math.min(pos(c).xi, min.map(_.xi).getOrElse(Int.MaxValue)),
-        Math.min(pos(c).yi, min.map(_.yi).getOrElse(Int.MaxValue)),
-        Math.min(pos(c).zi, min.map(_.zi).getOrElse(Int.MaxValue))
-      )), Some(V3I(
-        Math.max(pos(c).xi, max.map(_.xi).getOrElse(Int.MinValue)),
-        Math.max(pos(c).yi, max.map(_.yi).getOrElse(Int.MinValue)),
-        Math.max(pos(c).zi, max.map(_.zi).getOrElse(Int.MinValue))
-      )))
-      */
     finally {
       p.log()
       p.printDisc(1)
@@ -446,7 +406,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     history = history.rangeImpl(Some(history.lastKey - 20), None)
 
     p.log()
-    p.printDisc(50)
+    //p.printDisc(50)
 
     // return the accumulated special effects, with default values
     specialEffects.withDefaultValue(Seq.empty)

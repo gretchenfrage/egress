@@ -151,6 +151,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         effects(SoundEffect).map(_.asInstanceOf[SoundEffect])
           .foreach(AudioUtil.play(pack, V3F(renderer.cam.position)))
 
+        //System.gc()
+
         // manage time
         if (clock.timeSince(time) > (500 milliseconds)) {
           println("can't keep up!")

@@ -97,7 +97,7 @@ class Chunk(
       Some(terrainRenderable), true, Some(blockRenderable), true
     )
 
-  def setTerrain(newTerrain: Terrain, ids: Stream[UUID], meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true): (Chunk, Seq[UpdateEffect]) =
+  def setTerrain(newTerrain: Terrain, meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true)(implicit rand: MRNG): (Chunk, Seq[UpdateEffect]) =
     new Chunk(
       pos, newTerrain,
       entities,
@@ -106,9 +106,9 @@ class Chunk(
       () => broadphase,
       Some(terrainRenderable), true,
       Some(blockRenderable), true
-    ).invalidate(ids, meshTerrFast, meshBlocksFast)
+    ).invalidate(meshTerrFast, meshBlocksFast)
 
-  def invalidate(ids: Stream[UUID], meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true): (Chunk, Seq[UpdateEffect]) = {
+  def invalidate(meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true)(implicit rand: MRNG): (Chunk, Seq[UpdateEffect]) = {
     val e3d = Exec3D(pos * 16)
     val emicroworld = WEval.terrains(pos.neighbors)
     val ets: WEval[TerrainSoup] = emicroworld.map(world => TerrainSoup(terrain, world).get)(
@@ -117,8 +117,8 @@ class Chunk(
     val ebs: WEval[BlockSoup] = emicroworld.map(world => BlockSoup(terrain, world).get)(
       if (meshBlocksFast) ExecCheap else e3d
     )
-    val rts: Request[TerrainSoup] = Request(ets, ids.drop(0).head)
-    val rbs: Request[BlockSoup] = Request(ebs, ids.drop(1).head)
+    val rts: Request[TerrainSoup] = Request(ets, rand.nextUUID)
+    val rbs: Request[BlockSoup] = Request(ebs, rand.nextUUID)
     new Chunk(
       pos, terrain,
       entities,
@@ -128,8 +128,8 @@ class Chunk(
       Some(terrainRenderable), true,
       Some(blockRenderable), true
     ) -> Seq(
-      MakeRequest(rts, (requested, world) => Seq(FulfillChunk(pos, requested, ids.drop(2).head))),
-      MakeRequest(rbs, (requested, world) => Seq(FulfillChunk(pos, requested, ids.drop(3).head)))
+      MakeRequest(rts, (requested, world) => Seq(ChunkEvent.fulfill(pos, requested))),
+      MakeRequest(rbs, (requested, world) => Seq(ChunkEvent.fulfill(pos, requested)))
     )
   }
 
@@ -157,10 +157,11 @@ class Chunk(
     } else this
   }
 
-  def update(world: World): Seq[UpdateEffect] = {
-    val seed: Long = (world.time.hashCode().toLong << 32) | pos.hashCode().toLong
-    val idss: Stream[Stream[UUID]] = RNG.meta(RNG(seed), RNG.uuids)
-    entities.values.zip(idss).flatMap({ case (entity, ids) => entity.update(world, ids) }).toSeq
+  def update(world: World)(implicit rand: MRNG): Seq[UpdateEffect] = {
+    //val seed: Long = (world.time.hashCode().toLong << 32) | pos.hashCode().toLong
+    //val idss: Stream[Stream[UUID]] = RNG.meta(RNG(seed), RNG.uuids)
+    //entities.values.zip(idss).flatMap({ case (entity, ids) => entity.update(world, ids) }).toSeq
+    entities.values.toSeq.flatMap(_.update(world))
   }
 
   def isActive: Boolean = entities.nonEmpty

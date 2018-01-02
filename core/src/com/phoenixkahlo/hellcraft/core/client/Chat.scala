@@ -5,7 +5,7 @@ import java.util.concurrent.ThreadLocalRandom
 
 import com.phoenixkahlo.hellcraft.core.client.ClientSessionData.{ChunkDebugMode, ShowTasks}
 import com.phoenixkahlo.hellcraft.core.entity._
-import com.phoenixkahlo.hellcraft.core.{PutEntity, World}
+import com.phoenixkahlo.hellcraft.core.{ChunkEvent, World}
 import com.phoenixkahlo.hellcraft.fgraphics._
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.collections.TypeMatchingMap
@@ -76,21 +76,9 @@ object Commands {
     "walker" -> ((v, j) => {
       val walk = Option(j.get("walk"))
         .map(parseVec)
-        /*
-        .map(_.asInstanceOf[java.util.List[_]])
-        .map(JavaConverters.asScalaBuffer(_))
-        .map(_.map(_.asInstanceOf[Number].floatValue))
-        .map(floats => V3F(floats(0), floats(1), floats(2)))
-        */
         .getOrElse(Origin)
       val vel = Option(j.get("vel"))
         .map(parseVec)
-        /*
-        .map(_.asInstanceOf[java.util.List[_]])
-        .map(JavaConverters.asScalaBuffer(_))
-        .map(_.map(_.asInstanceOf[Number].floatValue))
-        .map(floats => V3F(floats(0), floats(1), floats(2)))
-        */
         .getOrElse(Origin)
 
       PhysCube(vel, v + (Up * 10), UUID.randomUUID(), walk)
@@ -127,9 +115,9 @@ object Commands {
 
   def stevie(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
     world.rayhit(input.camPos, input.camDir).map(
-      v => CauseUpdateEffect(PutEntity(new Cube(
+      v => CauseUpdateEffect(ChunkEvent.putEnt(new Cube(
         textures(j.asInstanceOf[String])
-        , v, UUID.randomUUID()), UUID.randomUUID())))
+        , v))))
       .toSeq
 
   def spawn(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =

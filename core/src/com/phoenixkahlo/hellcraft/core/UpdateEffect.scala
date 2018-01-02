@@ -5,7 +5,7 @@ import java.util.UUID
 import com.phoenixkahlo.hellcraft.core.entity.{Entity, Moveable, PhysCube}
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.fgraphics.SoundID
-import com.phoenixkahlo.hellcraft.math.{Directions, RNG, V3F, V3I}
+import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.singleplayer.EntityID
 
 
@@ -21,13 +21,88 @@ case class SoundEffect(sound: SoundID, pow: Float, pos: V3F) extends UpdateEffec
 }
 case object SoundEffect extends UpdateEffectType
 
-// request events
+// request effect
 case class MakeRequest[T](request: Request[T], onComplete: (Requested, World) => Seq[ChunkEvent]) extends UpdateEffect {
   override def effectType: UpdateEffectType = MakeRequest
 }
 case object MakeRequest extends UpdateEffectType
 
 // chunk events
+sealed trait ChunkEvent extends UpdateEffect {
+  def id: UUID
+
+  override def effectType: UpdateEffectType = ChunkEvent
+}
+case class UniChunkEvent(target: V3I, func: (Chunk, World) => (Chunk, Seq[UpdateEffect]), id: UUID) extends ChunkEvent
+case class MultiChunkEvent(target: Set[V3I], func: (Map[V3I, Chunk], World) => (Map[V3I, Chunk], Seq[UpdateEffect]),
+                           id: UUID) extends ChunkEvent
+/*
+case class ChunkEvent(target: Set[V3I], func: (Map[V3I, Chunk], World) => Map[V3I, Chunk], id: UUID) extends UpdateEffect
+    with Comparable[ChunkEvent] {
+  override def effectType: UpdateEffectType = ChunkEvent
+
+  override def compareTo(o: ChunkEvent): Int = id compareTo o.id
+
+  override def equals(other: Any): Boolean = other match {
+    case ChunkEvent(_, _, oid) => oid == id
+    case _ => false
+  }
+
+  override def hashCode(): Int = id.hashCode()
+}
+*/
+case object ChunkEvent extends UpdateEffectType {
+  def uni(target: V3I, func: (Chunk, World) => (Chunk, Seq[UpdateEffect]))(implicit rand: MRNG) =
+    UniChunkEvent(target, func, rand.nextUUID)
+
+  def multi(target: Set[V3I], func: (Map[V3I, Chunk], World) => (Map[V3I, Chunk], Seq[UpdateEffect]))(implicit rand: MRNG) =
+    MultiChunkEvent(target, func, rand.nextUUID)
+
+  def fulfill(p: V3I, requested: Requested)(implicit rand: MRNG) =
+    uni(p, (chunk, world) => (chunk.fulfill(requested), Seq.empty))
+
+  def invalidate(p: V3I, meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true)(implicit rand: MRNG) =
+    uni(p, (chunk, world) => chunk.invalidate(meshTerrFast, meshBlocksFast))
+
+  def setMat(v: V3I, mat: TerrainUnit, meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true)(implicit rand: MRNG) =
+    uni(v / 16 floor, (chunk, world) => {
+      val (c, e) = chunk.setTerrain(Terrain(chunk.pos, chunk.terrain.grid.updated(v % 16, mat)), meshTerrFast, meshBlocksFast)
+      (c, e ++ (v.neighbors.map(_ / 16 floor).toSet - (chunk.pos)).toSeq.map(invalidate(_, meshTerrFast, meshBlocksFast)))
+    })
+
+  def putEnt(ent: Entity)(implicit rand: MRNG) =
+    uni(ent.chunkPos, (chunk, world) => (chunk.putEntity(ent), Seq.empty))
+
+  def remEnt(p: V3I, entID: EntityID)(implicit rand: MRNG) =
+    uni(p, (chunk, world) => (chunk.removeEntity(entID), Seq.empty))
+
+  def entEvent[E <: Entity](p: V3I, entID: EntityID, upd: (E, World) => E)(implicit rand: MRNG) =
+    uni(p, (chunk, world) => {
+      chunk.entities.get(entID) match {
+        case Some(ent: E) =>
+          val neu = upd(ent, world)
+          if (neu.chunkPos == ent.chunkPos)
+            (chunk.putEntity(neu), Seq.empty)
+          else
+            (chunk.removeEntity(entID), Seq(putEnt(neu)))
+        case None => (chunk, Seq.empty)
+      }
+    })
+
+  def shift(p: V3I, entID: EntityID, dx: V3F)(implicit rand: MRNG) =
+    entEvent[Moveable](p, entID, (ent, world) => ent.updatePos(ent.pos + dx))
+
+  def physics(p: V3I, entID: EntityID)(implicit rand: MRNG) =
+    entEvent[PhysCube](p, entID, (ent, world) => ent.doPhysics(world))
+
+
+  //def fulfillChunk(p: V3I, requested: Requested)(implicit rand: MRNG) =
+  //  ChunkEvent(Set(p), (chunks, world) => chunks(p))
+}
+
+
+//case class ChunkEvent(target: V3I, func:)
+/*
 abstract class ChunkEvent(val target: V3I, val id: UUID) extends UpdateEffect with Comparable[ChunkEvent] {
   def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect])
 
@@ -47,12 +122,6 @@ abstract class ChunkEvent(val target: V3I, val id: UUID) extends UpdateEffect wi
 }
 case object ChunkEvent extends UpdateEffectType
 
-/*
-case class SetTerrain(newTerrain: Terrain, override val id: UUID) extends ChunkEvent(newTerrain.pos, id) {
-  override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
-    chunk.setTerrain(newTerrain, RNG.uuids(RNG(id.hashCode())))
-}
-*/
 case class FulfillChunk(p: V3I, requested: Requested, override val id: UUID) extends ChunkEvent(p, id) {
   override def apply(chunk: Chunk, world: World) =
     (chunk.fulfill(requested), Seq.empty)
@@ -105,3 +174,4 @@ case class DoPhysics(entityID: EntityID, override val target: V3I, override val 
   extends UpdateEntity[PhysCube](entityID, target, id) {
   override protected def update(entity: PhysCube, world: World): Entity = entity.doPhysics(world)
 }
+*/

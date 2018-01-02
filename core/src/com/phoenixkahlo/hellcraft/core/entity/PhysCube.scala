@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.core.entity
 
 import java.util.UUID
 
-import com.phoenixkahlo.hellcraft.core.{DoPhysics, PutEntity, Shift, TerrainSoup, UpdateEffect, World}
+import com.phoenixkahlo.hellcraft.core.{ChunkEvent, TerrainSoup, UpdateEffect, World}
 import com.phoenixkahlo.hellcraft.fgraphics.PhysTID
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.math._
@@ -11,7 +11,7 @@ import com.phoenixkahlo.hellcraft.math.physics.{ComplexCollider, EmptyBroadphase
 import scala.collection.mutable.ArrayBuffer
 
 case class PhysCube(vel: V3F, override val pos: V3F, override val id: UUID, walk: V3F, override val lastPos: V3F) extends Cube(PhysTID, pos, id) with Moveable {
-  override def updatePos(newPos: V3F): Entity = copy(pos = newPos, lastPos = pos)
+  override def updatePos(newPos: V3F): Moveable = copy(pos = newPos, lastPos = pos)
 
   def doPhysics(world: World): PhysCube = {
     val broadphase = chunkPos.neighbors.flatMap(world.chunkAt).map(_.broadphase).fold(EmptyBroadphase)(_ + _)
@@ -22,8 +22,8 @@ case class PhysCube(vel: V3F, override val pos: V3F, override val id: UUID, walk
     copy(vel = collider.vel, pos = collider.pos, lastPos = pos)
   }
 
-  override def update(world: World, ids: Stream[UUID]): Seq[UpdateEffect] =
-    Seq(DoPhysics(id, chunkPos, ids.head))
+  override def update(world: World)(implicit rand: MRNG): Seq[UpdateEffect] =
+    Seq(ChunkEvent.physics(chunkPos, id))
 }
 
 object PhysCube {

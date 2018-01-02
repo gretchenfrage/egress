@@ -88,13 +88,6 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
         }, execOpenGL).flatMap(unit => f(later))
       }
 
-    /*
-    resources = resources.flatMap(set => {
-      val curr = seq.map(toGraph)
-      val garbage = set -- curr
-      f(garbage.toList).map(nil => curr.toSet)
-    })
-    */
     resources = resources.map(set => {
       val curr = seq.map(toGraph)
       val garbage = set -- curr
@@ -276,7 +269,7 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     context.end()
 
     p.log()
-    p.printDisc(1000 / 60)
+    //p.printDisc(1000 / 60)
   }
 
   override def onResize(width: Int, height: Int): Unit = {
