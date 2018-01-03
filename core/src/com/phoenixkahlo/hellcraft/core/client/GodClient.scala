@@ -1,11 +1,12 @@
 package com.phoenixkahlo.hellcraft.core.client
 import java.util.UUID
+import java.util.concurrent.ThreadLocalRandom
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.math.Matrix4
 import com.phoenixkahlo.hellcraft.core.graphics._
-import com.phoenixkahlo.hellcraft.core.{Blocks, Materials, RenderWorld, SetMat, World}
+import com.phoenixkahlo.hellcraft.core.{Blocks, ChunkEvent, Materials, RenderWorld, World}
 import com.phoenixkahlo.hellcraft.fgraphics.ParticleShader.Particle
 import com.phoenixkahlo.hellcraft.fgraphics._
 import com.phoenixkahlo.hellcraft.math.MatrixFactory.{Rotate, Translate}
@@ -235,6 +236,9 @@ case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3
 }
 
 case class GodClientMain(core: ClientCore) extends ClientLogic {
+  val rands = ThreadLocal.withInitial[MRNG](() => new MRNG(ThreadLocalRandom.current.nextLong()))
+  implicit def rand: MRNG = rands.get
+
   override def become(replacement: ClientLogic): (ClientLogic, Seq[ClientEffect]) = {
     if (!replacement.isInstanceOf[GodClientMain]) replacement -> Seq(ReleaseCursor)
     else super.become(replacement)
@@ -270,7 +274,7 @@ case class GodClientMain(core: ClientCore) extends ClientLogic {
       case Right =>
         world
           .placeBlock(core.camPos, core.camDir, 64)
-          .map(v => cause(CauseUpdateEffect(SetMat(v, Blocks.Brick, UUID.randomUUID(), meshBlocksFast = true))))
+          .map(v => cause(CauseUpdateEffect(ChunkEvent.setMat(v, Blocks.Brick, meshBlocksFast = true))))
           .getOrElse(nothing)
       case _ => nothing
     } else cause(CaptureCursor)

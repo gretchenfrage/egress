@@ -22,7 +22,7 @@ case class SoundEffect(sound: SoundID, pow: Float, pos: V3F) extends UpdateEffec
 case object SoundEffect extends UpdateEffectType
 
 // request effect
-case class MakeRequest[T](request: Request[T], onComplete: (Requested, World) => Seq[ChunkEvent]) extends UpdateEffect {
+case class MakeRequest[T](request: Request[T], onComplete: (Requested, World, MRNG) => Seq[ChunkEvent]) extends UpdateEffect {
   override def effectType: UpdateEffectType = MakeRequest
 }
 case object MakeRequest extends UpdateEffectType

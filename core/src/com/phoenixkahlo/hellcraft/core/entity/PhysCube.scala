@@ -27,6 +27,6 @@ case class PhysCube(vel: V3F, override val pos: V3F, override val id: UUID, walk
 }
 
 object PhysCube {
-  def apply(vel: V3F, pos: V3F, id: UUID, walk: V3F): PhysCube =
-    PhysCube(vel, pos, id, walk, pos)
+  def apply(vel: V3F, pos: V3F, walk: V3F)(implicit rand: MRNG): PhysCube =
+    PhysCube(vel, pos, rand.nextUUID, walk, pos)
 }

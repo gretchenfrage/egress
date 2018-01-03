@@ -128,8 +128,8 @@ class Chunk(
       Some(terrainRenderable), true,
       Some(blockRenderable), true
     ) -> Seq(
-      MakeRequest(rts, (requested, world) => Seq(ChunkEvent.fulfill(pos, requested))),
-      MakeRequest(rbs, (requested, world) => Seq(ChunkEvent.fulfill(pos, requested)))
+      MakeRequest(rts, (requested, world, rand) => Seq(ChunkEvent.fulfill(pos, requested)(rand))),
+      MakeRequest(rbs, (requested, world, rand) => Seq(ChunkEvent.fulfill(pos, requested)(rand)))
     )
   }
 

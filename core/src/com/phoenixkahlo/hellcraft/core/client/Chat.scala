@@ -16,6 +16,10 @@ import scala.concurrent.duration.Duration
 
 object Commands {
 
+  val threadRands: ThreadLocal[MRNG] =
+    ThreadLocal.withInitial(() => new MRNG(ThreadLocalRandom.current.nextLong()))
+  implicit def rand: MRNG = threadRands.get()
+
   val textures: Map[String, SheetTextureID] = Map(
     "stone" -> StoneTID,
     "sand" -> SandTID,
@@ -63,16 +67,16 @@ object Commands {
     "sound" -> ((v, j) => SoundCube(
       sounds(j.get("sound").asInstanceOf[String]),
       j.get("freq").asInstanceOf[Number].intValue,
-      v, UUID.randomUUID()
+      v
     )),
     "glide" -> ((v, j) => {
       val vel = JavaConverters.asScalaBuffer(j.get("vel").asInstanceOf[java.util.List[_]]).map(_.asInstanceOf[Number].floatValue)
       GlideCube(
         V3F(vel(0), vel(1), vel(2)),
-        v, UUID.randomUUID()
+        v
       )
     }),
-    "ghost" -> ((v, j) => GhostCube(v, UUID.randomUUID())),
+    "ghost" -> ((v, j) => GhostCube(v)),
     "walker" -> ((v, j) => {
       val walk = Option(j.get("walk"))
         .map(parseVec)
@@ -81,7 +85,7 @@ object Commands {
         .map(parseVec)
         .getOrElse(Origin)
 
-      PhysCube(vel, v + (Up * 10), UUID.randomUUID(), walk)
+      PhysCube(vel, v + (Up * 10), walk)
     })
   )
 
@@ -125,7 +129,7 @@ object Commands {
       v => {
         val entity = spawnable(j.asInstanceOf[JSONObject].get("type").asInstanceOf[String])(
           v, j.asInstanceOf[JSONObject])
-        CauseUpdateEffect(PutEntity(entity, UUID.randomUUID()))
+        CauseUpdateEffect(ChunkEvent.putEnt(entity))
       }
     ).toSeq
 

@@ -1,13 +1,13 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
 import java.util.UUID
-import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.{ConcurrentLinkedQueue, ThreadLocalRandom}
 
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.Entity
 import com.phoenixkahlo.hellcraft.core.eval.{AsyncEval, WEval}
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
-import com.phoenixkahlo.hellcraft.math.{Ones, Origin, V3F, V3I}
+import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.LeftOption
 import com.phoenixkahlo.hellcraft.util.collections.{MergeBinned, TypeMatchingMap, V3ISet}
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
@@ -163,6 +163,7 @@ class SWorld(
     * Integrate the events into the world, assuming the chunks are present, for events which's target modulo mod
     * equals frequency.
     */
+  /*
   def integrate(events: Map[V3I, Seq[ChunkEvent]], mod: Int, freq: V3I): (SWorld, Seq[UpdateEffect]) = {
     val (updated: Seq[Chunk], accumulated: Seq[Seq[UpdateEffect]]) =
       events.filterKeys(_ % mod == freq).map({
@@ -189,6 +190,32 @@ class SWorld(
         (updatedWorld, accumulator ++ newEffects)
       }}
   }
+  */
+  def integrate(_events: Seq[ChunkEvent]): (SWorld, Seq[UpdateEffect]) = {
+    var world = this
+    val events = _events.toBuffer
+    val effects = new mutable.ArrayBuffer[UpdateEffect]
+
+    while (events.nonEmpty) events.remove(events.size - 1) match {
+      case UniChunkEvent(target, func, id) =>
+        val (c: Chunk, e: Seq[UpdateEffect]) = func(world.chunkAt(target).get, world)
+        val (ec, eo) = e.partition(_.effectType == ChunkEvent)
+
+        world += c
+        events ++= ec.map(_.asInstanceOf[ChunkEvent])
+        effects ++= eo
+      case MultiChunkEvent(target, func, id) =>
+        val in: Map[V3I, Chunk] = target.toSeq.map(p => (p, world.chunkAt(p).get)).toMap
+        val (c: Map[V3I, Chunk], e: Seq[UpdateEffect]) = func(in, world)
+        val (ec, eo) = e.partition(_.effectType == ChunkEvent)
+
+        world = world.addChunks(c.values.toSeq)
+        events ++= ec.map(_.asInstanceOf[ChunkEvent])
+        effects ++= eo
+    }
+
+    (world, effects)
+  }
 
   /**
     * Increment the time
@@ -201,11 +228,15 @@ class SWorld(
     new SWorld(time, res, chunks, newChunkDomain, newTerrainDomain, active, renderable, bbox)
   }
 
+  def seed(p: V3I): MRNG.Seed =
+    (time.hashCode().toLong << 32) | hashCode().toLong
+
+
   /**
     * Get all effects from chunks with complete terrain
     */
   def effects(dt: Float): Seq[UpdateEffect] = {
-    active.toSeq.map(chunks(_).left.get).flatMap(_.update(this))
+    active.toSeq.map(chunks(_).left.get).flatMap(chunk => chunk.update(this)(new MRNG(seed(chunk.pos))))
   }
 }
 
@@ -227,8 +258,9 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
   private var terrainLoadMap = Map.empty[V3I, LoadID]
 
   // TODO: save to db
-  private var pendingEvents = Map.empty[V3I, Seq[ChunkEvent]]
+  //private var pendingEvents = Map.empty[V3I, Seq[ChunkEvent]]
   private val requestedQueue = new ConcurrentLinkedQueue[World => Seq[ChunkEvent]]
+  private val pendedQueue = new ConcurrentLinkedQueue[ChunkEvent]
 
   def apply(t: Long): Option[SWorld] = history.get(t)
   def apply(): SWorld = history.last._2
@@ -305,10 +337,12 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
         world += chunk
         chunkFulfill.put(chunk.pos, chunk)
         terrainFulfill.put(chunk.pos, chunk.terrain)
+        /*
         if (pendingEvents contains chunk.pos) {
           events ++= pendingEvents(chunk.pos)
           pendingEvents -= chunk.pos
         }
+        */
       }
       lp.log()
     }
@@ -336,6 +370,13 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
 
     p.log()
 
+    // pull pended events from the queue
+    while (!pendedQueue.isEmpty) {
+      events +:= pendedQueue.remove()
+    }
+
+    p.log()
+
     // pull requested values from the queue and transform them into events, accumulating them
     while (requestedQueue.size > 0) {
       events ++= requestedQueue.remove()(world)
@@ -349,13 +390,30 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
     @tailrec def applyEvents(eventsIn: Seq[ChunkEvent]): Unit = {
       var events = eventsIn
       // partition events by whether they can be integrated immediately
-      val (integrateNow: Seq[ChunkEvent], integrateLater: Seq[ChunkEvent]) =
-        events.partition(event => world.chunks.get(event.target).flatMap(_.left.toOption).isDefined)
+      val (integrateNow: Seq[ChunkEvent], integrateLater: Seq[ChunkEvent]) = {
+        def ready(p: V3I): Boolean = world.chunks.get(p).flatMap(_.left.toOption).isDefined
+        events partition {
+          case UniChunkEvent(target, _, _) => ready(target)
+          case MultiChunkEvent(target, _, _) => target.forall(ready)
+        }
+      }
+      //val (integrateNow: Seq[ChunkEvent], integrateLater: Seq[ChunkEvent]) =
+      //  events.partition(event => world.chunks.get(event.target).flatMap(_.left.toOption).isDefined)
+
+      // make the events that cannot be integrated immediately, be added to the queue upon being ready
+      integrateLater foreach {
+        case event@UniChunkEvent(target, _, _) =>
+          FulfillFut[V3I, Chunk](target).onComplete(() => pendedQueue.add(event))
+        case event@MultiChunkEvent(target, _, _) =>
+          PromiseFold(target.toSeq.map(p => FulfillFut[V3I, Chunk](p))).onComplete(() => pendedQueue.add(event))
+      }
 
       // add the events that can't be immediately integrated to the pending event sequence
+      /*
       for ((key, seq) <- integrateLater.groupBy(_.target)) {
         pendingEvents = pendingEvents.updated(key, pendingEvents.getOrElse(key, Seq.empty) ++ seq)
       }
+      */
 
       // integrate the accumulated events into the world
       val (integrated, newEffects) = world.integrate(integrateNow)
@@ -363,7 +421,17 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
 
       // update the chunk fulfiller with the updated chunks
       // TODO: do this once per loop, and optimize the chunk set getting
+      /*
       for (p <- integrateNow.map(_.target).distinct) {
+        chunkFulfill.put(p, world.chunks(p).left.get)
+        terrainFulfill.put(p, world.chunks(p).left.get.terrain)
+      }
+      */
+      // update the fulfillment contexts
+      for (p <- integrateNow.flatMap({
+        case UniChunkEvent(target, _, _) => Seq(target)
+        case MultiChunkEvent(target, _, _) => target
+      }).distinct) {
         chunkFulfill.put(p, world.chunks(p).left.get)
         terrainFulfill.put(p, world.chunks(p).left.get.terrain)
       }
@@ -390,7 +458,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       val fut: Fut[Any] = new AsyncEval(request.eval)().fut(WEval.input, toFutPack)
       fut.onComplete(() => {
         val result: Requested = new Requested(request.id, fut.query.get)
-        requestedQueue.add(world => make.onComplete(result, world))
+        requestedQueue.add(world => make.onComplete(result, world, new MRNG(ThreadLocalRandom.current.nextLong())))
       })
     }
 
