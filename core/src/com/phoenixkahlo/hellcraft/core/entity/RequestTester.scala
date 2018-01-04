@@ -7,10 +7,11 @@ import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent, MakeRequest, RenderWo
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.fgraphics.{Render, Shader}
 import com.phoenixkahlo.hellcraft.math.{MRNG, Origin, V3F, V3I}
-import com.phoenixkahlo.hellcraft.singleplayer.EntityID
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 
-class RequestTester(override val id: UUID, request: Request[String]) extends Entity {
+/*
+class RequestTester(override val id: EntityID[RequestTester], request: Request[String]) extends Entity {
+
   override def pos: V3F = Origin
 
   def onComplete(result: Requested): Seq[UpdateEffect] = {
@@ -23,6 +24,7 @@ class RequestTester(override val id: UUID, request: Request[String]) extends Ent
   override def render(world: RenderWorld): Seq[Render[_ <: Shader]] = Seq.empty
 }
 
+**/
 /*
 case class OnComplete(result: Requested, entityID: UUID, eventID: UUID) extends ChunkEvent(Origin, eventID) {
   override def apply(chunk: Chunk, world: World): (Chunk, Seq[UpdateEffect]) =
@@ -30,8 +32,9 @@ case class OnComplete(result: Requested, entityID: UUID, eventID: UUID) extends 
 }
 */
 
+/*
 object OnComplete {
-  def apply(result: Requested, entID: EntityID, rand: MRNG): ChunkEvent =
+  def apply(result: Requested, entID: EntityID[RequestTester], rand: MRNG): ChunkEvent =
     UniChunkEvent(Origin, (chunk, world) => (chunk, chunk.entities(entID).asInstanceOf[RequestTester].onComplete(result)), rand.nextUUID)
 }
 
@@ -40,7 +43,7 @@ object RequestTester {
 
   def apply(gen: => String, ids: Stream[UUID])(implicit rand: MRNG): Seq[UpdateEffect] = {
     val request = Request[String](WEval(gen), ids.drop(0).head)
-    val entity = new RequestTester(ids.drop(1).head, request)
+    val entity: RequestTester = new RequestTester(EntityID(), request)
     Seq(
       ChunkEvent.putEnt(entity),
       MakeRequest(request, (result, world, rand) => Seq(OnComplete(result, entity.id, rand)))
@@ -56,3 +59,4 @@ object RequestTester {
     )
   }
 }
+*/

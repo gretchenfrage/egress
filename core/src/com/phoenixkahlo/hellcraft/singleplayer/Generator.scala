@@ -5,7 +5,7 @@ import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.phoenixkahlo.hellcraft.core._
-import com.phoenixkahlo.hellcraft.core.entity.Cube
+import com.phoenixkahlo.hellcraft.core.entity.{Cube, EntityMap}
 import com.phoenixkahlo.hellcraft.fgraphics.StoneTID
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.collections.{Domain, MemoFunc, V3ISet}
@@ -93,7 +93,7 @@ class DefaultGenerator(res: Int) extends Generator {
 
   override val chunkAt = new MemoFunc[V3I, Fut[Chunk]](p =>
     if (!cancelled) {
-      soupAt(p).map({ case (ter, bs, ts) => new Chunk(p, ter, Map.empty, ts, bs, None, None) }, UniExecutor.exec(p * 16))
+      soupAt(p).map({ case (ter, bs, ts) => new Chunk(p, ter, EntityMap.empty, ts, bs, None, None) }, UniExecutor.exec(p * 16))
     } else Fut(null: Chunk, _.run())
   )
 

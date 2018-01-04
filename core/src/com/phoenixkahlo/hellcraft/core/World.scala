@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.core
 
 import java.util.{NoSuchElementException, UUID}
 
-import com.phoenixkahlo.hellcraft.core.entity.Entity
+import com.phoenixkahlo.hellcraft.core.entity.{Entity, EntID}
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 
@@ -69,7 +69,7 @@ trait World extends TerrainGrid {
 
   def time: Long
 
-  def findEntity(id: UUID): Option[Entity]
+  def findEntity[E <: Entity[E]](id: EntID[E]): Option[E]
 
   def boundingBox: (V3I, V3I)
 

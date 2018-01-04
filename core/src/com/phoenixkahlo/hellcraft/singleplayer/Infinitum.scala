@@ -4,7 +4,7 @@ import java.util.UUID
 import java.util.concurrent.{ConcurrentLinkedQueue, ThreadLocalRandom}
 
 import com.phoenixkahlo.hellcraft.core._
-import com.phoenixkahlo.hellcraft.core.entity.Entity
+import com.phoenixkahlo.hellcraft.core.entity.{EntID, Entity}
 import com.phoenixkahlo.hellcraft.core.eval.{AsyncEval, WEval}
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.math._
@@ -56,7 +56,11 @@ class SWorld(
     }
 
 
-  override def findEntity(id: EntityID): Option[Entity] =
+  //override def findEntity(id: EntityID): Option[Entity] =
+  //  chunks.values.toStream.flatMap(LeftOption(_)).flatMap(_.entities.get(id)).headOption
+
+
+  override def findEntity[E <: Entity[E]](id: EntID[E]) =
     chunks.values.toStream.flatMap(LeftOption(_)).flatMap(_.entities.get(id)).headOption
 
   override def boundingBox: (V3I, V3I) = bbox()
@@ -150,7 +154,10 @@ class SWorld(
 
     override def res: Int = SWorld.this.res
 
-    override def findEntity(id: EntityID): Option[Entity] = nchunks.values.toStream.flatMap(LeftOption(_)).flatMap(_.entities.get(id)).headOption
+    override def findEntity[E <: Entity[E]](id: EntID[E]) =
+      nchunks.values.toStream.flatMap(LeftOption(_)).flatMap(_.entities.get(id)).headOption
+
+    //override def findEntity(id: EntityID): Option[Entity] = nchunks.values.toStream.flatMap(LeftOption(_)).flatMap(_.entities.get(id)).headOption
 
     override def boundingBox: (V3I, V3I) = SWorld.this.boundingBox
 
@@ -191,7 +198,22 @@ class SWorld(
       }}
   }
   */
-  def integrate(_events: Seq[ChunkEvent]): (SWorld, Seq[UpdateEffect]) = {
+  def integrate(events: Seq[ChunkEvent]): (SWorld, Seq[UpdateEffect]) = {
+    var world = this
+    val effects = new mutable.ArrayBuffer[UpdateEffect]
+    events foreach {
+      case UniChunkEvent(target, func, id) =>
+        val (c: Chunk, e: Seq[UpdateEffect]) = func(world.chunkAt(target).get, world)
+        world += c
+        effects ++= e
+      case MultiChunkEvent(target, func, id) =>
+        val in: Map[V3I, Chunk] = target.toSeq.map(p => (p -> world.chunkAt(p).get)).toMap
+        val (c: Map[V3I, Chunk], e: Seq[UpdateEffect]) = func(in, world)
+        world = world addChunks c.values.toSeq
+        effects ++= e
+    }
+    (world, effects)
+    /*
     var world = this
     val events = _events.toBuffer
     val effects = new mutable.ArrayBuffer[UpdateEffect]
@@ -215,6 +237,7 @@ class SWorld(
     }
 
     (world, effects)
+    */
   }
 
   /**
@@ -439,7 +462,6 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       // group
       val newEffectsGrouped = newEffects.groupBy(_.effectType)
       specialEffects = MergeBinned(specialEffects, newEffectsGrouped - ChunkEvent)
-
 
       // recurse
       if (newEffectsGrouped.getOrElse(ChunkEvent, Seq.empty).nonEmpty)

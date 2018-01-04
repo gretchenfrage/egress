@@ -3,7 +3,7 @@ package com.phoenixkahlo.hellcraft.core
 import java.util.{Objects, UUID}
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion
-import com.phoenixkahlo.hellcraft.core.entity.Entity
+import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.core.eval.GEval.GEval
 import com.phoenixkahlo.hellcraft.core.eval.WEval.WEval
 import com.phoenixkahlo.hellcraft.core.eval.{Exec3D, ExecCheap, GEval, WEval}
@@ -20,7 +20,7 @@ import scala.collection.mutable.ArrayBuffer
 class Chunk(
              val pos: V3I,
              val terrain: Terrain,
-             val entities: Map[UUID, Entity],
+             val entities: EntityMap,
              val terrainSoup: TerrainSoup,
              val blockSoup: BlockSoup,
              val tsRequest: Option[Request[TerrainSoup]],
@@ -77,17 +77,17 @@ class Chunk(
       pos * 16 + Repeated(8), 64
     ))
 
-  def putEntity(entity: Entity): Chunk =
+  def putEntity(entity: AnyEnt): Chunk =
     new Chunk(
       pos, terrain,
-      entities + (entity.id -> entity),
+      entities + entity,
       terrainSoup, blockSoup,
       tsRequest, bsRequest,
       () => broadphase,
       Some(terrainRenderable), true, Some(blockRenderable), true
     )
 
-  def removeEntity(entity: UUID): Chunk =
+  def removeEntity(entity: AnyEntID): Chunk =
     new Chunk(
       pos, terrain,
       entities - entity,
@@ -140,7 +140,7 @@ class Chunk(
         entities,
         tsRequest.get.unlock(requested).get, blockSoup,
         None, bsRequest,
-        () => broadphase,
+        null,
         Some(terrainRenderable), false,
         Some(blockRenderable), true
       )
@@ -150,19 +150,15 @@ class Chunk(
         entities,
         terrainSoup, bsRequest.get.unlock(requested).get,
         tsRequest, None,
-        () => broadphase,
+        null,
         Some(terrainRenderable), true,
         Some(blockRenderable), false
       )
     } else this
   }
 
-  def update(world: World)(implicit rand: MRNG): Seq[UpdateEffect] = {
-    //val seed: Long = (world.time.hashCode().toLong << 32) | pos.hashCode().toLong
-    //val idss: Stream[Stream[UUID]] = RNG.meta(RNG(seed), RNG.uuids)
-    //entities.values.zip(idss).flatMap({ case (entity, ids) => entity.update(world, ids) }).toSeq
-    entities.values.toSeq.flatMap(_.update(world))
-  }
+  def update(world: World)(implicit rand: MRNG): Seq[UpdateEffect] =
+    entities.values.flatMap(_.update(world))
 
   def isActive: Boolean = entities.nonEmpty
 

@@ -11,8 +11,8 @@ import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.math.{Down, MRNG, V3F, V4I}
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 
-class Cube(val tid: SheetTextureID, val pos: V3F, val id: UUID) extends Entity {
-  def this(tid: SheetTextureID, pos: V3F)(implicit rand: MRNG) = this(tid, pos, rand.nextUUID)
+abstract class Cube[E <: Cube[E]](val tid: SheetTextureID, val pos: V3F) extends Entity[E] {
+  this: E =>
 
   protected def color: Color = Color.WHITE
 
@@ -24,32 +24,38 @@ class Cube(val tid: SheetTextureID, val pos: V3F, val id: UUID) extends Entity {
   ))
 }
 
-case class SoundCube(sid: SoundID, freq: Int, override val pos: V3F, override val id: UUID) extends Cube(SoundTID, pos, id) {
+case class SimpleCube(override val tid: SheetTextureID, override val pos: V3F, override val id: EntID[SimpleCube]) extends Cube[SimpleCube](tid, pos)
+object SimpleCube {
+  def apply(tid: SheetTextureID, pos: V3F)(implicit rand: MRNG): SimpleCube =
+    SimpleCube(tid, pos, EntID())
+}
+
+case class SoundCube(sid: SoundID, freq: Int, override val pos: V3F, override val id: EntID[SoundCube]) extends Cube[SoundCube](SoundTID, pos) {
   override def update(world: World)(implicit rand: MRNG): Seq[UpdateEffect] =
     if (world.time % freq == 0) Seq(SoundEffect(sid, 1, pos))
     else Seq.empty
 }
 object SoundCube {
   def apply(sid: SoundID, freq: Int, pos: V3F)(implicit rand: MRNG): SoundCube =
-    SoundCube(sid, freq, pos, rand.nextUUID)
+    SoundCube(sid, freq, pos, EntID())
 }
 
-case class GlideCube(vel: V3F, override val pos: V3F, override val id: UUID) extends Cube(GrassTID, pos, id) with Moveable {
+case class GlideCube(vel: V3F, override val pos: V3F, override val id: EntID[GlideCube]) extends Cube[GlideCube](GrassTID, pos) with Moveable[GlideCube] {
   override def update(world: World)(implicit rand: MRNG): Seq[UpdateEffect] = {
     Seq(ChunkEvent.shift(chunkPos, id, vel * Delta.dtf))
   }
 
-  override def updatePos(newPos: V3F): Moveable = copy(pos = newPos)
+  override def updatePos(newPos: V3F): GlideCube = copy(pos = newPos)
 }
 object GlideCube {
   def apply(vel: V3F, pos: V3F)(implicit rand: MRNG): GlideCube =
-    GlideCube(vel, pos, rand.nextUUID)
+    GlideCube(vel, pos, EntID())
 }
 
-case class GhostCube(override val pos: V3F, override val id: UUID) extends Cube(GrayTID, pos, id) {
+case class GhostCube(override val pos: V3F, override val id: EntID[GhostCube]) extends Cube[GhostCube](GrayTID, pos) {
   override protected val color = new Color(1, 1, 1, 0.4f)
 }
 object GhostCube {
   def apply(pos: V3F)(implicit rand: MRNG): GhostCube =
-    GhostCube(pos, rand.nextUUID)
+    GhostCube(pos, EntID())
 }

@@ -10,8 +10,8 @@ import com.phoenixkahlo.hellcraft.math.physics.{ComplexCollider, EmptyBroadphase
 
 import scala.collection.mutable.ArrayBuffer
 
-case class PhysCube(vel: V3F, override val pos: V3F, override val id: UUID, walk: V3F, override val lastPos: V3F) extends Cube(PhysTID, pos, id) with Moveable {
-  override def updatePos(newPos: V3F): Moveable = copy(pos = newPos, lastPos = pos)
+case class PhysCube(vel: V3F, override val pos: V3F, override val id: EntID[PhysCube], walk: V3F, override val lastPos: V3F) extends Cube[PhysCube](PhysTID, pos) with Moveable[PhysCube] {
+  override def updatePos(newPos: V3F): PhysCube = copy(pos = newPos, lastPos = pos)
 
   def doPhysics(world: World): PhysCube = {
     val broadphase = chunkPos.neighbors.flatMap(world.chunkAt).map(_.broadphase).fold(EmptyBroadphase)(_ + _)
@@ -28,5 +28,5 @@ case class PhysCube(vel: V3F, override val pos: V3F, override val id: UUID, walk
 
 object PhysCube {
   def apply(vel: V3F, pos: V3F, walk: V3F)(implicit rand: MRNG): PhysCube =
-    PhysCube(vel, pos, rand.nextUUID, walk, pos)
+    PhysCube(vel, pos, EntID(), walk, pos)
 }

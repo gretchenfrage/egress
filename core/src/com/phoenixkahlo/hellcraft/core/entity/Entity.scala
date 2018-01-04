@@ -6,8 +6,12 @@ import com.phoenixkahlo.hellcraft.core.{ChunkEvent, RenderWorld, UpdateEffect, W
 import com.phoenixkahlo.hellcraft.fgraphics.{Render, Shader}
 import com.phoenixkahlo.hellcraft.math.{MRNG, V3F, V3I}
 
-trait Entity extends Serializable {
-  def id: UUID
+trait Entity[E <: Entity[E]] extends Serializable {
+  this: E =>
+
+  def id: EntID[E]
+
+  //def id: EntityID[this.type]
 
   def update(world: World)(implicit rand: MRNG): Seq[UpdateEffect] = Seq.empty
 
@@ -18,6 +22,8 @@ trait Entity extends Serializable {
   def chunkPos: V3I = pos / 16 floor
 }
 
-trait Moveable extends Entity {
-  def updatePos(newPos: V3F): Moveable
+trait Moveable[E <: Moveable[E]] extends Entity[E] {
+  this: E =>
+
+  def updatePos(newPos: V3F): E
 }

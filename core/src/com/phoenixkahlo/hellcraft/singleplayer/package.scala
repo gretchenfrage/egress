@@ -14,7 +14,7 @@ import scala.reflect.ClassTag
 package object singleplayer {
 
   type ClientID = UUID
-  type EntityID = UUID
+  //type EntityID = UUID
   type EventID = UUID
   type AvatarID = UUID
 
