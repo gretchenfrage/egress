@@ -54,15 +54,20 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     val res = WorldRes
 
     println("activating uni executor")
-    UniExecutor.activate(auxBackgroundThreads, task => {
-      val thread = new Thread(task, "uni exec thread")
-      thread.setPriority(backgroundThreadPriority)
-      thread
-    }, t => {
-      System.err.println("uni executor failure")
-      t.printStackTrace()
-      driver.enter(new MainMenu(providedResources))
-    }, SpatialTemporalQueue.equate(1 second, 0))
+    UniExecutor.activate(
+      auxBackgroundThreads,
+      task => {
+        val thread = new Thread(task, "uni exec thread")
+        thread.setPriority(backgroundThreadPriority)
+        thread
+      }, t => {
+        System.err.println("uni executor failure")
+        t.printStackTrace()
+        driver.enter(new MainMenu(providedResources))
+      },
+      SpatialTemporalQueue.timeDoesntMatter,
+      V3F(1, 1.5f, 1)
+    )
 
     println("creating client logic")
     clientLogic = GodClientMain(ClientCore(

@@ -4,6 +4,7 @@ import java.util
 import java.util.Objects
 
 import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
+import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
 
 import scala.reflect.ClassTag
 

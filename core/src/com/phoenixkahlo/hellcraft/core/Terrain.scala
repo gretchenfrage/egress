@@ -28,6 +28,10 @@ case class TerrainSoup(pos: V3I, verts: OptionField[TerrainSoup.Vert], indices: 
 object TerrainSoup {
   case class Vert(pos: V3F, mat: Material, nor: V3F)
 
+  val noneField = OptionField.empty[Vert](V3I(18, 18, 18))
+  val zeroField = ShortField(V3I(18, 18, 18), 0 toShort)
+  def empty(pos: V3I) = TerrainSoup(pos, noneField, Seq.empty, Seq.empty, zeroField)
+
   val edges: Seq[(V3I, V3I)] = Seq(
     Origin -> West,
     Origin -> (Origin + Up),

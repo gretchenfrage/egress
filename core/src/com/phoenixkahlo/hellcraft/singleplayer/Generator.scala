@@ -9,6 +9,7 @@ import com.phoenixkahlo.hellcraft.core.entity.Cube
 import com.phoenixkahlo.hellcraft.fgraphics.StoneTID
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.collections.{Domain, MemoFunc, V3ISet}
+import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 import com.phoenixkahlo.hellcraft.util.fields._
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, MergeFut, UniExecutor}
 
@@ -30,15 +31,21 @@ class DefaultGenerator(res: Int) extends Generator {
   @volatile private var cancelled = false
 
   val heightAt = new MemoFunc[V2I, Fut[FloatField]](v =>
-    Fut(FloatField(V3I(res, 1, res),
-      i => noise(v * res + i.flatten)
-    ), UniExecutor.exec(v * 16))
+    Fut({
+      val p = Profiler("generate heightmap")
+      val f = FloatField(V3I(res, 1, res),
+        i => noise(v * res + i.flatten)
+      )
+      //p.log(); p.printDisc(1);
+      f
+    }, UniExecutor.exec(v * 16))
   )
 
   override val terrainAt = new MemoFunc[V3I, Fut[Terrain]](p =>
     if (!cancelled) {
       heightAt(p.flatten).map(
         height => {
+          val prof = Profiler("generate terrain field")
           val field =
             if ((p.yi + 1) * 16 < height.min)
               if (p.flatten % 2 == Origin2D) MatField.solid(Blocks.Stone)
@@ -53,6 +60,7 @@ class DefaultGenerator(res: Int) extends Generator {
                 else Materials.Grass
               })
             }
+          //prof.log(); prof.printDisc(1);
           Terrain(p, field)
         }
       , UniExecutor.exec(p * 16))
@@ -69,11 +77,16 @@ class DefaultGenerator(res: Int) extends Generator {
           )(_.run())
         )
         .map(terrains => {
-          val grid = new TerrainGrid {
-            override def terrainAt(p: V3I): Option[Terrain] = terrains.get(p)
+          if (terrains.values.zip(terrains.values.tail).forall({ case (a, b) => a.grid eq b.grid })) {
+            //println("fast case!")
+            (terrains(p), BlockSoup(p, Seq.empty, Seq.empty), TerrainSoup.empty(p))
+          } else {
+            val grid = new TerrainGrid {
+              override def terrainAt(p: V3I): Option[Terrain] = terrains.get(p)
+            }
+            val ter = terrains(p)
+            (ter, BlockSoup(ter, grid).get, TerrainSoup(ter, grid).get)
           }
-          val ter = terrains(p)
-          (ter, BlockSoup(ter, grid).get, TerrainSoup(ter, grid).get)
         }, UniExecutor.exec(p * 16))
     } else Fut(null: (Terrain, BlockSoup, TerrainSoup), _.run())
   )

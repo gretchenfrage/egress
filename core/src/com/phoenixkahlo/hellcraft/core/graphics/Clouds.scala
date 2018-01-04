@@ -19,8 +19,8 @@ object Clouds {
       .map({ case (vertFile, indexFile) => {
         Renderable[TerrainShader](
           for {
-            vertFileResult <- GEval.readFile(vertFile.file.toPath)
-            indexFileResult <- GEval.readFile(indexFile.file.toPath)
+            vertFileResult <- GEval.readResource(vertFile)
+            indexFileResult <- GEval.readResource(indexFile)
           } yield (vertFileResult, indexFileResult) match {
             case (Left(vertData), Left(indexData)) =>
               val vin = new DataInputStream(new ByteArrayInputStream(vertData))

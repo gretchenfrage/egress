@@ -63,57 +63,6 @@ class ShortField private[fields](private var data: Either[Array[Short], Vector[S
   override def toString: String =
     "ShortField(" + java.util.Arrays.toString(asArray) + ")"
 
-  /*
-  override def writeExternal(out: ObjectOutput): Unit = {
-    // write size
-    out.writeInt(size.xi); out.writeInt(size.yi); out.writeInt(size.zi)
-
-    // convert to byte array
-    val baos = new ByteArrayOutputStream(size.fold(_ * _) * 4)
-    val dos = new DataOutputStream(baos)
-    for (v <- Origin until size) {
-      dos.writeShort(atMod(v))
-    }
-    val asBytes = baos.toByteArray
-
-    // compress
-    val compressor = new Deflater
-    compressor.setInput(asBytes)
-    compressor.finish()
-    val buffer = new Array[Byte](asBytes.size * 2)
-    val length = compressor.deflate(buffer)
-
-    // write compressed data
-    out.writeShort(length)
-    out.write(buffer, 0, length)
-  }
-
-  override def readExternal(in: ObjectInput): Unit = {
-    // read size
-    _size = V3I(in.readInt(), in.readInt(), in.readInt())
-
-    // read compressed data
-    val length = in.readShort()
-    val buffer = new Array[Byte](length)
-    in.read(buffer, 0, length)
-
-    // decompress
-    val asBytes = new Array[Byte](size.fold(_ * _) * 2)
-    val decompressor = new Inflater
-    decompressor.setInput(buffer, 0, length)
-    decompressor.inflate(asBytes)
-
-    // convert to short array
-    val shorts = new Array[Short](size.fold(_ * _))
-    val dis = new DataInputStream(new ByteArrayInputStream(asBytes))
-    for (v <- Origin until size) {
-      shorts(size.compress(v)) = dis.readShort()
-    }
-
-    // set data
-    data = Left(shorts)
-  }
-  */
 }
 
 object ShortField {

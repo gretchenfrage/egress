@@ -121,6 +121,25 @@ object GEval {
   def glMap[S, R](src: GEval[S], func: S => R): GEval[R] =
     ESpecialMap(src, func, _.glExec)
 
+  def readResource(path: FileHandle): GEval[Either[Array[Byte], Throwable]] = {
+    def read(): Either[Array[Byte], Throwable] = {
+      if (path.length > Int.MaxValue)
+        Right(new IllegalArgumentException("file too large"))
+      else try
+        Left(path.readBytes())
+      catch {
+        case t: Throwable => Right(t)
+      }
+    }
+
+    EExtern[Either[Array[Byte], Throwable], Context](
+      unit => Some(read()),
+      pack => Fut(read(), AsyncExecutor.global.execute),
+      Seq.empty
+    )
+  }
+
+  /*
   def readFile(path: Path): GEval[Either[Array[Byte], Throwable]] = EExtern[Either[Array[Byte], Throwable], Context](
     unit => {
       try Some(Left(Files.readAllBytes(path)))
@@ -131,4 +150,5 @@ object GEval {
     pack => new FileReadFut(path),
     Seq.empty
   )
+  */
 }

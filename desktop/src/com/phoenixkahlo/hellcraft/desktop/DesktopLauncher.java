@@ -15,9 +15,9 @@ public class DesktopLauncher {
 		double factor = 0.18;
 		config.width = (int) (screenSize.width * factor);
 		config.height = (int) (screenSize.height * factor);
-		config.title = "egress";
-		config.foregroundFPS = 1000;
-		config.vSyncEnabled = false;
+		config.title = "Egress";
+		//config.foregroundFPS = 1000;
+		//config.vSyncEnabled = false;
 		new LwjglApplication(new GameDriver(new MainMenu()), config);
 		//new LwjglApplication(new GameDriver(new FGraphicsCloudTest()), config);
 		//new LwjglApplication(new CloudGenerator());
