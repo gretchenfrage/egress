@@ -26,6 +26,12 @@ case class MakeRequest[T](request: Request[T], onComplete: (Requested, World, MR
 }
 case object MakeRequest extends UpdateEffectType
 
+// log effect
+case class Log(str: String) extends UpdateEffect {
+  override def effectType = Log
+}
+case object Log extends UpdateEffectType
+
 // chunk events
 sealed trait ChunkEvent extends UpdateEffect {
   def id: UUID
@@ -70,7 +76,7 @@ case object ChunkEvent extends UpdateEffectType {
             (chunk.putEntity(neu), Seq.empty)
           else
             (chunk.removeEntity(entID), Seq(putEnt(neu)))
-        case None => (chunk, Seq.empty)
+        case None => (chunk, Seq(Log("entity event failed to find entity")))
       }
     })
 

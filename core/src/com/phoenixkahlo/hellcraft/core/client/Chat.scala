@@ -80,7 +80,7 @@ object Commands {
     "walker" -> ((v, j) => {
       val walk = Option(j.get("walk"))
         .map(parseVec)
-        .getOrElse(Origin)
+        .getOrElse(V3I(2, 0, 2))
       val vel = Option(j.get("vel"))
         .map(parseVec)
         .getOrElse(Origin)

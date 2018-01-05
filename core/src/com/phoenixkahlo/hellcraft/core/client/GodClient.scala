@@ -244,6 +244,9 @@ case class GodClientMain(core: ClientCore) extends ClientLogic {
     else super.become(replacement)
   }
 
+
+
+  /*
   override def update(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = {
     var movDir: V3F = Origin
     if (core.pressed(W)) movDir += core.camDir
@@ -258,6 +261,27 @@ case class GodClientMain(core: ClientCore) extends ClientLogic {
 
     GodClientMain(core.copy(camPos = newPos).update(world, input)) -> Seq(SetLoadTarget(loadTarget, loadTarget.shroat(4)))
   }
+  */
+
+  override def frame(world: RenderWorld, input: Input) =
+    ({
+      var movDir: V3F = Origin
+      if (core.pressed(W)) movDir += core.camDir
+      if (core.pressed(S)) movDir -= core.camDir
+      if (core.pressed(D)) movDir += (core.camDir cross Up).normalize
+      if (core.pressed(A)) movDir -= (core.camDir cross Up).normalize
+
+      val chunkPos = core.camPos / 16 toInts
+      val loadTarget = (chunkPos - input.sessionData(LoadDist)) toAsSet (chunkPos + input.sessionData(LoadDist))
+
+      val newPos = core.camPos + (movDir * input.sessionData(Speed) * input.dt)
+
+      GodClientMain(core.copy(camPos = newPos).update(world, input)) -> Seq(SetLoadTarget(loadTarget, loadTarget.shroat(4)))
+    }, {
+      val (wrender, globals) = core.render(world, input)
+      val hud = core.hud("", Color.CLEAR, input)
+      (wrender ++ hud, globals)
+    })
 
   override def keyDown(keycode: KeyCode)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = keycode match {
     case ESCAPE => become(GodClientMenu(core, input))
@@ -299,11 +323,13 @@ case class GodClientMain(core: ClientCore) extends ClientLogic {
     } else nothing
   }
 
+  /*
   override def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData) = {
     val (wrender, globals) = core.render(world, input)
     val hud = core.hud("", Color.CLEAR, input)
     (wrender ++ hud, globals)
   }
+  */
 
 }
 
@@ -333,6 +359,9 @@ case class GodClientMenu(core: ClientCore, buttons: Seq[MenuButton], pressing: O
       case None => nothing
     }
 
+
+
+  /*
   override def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData) = {
     val (renders, globals) = core.render(world, input)
     val menu: Seq[Render[HUDShader]] = buttons.flatMap(b => b.components match {
@@ -340,9 +369,17 @@ case class GodClientMenu(core: ClientCore, buttons: Seq[MenuButton], pressing: O
     })
     (renders ++: menu, globals)
   }
+  */
 
   //override def resize(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
   //  become(GodClientMenu(core, input))
+  override def frame(world: RenderWorld, input: Input) = {
+    val (renders, globals) = core.render(world, input)
+    val menu: Seq[Render[HUDShader]] = buttons.flatMap(b => b.components match {
+      case (off, on) => if (b contains (input.cursorPos, input)) on else off
+    })
+    (nothing, (renders ++: menu, globals))
+  }
 }
 object GodClientMenu {
   def apply(core: ClientCore, input: Input): GodClientMenu = {
@@ -384,9 +421,11 @@ case class GodClientChat(core: ClientCore, cursor: Boolean = true, buffer: Strin
     input.nanoTime % interval > interval / 2
   }
 
+  /*
   override def update(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
     if (shouldCursor(input) ^ cursor) become(copy(cursor = shouldCursor(input)))
     else nothing
+    */
 
   override def keyDown(keycode: KeyCode)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = keycode match {
     case ESCAPE => become(GodClientMain(core))
@@ -400,6 +439,9 @@ case class GodClientChat(core: ClientCore, cursor: Boolean = true, buffer: Strin
     }
   }
 
+
+
+  /*
   override def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData) = {
     val (wrender, globals) = core.render(world, input)
     val hud = core.hud(
@@ -408,6 +450,24 @@ case class GodClientChat(core: ClientCore, cursor: Boolean = true, buffer: Strin
       input
     )
     (wrender ++ hud, globals)
+  }
+  */
+  override def frame(world: RenderWorld, input: Input) = {
+    (
+      if (shouldCursor(input) ^ cursor)
+        become(copy(cursor = shouldCursor(input)))
+      else
+        nothing,
+      {
+        val (wrender, globals) = core.render(world, input)
+        val hud = core.hud(
+          if (cursor) buffer + "|" else buffer,
+          new Color(0.1718f, 0.2422f, 0.3125f, 0.3f),
+          input
+        )
+        (wrender ++ hud, globals)
+      }
+    )
   }
 }
 

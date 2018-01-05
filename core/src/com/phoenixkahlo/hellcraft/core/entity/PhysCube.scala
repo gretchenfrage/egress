@@ -14,6 +14,8 @@ case class PhysCube(vel: V3F, override val pos: V3F, override val id: EntID[Phys
   override def updatePos(newPos: V3F): PhysCube = copy(pos = newPos, lastPos = pos)
 
   def doPhysics(world: World): PhysCube = {
+    println(this)
+
     val broadphase = chunkPos.neighbors.flatMap(world.chunkAt).map(_.broadphase).fold(EmptyBroadphase)(_ + _)
 
     var collider = ComplexCollider(pos, vel + (Down * 9.8f * Delta.dtf), Repeated(0.5f), 1000, Delta.dtf, 100, walk)

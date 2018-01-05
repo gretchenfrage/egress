@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.core.client
 
 import com.badlogic.gdx.Input.Buttons
 import com.phoenixkahlo.hellcraft.core.{RenderWorld, UpdateEffect, World}
-import com.phoenixkahlo.hellcraft.core.client.ClientLogic.{Input, Output}
+import com.phoenixkahlo.hellcraft.core.client.ClientLogic.{Input, Output, RenderOutput}
 import com.phoenixkahlo.hellcraft.core.client.ClientSessionData.ClientSessionData
 import com.phoenixkahlo.hellcraft.fgraphics.{GlobalRenderData, Render, ResourcePack, Shader}
 import com.phoenixkahlo.hellcraft.math.{V2F, V2I, V3F, V3I}
@@ -58,6 +58,7 @@ object ClientSessionData {
 
 object ClientLogic {
   type Output = (ClientLogic, Seq[ClientEffect])
+  type RenderOutput = (Seq[Render[_ <: Shader]], GlobalRenderData)
   trait Input {
     def isCursorCaught: Boolean
     def camPos: V3F
@@ -79,7 +80,9 @@ trait ClientLogic {
   def become(replacement: ClientLogic): Output = (replacement, Seq.empty)
   def cause(effects: ClientEffect*): Output = (this, effects)
 
-  def update(world: World, input: Input): Output = nothing
+  def frame(world: RenderWorld, input: Input): (Output, RenderOutput)
+
+  //def update(world: World, input: Input): Output = nothing
 
   def tick(world: World, input: Input): Output = nothing
 
@@ -100,7 +103,7 @@ trait ClientLogic {
   def scrolled(amount: Int)(world: World, input: Input): Output = nothing
 
   //def render(world: World, input: Input): (HUD, Seq[RenderUnit]) = EmptyHUD -> Seq.empty
-  def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData)
+  //def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData)
 
   def resize(world: World, input: Input): Output = nothing
 }

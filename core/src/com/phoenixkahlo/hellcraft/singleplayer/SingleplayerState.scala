@@ -69,12 +69,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       V3F(1, 1.5f, 1)
     )
 
-    println("creating client logic")
-    clientLogic = GodClientMain(ClientCore(
-      Set.empty,
-      Chat(Seq("player joined the game")),
-      Origin, North
-    ))//GodClient(Set.empty, Chat(Seq("player joined the game.")))
+    //clientLogic = AvatarClientMain(clientCore, EntID.random[Avatar]())
 
     println("instantiating save")
     val generator = new DefaultGenerator(res)
@@ -85,6 +80,31 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     println("instantiating history")
     infinitum = new Infinitum(res, save, 1f / 20f)
+
+    println("creating client logic")
+    /*
+    clientLogic = GodClientMain(ClientCore(
+      Set.empty,
+      Chat(Seq("player joined the game")),
+      Origin, North
+    ))
+    */
+
+    val clientCore = ClientCore(
+      Set.empty,
+      Chat(Seq("player joined the game")),
+      Origin, North
+    )
+    implicit val rand = new MRNG(ThreadLocalRandom.current.nextLong())
+    val avatar = Avatar(V3I(0, 50, 0))
+    worldEffectQueue.add(ChunkEvent.putEnt(avatar))
+    clientLogic = AvatarClientMain(clientCore, avatar.id)
+
+
+    println("setting load target")
+    chunkDomain = avatar.chunkPos - V3I(1, 6, 1) toAsSet avatar.chunkPos + V3I(1, 2, 1)
+    terrainDomain = chunkDomain.bloat
+
 
     println("loading resources")
     pack = providedResources()
@@ -155,6 +175,12 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         // process effects
         effects(SoundEffect).map(_.asInstanceOf[SoundEffect])
           .foreach(AudioUtil.play(pack, V3F(renderer.cam.position)))
+
+        val logs = effects(Log).map(_.asInstanceOf[Log])
+        if (logs.nonEmpty)
+          println("world logs:")
+        for (log <- logs)
+          println("-- " + log.str)
 
         //System.gc()
 
@@ -237,7 +263,16 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       }
 
     }
-    clientLogicQueue.add(_.update)
+    //clientLogicQueue.add(_.update)
+    val renderWorld = world.renderable(clock.fgametime, Trig.clamp(1 - clock.fractionalTicksSince(world.time - 1), 0, 1))
+
+    var renderOutput: ClientLogic.RenderOutput = null
+    clientLogicQueue.add(logic => (world, input) => {
+      val (o, r) = logic.frame(renderWorld, input)
+      renderOutput = r
+      o
+    })
+
     while (clientLogicQueue.size > 0) {
       val (newClientLogic, effects) = clientLogicQueue.remove()(clientLogic)(world, clientInput)
       clientLogic = newClientLogic
@@ -255,9 +290,12 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     }
     renderer.cam.update(true)
 
+    /*
     val (renders, globals) = clientLogic.render(infinitum().renderable(
       clock.fgametime, Trig.clamp(1 - clock.fractionalTicksSince(world.time - 1), 0, 1)
     ), clientInput)
+    */
+    val (renders, globals) = renderOutput
     renderer(renders, globals)
   }
 
