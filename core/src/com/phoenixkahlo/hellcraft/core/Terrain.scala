@@ -61,7 +61,7 @@ object TerrainSoup {
   if (Terrain.canComplete(terrain.pos, world)) {
     val offset = terrain.pos * world.res
 
-    // generate the vertex field with an overshoot of <1, 1, 1> to connect the chunks
+    // generate the vertex field with an overshoot of <2, 2, 2> to connect the chunks
     // the lefts represent a vertex, the rights (unit) represent a solid filling
     val someRightUnit = Some(Right((): Unit))
     val verts = OptionField[Either[TerrainSoup.Vert, Unit]](world.resVec + V3I(2, 2, 2), v => {
@@ -113,7 +113,7 @@ object TerrainSoup {
     for {
       v <- Origin untilAsSeq verts.sizeVec - Ones
       (d1, d2, d3, dir) <- deltas
-    } yield (verts(v), verts(v + d1), verts(v + d2), verts(v + d3)) match {
+    } (verts(v), verts(v + d1), verts(v + d2), verts(v + d3)) match {
       case (Some(Left(vert1)), Some(Left(vert2)), Some(Left(vert3)), Some(Left(vert4))) =>
         if (Seq(verts(v + dir), verts(v + d1 + dir), verts(v + d2 + dir), verts(v + d3 + dir)).exists(_.isEmpty)) {
           indices.append(vertToIndex(v), vertToIndex(v + d1), vertToIndex(v + d2))

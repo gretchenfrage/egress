@@ -9,10 +9,8 @@ case class Avatar(pos0: V3F, pos1: V3F, vel: V3F, stride: V3F, id: EntID[Avatar]
   override def selfUpdate(world: World) = {
     val broadphase = chunkPos.neighbors.flatMap(world.chunkAt).map(_.broadphase).reduce(_ + _)
 
-    val before = ComplexCollider(pos, vel + (Down * 9.8f * Delta.dtf), Repeated(1), 1, Delta.dtf, 1, stride)
+    val before = ComplexCollider(pos, vel + (Down * 9.8f * Delta.dtf), V3F(0.4f, 0.95f, 0.4f), 1000, Delta.dtf, 1, stride)
     val after = before.update(broadphase)
-
-    println(stride)
 
     copy(pos0 = pos1, pos1 = after.pos, vel = after.vel)
   }
