@@ -10,15 +10,13 @@ import com.phoenixkahlo.hellcraft.util.threading.{Fut, FutSequences, Promise, Un
 import scala.collection.mutable
 
 trait AsyncSave {
-
   def push(chunks: Map[V3I, Chunk]): Promise
-
-  def close(chunks: Map[V3I, Chunk]): Promise
 
   def push(chunks: Seq[Chunk]): Promise =
     push(chunks.map(c => (c.pos, c)).toMap)
 
   def pull(chunks: Seq[V3I], terrain: Seq[V3I]): (Map[V3I, Fut[Chunk]], Map[V3I, Fut[Terrain]])
 
+  def close(chunks: Map[V3I, Chunk]): Promise
 }
 

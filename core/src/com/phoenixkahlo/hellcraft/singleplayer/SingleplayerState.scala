@@ -270,8 +270,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       }
 
     }
-    //clientLogicQueue.add(_.update)
-    val renderWorld = world.renderable(clock.fgametime, Trig.clamp(1 - clock.fractionalTicksSince(time - 1), 0, 1))
+    val interp = 1 - clock.fractionalTicksSince(time)
+    val renderWorld = world.renderable(clock.fgametime, Trig.clamp(interp, 0, 1))
 
     var renderOutput: ClientLogic.RenderOutput = null
     clientLogicQueue.add(logic => (world, input) => {

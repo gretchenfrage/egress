@@ -277,13 +277,10 @@ class SingleContinuum(save: AsyncSave) {
   def time: Long = _timeAndCurr._1
   def curr: SingleWorld = _timeAndCurr._2
 
-  // these are useful for world evals and delayed event integration
+  // these are useful for world evals and delayed effect integration
   private implicit val cfulfill = new FulfillmentContext[V3I, Chunk]
   private implicit val tfulfill = new FulfillmentContext[V3I, Terrain]
   private implicit val efulfill = new FulfillmentContext[AnyEntID, AnyEnt]
-
-  // let's just make this implicit
-  private implicit val execService = UniExecutor.getService
 
   // this is useful for pended events or asynchronous requests
   private val asyncEffects = new ConcurrentLinkedQueue[UpdateEffect]
@@ -368,6 +365,7 @@ class SingleContinuum(save: AsyncSave) {
 
       // reset the timer and essentially do the same thing with chunks
       // except we also put chunks in the tfulfill
+      // and we also remove them from cloadMap
       timer = Timer.start
       val cbuffer = new mutable.ArrayBuffer[Chunk]
       while (timer.elapsed < timeLimit && !cloadQueue.isEmpty) {
@@ -378,6 +376,7 @@ class SingleContinuum(save: AsyncSave) {
       }
       next = next putChunks cbuffer
       cloadMap --= cbuffer.map(_.pos)
+      tloadMap --= cbuffer.map(_.pos)
       cfulfill.put(cbuffer.map(chunk => (chunk.pos, chunk)))
       tfulfill.put(cbuffer.map(chunk => (chunk.pos, chunk.terrain)))
     }
@@ -419,7 +418,7 @@ class SingleContinuum(save: AsyncSave) {
 
     // handle the async request effects
     {
-      val pack = WEval.EvalAsync(execService, cfulfill, tfulfill, efulfill)
+      val pack = WEval.EvalAsync(UniExecutor.getService, cfulfill, tfulfill, efulfill)
       for (MakeRequest(Request(eval, id), onComplete) <- grouped.bin(MakeRequest)) {
         new AsyncEval(eval)().fut(WEval.input, pack).map(result => {
           val requested = new Requested(id, result)
