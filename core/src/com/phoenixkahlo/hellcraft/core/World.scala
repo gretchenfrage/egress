@@ -6,77 +6,23 @@ import com.phoenixkahlo.hellcraft.core.entity.{Entity, EntID}
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 
-trait TerrainGrid {
-  def res = 16
 
-  def resVec = V3I(res, res, res)
 
-  def terrainAt(p: V3I): Option[Terrain]
 
-  def terrainGridPoint(v: V3I): Option[TerrainUnit] =
-    terrainAt(v / 16 floor).map(_.grid.atMod(v))
+//trait World {
+  //def chunkAt(p: V3I): Option[Chunk]
 
-  def sampleDensity(vWorld: V3F): Option[Float] = {
-    val vGrid = vWorld / 16f * res
-    if (vGrid % 1 == Origin)
-      terrainGridPoint(vGrid toInts).map(mat => if (mat.id <= 0) 0f else 1f)
-    else {
-      // trilinear interpolation
-      val v0 = vGrid.floor
-      val v1 = v0 + Ones
-      if (v0.toAsSeq(v1).map(_ / res floor).forall(terrainAt(_).isDefined)) {
-        // helper function (stands for density grid point)
-        def dgp(x: V3I, y: V3I, z: V3I): Float =
-          if (terrainGridPoint(V3I(x.xi, y.yi, z.zi)).get.id <= 0) 0 else 1
+  //def time: Long
 
-        val d = (vGrid - v0) \\ (v1 - v0)
+  //def findEntity[E <: Entity[E]](id: EntID[E]): Option[E]
 
-        val c00 = dgp(v0, v0, v0) * (1 - d.x) + dgp(v1, v0, v0) * d.x
-        val c01 = dgp(v0, v0, v1) * (1 - d.x) + dgp(v1, v0, v1) * d.x
-        val c10 = dgp(v0, v1, v0) * (1 - d.x) + dgp(v1, v1, v0) * d.x
-        val c11 = dgp(v0, v1, v1) * (1 - d.x) + dgp(v1, v1, v1) * d.x
+  //def boundingBox: (V3I, V3I)
 
-        val c0 = c00 * (1 - d.y) + c10 * d.y
-        val c1 = c01 * (1 - d.y) + c11 * d.y
+  //def debugLoadedChunks: Iterable[V3I]
 
-        val c = c0 * (1 - d.z) + c1 * d.z
+  //def debugLoadedTerrain: Iterable[V3I]
 
-        Some(c)
-      } else None
-    }
-  }
-
-  def sampleDirection(v: V3F): Option[V3F] =
-    Directions().map(d => sampleDensity(d * 0.01f + v).map(d * _)).fold(Some(Origin))({
-      case (Some(a), Some(b)) => Some(a + b)
-      case _ => None
-    }).map(v => (v / 6).normalize)
-}
-object TerrainGrid {
-  def fromMap(map: Map[V3I, Terrain]): TerrainGrid = (p: V3I) => map.get(p)
-}
-
-trait RenderWorld extends World {
-  def renderableChunks: Seq[Chunk]
-
-  def ftime: Float
-
-  def interp: Float
-}
-
-trait World extends TerrainGrid {
-  def chunkAt(p: V3I): Option[Chunk]
-
-  def time: Long
-
-  def findEntity[E <: Entity[E]](id: EntID[E]): Option[E]
-
-  def boundingBox: (V3I, V3I)
-
-  def debugLoadedChunks: Iterable[V3I]
-
-  def debugLoadedTerrain: Iterable[V3I]
-
+  /*
   def raycast(pos: V3F, dir: V3F): Stream[V3F] = {
     val (min, max) = boundingBox
     Raytrace.voxels(pos / 16, dir)
@@ -137,5 +83,5 @@ trait World extends TerrainGrid {
       hit => terrainRay(hit, dir.neg).find({ case (_, t) => t == Air }).map({ case (v, _) => v })
     )
   }
-
-}
+  */
+//}

@@ -22,6 +22,7 @@ import scala.collection.{SortedMap, mutable}
   * A purely functional implementation of world, that stores a map of chunks, and three set of chunk indices,
   * which categorize which chunks are in which terrain state.
   */
+/*
 class SWorld(
               override val time: Long,
               override val res: Int,
@@ -76,7 +77,8 @@ class SWorld(
     new SWorld(time, res, ps.foldLeft(chunks)({ case (map, p) => map.get(p) match {
       case Some(Left(chunk)) => map.updated(p, Right(chunk.terrain))
       case _ => map
-    }}), chunkDomain, terrainDomain, active -- ps, renderable -- ps, bbox -- ps)
+    }
+    }), chunkDomain, terrainDomain, active -- ps, renderable -- ps, bbox -- ps)
   }
 
   def -(p: V3I): SWorld = {
@@ -91,6 +93,7 @@ class SWorld(
       case Left(chunk) => chunk.pos
       case Right(terrain) => terrain.pos
     }
+
     if (cs.isEmpty)
       return this
     val removed = this -- cs.map(pos)
@@ -109,14 +112,17 @@ class SWorld(
   }
 
   def addChunks(cs: Seq[Chunk]): SWorld = this ++ (cs map (Left(_)))
+
   def addTerrains(ts: Seq[Terrain]): SWorld = this ++ (ts map (Right(_)))
 
   def +(c: Either[Chunk, Terrain]): SWorld = {
     val p = Profiler("world add")
+
     def pos(c: Either[Chunk, Terrain]): V3I = c match {
       case Left(chunk) => chunk.pos
       case Right(terrain) => terrain.pos
     }
+
     val removed = this - pos(c)
     try new SWorld(time, res,
       removed.chunks + (pos(c) -> c),
@@ -141,6 +147,7 @@ class SWorld(
   }
 
   def +(c: Chunk): SWorld = this + Left(c)
+
   def +(t: Terrain): SWorld = this + Right(t)
 
   case class WithReplacedChunk(replaced: Chunk) extends World {
@@ -286,12 +293,13 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
   private val pendedQueue = new ConcurrentLinkedQueue[ChunkEvent]
 
   def apply(t: Long): Option[SWorld] = history.get(t)
+
   def apply(): SWorld = history.last._2
 
   def loading: Set[V3I] = chunkLoadMap.keySet
 
   def finalSave(): Fut[Unit] = {
-    save.close(this().chunks.flatMap({
+    save.close(this ().chunks.flatMap({
       case (p, Left(chunk)) => Some(p -> chunk)
       case _ => None
     }))
@@ -300,9 +308,9 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
   /**
     * Update the world, and return the effects.
     * This concurrent, imperative logic is probably the most complicated part of this game, so let's Keep It Simple Sweety.
-   */
+    */
   def update(chunkDomain: V3ISet, terrainDomain: V3ISet, externalEvents: Seq[UpdateEffect] = Seq.empty): Map[UpdateEffectType, Seq[UpdateEffect]] = {
-    var world = this()
+    var world = this ()
 
     val p = Profiler("main update")
 
@@ -415,6 +423,7 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
       // partition events by whether they can be integrated immediately
       val (integrateNow: Seq[ChunkEvent], integrateLater: Seq[ChunkEvent]) = {
         def ready(p: V3I): Boolean = world.chunks.get(p).flatMap(_.left.toOption).isDefined
+
         events partition {
           case UniChunkEvent(target, _, _) => ready(target)
           case MultiChunkEvent(target, _, _) => target.forall(ready)
@@ -503,3 +512,4 @@ class Infinitum(res: Int, save: AsyncSave, dt: Float) {
   }
 
 }
+*/

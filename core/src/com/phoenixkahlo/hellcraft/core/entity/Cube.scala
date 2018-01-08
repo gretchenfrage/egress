@@ -4,17 +4,22 @@ import java.util.UUID
 
 import com.badlogic.gdx.graphics.{Color, GL20}
 import com.badlogic.gdx.graphics.g3d.Renderable
-import com.phoenixkahlo.hellcraft.core.graphics.{FreeCube, FreeCubeParams}
-import com.phoenixkahlo.hellcraft.core.{ChunkEvent, RenderWorld, SoundEffect, UpdateEffect, World}
+import com.phoenixkahlo.hellcraft.core.event.Events
+import com.phoenixkahlo.hellcraft.core.graphics.{FreeCube, FreeCubeParams, RenderWorld}
+import com.phoenixkahlo.hellcraft.core.{Context, SoundEffect}
 import com.phoenixkahlo.hellcraft.fgraphics._
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.math.{Down, MRNG, V3F, V4I}
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
 
-abstract class Cube[E <: Cube[E]](val tid: SheetTextureID, val pos: V3F) extends Entity[E] {
+abstract class Cube[E <: Cube[E]] extends Entity[E] {
   this: E =>
 
-  protected def color: Color = Color.WHITE
+  def color: Color = Color.WHITE
+
+  def tid: SheetTextureID
+
+  def pos: V3F
 
   def lastPos: V3F = pos
 
@@ -24,6 +29,35 @@ abstract class Cube[E <: Cube[E]](val tid: SheetTextureID, val pos: V3F) extends
   ))
 }
 
+case class SimpleCube(override val tid: SheetTextureID, override val pos: V3F,
+                      override val id: EntID[SimpleCube] = Context.entID[SimpleCube]())
+  extends Cube[SimpleCube]
+
+case class SoundCube(sid: SoundID, freq: Int, override val pos: V3F,
+                     override val id: EntID[SoundCube] = Context.entID[SoundCube]()) extends Cube[SoundCube] {
+  override def tid = SoundTID
+
+  override def update =
+    if (Context.time % freq == 0) Seq(SoundEffect(sid, 1, pos))
+    else Seq.empty
+}
+
+case class GlideCube(vel: V3F, override val pos: V3F,
+                     override val id: EntID[GlideCube] = Context.entID[GlideCube]())
+  extends Cube[GlideCube] with Moveable[GlideCube]{
+
+  override def tid = BrickTID
+  override def updatePos(newPos: V3F) = copy(pos = newPos)
+  override def update = Seq(Events.shift(id, vel * Delta.dtf))
+}
+
+case class GhostCube(override val pos: V3F, override val id: EntID[GhostCube] = Context.entID[GhostCube]())
+  extends Cube[GhostCube] {
+
+  override def tid = GrayTID
+  override def color = new Color(1, 1, 1, 0.4f)
+}
+/*
 case class SimpleCube(override val tid: SheetTextureID, override val pos: V3F, override val id: EntID[SimpleCube]) extends Cube[SimpleCube](tid, pos)
 object SimpleCube {
   def apply(tid: SheetTextureID, pos: V3F)(implicit rand: MRNG): SimpleCube =
@@ -58,4 +92,4 @@ case class GhostCube(override val pos: V3F, override val id: EntID[GhostCube]) e
 object GhostCube {
   def apply(pos: V3F)(implicit rand: MRNG): GhostCube =
     GhostCube(pos, EntID())
-}
+}*/

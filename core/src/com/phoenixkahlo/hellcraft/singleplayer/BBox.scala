@@ -1,13 +1,17 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
+import com.phoenixkahlo.hellcraft.core.client.WorldBounds
 import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
 import scala.collection.immutable.{SortedMap, SortedSet}
 
 case class BBox(x: SortedMap[Int, Int], y: SortedMap[Int, Int], z: SortedMap[Int, Int], v: Set[V3I]) {
-  def apply() =
-    if (v.nonEmpty) (V3I(x.min._1, y.min._1, z.min._1), V3I(x.max._1, y.max._1, z.max._1))
-    else (Origin, Origin)
+  //def apply() =
+  //  if (v.nonEmpty) (V3I(x.min._1, y.min._1, z.min._1), V3I(x.max._1, y.max._1, z.max._1))
+  //  else (Origin, Origin)
+  def apply(): WorldBounds =
+    if (v.nonEmpty) WorldBounds(V3I(x.min._1, y.min._1, z.min._1), V3I(x.max._1, y.max._1, z.max._1))
+    else WorldBounds(Origin, Origin)
 
   def +(p: V3I): BBox = {
     if (v(p)) this

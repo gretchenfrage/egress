@@ -78,7 +78,7 @@ object WEval {
     ps.map(terrain)
       .map(_.map(terr => Map(terr.pos -> terr))(ExecCheap))
       .fold(emptyTerr)(Eval.merge(_, _)(_ ++ _)(ExecCheap))
-      .map(TerrainGrid.fromMap)(ExecCheap)
+      .map(TerrainGrid)(ExecCheap)
 }
 
 object GEval {

@@ -3,9 +3,9 @@ package com.phoenixkahlo.hellcraft.core.client
 import java.util.UUID
 import java.util.concurrent.ThreadLocalRandom
 
+import com.phoenixkahlo.hellcraft.core.PutEnt
 import com.phoenixkahlo.hellcraft.core.client.ClientSessionData.{ChunkDebugMode, ShowTasks}
 import com.phoenixkahlo.hellcraft.core.entity._
-import com.phoenixkahlo.hellcraft.core.{ChunkEvent, World}
 import com.phoenixkahlo.hellcraft.fgraphics._
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.collections.TypeMatchingMap
@@ -108,16 +108,25 @@ object Commands {
   def setEffect[T](j: AnyRef)(setter: Setter[T]): ClientEffect =
     SetSessionProperty(setter.field, setter.parser(j))
 
-  def set(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
+  def set(world: ClientWorld, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
     setters
       .get(j.asInstanceOf[java.util.List[_]].get(0).asInstanceOf[String])
       .map(setEffect(j.asInstanceOf[java.util.List[_]].get(1).asInstanceOf[AnyRef])(_))
       .toSeq
 
-  def print(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
+  def print(world: ClientWorld, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
     Seq(ClientPrint(j.asInstanceOf[String]))
 
-  def stevie(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
+  def spawn(world: ClientWorld, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
+    world.rayhit(input.camPos, input.camDir).map(
+      v => {
+        val entity = spawnable(j.asInstanceOf[JSONObject].get("type").asInstanceOf[String])(v, j.asInstanceOf[JSONObject])
+        CauseUpdateEffect(PutEnt(entity))
+      }
+    ).toSeq
+
+  /*
+  def stevie(world: ClientWorld, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
     world.rayhit(input.camPos, input.camDir).map(
       v => CauseUpdateEffect(ChunkEvent.putEnt(SimpleCube(
         textures(j.asInstanceOf[String])
@@ -132,6 +141,7 @@ object Commands {
         CauseUpdateEffect(ChunkEvent.putEnt(entity))
       }
     ).toSeq
+    */
 
   //def showtasks(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
   //  Seq(SetSessionProperty(ShowTasks, j.asInstanceOf[Boolean]))
@@ -155,7 +165,7 @@ object Commands {
   }
   */
 
-  def queuestats(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
+  def queuestats(world: ClientWorld, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
     Seq(
       ClientPrint("seq queue size = " + input.executor.sizeSeq),
       ClientPrint("3D queue size = " + input.executor.size3D),
@@ -172,9 +182,9 @@ object Commands {
   //def chunkdebugmode(world: World, input: ClientLogic.Input)(j: AnyRef): Seq[ClientEffect] =
   //  Seq(SetSessionProperty(ChunkDebugMode, j.asInstanceOf[String]))
 
-  val commands: Map[String, (World, ClientLogic.Input) => (AnyRef => Seq[ClientEffect])] = Map(
+  val commands: Map[String, (ClientWorld, ClientLogic.Input) => (AnyRef => Seq[ClientEffect])] = Map(
     "print" -> print,
-    "stevie" -> stevie,
+    //"stevie" -> stevie,
     "spawn" -> spawn,
     //"showtasks" -> showtasks,
     //"requesttest" -> requesttest,
@@ -184,7 +194,7 @@ object Commands {
     "set" -> set
   )
 
-  def apply(command: String, world: World, input: ClientLogic.Input): Seq[ClientEffect] = {
+  def apply(command: String, world: ClientWorld, input: ClientLogic.Input): Seq[ClientEffect] = {
     try {
       if (command.contains(' ')) {
         val name = command.substring(0, command.indexOf(' '))
@@ -204,7 +214,7 @@ object Commands {
 
 
 case class Chat(messages: Seq[String]) {
-  def +(message: String, world: World, input: ClientLogic.Input): (Chat, Seq[ClientEffect]) = {
+  def +(message: String, world: ClientWorld, input: ClientLogic.Input): (Chat, Seq[ClientEffect]) = {
     if (message.headOption.contains('/')) Chat(messages :+ message) -> Commands(message.tail, world, input)
     else Chat(messages :+ message) -> Seq.empty
   }

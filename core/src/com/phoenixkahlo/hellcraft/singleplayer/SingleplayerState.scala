@@ -181,7 +181,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
         effects(SoundEffect).map(_.asInstanceOf[SoundEffect])
           .foreach(AudioUtil.play(pack, V3F(renderer.cam.position)))
 
-        val logs = effects(Log).map(_.asInstanceOf[Log])
+        val logs = effects(LogEffect).map(_.asInstanceOf[LogEffect])
         if (logs.nonEmpty)
           println("world logs:")
         for (log <- logs)

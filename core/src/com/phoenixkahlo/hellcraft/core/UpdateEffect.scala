@@ -2,37 +2,91 @@ package com.phoenixkahlo.hellcraft.core
 
 import java.util.UUID
 
+import com.phoenixkahlo.hellcraft.core.event.{Events, UE}
 import com.phoenixkahlo.hellcraft.core.entity._
+import com.phoenixkahlo.hellcraft.core.eval.WEval.WEval
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.fgraphics.SoundID
 import com.phoenixkahlo.hellcraft.math._
 
-
 // type for all update effects
 sealed trait UpdateEffect {
-  def effectType: UpdateEffectType
+  def effectType: UpdateEffectType[_ <: UpdateEffect]
 }
-sealed trait UpdateEffectType
+sealed case class UpdateEffectType[T <: UpdateEffect](ord: Int)
+object UpdateEffectType {
+  val types = Seq(SoundEffect, MakeRequest, LogEffect, PutChunk, PutEnt, RemEnt, Event)
+
+  implicit val type0 = SoundEffect
+  implicit val type1 = MakeRequest
+  implicit val type2 = LogEffect
+  implicit val type3 = PutChunk
+  implicit val type4 = PutEnt
+  implicit val type5 = RemEnt
+  implicit val type6 = Event
+}
 
 // audio effects
 case class SoundEffect(sound: SoundID, pow: Float, pos: V3F) extends UpdateEffect {
-  override def effectType: UpdateEffectType = SoundEffect
+  override def effectType = SoundEffect
 }
-case object SoundEffect extends UpdateEffectType
+case object SoundEffect extends UpdateEffectType[SoundEffect](0)
 
 // request effect
+case class MakeRequest[-T](request: Request[T], onComplete: Requested => Seq[UpdateEffect]) extends UpdateEffect {
+  override def effectType = MakeRequest
+}
+case object MakeRequest extends UpdateEffectType[MakeRequest[Nothing]](1)
+/*
 case class MakeRequest[T](request: Request[T], onComplete: (Requested, World, MRNG) => Seq[ChunkEvent]) extends UpdateEffect {
   override def effectType: UpdateEffectType = MakeRequest
 }
-case object MakeRequest extends UpdateEffectType
+case object MakeRequest extends UpdateEffectType[MakeRequest]
+*/
 
 // log effect
-case class Log(str: String) extends UpdateEffect {
-  override def effectType = Log
+case class LogEffect(str: String) extends UpdateEffect {
+  override def effectType = LogEffect
 }
-case object Log extends UpdateEffectType
+case object LogEffect extends UpdateEffectType[LogEffect](2)
+
+// chunk and entity put effects
+case class PutChunk(c: Chunk) extends UpdateEffect {
+  override def effectType = PutChunk
+}
+case object PutChunk extends UpdateEffectType[PutChunk](3)
+
+case class PutEnt(ent: AnyEnt) extends UpdateEffect {
+  override def effectType = PutEnt
+}
+case object PutEnt extends UpdateEffectType[PutEnt](4)
+
+case class RemEnt(id: AnyEntID) extends UpdateEffect {
+  override def effectType = RemEnt
+}
+case object RemEnt extends UpdateEffectType[RemEnt](5)
+
+//event effect
+case class EventID(time: Long, phase: Byte, uuid: UUID) extends Comparable[EventID] {
+  override def compareTo(other: EventID): Int =
+    other.time - this.time match {
+      case 0 => other.phase - this.phase match {
+        case 0 => this.uuid compareTo other.uuid
+        case b => b
+      }
+      case l if l > 0 => 1
+      case _ => -1
+    }
+}
+
+case class Event(eval: UE[Seq[UpdateEffect]], id: EventID = Context.eventID()) extends UpdateEffect {
+  override def effectType = Event
+}
+case object Event extends UpdateEffectType[Event](6)
+
 
 // chunk events
+/*
 sealed trait ChunkEvent extends UpdateEffect {
   def id: UUID
 
@@ -76,7 +130,7 @@ case object ChunkEvent extends UpdateEffectType {
             (chunk.putEntity(neu), Seq.empty)
           else
             (chunk.removeEntity(entID), Seq(putEnt(neu)))
-        case None => (chunk, Seq(Log("entity event failed to find entity")))
+        case None => (chunk, Seq(LogEffect("entity event failed to find entity")))
       }
     })
 
@@ -87,3 +141,4 @@ case object ChunkEvent extends UpdateEffectType {
     entEvent(p, entID)((ent, world) => ent.doPhysics(world))
 
 }
+*/

@@ -6,7 +6,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.math.Matrix4
 import com.phoenixkahlo.hellcraft.core.graphics._
-import com.phoenixkahlo.hellcraft.core.{Blocks, ChunkEvent, Materials, RenderWorld, World}
+import com.phoenixkahlo.hellcraft.core.Blocks
 import com.phoenixkahlo.hellcraft.fgraphics.ParticleShader.Particle
 import com.phoenixkahlo.hellcraft.fgraphics._
 import com.phoenixkahlo.hellcraft.math.MatrixFactory.{Rotate, Translate}
@@ -21,6 +21,7 @@ import com.badlogic.gdx.graphics.g2d.{BitmapFont, GlyphLayout, TextureRegion}
 import com.phoenixkahlo.hellcraft.core.client.ClientSessionData._
 import com.phoenixkahlo.hellcraft.core.eval.GEval.GEval
 import com.phoenixkahlo.hellcraft.core.eval.{ExecCheap, GEval}
+import com.phoenixkahlo.hellcraft.core.event.Events
 import com.phoenixkahlo.hellcraft.fgraphics.hud.{DownLeft, ImgHUDComponent, StrBoxHUDComponent, StrHUDComponent}
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.math
@@ -30,7 +31,7 @@ import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
 import scala.concurrent.duration._
 import scala.collection.mutable.ArrayBuffer
 
-case class MenuButton(range: V2I => (V2I, V2I), str: String, onclick: (ClientLogic, World, ClientLogic.Input) => ClientLogic.Output) {
+case class MenuButton(range: V2I => (V2I, V2I), str: String, onclick: (ClientLogic, ClientWorld, ClientLogic.Input) => ClientLogic.Output) {
   def contains(v: V2I, input: Input): Boolean = {
     val (min, max) = range(input.currentRes)
     val v2 = V2I(v.xi, input.currentRes.yi - v.yi)
@@ -84,7 +85,7 @@ case class Cloud(pos: V3F, ren: Renderable[TerrainShader]) {
   }
 }
 case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3F, clouds: Seq[Cloud] = Seq.empty) {
-  def update(world: World, input: Input): ClientCore = {
+  def update(world: ClientWorld, input: Input): ClientCore = {
     val numClouds = 75
     val cloudDist = Repeated(input.camRange._2 + 300)
     val filteredClouds = clouds.filter({ case Cloud(pos, _) => pos > input.camPos - cloudDist && pos < camPos + cloudDist })
@@ -100,7 +101,7 @@ case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3
     copy(clouds = movedClouds)
   }
 
-  def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData) = {
+  def render(world: ClientRenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData) = {
     implicit val exec = ExecCheap
 
     // begin accumulating renders
@@ -119,10 +120,10 @@ case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3
     // do some debug renders
     val chunkOutline = CubeOutline.chunk(V4F(1, 1, 1, 1))
     input.sessionData.get(ChunkDebugMode).getOrElse("") match {
-      case "chunk" => for (c <- world.debugLoadedChunks) {
+      case "chunk" => for (c <- world.loadedChunks) {
         renders += Render[LineShader](chunkOutline, Offset(c * 16))
       }
-      case "terrain" => for (c <- world.debugLoadedTerrain) {
+      case "terrain" => for (c <- world.loadedTerrain) {
         renders += Render[LineShader](chunkOutline, Offset(c * 16))
       }
       case _ =>
@@ -263,7 +264,7 @@ case class GodClientMain(core: ClientCore) extends ClientLogic {
   }
   */
 
-  override def frame(world: RenderWorld, input: Input) =
+  override def frame(world: ClientRenderWorld, input: Input) =
     ({
       var movDir: V3F = Origin
       if (core.pressed(W)) movDir += core.camDir
@@ -283,27 +284,27 @@ case class GodClientMain(core: ClientCore) extends ClientLogic {
       (wrender ++ hud, globals)
     })
 
-  override def keyDown(keycode: KeyCode)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = keycode match {
+  override def keyDown(keycode: KeyCode)(world: ClientWorld, input: Input): (ClientLogic, Seq[ClientEffect]) = keycode match {
     case ESCAPE => become(GodClientMenu(core, input))
     case T => become(GodClientChat(core))
     case SLASH => become(GodClientChat(core, buffer = "/"))
     case _ => become(GodClientMain(core.copy(pressed = core.pressed + keycode)))
   }
 
-  override def keyUp(keycode: KeyCode)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
+  override def keyUp(keycode: KeyCode)(world: ClientWorld, input: Input): (ClientLogic, Seq[ClientEffect]) =
     become(GodClientMain(core.copy(pressed = core.pressed - keycode)))
 
-  override def touchDown(pos: V2I, pointer: Int, button: Button)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
+  override def touchDown(pos: V2I, pointer: Int, button: Button)(world: ClientWorld, input: Input): (ClientLogic, Seq[ClientEffect]) =
     if (input.isCursorCaught) button match {
       case Right =>
         world
           .placeBlock(core.camPos, core.camDir, 64)
-          .map(v => cause(CauseUpdateEffect(ChunkEvent.setMat(v, Blocks.Brick, meshBlocksFast = true))))
+          .map(v => cause(CauseUpdateEffect(Events.setMat(v, Blocks.Brick, mbf = true))))
           .getOrElse(nothing)
       case _ => nothing
     } else cause(CaptureCursor)
 
-  override def mouseMoved(pos: V2I, delta: V2I)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = {
+  override def mouseMoved(pos: V2I, delta: V2I)(world: ClientWorld, input: Input): (ClientLogic, Seq[ClientEffect]) = {
     if (input.isCursorCaught) {
       var camDir = core.camDir
 
@@ -339,41 +340,27 @@ case class GodClientMenu(core: ClientCore, buttons: Seq[MenuButton], pressing: O
     else super.become(replacement)
   }
 
-  override def tick(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = {
+  override def tick(world: ClientWorld, input: Input): (ClientLogic, Seq[ClientEffect]) = {
     val chunkPos = core.camPos / 16 toInts
     val loadTarget = (chunkPos - input.sessionData(LoadDist)) toAsSet (chunkPos + input.sessionData(LoadDist))
     cause(SetLoadTarget(loadTarget, loadTarget.shroat(4)))
   }
 
-  override def keyDown(keycode: KeyCode)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
+  override def keyDown(keycode: KeyCode)(world: ClientWorld, input: Input): (ClientLogic, Seq[ClientEffect]) =
     if (keycode == ESCAPE) become(GodClientMain(core))
     else become(copy(core = core.copy(pressed = core.pressed + keycode)))
 
 
-  override def touchDown(pos: V2I, pointer: KeyCode, button: Button)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
+  override def touchDown(pos: V2I, pointer: KeyCode, button: Button)(world: ClientWorld, input: Input): (ClientLogic, Seq[ClientEffect]) =
     buttons.reverse.find(_ contains (pos, input)).map(button => become(copy(pressing = Some(button)))).getOrElse(nothing)
 
-  override def touchUp(pos: V2I, pointer: KeyCode, button: Button)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
+  override def touchUp(pos: V2I, pointer: KeyCode, button: Button)(world: ClientWorld, input: Input): (ClientLogic, Seq[ClientEffect]) =
     pressing match {
       case Some(pressing) => buttons.reverse.find(_ contains (pos, input)).filter(_ == pressing).map(_.onclick(this, world, input)).getOrElse(nothing)
       case None => nothing
     }
 
-
-
-  /*
-  override def render(world: RenderWorld, input: Input): (Seq[Render[_ <: Shader]], GlobalRenderData) = {
-    val (renders, globals) = core.render(world, input)
-    val menu: Seq[Render[HUDShader]] = buttons.flatMap(b => b.components match {
-      case (off, on) => if (b contains (input.cursorPos, input)) on else off
-    })
-    (renders ++: menu, globals)
-  }
-  */
-
-  //override def resize(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) =
-  //  become(GodClientMenu(core, input))
-  override def frame(world: RenderWorld, input: Input) = {
+  override def frame(world: ClientRenderWorld, input: Input) = {
     val (renders, globals) = core.render(world, input)
     val menu: Seq[Render[HUDShader]] = buttons.flatMap(b => b.components match {
       case (off, on) => if (b contains (input.cursorPos, input)) on else off

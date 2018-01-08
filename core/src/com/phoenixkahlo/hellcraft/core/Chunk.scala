@@ -7,12 +7,15 @@ import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.core.eval.GEval.GEval
 import com.phoenixkahlo.hellcraft.core.eval.WEval.WEval
 import com.phoenixkahlo.hellcraft.core.eval.{Exec3D, ExecCheap, GEval, WEval}
+import com.phoenixkahlo.hellcraft.core.event.Events
+import com.phoenixkahlo.hellcraft.core.graphics.RenderWorld
 import com.phoenixkahlo.hellcraft.core.request._
+import com.phoenixkahlo.hellcraft.core.util.Derived
 import com.phoenixkahlo.hellcraft.fgraphics._
 import com.phoenixkahlo.hellcraft.math.physics._
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.LeftOption
-import com.phoenixkahlo.hellcraft.util.collections.MemoFunc
+import com.phoenixkahlo.hellcraft.util.collections.{Lazy, MemoFunc}
 import com.phoenixkahlo.hellcraft.util.fields.{ByteFractionField, ByteFractionFieldBuffer, OptionField}
 
 import scala.collection.mutable.ArrayBuffer
@@ -20,12 +23,12 @@ import scala.collection.mutable.ArrayBuffer
 class Chunk(
              val pos: V3I,
              val terrain: Terrain,
-             val entities: EntityMap,
              val terrainSoup: TerrainSoup,
              val blockSoup: BlockSoup,
              val tsRequest: Option[Request[TerrainSoup]],
              val bsRequest: Option[Request[BlockSoup]],
-             @transient lastBroadphase: () => Broadphase = null,
+             val _broadphase: Derived[Broadphase] = new Derived[Broadphase],
+             //@transient lastBroadphase: Lazy[Broadphase] = null,
              lastTerrainRenderable: Option[Renderable[TerrainShader]] = None,
              lastTerrainRenderableValid: Boolean = false,
              lastBlockRenderable: Option[Renderable[GenericShader]] = None,
@@ -71,12 +74,21 @@ class Chunk(
     }
   }
 
-  @transient lazy val broadphase: Broadphase =
+  def broadphase: Broadphase =
+    _broadphase(new OctreeBroadphase(terrainSoup.iterator ++ blockSoup.iterator, pos * 16 + Repeated(80), 64))
+
+  /*
+  @transient lazy val broadphase: Lazy[Broadphase] =
+    Option(lastBroadphase).getOrElse(Lazy)
+    */
+    /*
     Option(lastBroadphase).map(_ apply).getOrElse(new OctreeBroadphase(
       terrainSoup.iterator ++ blockSoup.iterator,
       pos * 16 + Repeated(8), 64
     ))
+    */
 
+  /*
   def putEntity(entity: AnyEnt): Chunk =
     new Chunk(
       pos, terrain,
@@ -96,14 +108,14 @@ class Chunk(
       () => broadphase,
       Some(terrainRenderable), true, Some(blockRenderable), true
     )
+    */
 
   def setTerrain(newTerrain: Terrain, meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true)(implicit rand: MRNG): (Chunk, Seq[UpdateEffect]) =
     new Chunk(
       pos, newTerrain,
-      entities,
       terrainSoup, blockSoup,
       tsRequest, bsRequest,
-      () => broadphase,
+      _broadphase,
       Some(terrainRenderable), true,
       Some(blockRenderable), true
     ).invalidate(meshTerrFast, meshBlocksFast)
@@ -121,15 +133,14 @@ class Chunk(
     val rbs: Request[BlockSoup] = Request(ebs, rand.nextUUID)
     new Chunk(
       pos, terrain,
-      entities,
       terrainSoup, blockSoup,
       Some(rts), Some(rbs),
-      () => broadphase,
+      _broadphase,
       Some(terrainRenderable), true,
       Some(blockRenderable), true
     ) -> Seq(
-      MakeRequest(rts, (requested, world, rand) => Seq(ChunkEvent.fulfill(pos, requested)(rand))),
-      MakeRequest(rbs, (requested, world, rand) => Seq(ChunkEvent.fulfill(pos, requested)(rand)))
+      MakeRequest(rts, requested => Seq(Event.fulfill(pos, requested))),
+      MakeRequest(rbs, requested => Seq(Event.fulfill(pos, requested)))
     )
   }
 
@@ -137,38 +148,41 @@ class Chunk(
     if (tsRequest.isDefined && tsRequest.get.unlock(requested).isDefined) {
       new Chunk(
         pos, terrain,
-        entities,
         tsRequest.get.unlock(requested).get, blockSoup,
         None, bsRequest,
-        null,
+        new Derived[Broadphase],
         Some(terrainRenderable), false,
         Some(blockRenderable), true
       )
     } else if (bsRequest.isDefined && bsRequest.get.unlock(requested).isDefined) {
       new Chunk(
         pos, terrain,
-        entities,
         terrainSoup, bsRequest.get.unlock(requested).get,
         tsRequest, None,
-        null,
+        new Derived[Broadphase],
         Some(terrainRenderable), true,
         Some(blockRenderable), false
       )
     } else this
   }
 
-  def update(world: World)(implicit rand: MRNG): Seq[UpdateEffect] =
-    entities.values.flatMap(_.update(world))
+  //def update(world: World)(implicit rand: MRNG): Seq[UpdateEffect] =
+  //  entities.values.flatMap(_.update(world))
+  /*
+  def update: Seq[UpdateEffect] =
+    entities.values.flatMap(_.update)
+    */
 
-  def isActive: Boolean = entities.nonEmpty
+  //def isActive: Boolean = entities.nonEmpty
 
-  def isRenderable: Boolean = entities.nonEmpty || terrainSoup.verts.nonEmpty || blockSoup.verts.nonEmpty
+  //def isRenderable: Boolean = entities.nonEmpty || terrainSoup.verts.nonEmpty || blockSoup.verts.nonEmpty
+  def isRenderable: Boolean = terrainSoup.verts.nonEmpty || blockSoup.verts.nonEmpty
 
   def render(world: RenderWorld): Seq[Render[_ <: Shader]] = {
     Seq(
       Render[TerrainShader](terrainRenderable, Offset.default),
       Render[GenericShader](blockRenderable, Offset.default)
-    ) ++ entities.values.flatMap(_.render(world))
+    )
   }
 
 }
