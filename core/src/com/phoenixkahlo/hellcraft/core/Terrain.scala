@@ -59,18 +59,18 @@ object TerrainSoup {
 
   def apply(terrain: Terrain, world: TerrainGrid): Option[TerrainSoup] =
   if (Terrain.canComplete(terrain.pos, world)) {
-    val offset = terrain.pos * world.res
+    val offset = terrain.pos * 16
 
     // generate the vertex field with an overshoot of <2, 2, 2> to connect the chunks
     // the lefts represent a vertex, the rights (unit) represent a solid filling
     val someRightUnit = Some(Right((): Unit))
-    val verts = OptionField[Either[TerrainSoup.Vert, Unit]](world.resVec + V3I(2, 2, 2), v => {
+    val verts = OptionField[Either[TerrainSoup.Vert, Unit]](V3I(18, 18, 18), v => {
       val corners: Seq[TerrainUnit] = (v toAsSeq v + Ones).map(v => world.terrainGridPoint(offset + v).get)
       if (corners.exists(_.id < 0)) {
         // if one of the corners is a block, we must snap to the center
         // but if none of the corners are terrain, we shouldn't place a vertex at all
         corners.find(_.id > 0).map(mat => {
-          val pos = (offset + v + V3F(0.5f, 0.5f, 0.5f)) / world.res * 16
+          val pos = offset + v + V3F(0.5f, 0.5f, 0.5f)
           Left(Vert(pos, mat.asInstanceOf[Material], world.sampleDirection(pos).get.neg))
         })
       } else {
@@ -90,7 +90,7 @@ object TerrainSoup {
           else None
         } else {
           // average isopoints and convert to spatial coords
-          val vertPos = (isopoints.fold(Origin)(_ + _) / isopoints.size) / world.res * 16
+          val vertPos = isopoints.fold(Origin)(_ + _) / isopoints.size
           // find a material that's not air
           val mat = (v toAsSeq v + Ones).toStream
             .map(vv => world.terrainGridPoint(offset + vv).get).filterNot(_ == Air).head
@@ -142,7 +142,7 @@ object BlockSoup {
 
   def apply(terrain: Terrain, world: TerrainGrid): Option[BlockSoup] =
     if (Terrain.canComplete(terrain.pos, world)) {
-      val offset = terrain.pos * world.res
+      val offset = terrain.pos * 16
       val grid = terrain.grid
 
       val n = -0.5f
@@ -152,7 +152,7 @@ object BlockSoup {
       val indices = new ArrayBuffer[Short]
       var index = 0
       for {
-        v <- Origin untilAsSeq world.resVec
+        v <- Origin untilAsSeq V3I(16, 16, 16)
         d <- Directions()
       } yield{
         val visible = (grid(v).id, world.terrainGridPoint(offset + v + d).get.id) match {
@@ -167,10 +167,10 @@ object BlockSoup {
                    x3: Float, y3: Float, z3: Float, u3: Int, v3: Int,
                    x4: Float, y4: Float, z4: Float, u4: Int, v4: Int,
                    i1: Int, i2: Int, i3: Int, i4: Int, i5: Int, i6: Int): Unit = {
-            verts += Vert((offset + v + V3F(x1, y1, z1)) / world.res * 16, block, V2I(u1, v1), d)
-            verts += Vert((offset + v + V3F(x2, y2, z2)) / world.res * 16, block, V2I(u2, v2), d)
-            verts += Vert((offset + v + V3F(x3, y3, z3)) / world.res * 16, block, V2I(u3, v3), d)
-            verts += Vert((offset + v + V3F(x4, y4, z4)) / world.res * 16, block, V2I(u4, v4), d)
+            verts += Vert(offset + v + V3F(x1, y1, z1), block, V2I(u1, v1), d)
+            verts += Vert(offset + v + V3F(x2, y2, z2), block, V2I(u2, v2), d)
+            verts += Vert(offset + v + V3F(x3, y3, z3), block, V2I(u3, v3), d)
+            verts += Vert(offset + v + V3F(x4, y4, z4), block, V2I(u4, v4), d)
             indices.append((index + i1).toShort, (index + i2).toShort, (index + i3).toShort)
             indices.append((index + i4).toShort, (index + i5).toShort, (index + i6).toShort)
             index += 4

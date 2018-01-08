@@ -1,6 +1,5 @@
 package com.phoenixkahlo.hellcraft.math
 
-import com.phoenixkahlo.hellcraft.core.World
 
 import scala.collection.mutable.ArrayBuffer
 

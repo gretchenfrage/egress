@@ -15,7 +15,7 @@ sealed trait UpdateEffect {
 }
 sealed case class UpdateEffectType[T <: UpdateEffect](ord: Int)
 object UpdateEffectType {
-  val types = Seq(SoundEffect, MakeRequest, LogEffect, PutChunk, PutEnt, RemEnt, Event)
+  val types = Seq(SoundEffect, MakeRequest, LogEffect, PutChunk, PutEnt, RemEnt, Event, IdenEvent)
 
   implicit val type0 = SoundEffect
   implicit val type1 = MakeRequest
@@ -24,19 +24,20 @@ object UpdateEffectType {
   implicit val type4 = PutEnt
   implicit val type5 = RemEnt
   implicit val type6 = Event
+  implicit val type7 = IdenEvent
 }
 
 // audio effects
 case class SoundEffect(sound: SoundID, pow: Float, pos: V3F) extends UpdateEffect {
   override def effectType = SoundEffect
 }
-case object SoundEffect extends UpdateEffectType[SoundEffect](0)
+object SoundEffect extends UpdateEffectType[SoundEffect](0)
 
 // request effect
-case class MakeRequest[-T](request: Request[T], onComplete: Requested => Seq[UpdateEffect]) extends UpdateEffect {
+case class MakeRequest[T](request: Request[T], onComplete: Requested => Seq[UpdateEffect]) extends UpdateEffect {
   override def effectType = MakeRequest
 }
-case object MakeRequest extends UpdateEffectType[MakeRequest[Nothing]](1)
+object MakeRequest extends UpdateEffectType[MakeRequest[_]](1)
 /*
 case class MakeRequest[T](request: Request[T], onComplete: (Requested, World, MRNG) => Seq[ChunkEvent]) extends UpdateEffect {
   override def effectType: UpdateEffectType = MakeRequest
@@ -48,23 +49,23 @@ case object MakeRequest extends UpdateEffectType[MakeRequest]
 case class LogEffect(str: String) extends UpdateEffect {
   override def effectType = LogEffect
 }
-case object LogEffect extends UpdateEffectType[LogEffect](2)
+object LogEffect extends UpdateEffectType[LogEffect](2)
 
 // chunk and entity put effects
 case class PutChunk(c: Chunk) extends UpdateEffect {
   override def effectType = PutChunk
 }
-case object PutChunk extends UpdateEffectType[PutChunk](3)
+object PutChunk extends UpdateEffectType[PutChunk](3)
 
 case class PutEnt(ent: AnyEnt) extends UpdateEffect {
   override def effectType = PutEnt
 }
-case object PutEnt extends UpdateEffectType[PutEnt](4)
+object PutEnt extends UpdateEffectType[PutEnt](4)
 
 case class RemEnt(id: AnyEntID) extends UpdateEffect {
   override def effectType = RemEnt
 }
-case object RemEnt extends UpdateEffectType[RemEnt](5)
+object RemEnt extends UpdateEffectType[RemEnt](5)
 
 //event effect
 case class EventID(time: Long, phase: Byte, uuid: UUID) extends Comparable[EventID] {
@@ -79,10 +80,18 @@ case class EventID(time: Long, phase: Byte, uuid: UUID) extends Comparable[Event
     }
 }
 
-case class Event(eval: UE[Seq[UpdateEffect]], id: EventID = UEContext.eventID()) extends UpdateEffect {
+// version without ID, produced by world
+case class Event(eval: UE[Seq[UpdateEffect]]) extends UpdateEffect {
   override def effectType = Event
+  def iden(id: EventID) = IdenEvent(eval, id)
 }
-case object Event extends UpdateEffectType[Event](6)
+object Event extends UpdateEffectType[Event](6)
+
+// version with ID, elevated by driver
+case class IdenEvent(eval: UE[Seq[UpdateEffect]], id: EventID) extends UpdateEffect {
+  override def effectType = IdenEvent
+}
+object IdenEvent extends UpdateEffectType[IdenEvent](7)
 
 
 // chunk events

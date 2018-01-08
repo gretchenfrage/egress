@@ -7,7 +7,7 @@ import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.core.eval.GEval.GEval
 import com.phoenixkahlo.hellcraft.core.eval.WEval.WEval
 import com.phoenixkahlo.hellcraft.core.eval.{Exec3D, ExecCheap, GEval, WEval}
-import com.phoenixkahlo.hellcraft.core.event.Events
+import com.phoenixkahlo.hellcraft.core.event.{Events, UEContext}
 import com.phoenixkahlo.hellcraft.core.graphics.RenderWorld
 import com.phoenixkahlo.hellcraft.core.request._
 import com.phoenixkahlo.hellcraft.core.util.Derived
@@ -25,10 +25,9 @@ class Chunk(
              val terrain: Terrain,
              val terrainSoup: TerrainSoup,
              val blockSoup: BlockSoup,
-             val tsRequest: Option[Request[TerrainSoup]],
-             val bsRequest: Option[Request[BlockSoup]],
+             val tsRequest: Option[Request[TerrainSoup]] = None,
+             val bsRequest: Option[Request[BlockSoup]] = None,
              val _broadphase: Derived[Broadphase] = new Derived[Broadphase],
-             //@transient lastBroadphase: Lazy[Broadphase] = null,
              lastTerrainRenderable: Option[Renderable[TerrainShader]] = None,
              lastTerrainRenderableValid: Boolean = false,
              lastBlockRenderable: Option[Renderable[GenericShader]] = None,
@@ -75,7 +74,7 @@ class Chunk(
   }
 
   def broadphase: Broadphase =
-    _broadphase(new OctreeBroadphase(terrainSoup.iterator ++ blockSoup.iterator, pos * 16 + Repeated(80), 64))
+    _broadphase(new OctreeBroadphase(terrainSoup.iterator ++ blockSoup.iterator, pos * 16 + Repeated(8), 64))
 
   /*
   @transient lazy val broadphase: Lazy[Broadphase] =
@@ -110,7 +109,7 @@ class Chunk(
     )
     */
 
-  def setTerrain(newTerrain: Terrain, meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true)(implicit rand: MRNG): (Chunk, Seq[UpdateEffect]) =
+  def setTerrain(newTerrain: Terrain, meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true): (Chunk, Seq[UpdateEffect]) =
     new Chunk(
       pos, newTerrain,
       terrainSoup, blockSoup,
@@ -120,7 +119,7 @@ class Chunk(
       Some(blockRenderable), true
     ).invalidate(meshTerrFast, meshBlocksFast)
 
-  def invalidate(meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true)(implicit rand: MRNG): (Chunk, Seq[UpdateEffect]) = {
+  def invalidate(meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true): (Chunk, Seq[UpdateEffect]) = {
     val e3d = Exec3D(pos * 16)
     val emicroworld = WEval.terrains(pos.neighbors)
     val ets: WEval[TerrainSoup] = emicroworld.map(world => TerrainSoup(terrain, world).get)(
@@ -129,8 +128,8 @@ class Chunk(
     val ebs: WEval[BlockSoup] = emicroworld.map(world => BlockSoup(terrain, world).get)(
       if (meshBlocksFast) ExecCheap else e3d
     )
-    val rts: Request[TerrainSoup] = Request(ets, rand.nextUUID)
-    val rbs: Request[BlockSoup] = Request(ebs, rand.nextUUID)
+    val rts: Request[TerrainSoup] = Request(ets, UEContext.randUUID())
+    val rbs: Request[BlockSoup] = Request(ebs, UEContext.randUUID())
     new Chunk(
       pos, terrain,
       terrainSoup, blockSoup,
@@ -139,8 +138,8 @@ class Chunk(
       Some(terrainRenderable), true,
       Some(blockRenderable), true
     ) -> Seq(
-      MakeRequest(rts, requested => Seq(Event.fulfill(pos, requested))),
-      MakeRequest(rbs, requested => Seq(Event.fulfill(pos, requested)))
+      MakeRequest(rts, requested => Seq(Events.fulfill(pos, requested))),
+      MakeRequest(rbs, requested => Seq(Events.fulfill(pos, requested)))
     )
   }
 
@@ -166,16 +165,6 @@ class Chunk(
     } else this
   }
 
-  //def update(world: World)(implicit rand: MRNG): Seq[UpdateEffect] =
-  //  entities.values.flatMap(_.update(world))
-  /*
-  def update: Seq[UpdateEffect] =
-    entities.values.flatMap(_.update)
-    */
-
-  //def isActive: Boolean = entities.nonEmpty
-
-  //def isRenderable: Boolean = entities.nonEmpty || terrainSoup.verts.nonEmpty || blockSoup.verts.nonEmpty
   def isRenderable: Boolean = terrainSoup.verts.nonEmpty || blockSoup.verts.nonEmpty
 
   def render(world: RenderWorld): Seq[Render[_ <: Shader]] = {

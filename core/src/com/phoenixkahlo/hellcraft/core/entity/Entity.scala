@@ -7,7 +7,7 @@ import com.phoenixkahlo.hellcraft.core.UpdateEffect
 import com.phoenixkahlo.hellcraft.fgraphics.{Render, Shader}
 import com.phoenixkahlo.hellcraft.math.{MRNG, V3F, V3I}
 
-trait Entity[E <: Entity[E]] extends Serializable {
+trait Entity[E <: Entity[_]] extends Serializable {
   this: E =>
 
   def id: EntID[E]

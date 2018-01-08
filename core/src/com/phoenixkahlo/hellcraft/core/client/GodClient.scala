@@ -112,6 +112,11 @@ case class ClientCore(pressed: Set[KeyCode], chat: Chat, camPos: V3F, camDir: V3
       renders += render
     }
 
+    // render the entities
+    for (render <- world.renderableEnts.flatMap(_.render(world))) {
+      renders += render
+    }
+
     // render the block outline
     for (v <- world.placeBlock(input.camPos, input.camDir, 64)) {
       renders += Render[LineShader](CubeOutline.block(V4I.ones), Offset(v))
@@ -414,7 +419,7 @@ case class GodClientChat(core: ClientCore, cursor: Boolean = true, buffer: Strin
     else nothing
     */
 
-  override def keyDown(keycode: KeyCode)(world: World, input: Input): (ClientLogic, Seq[ClientEffect]) = keycode match {
+  override def keyDown(keycode: KeyCode)(world: ClientWorld, input: Input): (ClientLogic, Seq[ClientEffect]) = keycode match {
     case ESCAPE => become(GodClientMain(core))
     case DEL => become(copy(buffer = buffer.dropRight(1)))
     case ENTER =>
@@ -439,7 +444,7 @@ case class GodClientChat(core: ClientCore, cursor: Boolean = true, buffer: Strin
     (wrender ++ hud, globals)
   }
   */
-  override def frame(world: RenderWorld, input: Input) = {
+  override def frame(world: ClientRenderWorld, input: Input) = {
     (
       if (shouldCursor(input) ^ cursor)
         become(copy(cursor = shouldCursor(input)))
@@ -459,13 +464,5 @@ case class GodClientChat(core: ClientCore, cursor: Boolean = true, buffer: Strin
 }
 
 object GodClient {
-  //val turnSpeed = 0.25f
-  //val moveSpeed = 1f
   val margin = 1f
-  //val loadDist = "load_dist"
-  //val dayDuration = "day_duration"
-  //val moveSpeed = "move_speed"
-  //val loadRad = V3I(12, 5, 12)
-  //val dayDuration = 10 seconds
-  //val dayTicks = dayDuration.toSeconds * 20
 }

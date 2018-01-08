@@ -13,21 +13,21 @@ import com.phoenixkahlo.hellcraft.core.event.UE.UEFilter
 import com.phoenixkahlo.hellcraft.core.event.UE.UEChunk
 import com.phoenixkahlo.hellcraft.core.event.UE.UETerrain
 import com.phoenixkahlo.hellcraft.core.event.UE.UEEnt
-import com.phoenixkahlo.hellcraft.core.event.{UEContext, UEContextImpl, UE}
+import com.phoenixkahlo.hellcraft.core.event.{UE, UEContext, UEContextImpl}
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.core.util.GroupedEffects
-import com.phoenixkahlo.hellcraft.core.{Chunk, Event, EventID, IContext, LogEffect, MakeRequest, PutChunk, PutEnt, RemEnt, SoundEffect, Terrain, UpdateEffect, event}
+import com.phoenixkahlo.hellcraft.core.{Chunk, Event, EventID, LogEffect, MakeRequest, PutChunk, PutEnt, RemEnt, SoundEffect, Terrain, UpdateEffect, event}
 import com.phoenixkahlo.hellcraft.math.V3I
-import com.phoenixkahlo.hellcraft.singleplayer.SingleWorld.ChangeSummary
+import com.phoenixkahlo.hellcraft.singleplayer.SingleWorld.{ChangeSummary, ChunkEnts}
 import com.phoenixkahlo.hellcraft.util.collections.V3ISet
-import com.phoenixkahlo.hellcraft.util.threading.{FulfillmentContext, UniExecutor}
+import com.phoenixkahlo.hellcraft.util.threading.{FulfillmentContext, Promise, UniExecutor}
 import com.phoenixkahlo.hellcraft.util.time.Timer
 
 import scala.concurrent.duration._
 import scala.collection.mutable
 import scala.util.Random
 
-private case class ChunkEnts(chunk: Chunk, ents: Map[AnyEntID, AnyEnt])
+
 case class SingleWorld(
                       chunks: Map[V3I, Either[ChunkEnts, Terrain]],
                       ents: Map[AnyEntID, V3I],
@@ -53,7 +53,11 @@ case class SingleWorld(
 
   // entity lookup
   override def findEntity[E <: Entity[E]](id: EntID[E]) =
-    ents.get(id).map(p => chunks(p).left.get.ents.get(id).asInstanceOf[E])
+    ents.get(id).flatMap(p => chunks(p).left.get.ents.get(id).asInstanceOf[Option[E]])
+
+  // untyped entity lookup
+  def findEntityUntyped(id: AnyEntID): Option[AnyEnt] =
+    ents.get(id).flatMap(p => chunks(p).left.get.ents.get(id))
 
   // bounding box
   override def bounds = bbox()
@@ -71,6 +75,8 @@ case class SingleWorld(
     new SingleWorld(chunks, ents, cdomain, tdomain, active, renderable, bbox) with ClientRenderWorld {
       override def renderableChunks = renderable.toSeq.map(chunks).map(_.left.get.chunk)
 
+      override def renderableEnts = active.toSeq.map(chunks).flatMap(_.left.get.ents.values)
+
       override def ftime = _ftime
 
       override def interp = _interp
@@ -84,7 +90,7 @@ case class SingleWorld(
 
   // remove chunk/terrain
   def -(p: V3I): SingleWorld = {
-    val es = chunks.get(p).flatMap(_.left.toOption).flatMap(_.ents.keySet)
+    val es = chunks.get(p).flatMap(_.left.toOption).toSeq.flatMap(_.ents.keySet)
     SingleWorld(chunks - p, ents -- es, cdomain, tdomain, active - p, renderable - p, bbox - p)
   }
 
@@ -129,12 +135,13 @@ case class SingleWorld(
     )
   }
 
-  // put entity in world
-  def putEnt(ent: AnyEnt): SingleWorld = {
+  // put entity in world without removing it first
+  private def _putEnt(ent: AnyEnt): SingleWorld = {
     chunks.get(ent.chunkPos) match {
-      case Some(Left(ChunkEnts(chunk, ents))) =>
+      case Some(Left(ChunkEnts(chunk, entMap))) =>
         copy(
-          chunks = chunks.updated(ent.chunkPos, Left(ChunkEnts(chunk, ents + (ent.id -> ent)))),
+          chunks = chunks.updated(ent.chunkPos, Left(ChunkEnts(chunk, entMap + (ent.id -> ent)))),
+          ents = ents + (ent.id -> ent.chunkPos),
           active = active + ent.chunkPos,
           renderable = renderable + ent.chunkPos
         )
@@ -144,6 +151,9 @@ case class SingleWorld(
     }
   }
 
+  // update the entity by removing then putting
+  def putEnt(ent: AnyEnt): SingleWorld = remEnt(ent.id)._putEnt(ent)
+
   // remove entity from world
   def remEnt(id: AnyEntID): SingleWorld = {
     ents.get(id).map(p => chunks.get(p) match {
@@ -152,7 +162,7 @@ case class SingleWorld(
           copy(
             chunks = chunks.updated(p, Left(ChunkEnts(chunk, ents - id))),
             active = if (ents.size == 1) active - p else active,
-            renderable = if (ents.size == 1 && !chunk.isRenderable) renderable - p else renderable
+            renderable = if (!chunk.isRenderable) renderable - p else renderable
           )
         } else {
           println("warn: failed to remove ent, not present in chunk")
@@ -162,7 +172,7 @@ case class SingleWorld(
         println("warn: failed to remove ent, chunk non-existent")
         this
     }).getOrElse({
-      println("warn: failed to remove ent, not found")
+      //println("warn: failed to remove ent, not found")
       this
     })
   }
@@ -175,19 +185,19 @@ case class SingleWorld(
   def eval[T](ue: UE[T]): T = ue match {
     case ue@UEGen(fac) => fac()
     case ue@UEMap(src, func) =>
-      def f[S](ue: UEMap[S, T]): T = ue.func(eval(ue.src))
+      def f[S, T](ue: UEMap[S, T]): T = ue.func(eval(ue.src))
       f(ue)
     case ue@UEFMap(src, func) =>
-      def f[S](ue: UEFMap[S, T]): T = eval(ue.func(eval(ue.src)))
+      def f[S, T](ue: UEFMap[S, T]): T = eval(ue.func(eval(ue.src)))
       f(ue)
-    case ue@UEFilter(src, test) =>
-      val t = eval(src)
+    case ue@UEFilter(src: UE[T], test: (T => Boolean)) =>
+      val t: T = eval(src)
       if (!test(t))
         println("warn: UE filter monad failed filter (ignoring)")
       t
     case ue@UEChunk(p) => chunk(p).asInstanceOf[T]
     case ue@UETerrain(p) => terrain(p).asInstanceOf[T]
-    case ue@UEEnt(id) => findEntity(id).asInstanceOf[T]
+    case ue@UEEnt(id) => findEntityUntyped(id).asInstanceOf[T]
   }
 
   // update to a new world, and get output effects
@@ -220,7 +230,7 @@ case class SingleWorld(
         out ++= putEntsLater
       }
       {
-        val (remEntsNow, remEntsLater) = grouped.bin(RemEnt).partition(re => findEntity(re.id).isDefined)
+        val (remEntsNow, remEntsLater) = grouped.bin(RemEnt).partition(re => findEntityUntyped(re.id).isDefined)
         next = remEntsNow.foldLeft(next)({ case (w, re) => w remEnt re.id })
         entChanges ++= remEntsNow.map(re => (re.id, None))
         out ++= remEntsLater
@@ -232,7 +242,6 @@ case class SingleWorld(
         override def randInt(): Int = random.nextInt()
         override def randDouble(): Double = random.nextDouble()
         override def randFloat(): Float = random.nextFloat()
-        override def eventID(): EventID = EventID(_time, n, UUID.randomUUID())
       })
       // evaluate the events
       val caused = grouped.bin(Event).flatMap(event => eval(event.eval))
@@ -254,6 +263,7 @@ case class SingleWorld(
 
 }
 object SingleWorld {
+  case class ChunkEnts(chunk: Chunk, ents: Map[AnyEntID, AnyEnt])
   case class ChangeSummary(chunks: Map[V3I, Chunk], ents: Map[AnyEntID, Option[AnyEnt]])
 }
 
@@ -437,5 +447,12 @@ class SingleContinuum(save: AsyncSave) {
 
     // return the types of effects handled externally
     grouped.bin(SoundEffect) ++ grouped.bin(LogEffect)
+  }
+
+  def close(): Promise = {
+    save.close(curr.chunks.flatMap({
+      case (p, Left(ChunkEnts(chunk, ents))) => Some(p -> chunk)
+      case _ => None
+    }))
   }
 }

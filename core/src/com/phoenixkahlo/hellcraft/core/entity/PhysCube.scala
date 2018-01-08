@@ -3,7 +3,7 @@ package com.phoenixkahlo.hellcraft.core.entity
 import java.util.UUID
 
 import com.phoenixkahlo.hellcraft.core.event.{Events, UE}
-import com.phoenixkahlo.hellcraft.core.{Chunk, PutEnt, TerrainSoup, UpdateEffect}
+import com.phoenixkahlo.hellcraft.core.{Chunk, Event, PutEnt, TerrainSoup, UpdateEffect}
 import com.phoenixkahlo.hellcraft.fgraphics.PhysTID
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.math._
@@ -16,7 +16,7 @@ case class PhysCube(vel: V3F, override val pos: V3F, override val id: EntID[Phys
   override def tid = PhysTID
 
   override def update: Seq[UpdateEffect] =
-    Seq(Events({
+    Seq(Event({
       UE.chunks(chunkPos.neighbors).map(chunks => {
         val broadphase = chunks.map(_.broadphase).reduce(_ + _)
         val before = ComplexCollider(pos, vel + (Down * 9.8f * Delta.dtf), Repeated(0.5f), 1000, Delta.dtf, 100, walk)

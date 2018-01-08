@@ -16,6 +16,7 @@ import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.client.ClientSessionData.ClientSessionData
 import com.phoenixkahlo.hellcraft.core.client._
+import com.phoenixkahlo.hellcraft.core.util.GroupedEffects
 import com.phoenixkahlo.hellcraft.fgraphics.{DefaultRenderer, Renderer, ResourcePack}
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.math._
@@ -35,7 +36,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var driver: GameDriver = _
   private var save: AsyncSave = _
   private var clock: GametimeClock = _
-  private var infinitum: Infinitum = _
+  private var infinitum: SingleContinuum = _
   private var pack: ResourcePack = _
   private var renderer: Renderer = _
   private var processor: InputProcessor = _
@@ -43,7 +44,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   @volatile private var terrainDomain = V3ISet.empty
   private var clientLogic: ClientLogic = _
   private var sessionData: ClientSessionData = ClientSessionData.empty
-  private val clientLogicQueue = new ConcurrentLinkedQueue[ClientLogic => ((World, ClientLogic.Input) => ClientLogic.Output)]
+  private val clientLogicQueue = new ConcurrentLinkedQueue[ClientLogic => ((ClientWorld, ClientLogic.Input) => ClientLogic.Output)]
   private val worldEffectQueue = new ConcurrentLinkedQueue[UpdateEffect]
   private var mainLoopTasks = new java.util.concurrent.ConcurrentLinkedQueue[Runnable]
   private var updateThread: Thread = _
@@ -80,7 +81,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     //clock = new ManualGametimeClock
 
     println("instantiating history")
-    infinitum = new Infinitum(res, save, 1f / 20f)
+    //infinitum = new Infinitum(res, save, 1f / 20f)
+    infinitum = new SingleContinuum(save)
 
     println("creating client logic")
 
@@ -171,17 +173,17 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
         // update world
         UniExecutor.point = V3F(renderer.cam.position)
-        val effects = infinitum.update(chunkDomain, terrainDomain, externEffects)
-        val time = infinitum().time
+        val effects = new GroupedEffects(infinitum.update(chunkDomain, terrainDomain, externEffects))
+        val time = infinitum.time
+        //val time = infinitum().time
 
         // enqueue input
         clientLogicQueue.add(_.tick)
 
         // process effects
-        effects(SoundEffect).map(_.asInstanceOf[SoundEffect])
-          .foreach(AudioUtil.play(pack, V3F(renderer.cam.position)))
+        effects.bin(SoundEffect).foreach(AudioUtil.play(pack, V3F(renderer.cam.position)))
 
-        val logs = effects(LogEffect).map(_.asInstanceOf[LogEffect])
+        val logs = effects.bin(LogEffect)
         if (logs.nonEmpty)
           println("world logs:")
         for (log <- logs)
@@ -207,7 +209,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     g += 1
 
     // get world
-    val world = infinitum()
+    val (time, world) = infinitum.timeAndCurr
 
     // update controller
     val clientInput = new ClientLogic.Input {
@@ -269,7 +271,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     }
     //clientLogicQueue.add(_.update)
-    val renderWorld = world.renderable(clock.fgametime, Trig.clamp(1 - clock.fractionalTicksSince(world.time - 1), 0, 1))
+    val renderWorld = world.renderable(clock.fgametime, Trig.clamp(1 - clock.fractionalTicksSince(time - 1), 0, 1))
 
     var renderOutput: ClientLogic.RenderOutput = null
     clientLogicQueue.add(logic => (world, input) => {
@@ -295,11 +297,6 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     }
     renderer.cam.update(true)
 
-    /*
-    val (renders, globals) = clientLogic.render(infinitum().renderable(
-      clock.fgametime, Trig.clamp(1 - clock.fractionalTicksSince(world.time - 1), 0, 1)
-    ), clientInput)
-    */
     val (renders, globals) = renderOutput
     renderer(renders, globals)
   }
@@ -320,7 +317,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     updateThread.join()
     // start saving the world
     println("saving...")
-    val close: Promise = infinitum.finalSave()
+    val close: Promise = infinitum.close()
     // while that's happening, we can dispose of all graphics resources owned by the VRAM graph
     // now we wait for the world to finish saving
     close.await

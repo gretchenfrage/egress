@@ -3,8 +3,9 @@ package com.phoenixkahlo.hellcraft.core.request
 import java.util.UUID
 
 import com.phoenixkahlo.hellcraft.core.eval.WEval.WEval
+import com.phoenixkahlo.hellcraft.core.event.UEContext
 
-case class Request[T](eval: WEval[T], id: UUID) {
+case class Request[T](eval: WEval[T], id: UUID = UEContext.randUUID()) {
   def unlock(requested: Requested): Option[T] =
     if (requested.id == this.id) Some(requested.result.asInstanceOf[T])
     else None

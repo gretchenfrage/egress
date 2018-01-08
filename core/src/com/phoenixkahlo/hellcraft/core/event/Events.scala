@@ -3,34 +3,35 @@ package com.phoenixkahlo.hellcraft.core.event
 import java.util.UUID
 
 import com.phoenixkahlo.hellcraft.core.entity.{EntID, Entity, Moveable, PhysCube}
-import com.phoenixkahlo.hellcraft.core.request.Requested
-import com.phoenixkahlo.hellcraft.core.{Event, PutChunk, PutEnt, Terrain, TerrainUnit, UpdateEffect, UpdateEffectType}
+import com.phoenixkahlo.hellcraft.core.eval.WEval
+import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
+import com.phoenixkahlo.hellcraft.core.{Chunk, Event, MakeRequest, PutChunk, PutEnt, Terrain, TerrainUnit, UpdateEffect, UpdateEffectType}
 import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 
 
 case object Events {
-  def fulfill(p: V3I, requested: Requested) =
+  def fulfill(p: V3I, requested: Requested): Event =
     Event(UE.chunk(p).map({
       case Some(chunk) => Seq(PutChunk(chunk.fulfill(requested)))
-      case None => ??? // TODO: request asynchronously
+      case None => Seq(MakeRequest(Request(WEval.chunk(p)), requested => Seq(fulfill(p, requested))))
     }))
 
-  def invalidate(p: V3I, mtf: Boolean = false, mbf: Boolean = false) =
+  def invalidate(p: V3I, mtf: Boolean = false, mbf: Boolean = false): Event =
     Event(UE.chunk(p).map({
       case Some(chunk) =>
         val (c, e) = chunk.invalidate(mtf, mbf)
         PutChunk(c) +: e
-      case None => ??? // TODO: make request to invalidate asynchronously
+      case None => Seq(MakeRequest(Request(WEval.chunk(p)), requested => Seq(invalidate(p, mtf, mbf))))
     }))
 
-  def setMat(v: V3I, mat: TerrainUnit, mtf: Boolean = false, mbf: Boolean = false) = Event({
+  def setMat(v: V3I, mat: TerrainUnit, mtf: Boolean = false, mbf: Boolean = false): Event = Event({
     val p = v / 16 floor
     val surrounding = (p.neighbors.map(_ / 16 floor).toSet - p).toSeq
     UE.chunk(p).map({
       case Some(chunk) =>
         val (c, e) = chunk.setTerrain(Terrain(chunk.pos, chunk.terrain.grid.updated(v % 16, mat)), mtf, mbf)
         PutChunk(c) +: e ++: surrounding.map(invalidate(_, mtf, mbf))
-      case None => ??? // TODO: request asynchronously
+      case None => Seq(MakeRequest(Request(WEval.chunk(p)), requested => Seq(setMat(v, mat, mtf, mbf))))
     })
   })
 

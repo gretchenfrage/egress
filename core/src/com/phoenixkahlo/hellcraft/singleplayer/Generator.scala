@@ -6,8 +6,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.{Cube, EntityMap}
+import com.phoenixkahlo.hellcraft.core.util.Derived
 import com.phoenixkahlo.hellcraft.fgraphics.StoneTID
 import com.phoenixkahlo.hellcraft.math._
+import com.phoenixkahlo.hellcraft.math.physics.Broadphase
 import com.phoenixkahlo.hellcraft.util.collections.{Domain, MemoFunc, V3ISet}
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 import com.phoenixkahlo.hellcraft.util.fields._
@@ -76,7 +78,16 @@ class DefaultGenerator(res: Int) extends Generator {
             (accum: Map[V3I, Terrain], terr: Terrain) => accum + (terr.pos -> terr)
           )(_.run())
         )
+        .map(TerrainGrid)
         .map(terrains => {
+          if (terrains.map.values.zip(terrains.map.values.tail).forall({ case (a, b) => a.grid eq b.grid })) {
+            // fast case
+            (terrains.map(p), BlockSoup(p, Seq.empty, Seq.empty), TerrainSoup.empty(p))
+          } else {
+            val ter = terrains.map(p)
+            (ter, BlockSoup(ter, terrains).get, TerrainSoup(ter, terrains).get)
+          }
+          /*
           if (terrains.values.zip(terrains.values.tail).forall({ case (a, b) => a.grid eq b.grid })) {
             //println("fast case!")
             (terrains(p), BlockSoup(p, Seq.empty, Seq.empty), TerrainSoup.empty(p))
@@ -87,13 +98,17 @@ class DefaultGenerator(res: Int) extends Generator {
             val ter = terrains(p)
             (ter, BlockSoup(ter, grid).get, TerrainSoup(ter, grid).get)
           }
+          */
         }, UniExecutor.exec(p * 16))
     } else Fut(null: (Terrain, BlockSoup, TerrainSoup), _.run())
   )
 
   override val chunkAt = new MemoFunc[V3I, Fut[Chunk]](p =>
     if (!cancelled) {
-      soupAt(p).map({ case (ter, bs, ts) => new Chunk(p, ter, EntityMap.empty, ts, bs, None, None) }, UniExecutor.exec(p * 16))
+      soupAt(p).map({
+        case (ter, bs, ts) => new Chunk(p, ter, ts, bs)
+        //case (ter, bs, ts) => new Chunk(p, ter, EntityMap.empty, ts, bs, None, None)
+      }, UniExecutor.exec(p * 16))
     } else Fut(null: Chunk, _.run())
   )
 

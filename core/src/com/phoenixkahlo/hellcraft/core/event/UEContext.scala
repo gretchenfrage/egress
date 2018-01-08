@@ -18,7 +18,7 @@ object UEContext {
   def randUUID(): UUID = new UUID(randLong(), randLong())
   def entID[E <: Entity[_]](): EntID[E] = EntID(randUUID())
 
-  def eventID(): EventID = impl.get().eventID()
+  //def eventID(): EventID = impl.get().eventID()
   def time: Long = impl.get().time
 
   def init(i: UEContextImpl): Unit = {
@@ -34,6 +34,6 @@ trait UEContextImpl {
   def randInt(): Int
   def randFloat(): Float
   def randDouble(): Double
-  def eventID(): EventID
+  //def eventID(): EventID
   def time: Long
 }

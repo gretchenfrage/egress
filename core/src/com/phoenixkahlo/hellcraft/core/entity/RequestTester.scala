@@ -3,7 +3,6 @@ package com.phoenixkahlo.hellcraft.core.entity
 import java.util.UUID
 
 import com.phoenixkahlo.hellcraft.core.eval.{ExecSeq, WEval}
-import com.phoenixkahlo.hellcraft.core.{Chunk, ChunkEvent, MakeRequest, RenderWorld, UniChunkEvent, UpdateEffect, World}
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.fgraphics.{Render, Shader}
 import com.phoenixkahlo.hellcraft.math.{MRNG, Origin, V3F, V3I}
