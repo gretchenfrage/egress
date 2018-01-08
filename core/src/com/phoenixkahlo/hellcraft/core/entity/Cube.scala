@@ -4,9 +4,9 @@ import java.util.UUID
 
 import com.badlogic.gdx.graphics.{Color, GL20}
 import com.badlogic.gdx.graphics.g3d.Renderable
-import com.phoenixkahlo.hellcraft.core.event.Events
+import com.phoenixkahlo.hellcraft.core.event.{UEContext, Events}
 import com.phoenixkahlo.hellcraft.core.graphics.{FreeCube, FreeCubeParams, RenderWorld}
-import com.phoenixkahlo.hellcraft.core.{Context, SoundEffect}
+import com.phoenixkahlo.hellcraft.core.SoundEffect
 import com.phoenixkahlo.hellcraft.fgraphics._
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.math.{Down, MRNG, V3F, V4I}
@@ -30,20 +30,20 @@ abstract class Cube[E <: Cube[E]] extends Entity[E] {
 }
 
 case class SimpleCube(override val tid: SheetTextureID, override val pos: V3F,
-                      override val id: EntID[SimpleCube] = Context.entID[SimpleCube]())
+                      override val id: EntID[SimpleCube] = UEContext.entID[SimpleCube]())
   extends Cube[SimpleCube]
 
 case class SoundCube(sid: SoundID, freq: Int, override val pos: V3F,
-                     override val id: EntID[SoundCube] = Context.entID[SoundCube]()) extends Cube[SoundCube] {
+                     override val id: EntID[SoundCube] = UEContext.entID[SoundCube]()) extends Cube[SoundCube] {
   override def tid = SoundTID
 
   override def update =
-    if (Context.time % freq == 0) Seq(SoundEffect(sid, 1, pos))
+    if (UEContext.time % freq == 0) Seq(SoundEffect(sid, 1, pos))
     else Seq.empty
 }
 
 case class GlideCube(vel: V3F, override val pos: V3F,
-                     override val id: EntID[GlideCube] = Context.entID[GlideCube]())
+                     override val id: EntID[GlideCube] = UEContext.entID[GlideCube]())
   extends Cube[GlideCube] with Moveable[GlideCube]{
 
   override def tid = BrickTID
@@ -51,7 +51,7 @@ case class GlideCube(vel: V3F, override val pos: V3F,
   override def update = Seq(Events.shift(id, vel * Delta.dtf))
 }
 
-case class GhostCube(override val pos: V3F, override val id: EntID[GhostCube] = Context.entID[GhostCube]())
+case class GhostCube(override val pos: V3F, override val id: EntID[GhostCube] = UEContext.entID[GhostCube]())
   extends Cube[GhostCube] {
 
   override def tid = GrayTID

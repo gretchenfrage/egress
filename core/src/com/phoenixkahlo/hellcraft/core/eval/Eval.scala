@@ -6,6 +6,7 @@ import java.nio.file.{Files, Path}
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Pixmap.Format
 import com.badlogic.gdx.graphics.{Pixmap, Texture}
+import com.phoenixkahlo.hellcraft.core.entity.{AnyEnt, AnyEntID, EntID, Entity}
 import com.phoenixkahlo.hellcraft.core.eval.Eval._
 import com.phoenixkahlo.hellcraft.core.graphics.CamRange
 import com.phoenixkahlo.hellcraft.core.{Chunk, Terrain, TerrainGrid}
@@ -47,8 +48,8 @@ object Eval {
 }
 
 object WEval {
-  case class EvalAsync(service: UniExecutor, cfulfill: FulfillmentContext[V3I, Chunk], tfulfill: FulfillmentContext[V3I, Terrain]) extends UniExecProvider
-  case class EvalSync(cfulfill: FulfillmentContext[V3I, Chunk], tfulfill: FulfillmentContext[V3I, Terrain])
+  case class EvalAsync(service: UniExecutor, cfulfill: FulfillmentContext[V3I, Chunk], tfulfill: FulfillmentContext[V3I, Terrain], efulfill: FulfillmentContext[AnyEntID, AnyEnt]) extends UniExecProvider
+  case class EvalSync(cfulfill: FulfillmentContext[V3I, Chunk], tfulfill: FulfillmentContext[V3I, Terrain], efulfill: FulfillmentContext[AnyEntID, AnyEnt])
 
   trait Context extends Eval.Context {
     override type InKey[+T] = Nothing
@@ -70,6 +71,12 @@ object WEval {
   def terrain(p: V3I): WEval[Terrain] = EExtern[Terrain, Context](
     _.tfulfill.get(p),
     _.tfulfill.fut(p),
+    Seq.empty
+  )
+
+  def ent[E <: Entity[E]](id: EntID[E]): WEval[E] = EExtern[E, Context](
+    _.efulfill.get(id).asInstanceOf[Option[E]],
+    _.efulfill.get(id).asInstanceOf[Fut[E]],
     Seq.empty
   )
 

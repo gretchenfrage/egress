@@ -1,11 +1,12 @@
-package com.phoenixkahlo.hellcraft.core
+package com.phoenixkahlo.hellcraft.core.event
 
 import java.util.UUID
 
+import com.phoenixkahlo.hellcraft.core.EventID
 import com.phoenixkahlo.hellcraft.core.entity.{EntID, Entity}
 
-object Context {
-  private var impl = new ThreadLocal[IContext]
+object UEContext {
+  private var impl = new ThreadLocal[UEContextImpl]
 
   def randInt(): Int = impl.get().randInt()
   def randFloat(): Float = impl.get().randFloat()
@@ -20,7 +21,7 @@ object Context {
   def eventID(): EventID = impl.get().eventID()
   def time: Long = impl.get().time
 
-  def init(i: IContext): Unit = {
+  def init(i: UEContextImpl): Unit = {
     impl.set(i)
   }
 
@@ -29,7 +30,7 @@ object Context {
   }
 }
 
-trait IContext {
+trait UEContextImpl {
   def randInt(): Int
   def randFloat(): Float
   def randDouble(): Double

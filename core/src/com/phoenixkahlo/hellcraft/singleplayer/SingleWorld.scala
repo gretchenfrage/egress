@@ -13,11 +13,12 @@ import com.phoenixkahlo.hellcraft.core.event.UE.UEFilter
 import com.phoenixkahlo.hellcraft.core.event.UE.UEChunk
 import com.phoenixkahlo.hellcraft.core.event.UE.UETerrain
 import com.phoenixkahlo.hellcraft.core.event.UE.UEEnt
-import com.phoenixkahlo.hellcraft.core.event.UE
+import com.phoenixkahlo.hellcraft.core.event.{UEContext, UEContextImpl, UE}
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.core.util.GroupedEffects
-import com.phoenixkahlo.hellcraft.core.{Chunk, Context, Event, EventID, IContext, LogEffect, MakeRequest, PutChunk, PutEnt, RemEnt, SoundEffect, Terrain, UpdateEffect, event}
+import com.phoenixkahlo.hellcraft.core.{Chunk, Event, EventID, IContext, LogEffect, MakeRequest, PutChunk, PutEnt, RemEnt, SoundEffect, Terrain, UpdateEffect, event}
 import com.phoenixkahlo.hellcraft.math.V3I
+import com.phoenixkahlo.hellcraft.singleplayer.SingleWorld.ChangeSummary
 import com.phoenixkahlo.hellcraft.util.collections.V3ISet
 import com.phoenixkahlo.hellcraft.util.threading.{FulfillmentContext, UniExecutor}
 import com.phoenixkahlo.hellcraft.util.time.Timer
@@ -190,18 +191,10 @@ case class SingleWorld(
   }
 
   // update to a new world, and get output effects
-  def update(_time: Long, externs: Seq[UpdateEffect]): (SingleWorld, Seq[UpdateEffect]) = {
+  def update(_time: Long, externs: Seq[UpdateEffect]): (SingleWorld, Seq[UpdateEffect], ChangeSummary) = {
     // recursive function for computing a phase
-    def phase(n: Byte, world: SingleWorld, in: Seq[UpdateEffect]): (SingleWorld, Seq[UpdateEffect]) = {
-      // initialize the context
-      Context.init(new IContext {
-        val random = new Random
-        override def time: Long = _time
-        override def randInt(): Int = random.nextInt()
-        override def randDouble(): Double = random.nextDouble()
-        override def randFloat(): Float = random.nextFloat()
-        override def eventID(): EventID = EventID(_time, n, UUID.randomUUID())
-      })
+    def phase(n: Byte, world: SingleWorld, in: Seq[UpdateEffect], changed: ChangeSummary):
+        (SingleWorld, Seq[UpdateEffect], ChangeSummary) = {
       // group the effects by type
       val grouped = new GroupedEffects(in)
       // get the effects we will output, that aren't integrated purely
@@ -212,53 +205,72 @@ case class SingleWorld(
       // apply all the updaters to the world
       // if they cannot be applied now, they are added to the out buffer
       var next: SingleWorld = world
+      var chunkChanges = changed.chunks
+      var entChanges = changed.ents
       ;{
         val (putChunksNow, putChunksLater) = grouped.bin(PutChunk).partition(pc => cdomain contains pc.c.pos)
         next = next putChunks putChunksNow.map(_.c)
+        chunkChanges ++= putChunksNow.map(pc => (pc.c.pos, pc.c))
         out ++= putChunksLater
       }
       {
         val (putEntsNow, putEntsLater) = grouped.bin(PutEnt).partition(pe => chunk(pe.ent.chunkPos).isDefined)
         next = putEntsNow.foldLeft(next)({ case (w, pe) => w putEnt pe.ent })
+        entChanges ++= putEntsNow.map(pe => (pe.ent.id, Some(pe.ent)))
         out ++= putEntsLater
       }
       {
         val (remEntsNow, remEntsLater) = grouped.bin(RemEnt).partition(re => findEntity(re.id).isDefined)
         next = remEntsNow.foldLeft(next)({ case (w, re) => w remEnt re.id })
+        entChanges ++= remEntsNow.map(re => (re.id, None))
         out ++= remEntsLater
       }
+      // initialize the context
+      UEContext.init(new UEContextImpl {
+        val random = new Random
+        override def time: Long = _time
+        override def randInt(): Int = random.nextInt()
+        override def randDouble(): Double = random.nextDouble()
+        override def randFloat(): Float = random.nextFloat()
+        override def eventID(): EventID = EventID(_time, n, UUID.randomUUID())
+      })
       // evaluate the events
       val caused = grouped.bin(Event).flatMap(event => eval(event.eval))
       // close the context
-      Context.end()
+      UEContext.end()
       // recurse if any further events are caused
       if (caused isEmpty)
-        (next, out)
+        (next, out, ChangeSummary(chunkChanges, entChanges))
       else {
-        val (w, e) = phase((n + 1).toByte, next, caused)
-        (w, e ++ out)
+        val (w, e, c) = phase((n + 1).toByte, next, caused, ChangeSummary(chunkChanges, entChanges))
+        (w, e ++ out, c)
       }
     }
     // get the entities' update effects
     def entEvents = active.toSeq.flatMap(chunks(_).left.get.ents.values).flatMap(_.update)
     // call the recursive function and return the result
-    phase(0, this, entEvents ++ externs)
+    phase(0, this, entEvents ++ externs, ChangeSummary(Map.empty, Map.empty))
   }
 
+}
+object SingleWorld {
+  case class ChangeSummary(chunks: Map[V3I, Chunk], ents: Map[AnyEntID, Option[AnyEnt]])
 }
 
 // holds a single world and manages impure mechanism
 class SingleContinuum(save: AsyncSave) {
   // these are volatile so that they can be read by other threads, like the rendering thread
   // we store them in one reference so it can be updated atomically, lock-free
-  @volatile private var timeAndCurr: (Long, SingleWorld) =
+  @volatile private var _timeAndCurr: (Long, SingleWorld) =
     (0, SingleWorld(Map.empty, Map.empty, V3ISet.empty, V3ISet.empty, Set.empty, Set.empty, BBox.empty))
-  def time: Long = timeAndCurr._1
-  def curr: SingleWorld = timeAndCurr._2
+  def timeAndCurr: (Long, SingleWorld) = _timeAndCurr
+  def time: Long = _timeAndCurr._1
+  def curr: SingleWorld = _timeAndCurr._2
 
   // these are useful for world evals and delayed event integration
   private implicit val cfulfill = new FulfillmentContext[V3I, Chunk]
   private implicit val tfulfill = new FulfillmentContext[V3I, Terrain]
+  private implicit val efulfill = new FulfillmentContext[AnyEntID, AnyEnt]
 
   // let's just make this implicit
   private implicit val execService = UniExecutor.getService
@@ -272,6 +284,9 @@ class SingleContinuum(save: AsyncSave) {
   private val cloadMap = new mutable.HashMap[V3I, UUID]
   private val tloadQueue = new ConcurrentLinkedQueue[(Terrain, UUID)]
   private val tloadMap = new mutable.HashMap[V3I, UUID]
+
+  // these chunks will be put in the world when they are within chunk domain
+  private var pendingChunkPuts = Seq.empty[PutChunk]
 
   // update the world and return externally handled effects
   def update(cdomain: V3ISet, tdomain: V3ISet, externs: Seq[UpdateEffect]): Seq[UpdateEffect] = {
@@ -358,40 +373,67 @@ class SingleContinuum(save: AsyncSave) {
     }
 
     // accumulate effects which we input to the update function
-    // this is the extern effects, inputted to this function, plus all the effects in the async effects queue
-    // we sort the async events by their IDs to prevent out-of-order integration
-    val effectsIn: Seq[UpdateEffect] = {
-      val async = new mutable.ArrayBuffer[UpdateEffect]
-      while (!asyncEffects.isEmpty)
-        async += asyncEffects.remove()
-      val (isEvent, notEvent) = async.partition(_.effectType == Event)
-      externs ++ notEvent ++ isEvent.map(_.asInstanceOf[Event]).sortBy(_.id)
+    // we start with externs
+    val effectsIn = externs.toBuffer
+    // and then all effects async effects that are ready and have been queued
+    while (!asyncEffects.isEmpty)
+      effectsIn += asyncEffects.remove()
+    // and then all pending chunk puts that are now within domain
+    ;{
+      val (putNow, putLater) = pendingChunkPuts.partition(pc => cdomain contains pc.c.pos)
+      effectsIn ++= putNow
+      pendingChunkPuts = putLater
     }
 
+
     // now we let the world update itself purely, returning its updated version, and externally handled effects
-    val (updated, effectsOut) = next.update(time, effectsIn)
+    val (updated, effectsOut, changed) = next.update(time, effectsIn)
     next = updated
+
+    // update the fulfillment contexts with the changes
+    cfulfill.put(changed.chunks.toSeq)
+    tfulfill.put(changed.chunks.values.toSeq.map(chunk => (chunk.pos, chunk.terrain)))
+    ;{
+      val addedEnts = new mutable.ArrayBuffer[(AnyEntID, AnyEnt)]
+      val remedEnts = new mutable.ArrayBuffer[AnyEntID]
+      changed.ents foreach {
+        case (id, Some(ent)) => addedEnts += ((id, ent))
+        case (id, None) => remedEnts += id
+      }
+      efulfill.put(addedEnts)
+      efulfill.remove(remedEnts)
+    }
 
     // now let's group the outputted effects
     val grouped = new GroupedEffects(effectsOut)
 
     // handle the async request effects
     {
-      val pack = WEval.EvalAsync(execService, cfulfill, tfulfill)
+      val pack = WEval.EvalAsync(execService, cfulfill, tfulfill, efulfill)
       for (MakeRequest(Request(eval, id), onComplete) <- grouped.bin(MakeRequest)) {
         new AsyncEval(eval)().fut(WEval.input, pack).map(result => {
           val requested = new Requested(id, result)
-          // TODO: this requires a context activation
           val effects = onComplete(requested)
           effects.foreach(asyncEffects.add)
         })
       }
     }
 
-    // TODO: handle pending put chunks, put ents, and rem ents
+    // handle pending put chunks (pended because not in domain)
+    pendingChunkPuts ++= grouped.bin(PutChunk)
+
+    // handle pending ent puts (pended because containing chunk doesn't exist
+    for (pe@PutEnt(ent) <- grouped.bin(PutEnt)) {
+      cfulfill.fut(ent.chunkPos).map(c => asyncEffects.add(pe))
+    }
+
+    // handle pending ent rems (pended because ent not found)
+    for (re@RemEnt(id) <- grouped.bin(RemEnt)) {
+      efulfill.fut(id).map(e => asyncEffects.add(re))
+    }
 
     // update continuum state
-    timeAndCurr = (time + 1, next)
+    _timeAndCurr = (time + 1, next)
 
     // return the types of effects handled externally
     grouped.bin(SoundEffect) ++ grouped.bin(LogEffect)

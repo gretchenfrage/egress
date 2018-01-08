@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.core
 
 import java.util.UUID
 
-import com.phoenixkahlo.hellcraft.core.event.{Events, UE}
+import com.phoenixkahlo.hellcraft.core.event.{UEContext, Events, UE}
 import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.core.eval.WEval.WEval
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
@@ -79,7 +79,7 @@ case class EventID(time: Long, phase: Byte, uuid: UUID) extends Comparable[Event
     }
 }
 
-case class Event(eval: UE[Seq[UpdateEffect]], id: EventID = Context.eventID()) extends UpdateEffect {
+case class Event(eval: UE[Seq[UpdateEffect]], id: EventID = UEContext.eventID()) extends UpdateEffect {
   override def effectType = Event
 }
 case object Event extends UpdateEffectType[Event](6)
