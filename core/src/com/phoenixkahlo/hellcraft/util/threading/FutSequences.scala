@@ -32,3 +32,14 @@ class FutSequences(executor: Runnable => Unit) {
   }
 
 }
+
+class FutChain[T](start: T, exec: Runnable => Unit) {
+  private var _curr: Fut[T] = Fut(start, exec)
+
+  def update(func: T => T): Fut[T] = this.synchronized {
+    _curr = _curr.map(func, exec)
+    _curr
+  }
+
+  def curr: Fut[T] = _curr
+}

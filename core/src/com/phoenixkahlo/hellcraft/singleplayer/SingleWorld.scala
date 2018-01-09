@@ -18,9 +18,11 @@ import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.core.util.GroupedEffects
 import com.phoenixkahlo.hellcraft.core.{Chunk, Event, EventID, LogEffect, MakeRequest, PutChunk, PutEnt, RemEnt, SoundEffect, Terrain, UpdateEffect, event}
 import com.phoenixkahlo.hellcraft.math.V3I
+import com.phoenixkahlo.hellcraft.singleplayer.AsyncSave.GetPos
+import com.phoenixkahlo.hellcraft.singleplayer.SingleContinuum.{IncompleteKey}
 import com.phoenixkahlo.hellcraft.singleplayer.SingleWorld.{ChangeSummary, ChunkEnts}
 import com.phoenixkahlo.hellcraft.util.collections.{BBox, V3ISet}
-import com.phoenixkahlo.hellcraft.util.threading.{FulfillmentContext, Promise, UniExecutor}
+import com.phoenixkahlo.hellcraft.util.threading._
 import com.phoenixkahlo.hellcraft.util.time.Timer
 
 import scala.concurrent.duration._
@@ -285,6 +287,13 @@ object SingleWorld {
   case class ChangeSummary(chunks: Map[V3I, Chunk], ents: Map[AnyEntID, Option[AnyEnt]])
 }
 
+object SingleContinuum {
+  case object IncompleteKey extends AsyncSave.DataKey[Seq[UpdateEffect]] {
+    override def code: Long = 982734656598237465L
+    override def default: Seq[UpdateEffect] = Seq.empty
+  }
+}
+
 // holds a single world and manages impure mechanism
 class SingleContinuum(save: AsyncSave[ChunkEnts]) {
   // these are volatile so that they can be read by other threads, like the rendering thread
@@ -301,7 +310,9 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
   private implicit val efulfill = new FulfillmentContext[AnyEntID, AnyEnt]
 
   // this is useful for pended events or asynchronous requests
-  private val asyncEffects = new ConcurrentLinkedQueue[UpdateEffect]
+  // they are combined with runnable hooks for managing the incomplete system
+  val runNothing: Runnable = () => ()
+  private val asyncEffects = new ConcurrentLinkedQueue[(Seq[UpdateEffect], Runnable)]
 
   // these track load operations, and are bound to IDs which are compared to values in a map
   // so that they can be invalidated
@@ -312,6 +323,12 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
 
   // these chunks will be put in the world when they are within chunk domain
   private var pendingChunkPuts = Seq.empty[PutChunk]
+
+  // these things must be saved to the DB upon closing
+  private val incomplete: FutChain[Map[UUID, UpdateEffect]] = new FutChain(Map.empty, _.run())
+
+  // to initialize, load the incomplete seq from the save, and just perform a tick with them as externs
+  update(V3ISet.empty, V3ISet.empty, save.getKey(IncompleteKey).await)
 
   // update the world and return externally handled effects
   def update(cdomain: V3ISet, tdomain: V3ISet, externs: Seq[UpdateEffect]): Seq[UpdateEffect] = {
@@ -403,8 +420,12 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
     // we start with externs
     val effectsIn = externs.toBuffer
     // and then all effects async effects that are ready and have been queued
-    while (!asyncEffects.isEmpty)
-      effectsIn += asyncEffects.remove()
+    while (!asyncEffects.isEmpty) {
+      //effectsIn += asyncEffects.remove()
+      val (e, r) = asyncEffects.remove()
+      effectsIn ++= e
+      r.run()
+    }
     // and then all pending chunk puts that are now within domain
     ;{
       val (putNow, putLater) = pendingChunkPuts.partition(pc => cdomain contains pc.c.pos)
@@ -437,11 +458,13 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
     // handle the async request effects
     {
       val pack = WEval.EvalAsync(UniExecutor.getService, cfulfill, tfulfill, efulfill)
-      for (MakeRequest(Request(eval, id), onComplete) <- grouped.bin(MakeRequest)) {
+      for (make@MakeRequest(Request(eval, id), onComplete) <- grouped.bin(MakeRequest)) {
+        val incompleteID = UUID.randomUUID()
+        incomplete.update(_ + (incompleteID -> make))
         new AsyncEval(eval)().fut(WEval.input, pack).map(result => {
           val requested = new Requested(id, result)
           val effects = onComplete(requested)
-          effects.foreach(asyncEffects.add)
+          asyncEffects.add((effects, () => incomplete.update(_ - incompleteID)))
         })
       }
     }
@@ -451,12 +474,16 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
 
     // handle pending ent puts (pended because containing chunk doesn't exist
     for (pe@PutEnt(ent) <- grouped.bin(PutEnt)) {
-      cfulfill.fut(ent.chunkPos).map(c => asyncEffects.add(pe))
+      val incompleteID = UUID.randomUUID()
+      incomplete.update(_ + (incompleteID -> pe))
+      cfulfill.fut(ent.chunkPos).map(c => asyncEffects.add((Seq(pe), () => incomplete.update(_ - incompleteID))))
     }
 
     // handle pending ent rems (pended because ent not found)
     for (re@RemEnt(id) <- grouped.bin(RemEnt)) {
-      efulfill.fut(id).map(e => asyncEffects.add(re))
+      val incompleteID = UUID.randomUUID()
+      incomplete.update(_ + (incompleteID -> re))
+      efulfill.fut(id).map(e => asyncEffects.add((Seq(re), () => incomplete.update(_ - incompleteID))))
     }
 
     // update continuum state
@@ -467,6 +494,10 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
   }
 
   def close(): Promise = {
+    // save the incomplete
+    val incompleteSeq = incomplete.curr.await.values.toSeq ++ pendingChunkPuts
+    save.putKey(IncompleteKey, incompleteSeq)
+    // close the save with all the chunks
     save.close(curr.chunks.flatMap({
       case (p, Left(ce)) => Some(p -> ce)
       case _ => None
