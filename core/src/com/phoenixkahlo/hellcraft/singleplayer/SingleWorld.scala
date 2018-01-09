@@ -96,7 +96,7 @@ case class SingleWorld(
 
   // downgrade chunks to terrains
   def downgrade(ps: Seq[V3I]): SingleWorld = {
-    val es = ps.flatMap(chunks.get).flatMap(_.left.toOption).flatMap(_.ents.keySet.toSeq)
+    val es = ps.flatMap(chunks.get).flatMap(_.left.toOption).flatMap(_.ents.keySet)
     copy(chunks = ps.foldLeft(chunks)({
       case (map, p) => map.get(p) match {
         case Some(Left(ChunkEnts(chunk, _))) => map.updated(p, Right(chunk.terrain))

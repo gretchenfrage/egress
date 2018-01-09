@@ -10,6 +10,7 @@ import com.phoenixkahlo.hellcraft.math.{V3F, V3I}
 
 
 case object Events {
+  /*
   def fulfill(p: V3I, requested: Requested): Event =
     Event(UE.chunk(p).map({
       case Some(chunk) => Seq(PutChunk(chunk.fulfill(requested)))
@@ -34,6 +35,24 @@ case object Events {
       case None => Seq(MakeRequest(Request(WEval.chunk(p)), requested => Seq(setMat(v, mat, mtf, mbf))))
     })
   })
+  */
+  def fulfill(p: V3I, requested: Requested): Event =
+    Delayable(DE.chunk(p).map(chunk => Seq(PutChunk(chunk.fulfill(requested)))))
+
+  def invalidate(p: V3I, mtf: Boolean = false, mbf: Boolean = false): Event =
+    Delayable(DE.chunk(p).map(chunk => {
+      val (c, e) = chunk.invalidate(mtf, mbf)
+      PutChunk(c) +: e
+    }))
+
+  def setMat(v: V3I, mat: TerrainUnit, mtf: Boolean = false, mbf: Boolean = false): Event = {
+    val p = v / 16 floor
+    val surrounding = (v.neighbors.map(_ / 16 floor).toSet - p).toSeq
+    Delayable(DE.chunk(p).map(chunk => {
+      val (c, e) = chunk.setTerrain(Terrain(chunk.pos, chunk.terrain.grid.updated(v % 16, mat)), mtf, mbf)
+      PutChunk(c) +: e ++: surrounding.map(invalidate(_, mtf, mbf))
+    }))
+  }
 
   def upd8ent[E <: Entity[E]](id: EntID[E])(func: E => E) =
     Event(UE.ent(id).map(_.map(ent => Seq(PutEnt(func(ent)))).getOrElse(Seq.empty)))

@@ -74,7 +74,7 @@ object WEval {
     Seq.empty
   )
 
-  def ent[E <: Entity[E]](id: EntID[E]): WEval[E] = EExtern[E, Context](
+  def ent[E <: Entity[_]](id: EntID[E]): WEval[E] = EExtern[E, Context](
     _.efulfill.get(id).asInstanceOf[Option[E]],
     _.efulfill.get(id).asInstanceOf[Fut[E]],
     Seq.empty
