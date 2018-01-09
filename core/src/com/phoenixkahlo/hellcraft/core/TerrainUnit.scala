@@ -50,8 +50,13 @@ object Blocks {
 
 object TerrainUnits extends IDMapping[TerrainUnit] {
   val seq: Seq[TerrainUnit] = Air +: Materials.seq ++: Blocks.seq
-  val map: Map[Byte, TerrainUnit] = seq map (m => m.id -> m) toMap
-  def apply(b: Byte): TerrainUnit = map(b)
+  private val min = seq.map(_.id).min
+  private val max = seq.map(_.id).max
+  private val arr = new Array[TerrainUnit](max - min + 1)
+  for (unit <- seq)
+    arr(unit.id - min) = unit
+  //val map: Map[Byte, TerrainUnit] = seq map (m => m.id -> m) toMap
+  def apply(b: Byte): TerrainUnit = arr(b - min)
   override def id(item: TerrainUnit): Byte = item.id
-  override def lookup(id: Byte): TerrainUnit = map(id)
+  override def lookup(id: Byte): TerrainUnit = arr(id - min)
 }

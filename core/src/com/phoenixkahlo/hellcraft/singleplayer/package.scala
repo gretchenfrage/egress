@@ -13,18 +13,6 @@ import scala.reflect.ClassTag
 
 package object singleplayer {
 
-  type ClientID = UUID
-  //type EntityID = UUID
-  //type EventID = UUID
-  type AvatarID = UUID
-
-  val WorldRes = 16
-  val LoadDist = V3I(8, 4, 8)
-
-  val DayCycleTime = 20 minutes
-  val DayCycleTicks = DayCycleTime.toSeconds * Delta.updatesPerSecond
-  val ShadowPixelDensity = 20
-
   val auxBackgroundThreads = Env.physicalProcessors - 4
   val mainLoopThreadPriority = 5
   val renderLoopThreadPriority = 10

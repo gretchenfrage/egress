@@ -19,7 +19,7 @@ import com.phoenixkahlo.hellcraft.core.util.GroupedEffects
 import com.phoenixkahlo.hellcraft.core.{Chunk, Event, EventID, LogEffect, MakeRequest, PutChunk, PutEnt, RemEnt, SoundEffect, Terrain, UpdateEffect, event}
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.singleplayer.SingleWorld.{ChangeSummary, ChunkEnts}
-import com.phoenixkahlo.hellcraft.util.collections.V3ISet
+import com.phoenixkahlo.hellcraft.util.collections.{BBox, V3ISet}
 import com.phoenixkahlo.hellcraft.util.threading.{FulfillmentContext, Promise, UniExecutor}
 import com.phoenixkahlo.hellcraft.util.time.Timer
 

@@ -52,7 +52,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
   override def onEnter(driver: GameDriver): Unit = {
     this.driver = driver
-    val res = WorldRes
+    val res = 16
 
     println("activating uni executor")
     UniExecutor.activate(

@@ -278,7 +278,7 @@ case class GodClientMain(core: ClientCore) extends ClientLogic {
       if (core.pressed(A)) movDir -= (core.camDir cross Up).normalize
 
       val chunkPos = core.camPos / 16 toInts
-      val loadTarget = (chunkPos - input.sessionData(LoadDist)) toAsSet (chunkPos + input.sessionData(LoadDist))
+      val loadTarget = (chunkPos - input.sessionData(LoadDist)).copy(y = -4).toInts toAsSet (chunkPos + input.sessionData(LoadDist)).copy(y = 4).toInts
 
       val newPos = core.camPos + (movDir * input.sessionData(Speed) * input.dt)
 
@@ -343,12 +343,6 @@ case class GodClientMenu(core: ClientCore, buttons: Seq[MenuButton], pressing: O
   override def become(replacement: ClientLogic): (ClientLogic, Seq[ClientEffect]) = {
     if (replacement.isInstanceOf[GodClientMain]) replacement -> Seq(CaptureCursor)
     else super.become(replacement)
-  }
-
-  override def tick(world: ClientWorld, input: Input): (ClientLogic, Seq[ClientEffect]) = {
-    val chunkPos = core.camPos / 16 toInts
-    val loadTarget = (chunkPos - input.sessionData(LoadDist)) toAsSet (chunkPos + input.sessionData(LoadDist))
-    cause(SetLoadTarget(loadTarget, loadTarget.shroat(4)))
   }
 
   override def keyDown(keycode: KeyCode)(world: ClientWorld, input: Input): (ClientLogic, Seq[ClientEffect]) =

@@ -38,13 +38,6 @@ case class MakeRequest[T](request: Request[T], onComplete: Requested => Seq[Upda
   override def effectType = MakeRequest
 }
 object MakeRequest extends UpdateEffectType[MakeRequest[_]](1)
-/*
-case class MakeRequest[T](request: Request[T], onComplete: (Requested, World, MRNG) => Seq[ChunkEvent]) extends UpdateEffect {
-  override def effectType: UpdateEffectType = MakeRequest
-}
-case object MakeRequest extends UpdateEffectType[MakeRequest]
-*/
-
 // log effect
 case class LogEffect(str: String) extends UpdateEffect {
   override def effectType = LogEffect

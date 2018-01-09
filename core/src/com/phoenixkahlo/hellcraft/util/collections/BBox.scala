@@ -1,9 +1,9 @@
-package com.phoenixkahlo.hellcraft.singleplayer
+package com.phoenixkahlo.hellcraft.util.collections
 
 import com.phoenixkahlo.hellcraft.core.client.WorldBounds
 import com.phoenixkahlo.hellcraft.math.{Origin, V3I}
 
-import scala.collection.immutable.{SortedMap, SortedSet}
+import scala.collection.immutable.SortedMap
 
 case class BBox(x: SortedMap[Int, Int], y: SortedMap[Int, Int], z: SortedMap[Int, Int], v: Set[V3I]) {
   //def apply() =
