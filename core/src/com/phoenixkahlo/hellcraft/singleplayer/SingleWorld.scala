@@ -44,6 +44,9 @@ case class SingleWorld(
       case _ => None
     }
 
+  // chunk and ents lookup
+  def chunkEnts(p: V3I): Option[ChunkEnts] = chunks.get(p).flatMap(_.left.toOption)
+
   // terrain lookup
   override def terrain(p: V3I) =
     chunks.get(p).map({
@@ -154,6 +157,16 @@ case class SingleWorld(
   // update the entity by removing then putting
   def putEnt(ent: AnyEnt): SingleWorld = remEnt(ent.id)._putEnt(ent)
 
+  // put a sequence of chunk/ents
+  def putChunkEnts(chunkEnts: Seq[ChunkEnts]): SingleWorld = {
+    var w = this putChunks chunkEnts.map(_.chunk)
+    for {
+      ce <- chunkEnts
+      ent <- ce.ents.values
+    } w = w putEnt ent
+    w
+  }
+
   // remove entity from world
   def remEnt(id: AnyEntID): SingleWorld = {
     ents.get(id).map(p => chunks.get(p) match {
@@ -263,12 +276,17 @@ case class SingleWorld(
 
 }
 object SingleWorld {
-  case class ChunkEnts(chunk: Chunk, ents: Map[AnyEntID, AnyEnt])
+  case class ChunkEnts(chunk: Chunk, ents: Map[AnyEntID, AnyEnt]) extends GetPos {
+    override def pos: V3I = chunk.pos
+  }
+  object ChunkEnts {
+    def elevate(chunk: Chunk) = ChunkEnts(chunk, Map.empty)
+  }
   case class ChangeSummary(chunks: Map[V3I, Chunk], ents: Map[AnyEntID, Option[AnyEnt]])
 }
 
 // holds a single world and manages impure mechanism
-class SingleContinuum(save: AsyncSave) {
+class SingleContinuum(save: AsyncSave[ChunkEnts]) {
   // these are volatile so that they can be read by other threads, like the rendering thread
   // we store them in one reference so it can be updated atomically, lock-free
   @volatile private var _timeAndCurr: (Long, SingleWorld) =
@@ -287,7 +305,7 @@ class SingleContinuum(save: AsyncSave) {
 
   // these track load operations, and are bound to IDs which are compared to values in a map
   // so that they can be invalidated
-  private val cloadQueue = new ConcurrentLinkedQueue[(Chunk, UUID)]
+  private val cloadQueue = new ConcurrentLinkedQueue[(ChunkEnts, UUID)]
   private val cloadMap = new mutable.HashMap[V3I, UUID]
   private val tloadQueue = new ConcurrentLinkedQueue[(Terrain, UUID)]
   private val tloadMap = new mutable.HashMap[V3I, UUID]
@@ -306,7 +324,7 @@ class SingleContinuum(save: AsyncSave) {
     // remove them from the cfulfill
     {
       val downgrade: Seq[V3I] = (next.cdomain -- cdomain).toSeq
-      save.push(downgrade.flatMap(next.chunk))
+      save.push(downgrade.flatMap(next.chunkEnts))
       next = next downgrade downgrade
       cloadMap --= downgrade
       cfulfill.remove(downgrade)
@@ -316,7 +334,7 @@ class SingleContinuum(save: AsyncSave) {
     // essentially same as previous
     {
       val remove: Seq[V3I] = (next.tdomain -- tdomain).toSeq
-      save.push(remove.flatMap(next.chunk))
+      save.push(remove.flatMap(next.chunkEnts))
       next --= remove
       tloadMap --= remove
       tfulfill.remove(remove)
@@ -367,18 +385,18 @@ class SingleContinuum(save: AsyncSave) {
       // except we also put chunks in the tfulfill
       // and we also remove them from cloadMap
       timer = Timer.start
-      val cbuffer = new mutable.ArrayBuffer[Chunk]
+      val cbuffer = new mutable.ArrayBuffer[ChunkEnts]
       while (timer.elapsed < timeLimit && !cloadQueue.isEmpty) {
-        val (chunk, loadID) = cloadQueue.remove()
-        if (cloadMap.get(chunk.pos).contains(loadID)) {
-          cbuffer += chunk
+        val (chunkEnts, loadID) = cloadQueue.remove()
+        if (cloadMap.get(chunkEnts.chunk.pos).contains(loadID)) {
+          cbuffer += chunkEnts
         }
       }
-      next = next putChunks cbuffer
-      cloadMap --= cbuffer.map(_.pos)
-      tloadMap --= cbuffer.map(_.pos)
-      cfulfill.put(cbuffer.map(chunk => (chunk.pos, chunk)))
-      tfulfill.put(cbuffer.map(chunk => (chunk.pos, chunk.terrain)))
+      next = next putChunkEnts cbuffer
+      cloadMap --= cbuffer.map(_.chunk.pos)
+      tloadMap --= cbuffer.map(_.chunk.pos)
+      cfulfill.put(cbuffer.map(ce => (ce.chunk.pos, ce.chunk)))
+      tfulfill.put(cbuffer.map(ce => (ce.chunk.pos, ce.chunk.terrain)))
     }
 
     // accumulate effects which we input to the update function
@@ -450,7 +468,7 @@ class SingleContinuum(save: AsyncSave) {
 
   def close(): Promise = {
     save.close(curr.chunks.flatMap({
-      case (p, Left(ChunkEnts(chunk, ents))) => Some(p -> chunk)
+      case (p, Left(ce)) => Some(p -> ce)
       case _ => None
     }))
   }

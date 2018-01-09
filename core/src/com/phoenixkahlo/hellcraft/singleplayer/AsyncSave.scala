@@ -1,6 +1,6 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
-import java.io.{FileInputStream, FileOutputStream}
+import java.io.{FileInputStream, FileOutputStream, Serializable}
 import java.nio.file.Path
 
 import com.phoenixkahlo.hellcraft.core.{Chunk, Terrain}
@@ -9,14 +9,18 @@ import com.phoenixkahlo.hellcraft.util.threading.{Fut, FutSequences, Promise, Un
 
 import scala.collection.mutable
 
-trait AsyncSave {
-  def push(chunks: Map[V3I, Chunk]): Promise
+trait GetPos {
+  def pos: V3I
+}
 
-  def push(chunks: Seq[Chunk]): Promise =
+trait AsyncSave[T <: GetPos with Serializable] {
+  def push(chunks: Map[V3I, T]): Promise
+
+  def push(chunks: Seq[T]): Promise =
     push(chunks.map(c => (c.pos, c)).toMap)
 
-  def pull(chunks: Seq[V3I], terrain: Seq[V3I]): (Map[V3I, Fut[Chunk]], Map[V3I, Fut[Terrain]])
+  def pull(chunks: Seq[V3I], terrain: Seq[V3I]): (Map[V3I, Fut[T]], Map[V3I, Fut[Terrain]])
 
-  def close(chunks: Map[V3I, Chunk]): Promise
+  def close(chunks: Map[V3I, T]): Promise
 }
 

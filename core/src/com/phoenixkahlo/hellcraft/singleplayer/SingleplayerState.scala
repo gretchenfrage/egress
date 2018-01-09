@@ -21,6 +21,7 @@ import com.phoenixkahlo.hellcraft.fgraphics.{DefaultRenderer, Renderer, Resource
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.menu.MainMenu
+import com.phoenixkahlo.hellcraft.singleplayer.SingleWorld.ChunkEnts
 import com.phoenixkahlo.hellcraft.util.audio.AudioUtil
 import com.phoenixkahlo.hellcraft.util.caches.Cache
 import com.phoenixkahlo.hellcraft.util.collections.spatial.SpatialTemporalQueue
@@ -34,7 +35,7 @@ import scala.concurrent.duration._
 class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameState with Runnable {
 
   private var driver: GameDriver = _
-  private var save: AsyncSave = _
+  private var save: AsyncSave[ChunkEnts] = _
   private var clock: GametimeClock = _
   private var infinitum: SingleContinuum = _
   private var pack: ResourcePack = _
@@ -74,7 +75,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
 
     println("instantiating save")
     val generator = new DefaultGenerator(res)
-    save = new LevelDBSave(AppDirs.dataDir("egress").resolve("single"), generator)
+    save = new LevelDBSave(AppDirs.dataDir("egress").resolve("single"), generator, ChunkEnts.elevate)
 
     println("instantiating clock")
     clock = new DefGametimeClock

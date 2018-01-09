@@ -14,7 +14,7 @@ import com.phoenixkahlo.hellcraft.util.debugging.{Profiler}
 
 import scala.collection.mutable.ArrayBuffer
 
-class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
+class LevelDBSave[T <: GetPos with Serializable](path: Path, generator: Generator, elevate: Chunk => T) extends AsyncSave[T] {
   @volatile private var closing = false
 
   private val db: DB = {
@@ -25,7 +25,7 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
   private val sequences = new ParGenMutHashMap[V3I, FutSequences](p => new FutSequences(UniExecutor.execc(p * 16)))
   private val sequencer = new FutSequences(UniExecutor.execc)
 
-  private def serialize(chunk: Chunk): Array[Byte] = {
+  private def serialize(chunk: T): Array[Byte] = {
     val baos = new ByteArrayOutputStream
     val oos = new ObjectOutputStream(baos)
     oos.writeObject(chunk)
@@ -33,13 +33,13 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
     baos.toByteArray
   }
 
-  private def deserialize(bytes: Array[Byte]): Chunk = {
+  private def deserialize(bytes: Array[Byte]): T = {
     val bais = new ByteArrayInputStream(bytes)
     val ois = new ObjectInputStream(bais)
-    ois.readObject().asInstanceOf[Chunk]
+    ois.readObject().asInstanceOf[T]
   }
 
-  override def push(chunks: Map[V3I, Chunk]): Fut[Unit] = {
+  override def push(chunks: Map[V3I, T]): Fut[Unit] = {
     sequencer[Fut[Unit]](() => {
       val promises: Seq[Fut[Unit]] =
         chunks.toSeq.map({ case (p, chunk) => sequences(p)()[Unit](() => db.put(p.toByteArray, serialize(chunk))) })
@@ -47,7 +47,7 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
     }).flatten
   }
 
-  override def close(chunks: Map[V3I, Chunk]): Fut[Unit] = {
+  override def close(chunks: Map[V3I, T]): Fut[Unit] = {
     // disrupt pull futures
     closing = true
     // disrupt generator
@@ -62,16 +62,16 @@ class LevelDBSave(path: Path, generator: Generator) extends AsyncSave {
     sequencer(() => PromiseFold(sequences.toSeq.map(_._2.getLast)).afterwards(() => db.close(), UniExecutor.execc)).flatten
   }
 
-  override def pull(chunks: Seq[V3I], terrain: Seq[V3I]): (Map[V3I, Fut[Chunk]], Map[V3I, Fut[Terrain]]) = {
+  override def pull(chunks: Seq[V3I], terrain: Seq[V3I]): (Map[V3I, Fut[T]], Map[V3I, Fut[Terrain]]) = {
     val p = Profiler("save.pull: " + chunks.size + " chunks")
-    var map = Map.empty[V3I, Fut[Chunk]]
+    var map = Map.empty[V3I, Fut[T]]
     for (p <- chunks) {
       map += p -> sequencer(() => sequences(p)()(() => {
         if (!closing) {
           val bytes = db.get(p.toByteArray)
           if (bytes != null) Fut(deserialize(bytes), _.run())
-          else generator.chunkAt(p)
-        } else Fut(null: Chunk, _.run())
+          else generator.chunkAt(p).map(elevate)
+        } else Fut(null.asInstanceOf[T], _.run())
       })).flatten.flatten
     }
     p.log()
