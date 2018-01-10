@@ -12,10 +12,10 @@ import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody.btRigidBodyConstruct
 import com.badlogic.gdx.physics.bullet.dynamics.{btDiscreteDynamicsWorld, btRigidBody, btSequentialImpulseConstraintSolver}
 import com.badlogic.gdx.physics.bullet.linearmath.{btDefaultMotionState, btQuaternion, btTransform}
 import com.phoenixkahlo.hellcraft.core.Blocks.Brick
-import com.phoenixkahlo.hellcraft.core.eval.{ExecCheap, GEval}
+import com.phoenixkahlo.hellcraft.core.eval.{ExecCheap, GEval, WEval}
 import com.phoenixkahlo.hellcraft.core.{Air, BlockSoup, Chunk, Materials, Terrain, TerrainGrid, TerrainSoup, TerrainUnit, TerrainUnits}
-import com.phoenixkahlo.hellcraft.core.graphics.{FreeCube, FreeCubeParams}
-import com.phoenixkahlo.hellcraft.fgraphics.{BasicTriVert, BrickTID, DefaultRenderer, DefaultResourcePack, GenericShader, GlobalRenderData, Offset, Render, Renderable, Renderer, ResourcePack, Shader, TerrainShader}
+import com.phoenixkahlo.hellcraft.core.graphics.{FreeCube, FreeCubeParams, LineCombiner}
+import com.phoenixkahlo.hellcraft.fgraphics.{BasicTriVert, BrickTID, DefaultRenderer, DefaultResourcePack, GenericShader, GlobalRenderData, LineShader, Offset, Render, Renderable, Renderer, ResourcePack, Shader, TerrainShader}
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.math.MatrixFactory.Translate
 import com.phoenixkahlo.hellcraft.math._
@@ -31,7 +31,7 @@ class BulletTestWorld {
   implicit val exec = ExecCheap
 
   val terrains: Map[V3I, Terrain] = {
-    val domain = V3I(-3, -2, -3) toAsSeq V3I(3, 2, 3)
+    val domain = V3I(-1, -1, -1) toAsSeq V3I(1, 1, 1)
     domain.map(p => p -> Terrain(p, IDField[TerrainUnit](V3I(16, 16, 16), (i: V3I) => {
       val height = noise((p * 16 + i).flatten)
       val depth = (p.yi * 16 + i.yi) - height
@@ -41,7 +41,7 @@ class BulletTestWorld {
   }
 
   val chunks: Map[V3I, Chunk] = {
-    val domain = V3I(-2, -1, -2) toAsSeq V3I(2, 1, 2)
+    val domain = V3I(0, 0, 0) toAsSeq V3I(0, 0, 0)
     val grid = TerrainGrid(terrains)
     domain.map(p => p -> {
       val ter = terrains(p)
@@ -72,10 +72,14 @@ class BulletTestWorld {
         }
         (verts, chunk.blockSoup.indices)
       }))
+      //val r3 = LineCombiner(chunk.terrainSoup.tetra.get.map(_.edges))
+      val tetra = chunk.terrainSoup.tetra.get
+        .map(tetra => Renderable[LineShader](GEval(tetra.edges)))
+        .map(renderable => Render[LineShader](renderable, Offset.default, true))
       Seq(
-        Render[TerrainShader](r1, Offset.default, false),
-        Render[GenericShader](r2, Offset.default, false)
-      )
+        Render[TerrainShader](r1, Offset.default, true),
+        Render[GenericShader](r2, Offset.default, true)
+      ) ++ tetra
     })
 }
 

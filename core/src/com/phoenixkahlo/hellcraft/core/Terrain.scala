@@ -2,9 +2,12 @@ package com.phoenixkahlo.hellcraft.core
 
 import com.phoenixkahlo.hellcraft.core.BlockSoup.Vert
 import com.phoenixkahlo.hellcraft.core.TerrainSoup.Vert
+import com.phoenixkahlo.hellcraft.core.eval.GEval
+import com.phoenixkahlo.hellcraft.fgraphics.{LineShader, Renderable}
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.math.physics.Triangle
 import com.phoenixkahlo.hellcraft.util.caches.ParamCache
+import com.phoenixkahlo.hellcraft.util.collections.Lazy
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 import com.phoenixkahlo.hellcraft.util.fields._
 
@@ -15,8 +18,26 @@ object Terrain {
   def canComplete(pos: V3I, world: TerrainGrid): Boolean = pos.neighbors.forall(world.terrainAt(_).isDefined)
 }
 
+case class Tetra(a: V3F, b: V3F, c: V3F, d: V3F) {
+  def edges: LineShader#RenderUnit = {
+    import LineShader.Vert
+    val col = V4I(1, 0, 0, 1)
+    (
+      Seq(Vert(a, col), Vert(b, col), Vert(c, col), Vert(d, col)),
+      Seq(
+        0, 1,
+        0, 2,
+        0, 3,
+        1, 2,
+        1, 3,
+        2, 3
+      ).map(_.toShort)
+    )
+  }
+}
+
 case class TerrainSoup(pos: V3I, verts: OptionField[TerrainSoup.Vert], indices: Seq[Short], indexToVert: Seq[V3I],
-                       vertToIndex: ShortField) extends Iterable[Triangle] {
+                       vertToIndex: ShortField, tetra: Lazy[Seq[Tetra]]) extends Iterable[Triangle] {
   override def iterator: Iterator[Triangle] =
     Range(0, indices.size, 3).iterator
       .map(i => Triangle(
@@ -30,7 +51,7 @@ object TerrainSoup {
 
   val noneField = OptionField.empty[Vert](V3I(18, 18, 18))
   val zeroField = ShortField(V3I(18, 18, 18), 0 toShort)
-  def empty(pos: V3I) = TerrainSoup(pos, noneField, Seq.empty, Seq.empty, zeroField)
+  def empty(pos: V3I) = TerrainSoup(pos, noneField, Seq.empty, Seq.empty, zeroField, Lazy(Seq.empty))
 
   val edges: Seq[(V3I, V3I)] = Seq(
     Origin -> West,
@@ -51,10 +72,24 @@ object TerrainSoup {
     V3I(1, 1, 0) -> Ones
   )
 
-  val deltas: Seq[(V3I, V3I, V3I, Direction)] = Seq(
-    (North, North + West, West, Up),
-    (Up, Up + North, North, West),
-    (Up, Up + West, West, South)
+  /*
+  val deltas: Seq[(V3I, V3I, V3I, V3I, Direction)] = Seq(
+    (West, West + Up, Up, Origin, North),
+    (North, Origin, Up, North + Up, West),
+    (West, Origin, North, West + North, Up)
+  )
+  */
+  val deltas: Seq[(V3I, V3I, V3I, V3I, Direction)] = Seq(
+    (West, West + Up, Up, Origin, South),
+    (North, Origin, Up, North + Up, East),
+    (West, Origin, North, West + North, Down)
+  )
+
+  val tetraDeltas: Seq[(V3I, V3I, V3I, V3I)] = Seq(
+    (Origin, North, West, Up),
+    (West + North, West, North, West + North + Up),
+    (West + Up, West, Up, West + North + Up),
+    (North + Up, North, Up, North + West + Up)
   )
 
   def apply(terrain: Terrain, world: TerrainGrid): Option[TerrainSoup] =
@@ -112,19 +147,38 @@ object TerrainSoup {
     val indices = new ArrayBuffer[Short]
     for {
       v <- Origin untilAsSeq verts.sizeVec - Ones
-      (d1, d2, d3, dir) <- deltas
-    } (verts(v), verts(v + d1), verts(v + d2), verts(v + d3)) match {
+      (d0, d1, d2, d3, dir) <- deltas
+    } (verts(v + d0), verts(v + d1), verts(v + d2), verts(v + d3)) match {
       case (Some(Left(vert1)), Some(Left(vert2)), Some(Left(vert3)), Some(Left(vert4))) =>
-        if (Seq(verts(v + dir), verts(v + d1 + dir), verts(v + d2 + dir), verts(v + d3 + dir)).exists(_.isEmpty)) {
-          indices.append(vertToIndex(v), vertToIndex(v + d1), vertToIndex(v + d2))
-          indices.append(vertToIndex(v), vertToIndex(v + d2), vertToIndex(v + d3))
+        if (Seq(verts(v + d0 + dir), verts(v + d1 + dir), verts(v + d2 + dir), verts(v + d3 + dir)).exists(_.isEmpty)) {
+          indices.append(vertToIndex(v + d3), vertToIndex(v + d1), vertToIndex(v + d0))
+          indices.append(vertToIndex(v + d3), vertToIndex(v + d2), vertToIndex(v + d1))
         } else {
-          indices.append(vertToIndex(v), vertToIndex(v + d2), vertToIndex(v + d1))
-          indices.append(vertToIndex(v), vertToIndex(v + d3), vertToIndex(v + d2))
+          indices.append(vertToIndex(v + d0), vertToIndex(v + d1), vertToIndex(v + d2))
+          indices.append(vertToIndex(v + d0), vertToIndex(v + d2), vertToIndex(v + d3))
         }
       case _ =>
     }
-    Some(new TerrainSoup(terrain.pos, verts.flatMapField(_.left.toOption), indices, indexToVert, vertToIndex.immutabilize))
+
+    // find tetra
+    val tetra: Lazy[Seq[Tetra]] = Lazy({
+      val tetra = new ArrayBuffer[Tetra]
+      def pos(i: V3I, u: Either[TerrainSoup.Vert, Unit]): V3F = (u match {
+        case Left(v) => v.pos
+        case Right(()) => i + Repeated(0.5f)
+      }) + offset
+      for {
+        v <- Origin untilAsSeq verts.sizeVec - Ones
+        (d0, d1, d2, d3) <- tetraDeltas
+      } (verts(v + d0), verts(v + d1), verts(v + d2), verts(v + d3)) match {
+        case (Some(v0), Some(v1), Some(v2), Some(v3)) =>
+          tetra += Tetra(pos(v + d0, v0), pos(v + d1, v1), pos(v + d2, v2), pos(v + d3, v3))
+        case _ =>
+      }
+      tetra
+    })
+
+    Some(new TerrainSoup(terrain.pos, verts.flatMapField(_.left.toOption), indices, indexToVert, vertToIndex.immutabilize, tetra))
   } else None
 }
 
