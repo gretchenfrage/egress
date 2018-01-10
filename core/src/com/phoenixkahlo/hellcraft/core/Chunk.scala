@@ -7,7 +7,7 @@ import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.core.eval.GEval.GEval
 import com.phoenixkahlo.hellcraft.core.eval.WEval.WEval
 import com.phoenixkahlo.hellcraft.core.eval.{Exec3D, ExecCheap, GEval, WEval}
-import com.phoenixkahlo.hellcraft.core.event.{Events, UEContext}
+import com.phoenixkahlo.hellcraft.core.event.Events
 import com.phoenixkahlo.hellcraft.core.graphics.RenderWorld
 import com.phoenixkahlo.hellcraft.core.request._
 import com.phoenixkahlo.hellcraft.core.util.Derived
@@ -109,7 +109,7 @@ class Chunk(
     )
     */
 
-  def setTerrain(newTerrain: Terrain, meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true): (Chunk, Seq[UpdateEffect]) =
+  def setTerrain(newTerrain: Terrain, meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true)(implicit rand: MRNG): (Chunk, Seq[UpdateEffect]) =
     new Chunk(
       pos, newTerrain,
       terrainSoup, blockSoup,
@@ -119,7 +119,7 @@ class Chunk(
       Some(blockRenderable), true
     ).invalidate(meshTerrFast, meshBlocksFast)
 
-  def invalidate(meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true): (Chunk, Seq[UpdateEffect]) = {
+  def invalidate(meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true)(implicit rand: MRNG): (Chunk, Seq[UpdateEffect]) = {
     val e3d = Exec3D(pos * 16)
     val emicroworld = WEval.terrains(pos.neighbors)
     val ets: WEval[TerrainSoup] = emicroworld.map(world => TerrainSoup(terrain, world).get)(
@@ -128,8 +128,8 @@ class Chunk(
     val ebs: WEval[BlockSoup] = emicroworld.map(world => BlockSoup(terrain, world).get)(
       if (meshBlocksFast) ExecCheap else e3d
     )
-    val rts: Request[TerrainSoup] = Request(ets, UEContext.randUUID())
-    val rbs: Request[BlockSoup] = Request(ebs, UEContext.randUUID())
+    val rts: Request[TerrainSoup] = Request(ets, rand.nextUUID)
+    val rbs: Request[BlockSoup] = Request(ebs, rand.nextUUID)
     new Chunk(
       pos, terrain,
       terrainSoup, blockSoup,

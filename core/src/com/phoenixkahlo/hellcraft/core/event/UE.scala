@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.core.event
 
 import com.phoenixkahlo.hellcraft.core.entity.{AnyEnt, EntID, Entity}
 import com.phoenixkahlo.hellcraft.core.{Chunk, Terrain}
-import com.phoenixkahlo.hellcraft.math.V3I
+import com.phoenixkahlo.hellcraft.math.{MRNG, V3I}
 
 /**
   * Update eval monad
@@ -19,6 +19,8 @@ object UE {
   def chunk(p: V3I): UE[Option[Chunk]] = UEChunk(p)
   def terrain(p: V3I): UE[Option[Terrain]] = UETerrain(p)
   def ent[E <: Entity[_]](id: EntID[E]): UE[Option[E]] = UEEnt(id)
+  def time: UE[Long] = UETime
+  def rand: UE[MRNG] = UERand
 
   def chunks(ps: Seq[V3I]): UE[Seq[Chunk]] =
     ps.map(chunk).foldLeft(UE(Seq.empty[Chunk]))((a, b) => a.flatMap(aa => b.map(bb => aa ++ bb)))
@@ -30,4 +32,6 @@ object UE {
   case class UEChunk(p: V3I) extends UE[Option[Chunk]]
   case class UETerrain(p: V3I) extends UE[Option[Terrain]]
   case class UEEnt[T <: Entity[_]](id: EntID[T]) extends UE[Option[T]]
+  case object UERand extends UE[MRNG]
+  case object UETime extends UE[Long]
 }

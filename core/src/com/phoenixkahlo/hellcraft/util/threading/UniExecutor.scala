@@ -12,11 +12,14 @@ import scala.collection.mutable.ArrayBuffer
 
 class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: Consumer[Throwable], equator: Long => Float, stretch: V3F) {
 
+  val flatMode = false
+
   private val seqQueue = new LinkedBlockingQueue[Runnable]
   private val queue3D = new SpatialTemporalQueue3D[Runnable](equator, stretch)
   private val queue2D = new SpatialTemporalQueue2D[Runnable](equator, V2I(1, 1))
   private val cQueue = new LinkedBlockingQueue[Runnable]
   private val cQueue3D = new SpatialTemporalQueue3D[Runnable](equator, stretch)
+  private val cQueue2D = new SpatialTemporalQueue2D[Runnable](equator, V2I(1, 1))
 
   private val ticketQueue = new LinkedBlockingQueue[Supplier[Option[Runnable]]]
   private val workers = new ArrayBuffer[Thread]
@@ -54,6 +57,7 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
   workers += threadFactory.newThread(Worker(() => queue2D.take()._2.run()))
   workers += threadFactory.newThread(Worker(() => cQueue.take().run()))
   workers += threadFactory.newThread(Worker(() => cQueue3D.take()._2.run()))
+  workers += threadFactory.newThread(Worker(() => cQueue2D.take()._2.run()))
 
   def exec(task: Runnable): Unit = {
     seqQueue.add(task)
@@ -61,7 +65,8 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
   }
 
   def exec(pos: V3F)(task: Runnable): Unit = {
-    exec(() => {
+    if (flatMode) exec(pos.flatten)(task)
+    else exec(() => {
       queue3D.add(pos -> task)
       ticketQueue.add(() => Option(queue3D.poll()).map(_._2))
     })
@@ -80,11 +85,21 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
   }
 
   def execc(pos: V3F)(task: Runnable): Unit = {
-    if (dbSequential) {
+    if (flatMode) execc(pos.flatten)(task)
+    else if (dbSequential) {
       execc(task)
     } else {
       cQueue3D.add(pos -> task)
       ticketQueue.add(() => Option(cQueue3D.poll()).map(_._2))
+    }
+  }
+
+  def execc(pos: V2F)(task: Runnable): Unit = {
+    if (dbSequential) {
+      execc(task)
+    } else {
+      cQueue2D.add(pos -> task)
+      ticketQueue.add(() => Option(cQueue2D.poll()).map(_._2))
     }
   }
 
@@ -133,6 +148,8 @@ object UniExecutor {
   def execc(task: Runnable): Unit = service.execc(task)
 
   def execc(pos: V3F)(task: Runnable): Unit = service.execc(pos)(task)
+
+  def execc(pos: V2F)(task: Runnable): Unit = service.execc(pos)(task)
 
   def point: V3F = service.point
 

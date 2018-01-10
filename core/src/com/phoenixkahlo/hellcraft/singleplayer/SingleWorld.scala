@@ -6,20 +6,14 @@ import java.util.concurrent.{ConcurrentLinkedQueue, ThreadLocalRandom}
 import com.phoenixkahlo.hellcraft.core.client.{ClientRenderWorld, ClientWorld}
 import com.phoenixkahlo.hellcraft.core.entity.{AnyEnt, AnyEntID, EntID, Entity}
 import com.phoenixkahlo.hellcraft.core.eval.{AsyncEval, WEval}
-import com.phoenixkahlo.hellcraft.core.event.UE.UEGen
-import com.phoenixkahlo.hellcraft.core.event.UE.UEMap
-import com.phoenixkahlo.hellcraft.core.event.UE.UEFMap
-import com.phoenixkahlo.hellcraft.core.event.UE.UEFilter
-import com.phoenixkahlo.hellcraft.core.event.UE.UEChunk
-import com.phoenixkahlo.hellcraft.core.event.UE.UETerrain
-import com.phoenixkahlo.hellcraft.core.event.UE.UEEnt
-import com.phoenixkahlo.hellcraft.core.event.{UE, UEContext, UEContextImpl}
+import com.phoenixkahlo.hellcraft.core.event.UE._
+import com.phoenixkahlo.hellcraft.core.event.UE
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.core.util.GroupedEffects
 import com.phoenixkahlo.hellcraft.core.{Chunk, Event, EventID, LogEffect, MakeRequest, PutChunk, PutEnt, RemEnt, SoundEffect, Terrain, UpdateEffect, event}
-import com.phoenixkahlo.hellcraft.math.V3I
+import com.phoenixkahlo.hellcraft.math.{MRNG, V3I}
 import com.phoenixkahlo.hellcraft.singleplayer.AsyncSave.GetPos
-import com.phoenixkahlo.hellcraft.singleplayer.SingleContinuum.{IncompleteKey}
+import com.phoenixkahlo.hellcraft.singleplayer.SingleContinuum.IncompleteKey
 import com.phoenixkahlo.hellcraft.singleplayer.SingleWorld.{ChangeSummary, ChunkEnts}
 import com.phoenixkahlo.hellcraft.util.collections.{BBox, V3ISet}
 import com.phoenixkahlo.hellcraft.util.threading._
@@ -197,22 +191,24 @@ case class SingleWorld(
     copy(cdomain = _cdomain, tdomain = _tdomain)
 
   // evaluate a UE monad
-  def eval[T](ue: UE[T]): T = ue match {
+  def eval[T](ue: UE[T], time: Long): T = ue match {
     case ue@UEGen(fac) => fac()
     case ue@UEMap(src, func) =>
-      def f[S, T](ue: UEMap[S, T]): T = ue.func(eval(ue.src))
+      def f[S, T](ue: UEMap[S, T]): T = ue.func(eval(ue.src, time))
       f(ue)
     case ue@UEFMap(src, func) =>
-      def f[S, T](ue: UEFMap[S, T]): T = eval(ue.func(eval(ue.src)))
+      def f[S, T](ue: UEFMap[S, T]): T = eval(ue.func(eval(ue.src, time)), time)
       f(ue)
     case ue@UEFilter(src: UE[T], test: (T => Boolean)) =>
-      val t: T = eval(src)
+      val t: T = eval(src, time)
       if (!test(t))
         println("warn: UE filter monad failed filter (ignoring)")
       t
     case ue@UEChunk(p) => chunk(p).asInstanceOf[T]
     case ue@UETerrain(p) => terrain(p).asInstanceOf[T]
     case ue@UEEnt(id) => findEntityUntyped(id).asInstanceOf[T]
+    case UETime => time.asInstanceOf[T]
+    case UERand => new MRNG(ThreadLocalRandom.current.nextLong()).asInstanceOf[T]
   }
 
   // update to a new world, and get output effects
@@ -250,18 +246,8 @@ case class SingleWorld(
         entChanges ++= remEntsNow.map(re => (re.id, None))
         out ++= remEntsLater
       }
-      // initialize the context
-      UEContext.init(new UEContextImpl {
-        val random = new Random
-        override def time: Long = _time
-        override def randInt(): Int = random.nextInt()
-        override def randDouble(): Double = random.nextDouble()
-        override def randFloat(): Float = random.nextFloat()
-      })
       // evaluate the events
-      val caused = grouped.bin(Event).flatMap(event => eval(event.eval))
-      // close the context
-      UEContext.end()
+      val caused = grouped.bin(Event).flatMap(event => eval(event.eval, _time))
       // recurse if any further events are caused
       if (caused isEmpty)
         (next, out, ChangeSummary(chunkChanges, entChanges))

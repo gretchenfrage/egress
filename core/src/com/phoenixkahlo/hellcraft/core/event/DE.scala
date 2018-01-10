@@ -5,7 +5,7 @@ import com.phoenixkahlo.hellcraft.core.{Chunk, Event, MakeRequest, Terrain, Upda
 import com.phoenixkahlo.hellcraft.core.eval.{ExecCheap, WEval}
 import com.phoenixkahlo.hellcraft.core.eval.WEval.WEval
 import com.phoenixkahlo.hellcraft.core.request.Request
-import com.phoenixkahlo.hellcraft.math.V3I
+import com.phoenixkahlo.hellcraft.math.{MRNG, V3I}
 
 // delayable eval monads, which compile into a combination of UE monads and WEval monads
 trait DE[+T] extends Serializable {
@@ -19,6 +19,18 @@ trait DE[+T] extends Serializable {
 
 object Delayable {
   def apply(de: DE[Seq[UpdateEffect]]): Event =
+    Event(for {
+      ue <- de.process
+      mrng <- UE.rand
+    } yield ue match {
+      case Left(effects) => effects
+      case Right(dependencies) =>
+        implicit val hint = ExecCheap
+        implicit val rand = mrng
+        val merged = dependencies.map(_.map(a => ())).reduce((a, b) => a.flatMap(aa => b))
+        Seq(MakeRequest(Request(merged), result => Seq(Delayable(de))))
+    })
+  /*
     Event(de.process.map({
       case Left(effects) => effects
       case Right(dependents) =>
@@ -26,6 +38,7 @@ object Delayable {
         val merged = dependents.map(_.map(a => ())).reduce((a, b) => a.flatMap(aa => b))
         Seq(MakeRequest(Request(merged), result => Seq(Delayable(de))))
     }))
+    */
 }
 
 object DE {
@@ -33,6 +46,8 @@ object DE {
   def chunk(p: V3I): DE[Chunk] = DEChunk(p)
   def terrain(p: V3I): DE[Terrain] = DETerrain(p)
   def ent[E <: Entity[_]](id: EntID[E]): DE[E] = DEEnt(id)
+  def time: DE[Long] = DETime
+  def rand: DE[MRNG] = DERand
 
   case class DEGen[T](fac: () => T) extends DE[T] {
     override def process: UE[Either[T, Seq[WEval[_]]]] = UE(Left(fac()))
@@ -77,5 +92,13 @@ object DE {
         case Some(ent) => Left(ent)
         case None => Right(Seq(WEval.ent(id)))
       })
+  }
+  case object DETime extends DE[Long] {
+    override def process: UE[Either[Long, Seq[WEval[_]]]] =
+      UE.time.map(Left(_))
+  }
+  case object DERand extends DE[MRNG] {
+    override def process: UE[Either[MRNG, Seq[WEval[_]]]] =
+      UE.rand.map(Left(_))
   }
 }

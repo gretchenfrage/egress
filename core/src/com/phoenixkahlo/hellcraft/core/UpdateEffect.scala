@@ -2,7 +2,7 @@ package com.phoenixkahlo.hellcraft.core
 
 import java.util.UUID
 
-import com.phoenixkahlo.hellcraft.core.event.{UEContext, Events, UE}
+import com.phoenixkahlo.hellcraft.core.event.UE
 import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.core.eval.WEval.WEval
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
