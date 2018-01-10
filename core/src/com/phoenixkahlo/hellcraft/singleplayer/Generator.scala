@@ -87,18 +87,6 @@ class DefaultGenerator(res: Int) extends Generator {
             val ter = terrains.map(p)
             (ter, BlockSoup(ter, terrains).get, TerrainSoup(ter, terrains).get)
           }
-          /*
-          if (terrains.values.zip(terrains.values.tail).forall({ case (a, b) => a.grid eq b.grid })) {
-            //println("fast case!")
-            (terrains(p), BlockSoup(p, Seq.empty, Seq.empty), TerrainSoup.empty(p))
-          } else {
-            val grid = new TerrainGrid {
-              override def terrainAt(p: V3I): Option[Terrain] = terrains.get(p)
-            }
-            val ter = terrains(p)
-            (ter, BlockSoup(ter, grid).get, TerrainSoup(ter, grid).get)
-          }
-          */
         }, UniExecutor.exec(p * 16))
     } else Fut(null: (Terrain, BlockSoup, TerrainSoup), _.run())
   )

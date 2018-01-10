@@ -2,6 +2,7 @@ package com.phoenixkahlo.hellcraft.bullet
 
 import java.util.{Random, Scanner}
 
+import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.{Gdx, InputProcessor}
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController
 import com.badlogic.gdx.math.{Matrix4, Vector3}
@@ -11,13 +12,72 @@ import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody.btRigidBodyConstruct
 import com.badlogic.gdx.physics.bullet.dynamics.{btDiscreteDynamicsWorld, btRigidBody, btSequentialImpulseConstraintSolver}
 import com.badlogic.gdx.physics.bullet.linearmath.{btDefaultMotionState, btQuaternion, btTransform}
 import com.phoenixkahlo.hellcraft.core.Blocks.Brick
+import com.phoenixkahlo.hellcraft.core.eval.{ExecCheap, GEval}
+import com.phoenixkahlo.hellcraft.core.{Air, BlockSoup, Chunk, Materials, Terrain, TerrainGrid, TerrainSoup, TerrainUnit, TerrainUnits}
 import com.phoenixkahlo.hellcraft.core.graphics.{FreeCube, FreeCubeParams}
-import com.phoenixkahlo.hellcraft.fgraphics.{BrickTID, DefaultRenderer, DefaultResourcePack, GenericShader, GlobalRenderData, Offset, Render, Renderable, Renderer, ResourcePack, Shader}
+import com.phoenixkahlo.hellcraft.fgraphics.{BasicTriVert, BrickTID, DefaultRenderer, DefaultResourcePack, GenericShader, GlobalRenderData, Offset, Render, Renderable, Renderer, ResourcePack, Shader, TerrainShader}
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.math.MatrixFactory.Translate
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.util.collections.spatial.SpatialTemporalQueue
+import com.phoenixkahlo.hellcraft.util.fields.IDField
 import com.phoenixkahlo.hellcraft.util.threading.UniExecutor
+
+import scala.collection.mutable.ArrayBuffer
+
+class BulletTestWorld {
+  val noise = Simplex(1f / 8f, 15f)
+  implicit val mapping = TerrainUnits
+  implicit val exec = ExecCheap
+
+  val terrains: Map[V3I, Terrain] = {
+    val domain = V3I(-3, -2, -3) toAsSeq V3I(3, 2, 3)
+    domain.map(p => p -> Terrain(p, IDField[TerrainUnit](V3I(16, 16, 16), (i: V3I) => {
+      val height = noise((p * 16 + i).flatten)
+      val depth = (p.yi * 16 + i.yi) - height
+      if (depth >= 0) Air
+      else Materials.Grass
+    }))).toMap
+  }
+
+  val chunks: Map[V3I, Chunk] = {
+    val domain = V3I(-2, -1, -2) toAsSeq V3I(2, 1, 2)
+    val grid = TerrainGrid(terrains)
+    domain.map(p => p -> {
+      val ter = terrains(p)
+      val bs = BlockSoup(ter, grid).get
+      val ts = TerrainSoup(ter, grid).get
+      new Chunk(p, ter, ts, bs)
+    }).toMap
+  }
+
+  val renders: Seq[Render[_ <: Shader]] =
+    chunks.values.toSeq.flatMap(chunk => {
+      val r1 = Renderable[TerrainShader](GEval.resourcePack.map(pack => {
+        val verts = new ArrayBuffer[BasicTriVert]
+        for (v: V3I <- chunk.terrainSoup.indexToVert) {
+          val vert: TerrainSoup.Vert = chunk.terrainSoup.verts(v).get
+          val tex: TextureRegion = pack(vert.mat.tid)
+          verts += BasicTriVert(vert.pos, V4I.ones, V2F(tex.getU, tex.getV), vert.nor)
+        }
+        (verts, chunk.terrainSoup.indices)
+      }))
+      val r2 = Renderable[GenericShader](GEval.resourcePack.map(pack => {
+        val verts = new ArrayBuffer[BasicTriVert]
+        for (vert <- chunk.blockSoup.verts) {
+          val tex = pack(vert.block.tid)
+          verts += BasicTriVert(vert.pos, V4I.ones, V2F(
+            tex.getU + (vert.uvDelta.x / 16f), tex.getV + (vert.uvDelta.y / 16f)
+          ), vert.nor)
+        }
+        (verts, chunk.blockSoup.indices)
+      }))
+      Seq(
+        Render[TerrainShader](r1, Offset.default, false),
+        Render[GenericShader](r2, Offset.default, false)
+      )
+    })
+}
 
 class BulletTest extends GameState {
   val rand = new Random()
@@ -25,6 +85,8 @@ class BulletTest extends GameState {
   private var pack: ResourcePack = _
   private var renderer: Renderer = _
   private var controller: FirstPersonCameraController = _
+
+  var chunks: BulletTestWorld = _
 
   var orbRenderable: Renderable[GenericShader] = _
 
@@ -34,6 +96,7 @@ class BulletTest extends GameState {
   private var solver: btSequentialImpulseConstraintSolver = _
   private var world: btDiscreteDynamicsWorld = _
 
+  /*
   var groundShape: btCollisionShape = _
   var orbShape: btCollisionShape = _
   var groundMotionState: btDefaultMotionState = _
@@ -43,6 +106,7 @@ class BulletTest extends GameState {
   var orbMotionState: btDefaultMotionState = _
   var orbConstrInfo: btRigidBodyConstructionInfo = _
   var orbRigidBody: btRigidBody = _
+  */
 
   override def onEnter(driver: GameDriver): Unit = {
     UniExecutor.activate(0, new Thread(_), _.printStackTrace(), SpatialTemporalQueue.timeDoesntMatter, Ones)
@@ -53,6 +117,8 @@ class BulletTest extends GameState {
 
     controller = new FirstPersonCameraController(renderer.cam)
     Gdx.input.setInputProcessor(controller)
+
+    chunks = new BulletTestWorld
 
     orbRenderable = FreeCube(FreeCubeParams(BrickTID, V4I.ones))
 
@@ -66,6 +132,7 @@ class BulletTest extends GameState {
     world = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, config)
     world.setGravity((Down * 9.8f).toGdx)
 
+    /*
     val rad = 1f
 
     groundShape = new btStaticPlaneShape(V3I(0, 1, 0).toGdx, 1)
@@ -98,9 +165,11 @@ class BulletTest extends GameState {
         })
       }
     }).start()
+    */
   }
 
   override def render(): Unit = {
+    /*
     world.stepSimulation(1f / 60f, 10)
 
     val mat = new Matrix4
@@ -108,19 +177,22 @@ class BulletTest extends GameState {
     val tra = new Vector3
     mat.getTranslation(tra)
     val pos = V3F(tra)
+    */
 
     controller.update()
 
     val globals = GlobalRenderData(
       V3F(renderer.cam.position), V3F(renderer.cam.direction),
-      Origin, 1,
+      Up * 80, 1,
       V4I.ones, 90
     )
 
+    /*
     val renders: Seq[Render[_ <: Shader]] = Seq(
       Render[GenericShader](orbRenderable, Offset(pos))
     )
-    renderer(renders, globals)
+    */
+    renderer(chunks.renders, globals)
   }
 
   override def onResize(width: Int, height: Int): Unit = {

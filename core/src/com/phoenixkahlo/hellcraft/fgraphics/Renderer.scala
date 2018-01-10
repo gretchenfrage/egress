@@ -89,8 +89,8 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
       }
 
     resources = resources.map(set => {
-      val curr = seq.map(toGraph)
-      val garbage = set -- curr
+      val curr: Seq[EvalGraphs[_]] = seq.map(toGraph)
+      val garbage: Set[EvalGraphs[_]] = set -- curr
       (curr.toSet, garbage.toList)
     }, UniExecutor.execc).flatMap({
       case (curr, garbage) => f(garbage).map({ case Nil => curr })
@@ -207,10 +207,16 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
         }
       option match {
         case Some(renderable) => Some(RenderNow(renderable, render.params))
-        case None => render.deupdate.flatMap(extract(_, false))
+        case None => render.deupdate.flatMap(extract(_, false))/* match {
+          case some@Some(_) => some
+          case None =>
+            //println("extraction failed")
+            None
+        }*/
       }
     }
     val renderNow: Seq[RenderNow[_ <: Shader]] = renders.flatMap((render: Render[_ <: Shader]) => extract(render): Option[RenderNow[_ <: Shader]])
+    renderNow.foreach(rn => ()) // force evaluation if input is lazy, because of side effect requirements
 
     p.log()
 

@@ -158,7 +158,10 @@ class AsyncEval[T, C <: Eval.Context](root: Eval[T, C])(disposer: Option[Fut[T] 
       for {
         disposer <- this.disposer
         disposee <- invalidatedRoot
-      } disposer(disposee)
+      } {
+        disposer(disposee)
+        //println("invalidated")
+      }
 
       // clear the triggered nodes
       known --= triggered

@@ -47,7 +47,9 @@ object ContextPin {
   type ContextPinFunc[T] = () => T
   type ContextPin = TransSingleMemoGenHintFunc[ContextPinID, ContextPinFunc, Identity, Any]
   def create(): ContextPin = new ContextPin {
-    override protected def gen[E <: Any](id: UUID, factory: () => E): E = factory()
+    override protected def gen[E <: Any](id: UUID, factory: () => E): E = {
+      factory()
+    }
   }
 }
 
