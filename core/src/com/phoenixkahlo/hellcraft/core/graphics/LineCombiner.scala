@@ -7,24 +7,18 @@ import scala.collection.mutable
 
 object LineCombiner {
   // warning: is synchronous
-  def apply(units: => Seq[LineShader#RenderUnit])(implicit exec: ExecHint): Seq[Renderable[LineShader]] = {
-    val renderables = new mutable.ArrayBuffer[Renderable[LineShader]]
-    var verts = new mutable.ArrayBuffer[LineShader.Vert]
-    var indices = new mutable.ArrayBuffer[Short]
-    def push() = {
-      renderables += Renderable[LineShader](GEval((verts, indices)))
-      verts = new mutable.ArrayBuffer[LineShader.Vert]
-      indices = new mutable.ArrayBuffer[Short]
-    }
-    for ((v, i) <- units) {
-      val offset = verts.size
-      if ((offset + i.size) >= Short.MaxValue)
-        push()
-      verts ++= v
-      indices ++= i.map(ii => (ii + offset).toShort)
-    }
-    push()
-    renderables
+  def apply(units: => Seq[LineShader#RenderUnit])(implicit exec: ExecHint): Seq[LineShader#RenderUnit] = {
+    val max = Short.MaxValue
+    def f(list: List[LineShader#RenderUnit], vaccum: Vector[LineShader.Vert], iaccum: Vector[Short]): List[LineShader#RenderUnit] =
+      list match {
+        case Nil => List((vaccum, iaccum))
+        case (currVerts, currIndices) :: next =>
+          if (vaccum.size + currVerts.size >= max || iaccum.size + currIndices.size >= max)
+            (vaccum, iaccum) :: f(list, Vector.empty, Vector.empty)
+          else
+            f(next, vaccum ++ currVerts, iaccum ++ currIndices.map(i => (i + vaccum.size).toShort))
+      }
+    f(units.toList, Vector.empty, Vector.empty).toVector
   }
 
 }

@@ -1,5 +1,8 @@
 package com.phoenixkahlo.hellcraft.core
 
+import java.io.{ByteArrayOutputStream, DataOutputStream}
+import java.nio.{ByteBuffer, FloatBuffer}
+
 import com.phoenixkahlo.hellcraft.core.BlockSoup.Vert
 import com.phoenixkahlo.hellcraft.core.TerrainSoup.Vert
 import com.phoenixkahlo.hellcraft.core.eval.GEval
@@ -18,7 +21,7 @@ object Terrain {
   def canComplete(pos: V3I, world: TerrainGrid): Boolean = pos.neighbors.forall(world.terrainAt(_).isDefined)
 }
 
-case class Tetra(a: V3F, b: V3F, c: V3F, d: V3F) {
+case class Tetra(a: V3F, b: V3F, c: V3F, d: V3F)  extends Iterable[V3F] {
   def edges: LineShader#RenderUnit = {
     import LineShader.Vert
     val col = V4I(1, 0, 0, 1)
@@ -34,6 +37,27 @@ case class Tetra(a: V3F, b: V3F, c: V3F, d: V3F) {
       ).map(_.toShort)
     )
   }
+
+  def average: V3F = (a + b + c + d) / 4
+
+  /*
+  def nativize: FloatBuffer = {
+    /*
+    val baos = new ByteArrayOutputStream
+    val dos = new DataOutputStream(baos)
+    dos.writeFloat(a.x); dos.writeFloat(a.y); dos.writeFloat(a.z)
+    dos.writeFloat(b.x); dos.writeFloat(b.y); dos.writeFloat(b.z)
+    dos.writeFloat(c.x); dos.writeFloat(c.y); dos.writeFloat(c.z)
+    dos.writeFloat(d.x); dos.writeFloat(d.y); dos.writeFloat(d.z)
+    ByteBuffer.wrap(baos.toByteArray)
+    */
+    //FloatBuffer.wrap(Array(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z, d.x, d.y, d.z))
+    val bbuffer = ByteBuffer.allocateDirect(4 * 3 * 4)
+    val fbuffer = bbuffer.asFloatBuffer()
+    fbuffer.put(Array(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z, d.x, d.y, d.z))
+  }
+  */
+  override def iterator: Iterator[V3F] = Iterator(a, b, c, d)
 }
 
 case class TerrainSoup(pos: V3I, verts: OptionField[TerrainSoup.Vert], indices: Seq[Short], indexToVert: Seq[V3I],
@@ -163,10 +187,10 @@ object TerrainSoup {
     // find tetra
     val tetra: Lazy[Seq[Tetra]] = Lazy({
       val tetra = new ArrayBuffer[Tetra]
-      def pos(i: V3I, u: Either[TerrainSoup.Vert, Unit]): V3F = (u match {
+      def pos(i: V3I, u: Either[TerrainSoup.Vert, Unit]): V3F = u match {
         case Left(v) => v.pos
-        case Right(()) => i + Repeated(0.5f)
-      }) + offset
+        case Right(()) => i + offset + Repeated(0.5f)
+      }
       for {
         v <- Origin untilAsSeq verts.sizeVec - Ones
         (d0, d1, d2, d3) <- tetraDeltas

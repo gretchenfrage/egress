@@ -19,7 +19,8 @@ import com.phoenixkahlo.hellcraft.fgraphics.{BasicTriVert, BrickTID, DefaultRend
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.math.MatrixFactory.Translate
 import com.phoenixkahlo.hellcraft.math._
-import com.phoenixkahlo.hellcraft.util.collections.spatial.SpatialTemporalQueue
+import com.phoenixkahlo.hellcraft.util.collections.spatial.Octree.Octree
+import com.phoenixkahlo.hellcraft.util.collections.spatial.{Octree, SpatialTemporalQueue}
 import com.phoenixkahlo.hellcraft.util.fields.IDField
 import com.phoenixkahlo.hellcraft.util.threading.UniExecutor
 
@@ -30,8 +31,13 @@ class BulletTestWorld {
   implicit val mapping = TerrainUnits
   implicit val exec = ExecCheap
 
+  //val rad = V3I(3, 2, 3)
+  val rad = Origin
+  val cdomain = rad.neg toAsSet rad
+  val tdomain = cdomain.bloat
+
   val terrains: Map[V3I, Terrain] = {
-    val domain = V3I(-1, -1, -1) toAsSeq V3I(1, 1, 1)
+    val domain = tdomain.toSeq
     domain.map(p => p -> Terrain(p, IDField[TerrainUnit](V3I(16, 16, 16), (i: V3I) => {
       val height = noise((p * 16 + i).flatten)
       val depth = (p.yi * 16 + i.yi) - height
@@ -40,8 +46,10 @@ class BulletTestWorld {
     }))).toMap
   }
 
+  println("computed terrain")
+
   val chunks: Map[V3I, Chunk] = {
-    val domain = V3I(0, 0, 0) toAsSeq V3I(0, 0, 0)
+    val domain = cdomain.toSeq
     val grid = TerrainGrid(terrains)
     domain.map(p => p -> {
       val ter = terrains(p)
@@ -50,6 +58,8 @@ class BulletTestWorld {
       new Chunk(p, ter, ts, bs)
     }).toMap
   }
+
+  println("computed chunks")
 
   val renders: Seq[Render[_ <: Shader]] =
     chunks.values.toSeq.flatMap(chunk => {
@@ -72,15 +82,23 @@ class BulletTestWorld {
         }
         (verts, chunk.blockSoup.indices)
       }))
-      //val r3 = LineCombiner(chunk.terrainSoup.tetra.get.map(_.edges))
-      val tetra = chunk.terrainSoup.tetra.get
-        .map(tetra => Renderable[LineShader](GEval(tetra.edges)))
-        .map(renderable => Render[LineShader](renderable, Offset.default, true))
+
       Seq(
         Render[TerrainShader](r1, Offset.default, true),
         Render[GenericShader](r2, Offset.default, true)
-      ) ++ tetra
+      )
     })
+
+  println("computed chunk renders")
+
+  val tetra: Octree[Render[_ <: Shader]] =
+    chunks.values.toSeq
+      .flatMap(chunk => chunk.terrainSoup.tetra.get)
+      .map(tetra => tetra.average -> Render[LineShader](Renderable[LineShader](GEval(tetra.edges)), Offset.default, true))
+      .foldLeft(Octree.bigEmpty: Octree[Render[LineShader]])(_ + _)
+
+  println("created tetra render octree")
+
 }
 
 class BulletTest extends GameState {
@@ -100,17 +118,13 @@ class BulletTest extends GameState {
   private var solver: btSequentialImpulseConstraintSolver = _
   private var world: btDiscreteDynamicsWorld = _
 
-  /*
   var groundShape: btCollisionShape = _
-  var orbShape: btCollisionShape = _
-  var groundMotionState: btDefaultMotionState = _
-  var groundConstrInfo: btRigidBodyConstructionInfo = _
-  var groundRigidBody: btRigidBody = _
+  var groundCollObject: btCollisionObject = _
 
+  var orbShape: btCollisionShape = _
   var orbMotionState: btDefaultMotionState = _
   var orbConstrInfo: btRigidBodyConstructionInfo = _
   var orbRigidBody: btRigidBody = _
-  */
 
   override def onEnter(driver: GameDriver): Unit = {
     UniExecutor.activate(0, new Thread(_), _.printStackTrace(), SpatialTemporalQueue.timeDoesntMatter, Ones)
@@ -136,44 +150,37 @@ class BulletTest extends GameState {
     world = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, config)
     world.setGravity((Down * 9.8f).toGdx)
 
-    /*
-    val rad = 1f
+    val terrainShapeBuilder = new btCompoundShape(true, 1000000)
+    val noTransform = MatrixFactory()
+    for (tetra <- chunks.chunks.values.flatMap(_.terrainSoup.tetra.get)) {
+      val tetraShape = new btConvexHullShape()
+      for (vert <- tetra) {
+        tetraShape.addPoint(vert.toGdx)
+      }
 
-    groundShape = new btStaticPlaneShape(V3I(0, 1, 0).toGdx, 1)
-    orbShape = new btSphereShape(1)
-    groundMotionState = new btDefaultMotionState(MatrixFactory(Translate(Up)))
-    groundConstrInfo = new btRigidBodyConstructionInfo(0, groundMotionState, groundShape, Origin.toGdx)
-    groundRigidBody = new btRigidBody(groundConstrInfo)
-    world.addRigidBody(groundRigidBody)
+      terrainShapeBuilder.addChildShape(noTransform, tetraShape)
+    }
+    groundShape = terrainShapeBuilder
+    groundCollObject = new btCollisionObject
+    groundCollObject.setCollisionShape(groundShape)
+    groundCollObject.setFriction(3)
+    world.addCollisionObject(groundCollObject)
 
-    orbMotionState = new btDefaultMotionState(MatrixFactory(Translate(Up * 25)))
+    println("computed ground shape")
+
+    val rad = 0.5f
+    orbShape = new btSphereShape(rad)
+    orbMotionState = new btDefaultMotionState(MatrixFactory(Translate(V3I(8, 50, 8))))
     val mass = 1f
-    val inertia = (2f * mass * rad * rad) / 5f
+    val inertia = 0//(2f * mass * rad * rad) / 5f
     orbConstrInfo = new btRigidBodyConstructionInfo(mass, orbMotionState, orbShape, Repeated(inertia).toGdx)
     orbRigidBody = new btRigidBody(orbConstrInfo)
     world.addRigidBody(orbRigidBody)
 
-    new Thread(() => {
-      val in = new Scanner(System.in)
-      while (true) {
-        val line = in.nextLine()
-        Gdx.app.postRunnable(() => {
-          val scan = new Scanner(line)
-          scan.next() match {
-            case "jump" =>
-              val impulse = (Up * scan.nextFloat()).toGdx
-              orbRigidBody.activate()
-              orbRigidBody.applyCentralImpulse(impulse)
-            case str => println("derp: " + str)
-          }
-        })
-      }
-    }).start()
-    */
   }
 
   override def render(): Unit = {
-    /*
+    //println("render")
     world.stepSimulation(1f / 60f, 10)
 
     val mat = new Matrix4
@@ -181,7 +188,6 @@ class BulletTest extends GameState {
     val tra = new Vector3
     mat.getTranslation(tra)
     val pos = V3F(tra)
-    */
 
     controller.update()
 
@@ -191,12 +197,9 @@ class BulletTest extends GameState {
       V4I.ones, 90
     )
 
-    /*
-    val renders: Seq[Render[_ <: Shader]] = Seq(
-      Render[GenericShader](orbRenderable, Offset(pos))
-    )
-    */
-    renderer(chunks.renders, globals)
+    val glow = chunks.tetra.within(globals.camPos, 8).map(_._2)
+    val block = Render[GenericShader](orbRenderable, Offset(pos))
+    renderer(chunks.renders ++ glow :+ block, globals)
   }
 
   override def onResize(width: Int, height: Int): Unit = {

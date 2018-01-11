@@ -76,39 +76,6 @@ class Chunk(
   def broadphase: Broadphase =
     _broadphase(new OctreeBroadphase(terrainSoup.iterator ++ blockSoup.iterator, pos * 16 + Repeated(8), 64))
 
-  /*
-  @transient lazy val broadphase: Lazy[Broadphase] =
-    Option(lastBroadphase).getOrElse(Lazy)
-    */
-    /*
-    Option(lastBroadphase).map(_ apply).getOrElse(new OctreeBroadphase(
-      terrainSoup.iterator ++ blockSoup.iterator,
-      pos * 16 + Repeated(8), 64
-    ))
-    */
-
-  /*
-  def putEntity(entity: AnyEnt): Chunk =
-    new Chunk(
-      pos, terrain,
-      entities + entity,
-      terrainSoup, blockSoup,
-      tsRequest, bsRequest,
-      () => broadphase,
-      Some(terrainRenderable), true, Some(blockRenderable), true
-    )
-
-  def removeEntity(entity: AnyEntID): Chunk =
-    new Chunk(
-      pos, terrain,
-      entities - entity,
-      terrainSoup, blockSoup,
-      tsRequest, bsRequest,
-      () => broadphase,
-      Some(terrainRenderable), true, Some(blockRenderable), true
-    )
-    */
-
   def setTerrain(newTerrain: Terrain, meshTerrFast: Boolean = false, meshBlocksFast: Boolean = true)(implicit rand: MRNG): (Chunk, Seq[UpdateEffect]) =
     new Chunk(
       pos, newTerrain,
