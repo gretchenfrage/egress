@@ -88,10 +88,13 @@ case class IdenEvent(eval: UE[Seq[UpdateEffect]], id: EventID) extends UpdateEff
 }
 object IdenEvent extends UpdateEffectType[IdenEvent](7)
 
-case class ServiceCall[S <: Service, T](cal: S#Call[T], onComplete: T => Seq[UpdateEffect], service: ServiceTag[S]) extends UpdateEffect {
+class ServiceCall[S <: Service, T](val call: S#Call[T], val onComplete: T => Seq[UpdateEffect], val service: ServiceTag[S]) extends UpdateEffect {
   override def effectType: UpdateEffectType[_ <: UpdateEffect] = ServiceCall
 }
-object ServiceCall extends UpdateEffectType[ServiceCall[_ <: Service, _]](8)
+object ServiceCall extends UpdateEffectType[ServiceCall[_ <: Service, _]](8) {
+  def apply[S <: Service, T](call: S#Call[T], onComplete: T => Seq[UpdateEffect])(implicit service: ServiceTag[S]): ServiceCall[S, T] =
+    new ServiceCall[S, T](call, onComplete, service)
+}
 
 
 // chunk events

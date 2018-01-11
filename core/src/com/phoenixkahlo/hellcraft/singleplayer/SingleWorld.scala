@@ -283,7 +283,7 @@ case class SingleWorld(
       caused ++= grouped.bin(ServiceCall)
         .map((call: ServiceCall[_ <: Service, _]) => {
           def f[S <: Service, T](call: ServiceCall[S, T]): Fut[Seq[UpdateEffect]] = {
-            services(call.service).apply(call.cal)(_.run()).map(call.onComplete)
+            services(call.service).apply(call.call)(_.run()).map(call.onComplete)
           }
           f(call)
         }).flatMap(_.await)

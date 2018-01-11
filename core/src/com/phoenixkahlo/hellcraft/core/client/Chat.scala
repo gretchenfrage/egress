@@ -86,7 +86,8 @@ object Commands {
         .getOrElse(Origin)
 
       PhysCube(vel, v + (Up * 10), walk)
-    })
+    }),
+    "bullet" -> ((v, j) => BulletCube(v + (Up * 20), Origin))
   )
 
   /*
