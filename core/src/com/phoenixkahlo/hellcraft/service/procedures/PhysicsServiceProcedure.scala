@@ -11,7 +11,7 @@ import com.phoenixkahlo.hellcraft.core.util.StatePinKey
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.math.MatrixFactory.Translate
 import com.phoenixkahlo.hellcraft.math._
-import com.phoenixkahlo.hellcraft.service.PhysicsService.{Act, Body, Sphere}
+import com.phoenixkahlo.hellcraft.service.PhysicsService.{Act, Body, Capsule, Sphere}
 import com.phoenixkahlo.hellcraft.service.{PhysicsService, ServiceProcedure, ServiceWorld}
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, FutSequences, UniExecutor}
@@ -80,6 +80,7 @@ class PhysicsServiceProcedure extends ServiceProcedure[PhysicsService] {
       // create the collider for the body
       val bodyShape: btCollisionShape = body.shape match {
         case Sphere(rad) => new btSphereShape(rad)
+        case Capsule(rad, height) => new btCapsuleShape(rad, height)
       }
       val bodyMotionState = new btDefaultMotionState(MatrixFactory(Translate(body.pos)))
       val bodyConstrInfo = new btRigidBodyConstructionInfo(body.mass, bodyMotionState, bodyShape, body.inertia.getOrElse(Origin).toGdx)

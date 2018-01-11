@@ -1,27 +1,38 @@
-package com.phoenixkahlo.hellcraft.core.client
+package com.phoenixkahlo.hellcraft.core
 
-import com.phoenixkahlo.hellcraft.core.{Air, Chunk, ChunkGrid, Terrain, TerrainUnit}
-import com.phoenixkahlo.hellcraft.core.entity.{EntID, Entity}
+import com.phoenixkahlo.hellcraft.core.client.WorldBounds
 import com.phoenixkahlo.hellcraft.math._
 
-case class WorldBounds(min: V3I, max: V3I) {
-  def minMax: (V3I, V3I) = (min, max)
+case class ChunkMap(map: Map[V3I, Chunk]) extends ChunkGrid {
+  override def chunk(p: V3I) = map.get(p)
+
+  override val bounds =
+    WorldBounds(
+      V3I(
+        map.keySet.toSeq.map(_.xi).min,
+        map.keySet.toSeq.map(_.yi).min,
+        map.keySet.toSeq.map(_.zi).min
+      ),
+      V3I(
+        map.keySet.toSeq.map(_.xi).max,
+        map.keySet.toSeq.map(_.yi).max,
+        map.keySet.toSeq.map(_.zi).max
+      )
+    )
 }
 
-trait ClientWorld extends ChunkGrid {
+object ChunkMap {
+  def apply(chunks: Seq[Chunk]): ChunkMap =
+    ChunkMap(chunks.map(c => c.pos -> c).toMap)
+}
+
+trait ChunkGrid {
   def chunk(p: V3I): Option[Chunk]
 
-  def terrain(p: V3I): Option[Terrain]
-
-  def findEntity[E <: Entity[E]](id: EntID[E]): Option[E]
+  def terrain(p: V3I): Option[Terrain] = chunk(p).map(_.terrain)
 
   def bounds: WorldBounds
 
-  def loadedChunks: Iterable[V3I]
-
-  def loadedTerrain: Iterable[V3I]
-
-  /*
   def raycast(pos: V3F, dir: V3F): Stream[V3F] = {
     val (min, max) = bounds.minMax
     Raytrace.voxels(pos / 16, dir)
@@ -115,6 +126,5 @@ trait ClientWorld extends ChunkGrid {
       case (Some(a), Some(b)) => Some(a + b)
       case _ => None
     }).map(v => (v / 6).normalize)
-  */
 
 }
