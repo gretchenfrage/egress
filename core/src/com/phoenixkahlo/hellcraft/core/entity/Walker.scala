@@ -3,7 +3,7 @@ package com.phoenixkahlo.hellcraft.core.entity
 import com.phoenixkahlo.hellcraft.core.event.UE
 import com.phoenixkahlo.hellcraft.core.{CallService, ChunkMap, Event, PutEnt}
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
-import com.phoenixkahlo.hellcraft.math.{Down, Origin, Up, V3F}
+import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.service.PhysicsService
 import com.phoenixkahlo.hellcraft.service.PhysicsService.{Act, Body, Capsule}
 
@@ -23,26 +23,38 @@ abstract class Walker[E <: Walker[E]] extends Entity[E] {
   val pos: V3F
   val vel: V3F
 
+  val walkForce: Float
+  val walkSpeed: Float
+  val walkDir: V2F
+
   val rays: Seq[V3F] = Seq(Origin)
 
   def setPosVel(lastPos: V3F, newPos: V3F, newVel: V3F): E
 
   override def update = {
     val body = Body(Capsule(rad, capHeight), pos, vel, mass, friction, inertia)
+    // call physics service for collision, etc
     Seq(CallService[PhysicsService, Body](Act(body), (body: Body) => {
       Seq(Event(UE.chunks(chunkPos.neighbors).map(chunks => {
+        // apply spring force
         val grid = ChunkMap(chunks)
         val springs: Seq[Float] = rays
           .map(delta => body.pos + (Down * capHeight / 2) + delta)
           .flatMap(point => grid.seghit(point, Down, springSnap).map(_ dist point))
-        val springForce = // upwards spring force
+        val springForce = // upwards spring force magnitude
           if (springs.isEmpty) 0
           else {
             val avg = springs.sum / springs.size
             (springRest + capHeight / 2 - avg) * springConst
           }
         val sprung = body.vel + (Up * springForce * Delta.dtf)
-        val replacement = setPosVel(pos, body.pos, sprung)
+        // apply walking force
+        var i = (walkDir.inflate(sprung.y) * walkSpeed) - sprung // impulse to get velocity to walking velocity
+        if (i.magnitude > walkForce * Delta.dtf) // if impulse is more force than can provide
+          i = i.normalize * walkForce * Delta.dtf // set to max force that can provide
+        val walked = sprung + i // apply impulse to velocity
+        // put new ent
+        val replacement = setPosVel(pos, body.pos, walked)
         Seq(PutEnt(replacement))
       })))
     }))

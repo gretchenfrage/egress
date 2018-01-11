@@ -1,5 +1,8 @@
 package com.phoenixkahlo.hellcraft.service.procedures
 
+import com.badlogic.gdx.graphics.VertexAttributes.Usage
+import com.badlogic.gdx.graphics.g3d.model.MeshPart
+import com.badlogic.gdx.graphics.{GL20, Mesh, VertexAttribute}
 import com.badlogic.gdx.math.{Matrix4, Vector3}
 import com.badlogic.gdx.physics.bullet.Bullet
 import com.badlogic.gdx.physics.bullet.collision._
@@ -16,6 +19,8 @@ import com.phoenixkahlo.hellcraft.service.{PhysicsService, ServiceProcedure, Ser
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, FutSequences, UniExecutor}
 
+import scala.collection.mutable.ArrayBuffer
+
 class PhysicsServiceProcedure extends ServiceProcedure[PhysicsService] {
   var broadphase: btBroadphaseInterface = _
   var collConfig: btDefaultCollisionConfiguration = _
@@ -24,14 +29,46 @@ class PhysicsServiceProcedure extends ServiceProcedure[PhysicsService] {
   var dynWorld: btDiscreteDynamicsWorld = _
 
   val noTrans = MatrixFactory()
-  val tetraKey = new StatePinKey[btCollisionObject, Chunk](chunk => {
+  val tetraKey = new StatePinKey[(btCollisionObject, AnyRef), Chunk](chunk => {
+    val keepAlive = new ArrayBuffer[AnyRef]
+
     val compound = new btCompoundShape
+
     for (tetra <- chunk.terrainSoup.tetra.get) {
       val tetraHull = new btConvexHullShape
       for (vert <- tetra)
         tetraHull.addPoint(vert.toGdx)
       compound.addChildShape(noTrans, tetraHull)
     }
+    /*
+    ;{
+      val mesh = new btTriangleMesh
+      keepAlive += mesh
+      println("constructed byTriangleMesh")
+      val indices = chunk.terrainSoup.indices.toArray
+      keepAlive += indices
+      println("found indices")
+
+      def vert(ii: Int): Vector3 =
+        chunk.terrainSoup.verts(chunk.terrainSoup.indexToVert(indices(ii))).get.pos.toGdx
+
+      for (ii <- Range(0, indices.length, 3)) {
+        mesh.addTriangle(vert(ii + 0), vert(ii + 1), vert(ii + 2))
+      }
+
+      println("Added indices")
+
+      val shape = new btBvhTriangleMeshShape(mesh, true)
+      keepAlive += shape
+
+      println("created shape")
+
+      compound.addChildShape(noTrans, shape)
+
+
+      println("added as child")
+    }
+    */
     for (i <- Origin untilAsSeq V3I(16, 16, 16)) {
       if (chunk.terrain.grid(i).id < 0) {
         val box = new btBoxShape(V3F(0.5f, 0.5f, 0.5f).toGdx)
@@ -40,11 +77,12 @@ class PhysicsServiceProcedure extends ServiceProcedure[PhysicsService] {
     }
     val obj = new btCollisionObject
     obj.setCollisionShape(compound)
-    obj
-  }, obj => {
-    val shape = obj.getCollisionShape
-    obj.dispose()
-    shape.dispose()
+    (obj, keepAlive)
+  }, {
+    case (obj, any) =>
+      val shape = obj.getCollisionShape
+      obj.dispose()
+      shape.dispose()
   })
 
   val sequential = new FutSequences(_.run())
@@ -66,7 +104,7 @@ class PhysicsServiceProcedure extends ServiceProcedure[PhysicsService] {
       // get the collision objects of the surrounding chunks
       val p = body.pos / 16 toInts
       val colliders: Seq[btCollisionObject] =
-        p.neighbors.flatMap(world.chunk).map(chunk => chunk.physPin.getImpatient(tetraKey, chunk))
+        p.neighbors.flatMap(world.chunk).map(chunk => chunk.physPin.getImpatient(tetraKey, chunk)._1)
 
       // begin preparing the further collision objects
       for (near <- (p - V3I(2, 2, 2)) toAsSeq (p + V3I(2, 2, 2))) {
