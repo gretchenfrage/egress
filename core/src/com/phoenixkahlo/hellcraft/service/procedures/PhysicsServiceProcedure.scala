@@ -123,5 +123,11 @@ class PhysicsServiceProcedure extends ServiceProcedure[PhysicsService] {
     case Act(body) => act(world, body).asInstanceOf[Fut[T]]
   }
 
-  override def close(): Unit = ()
+  override def close(): Unit = {
+    dynWorld.dispose()
+    solver.dispose()
+    collConfig.dispose()
+    dispatcher.dispose()
+    broadphase.dispose()
+  }
 }
