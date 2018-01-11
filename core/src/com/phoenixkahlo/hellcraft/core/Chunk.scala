@@ -10,7 +10,7 @@ import com.phoenixkahlo.hellcraft.core.eval.{Exec3D, ExecCheap, GEval, WEval}
 import com.phoenixkahlo.hellcraft.core.event.Events
 import com.phoenixkahlo.hellcraft.core.graphics.RenderWorld
 import com.phoenixkahlo.hellcraft.core.request._
-import com.phoenixkahlo.hellcraft.core.util.Derived
+import com.phoenixkahlo.hellcraft.core.util.{Derived, StatePin}
 import com.phoenixkahlo.hellcraft.fgraphics._
 import com.phoenixkahlo.hellcraft.math.physics._
 import com.phoenixkahlo.hellcraft.math._
@@ -28,6 +28,7 @@ class Chunk(
              val tsRequest: Option[Request[TerrainSoup]] = None,
              val bsRequest: Option[Request[BlockSoup]] = None,
              val _broadphase: Derived[Broadphase] = new Derived[Broadphase],
+             val physPin: StatePin = new StatePin,
              lastTerrainRenderable: Option[Renderable[TerrainShader]] = None,
              lastTerrainRenderableValid: Boolean = false,
              lastBlockRenderable: Option[Renderable[GenericShader]] = None,
@@ -35,6 +36,13 @@ class Chunk(
            ) extends Serializable {
 
   implicit val exec = Exec3D(pos * 16)
+
+  def declareDisposable: Seq[StatePin] =
+    Seq(physPin)
+
+  def whatShouldDispose(old: Chunk): Seq[StatePin] =
+    if (old.physPin != physPin) Seq(old.physPin)
+    else Seq.empty
 
   val terrainRenderable: Renderable[TerrainShader] = {
     def gen: GEval[TerrainShader#RenderUnit] = GEval.resourcePack.map(pack => {
@@ -82,6 +90,7 @@ class Chunk(
       terrainSoup, blockSoup,
       tsRequest, bsRequest,
       _broadphase,
+      physPin,
       Some(terrainRenderable), true,
       Some(blockRenderable), true
     ).invalidate(meshTerrFast, meshBlocksFast)
@@ -102,6 +111,7 @@ class Chunk(
       terrainSoup, blockSoup,
       Some(rts), Some(rbs),
       _broadphase,
+      physPin,
       Some(terrainRenderable), true,
       Some(blockRenderable), true
     ) -> Seq(
@@ -117,6 +127,7 @@ class Chunk(
         tsRequest.get.unlock(requested).get, blockSoup,
         None, bsRequest,
         new Derived[Broadphase],
+        new StatePin,
         Some(terrainRenderable), false,
         Some(blockRenderable), true
       )
@@ -126,6 +137,7 @@ class Chunk(
         terrainSoup, bsRequest.get.unlock(requested).get,
         tsRequest, None,
         new Derived[Broadphase],
+        new StatePin,
         Some(terrainRenderable), true,
         Some(blockRenderable), false
       )

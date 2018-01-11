@@ -350,12 +350,6 @@ class FulfillmentContext[K, V] {
 
   def remove(k: K): Unit = {
     lock.writeLock().lock()
-    /*
-    map.get(k) match {
-      case Some(Left(_)) => map.remove(k)
-      case _ => //println("removed non-existant key from fulfillment context")
-    }
-    */
     map.remove(k)
     lock.writeLock().unlock()
   }

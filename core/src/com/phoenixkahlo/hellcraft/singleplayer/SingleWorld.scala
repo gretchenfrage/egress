@@ -14,7 +14,7 @@ import com.phoenixkahlo.hellcraft.core.{Chunk, Event, EventID, LogEffect, MakeRe
 import com.phoenixkahlo.hellcraft.math.{MRNG, V3I}
 import com.phoenixkahlo.hellcraft.singleplayer.AsyncSave.GetPos
 import com.phoenixkahlo.hellcraft.singleplayer.SingleContinuum.IncompleteKey
-import com.phoenixkahlo.hellcraft.singleplayer.SingleWorld.{ChangeSummary, ChunkEnts}
+import com.phoenixkahlo.hellcraft.singleplayer.SingleWorld.{ChangeSummary, ChunkEnts, ReplacedChunk}
 import com.phoenixkahlo.hellcraft.util.collections.{BBox, V3ISet}
 import com.phoenixkahlo.hellcraft.util.threading._
 import com.phoenixkahlo.hellcraft.util.time.Timer
@@ -81,57 +81,81 @@ case class SingleWorld(
       override def interp = _interp
     }
 
-  // remove chunks/terrains
-  def --(ps: Seq[V3I]): SingleWorld = {
-    val es = ps.flatMap(chunks.get).flatMap(_.left.toOption).flatMap(_.ents.keySet)
-    SingleWorld(chunks -- ps, ents -- es, cdomain, tdomain, active -- ps, renderable -- ps, bbox -- ps)
-  }
-
-  // remove chunk/terrain
-  def -(p: V3I): SingleWorld = {
-    val es = chunks.get(p).flatMap(_.left.toOption).toSeq.flatMap(_.ents.keySet)
-    SingleWorld(chunks - p, ents -- es, cdomain, tdomain, active - p, renderable - p, bbox - p)
-  }
-
-  // downgrade chunks to terrains
-  def downgrade(ps: Seq[V3I]): SingleWorld = {
-    val es = ps.flatMap(chunks.get).flatMap(_.left.toOption).flatMap(_.ents.keySet)
-    copy(chunks = ps.foldLeft(chunks)({
-      case (map, p) => map.get(p) match {
-        case Some(Left(ChunkEnts(chunk, _))) => map.updated(p, Right(chunk.terrain))
-        case _ => map
-      }
-    }), ents = ents -- es, active = active -- ps, renderable = renderable -- ps, bbox = bbox -- ps)
-  }
-
-  // put chunks in world
-  def putChunks(cs: Seq[Chunk]): SingleWorld = {
-    if (cs.isEmpty) this
-    else copy(
-      chunks = cs.foldLeft(chunks)({
-        case (map, chunk) => map.get(chunk.pos) match {
-          case Some(Left(ChunkEnts(c, e))) => map.updated(chunk.pos, Left(ChunkEnts(chunk, e)))
-          case _ => map.updated(chunk.pos, Left(ChunkEnts(chunk, Map.empty)))
-        }
-      }),
-      renderable = renderable ++ cs.filter(_.isRenderable).map(_.pos),
-      bbox = bbox ++ cs.map(_.pos)
+  // remove chunks/terrains, return removed chunk
+  def --(ps: Seq[V3I]): (SingleWorld, Seq[Chunk]) = {
+    val rc = ps.flatMap(chunks.get).flatMap(_.left.toOption)
+    val es = rc.flatMap(_.ents.keySet)
+    (
+      SingleWorld(chunks -- ps, ents -- es, cdomain, tdomain, active -- ps, renderable -- ps, bbox -- ps),
+      rc.map(_.chunk)
     )
+  }
+
+  // remove chunk/terrain, return removed chunk
+  def -(p: V3I): (SingleWorld, Option[Chunk]) = {
+    val es = chunks.get(p).flatMap(_.left.toOption).toSeq.flatMap(_.ents.keySet)
+    (SingleWorld(chunks - p, ents -- es, cdomain, tdomain, active - p, renderable - p, bbox - p), chunk(p))
+  }
+
+  // downgrade chunks to terrains, return removed chunks
+  def downgrade(ps: Seq[V3I]): (SingleWorld, Seq[Chunk]) = {
+    val cs = ps.flatMap(chunks.get).flatMap(_.left.toOption)
+    val es = cs.flatMap(_.ents.keySet)
+    (
+      copy(chunks = ps.foldLeft(chunks)({
+        case (map, p) => map.get(p) match {
+          case Some(Left(ChunkEnts(chunk, _))) => map.updated(p, Right(chunk.terrain))
+          case _ => map
+        }
+      }), ents = ents -- es, active = active -- ps, renderable = renderable -- ps, bbox = bbox -- ps),
+      cs.map(_.chunk)
+    )
+  }
+
+  // put chunks in world, return replace chunk pairs
+  def putChunks(cs: Seq[Chunk]): (SingleWorld, Seq[ReplacedChunk]) = {
+    if (cs.isEmpty) (this, Seq.empty)
+    else {
+      val (newChunks, replaced) = cs.foldLeft((chunks, Seq.empty[ReplacedChunk]))({
+        case ((map, replaced), chunk) => map.get(chunk.pos) match {
+          case Some(Left(ChunkEnts(c, e))) =>
+            (map.updated(chunk.pos, Left(ChunkEnts(chunk, e))), replaced :+ ReplacedChunk(c, Some(chunk)))
+          case _ =>
+            (map.updated(chunk.pos, Left(ChunkEnts(chunk, Map.empty))), replaced)
+        }
+      })
+      (
+        copy(
+          chunks = newChunks,
+          renderable = renderable ++ cs.filter(_.isRenderable).map(_.pos),
+          bbox = bbox ++ cs.map(_.pos)
+        ),
+        replaced
+      )
+    }
   }
 
   // put terrains in world
-  def putTerrains(ts: Seq[Terrain]): SingleWorld = {
-    if (ts.isEmpty) this
-    else copy(
-      chunks = ts.foldLeft(chunks)({
-        case (map, terrain) =>
-          if (map.get(terrain.pos).exists(_.isLeft))
-            println("warn: put terrains is overriding chunk")
-          map.updated(terrain.pos, Right(terrain))
-      }),
-      renderable = renderable -- ts.map(_.pos),
-      bbox = bbox -- ts.map(_.pos)
-    )
+  def putTerrains(ts: Seq[Terrain]): (SingleWorld, Seq[ReplacedChunk]) = {
+    if (ts.isEmpty) (this, Seq.empty)
+    else {
+      val (newChunks, replaced) = ts.foldLeft((chunks, Seq.empty[ReplacedChunk]))({
+        case ((map, replaced), terrain) => map.get(terrain.pos) match {
+          case Some(Left(ChunkEnts(c, e))) =>
+            (map.updated(terrain.pos, Right(terrain)), replaced :+ ReplacedChunk(c, None))
+          case _ =>
+            (map.updated(terrain.pos, Right(terrain)), replaced)
+        }
+      })
+      (
+        copy(
+          chunks = newChunks,
+          renderable = renderable -- ts.map(_.pos),
+          bbox = bbox -- ts.map(_.pos)
+        ),
+        replaced
+      )
+    }
   }
 
   // put entity in world without removing it first
@@ -154,13 +178,13 @@ case class SingleWorld(
   def putEnt(ent: AnyEnt): SingleWorld = remEnt(ent.id)._putEnt(ent)
 
   // put a sequence of chunk/ents
-  def putChunkEnts(chunkEnts: Seq[ChunkEnts]): SingleWorld = {
-    var w = this putChunks chunkEnts.map(_.chunk)
+  def putChunkEnts(chunkEnts: Seq[ChunkEnts]): (SingleWorld, Seq[ReplacedChunk]) = {
+    var (w, r) = this putChunks chunkEnts.map(_.chunk)
     for {
       ce <- chunkEnts
       ent <- ce.ents.values
     } w = w putEnt ent
-    w
+    (w, r)
   }
 
   // remove entity from world
@@ -228,9 +252,12 @@ case class SingleWorld(
       var next: SingleWorld = world
       var chunkChanges = changed.chunks
       var entChanges = changed.ents
+      val chunkReplace = new mutable.ArrayBuffer[ReplacedChunk]
       ;{
         val (putChunksNow, putChunksLater) = grouped.bin(PutChunk).partition(pc => cdomain contains pc.c.pos)
-        next = next putChunks putChunksNow.map(_.c)
+        val (n, r) = next putChunks putChunksNow.map(_.c)
+        next = n
+        chunkReplace ++= r
         chunkChanges ++= putChunksNow.map(pc => (pc.c.pos, pc.c))
         out ++= putChunksLater
       }
@@ -250,16 +277,16 @@ case class SingleWorld(
       val caused = grouped.bin(Event).flatMap(event => eval(event.eval, _time))
       // recurse if any further events are caused
       if (caused isEmpty)
-        (next, out, ChangeSummary(chunkChanges, entChanges))
+        (next, out, ChangeSummary(chunkChanges, entChanges, chunkReplace))
       else {
-        val (w, e, c) = phase((n + 1).toByte, next, caused, ChangeSummary(chunkChanges, entChanges))
-        (w, e ++ out, c)
+        val (w, e, c) = phase((n + 1).toByte, next, caused, ChangeSummary(chunkChanges, entChanges, chunkReplace))
+        (w, e ++ out, c.copy(replaced = c.replaced ++ chunkReplace))
       }
     }
     // get the entities' update effects
     def entEvents = active.toSeq.flatMap(chunks(_).left.get.ents.values).flatMap(_.update)
     // call the recursive function and return the result
-    phase(0, this, entEvents ++ externs, ChangeSummary(Map.empty, Map.empty))
+    phase(0, this, entEvents ++ externs, ChangeSummary(Map.empty, Map.empty, Vector.empty))
   }
 
 }
@@ -270,7 +297,8 @@ object SingleWorld {
   object ChunkEnts {
     def elevate(chunk: Chunk) = ChunkEnts(chunk, Map.empty)
   }
-  case class ChangeSummary(chunks: Map[V3I, Chunk], ents: Map[AnyEntID, Option[AnyEnt]])
+  case class ChangeSummary(chunks: Map[V3I, Chunk], ents: Map[AnyEntID, Option[AnyEnt]], replaced: Seq[ReplacedChunk])
+  case class ReplacedChunk(old: Chunk, repl: Option[Chunk])
 }
 
 object SingleContinuum {
@@ -321,14 +349,35 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
     // next world accumulator
     var next = curr
 
+    // functions for handling chunk removals or replacements
+    def dispose0(chunk: Chunk): Unit = {
+      for (sp <- chunk.declareDisposable)
+        sp.dispose()
+    }
+    def dispose1(replace: ReplacedChunk): Unit = replace match {
+      case ReplacedChunk(before, None) =>
+        for (sp <- before.declareDisposable)
+          sp.dispose()
+      case ReplacedChunk(before, Some(after)) =>
+        for (sp <- after.whatShouldDispose(before))
+          sp.dispose()
+    }
+    def dispose2(chunks: Seq[Chunk]): Unit =
+      for (chunk <- chunks) dispose0(chunk)
+    def dispose3(replaces: Seq[ReplacedChunk]): Unit =
+      for (replace <- replaces) dispose1(replace)
+
     // downgrade chunks that left the chunk domain
     // push them to the save
     // remove them from the load map
     // remove them from the cfulfill
+    // dispose of removed chunks
     {
       val downgrade: Seq[V3I] = (next.cdomain -- cdomain).toSeq
       save.push(downgrade.flatMap(next.chunkEnts))
-      next = next downgrade downgrade
+      val (n, c) = next downgrade downgrade
+      next = n
+      dispose2(c)
       cloadMap --= downgrade
       cfulfill.remove(downgrade)
     }
@@ -338,7 +387,10 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
     {
       val remove: Seq[V3I] = (next.tdomain -- tdomain).toSeq
       save.push(remove.flatMap(next.chunkEnts))
-      next --= remove
+      //next --= remove
+      val (n, c) = next -- remove
+      next = n
+      dispose2(c)
       tloadMap --= remove
       tfulfill.remove(remove)
     }
@@ -380,7 +432,11 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
         }
       }
       // now we integrate them
-      next = next putTerrains tbuffer
+      {
+        val (n, c) = next putTerrains tbuffer
+        next = n
+        dispose3(c)
+      }
       tloadMap --= tbuffer.map(_.pos)
       tfulfill.put(tbuffer.map(terr => (terr.pos, terr)))
 
@@ -395,7 +451,12 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
           cbuffer += chunkEnts
         }
       }
-      next = next putChunkEnts cbuffer
+      //next = next putChunkEnts cbuffer
+      {
+        val (n, c) = next putChunkEnts cbuffer
+        next = n
+        dispose3(c)
+      }
       cloadMap --= cbuffer.map(_.chunk.pos)
       tloadMap --= cbuffer.map(_.chunk.pos)
       cfulfill.put(cbuffer.map(ce => (ce.chunk.pos, ce.chunk)))
@@ -437,6 +498,9 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
       efulfill.put(addedEnts)
       efulfill.remove(remedEnts)
     }
+
+    // process the chunk replacements from the update function
+    dispose3(changed.replaced)
 
     // now let's group the outputted effects
     val grouped = new GroupedEffects(effectsOut)
