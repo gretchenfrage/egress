@@ -20,6 +20,9 @@ case class IDField[T] private[fields](bytes: ByteField, mapping: IDMapping[T]) {
   def updated(v: V3I, item: T): IDField[T] =
     IDField[T](bytes.updated(v, mapping.id(item)), mapping)
 
+  def iterator: Iterator[T] =
+    bytes.iterator.map(mapping.lookup)
+
   def get(v: V3I): Option[T] =
     bytes.get(v).map(mapping.lookup)
 

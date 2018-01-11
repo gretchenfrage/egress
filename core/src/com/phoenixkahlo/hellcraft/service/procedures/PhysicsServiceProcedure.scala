@@ -32,6 +32,12 @@ class PhysicsServiceProcedure extends ServiceProcedure[PhysicsService] {
         tetraHull.addPoint(vert.toGdx)
       compound.addChildShape(noTrans, tetraHull)
     }
+    for (i <- Origin untilAsSeq V3I(16, 16, 16)) {
+      if (chunk.terrain.grid(i).id < 0) {
+        val box = new btBoxShape(V3F(0.5f, 0.5f, 0.5f).toGdx)
+        compound.addChildShape(MatrixFactory(Translate(chunk.pos * 16 + i + Repeated(0.5f))), box)
+      }
+    }
     val obj = new btCollisionObject
     obj.setCollisionShape(compound)
     obj

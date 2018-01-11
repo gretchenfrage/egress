@@ -31,6 +31,11 @@ class ByteField private[fields](private var data: Either[Array[Byte], Vector[Byt
     case Right(vec) => vec.toArray
   }
 
+  def iterator: Iterator[Byte] = data match {
+    case Left(arr) => arr.iterator
+    case Right(vec) => vec.iterator
+  }
+
   def updated(v: V3I, b: Byte): ByteField = {
     new ByteField(asVector.updated(size.compress(v), b), size)
   }
