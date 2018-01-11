@@ -24,7 +24,7 @@ object UpdateEffectType {
   implicit val type5 = RemEnt
   implicit val type6 = Event
   implicit val type7 = IdenEvent
-  implicit val type8 = ServiceCall
+  implicit val type8 = CallService
 
   val types = Seq(type0, type1, type2, type3, type4, type5, type6, type7, type8)
 }
@@ -88,12 +88,12 @@ case class IdenEvent(eval: UE[Seq[UpdateEffect]], id: EventID) extends UpdateEff
 }
 object IdenEvent extends UpdateEffectType[IdenEvent](7)
 
-class ServiceCall[S <: Service, T](val call: S#Call[T], val onComplete: T => Seq[UpdateEffect], val service: ServiceTag[S]) extends UpdateEffect {
-  override def effectType: UpdateEffectType[_ <: UpdateEffect] = ServiceCall
+class CallService[S <: Service, T](val call: S#Call[T], val onComplete: T => Seq[UpdateEffect], val service: ServiceTag[S]) extends UpdateEffect {
+  override def effectType: UpdateEffectType[_ <: UpdateEffect] = CallService
 }
-object ServiceCall extends UpdateEffectType[ServiceCall[_ <: Service, _]](8) {
-  def apply[S <: Service, T](call: S#Call[T], onComplete: T => Seq[UpdateEffect])(implicit service: ServiceTag[S]): ServiceCall[S, T] =
-    new ServiceCall[S, T](call, onComplete, service)
+object CallService extends UpdateEffectType[CallService[_ <: Service, _]](8) {
+  def apply[S <: Service, T](call: S#Call[T], onComplete: T => Seq[UpdateEffect])(implicit service: ServiceTag[S]): CallService[S, T] =
+    new CallService[S, T](call, onComplete, service)
 }
 
 

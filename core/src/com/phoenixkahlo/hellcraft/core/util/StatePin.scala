@@ -4,50 +4,40 @@ import java.io.{Externalizable, ObjectInput, ObjectOutput}
 import java.util.UUID
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
-case class StatePinKey[T >: Null <: AnyRef](gen: () => T, disposer: T => Unit, id: UUID = UUID.randomUUID())
+import com.phoenixkahlo.hellcraft.util.threading.Fut
 
-class StatePin extends Externalizable {
-  private var currKey: StatePinKey[_ >: Null <: AnyRef] = null
-  private var currState: AnyRef = null
-  private var lock = new ReentrantReadWriteLock
+case class StatePinKey[T, H](gen: H => T, disposer: T => Unit)
 
-  def apply[T >: Null <: AnyRef](key: StatePinKey[T]): T = {
-    lock.readLock().lock()
-    Option(currKey) match {
-      case Some(StatePinKey(gen, dis, id)) if id == key.id =>
-        try currState.asInstanceOf[T]
-        finally lock.readLock.unlock()
-      case _ =>
-        lock.readLock().unlock()
-        lock.writeLock().lock()
-        Option(currKey) match {
-          case Some(StatePinKey(gen, dis, id)) if id == key.id =>
-            try currState.asInstanceOf[T]
-            finally lock.writeLock().unlock()
-          case _ =>
-            Option(currKey).foreach(k => k.disposer.asInstanceOf[AnyRef => Unit](currState))
-            currState = key.gen()
-            try currState.asInstanceOf[T]
-            finally lock.writeLock().unlock()
-        }
+class StatePin extends Serializable {
+  @transient private var key: StatePinKey[_, _] = null
+  @transient private var state: Fut[Any] = null
+
+  def get[T, H](key: StatePinKey[T, H], hint: H, patient: Boolean, exec: Runnable => Unit = _.run()): Fut[T] = this.synchronized {
+    if (this.key == null) {
+      this.key = key
+      state = Fut(key.gen(hint), exec)
     }
+    if (!patient && state.query.isEmpty)
+      state = Fut(key.gen(hint), exec)
+    state.asInstanceOf[Fut[T]]
   }
 
-  def dispose(): Unit = {
-    lock.writeLock().lock()
-    Option(currKey).foreach(k => k.disposer.asInstanceOf[AnyRef => Unit](currState))
-    currKey = null
-    lock.writeLock().unlock()
-  }
+  def getPatient[T, H](key: StatePinKey[T, H], hint: H): T = get(key, hint, true, _.run()).await
 
-  override def writeExternal(out: ObjectOutput): Unit = ()
+  def getImpatient[T, H](key: StatePinKey[T, H], hint: H): T = get(key, hint, false, _.run()).query.get
 
-  override def readExternal(in: ObjectInput): Unit = {
-    lock = new ReentrantReadWriteLock
+  def prepare[T, H](key: StatePinKey[T, H], hint: H, exec: Runnable => Unit): Unit = get(key, hint, true, exec)
+
+  def dispose(): Unit = this.synchronized {
+    val k = key
+    if (state != null)
+      state.map(any => key.disposer.asInstanceOf[Any => Unit](any))
+    state = null
+    key = null
   }
 
   override def finalize(): Unit = {
-    if (currKey != null)
+    if (key != null)
       System.err.println("alarming: a state pin is being GC'd without having been disposed")
   }
 }

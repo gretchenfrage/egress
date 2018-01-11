@@ -10,10 +10,10 @@ import com.phoenixkahlo.hellcraft.core.event.UE._
 import com.phoenixkahlo.hellcraft.core.event.UE
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.core.util.GroupedEffects
-import com.phoenixkahlo.hellcraft.core.{Chunk, Event, EventID, LogEffect, MakeRequest, PutChunk, PutEnt, RemEnt, ServiceCall, SoundEffect, Terrain, UpdateEffect, event}
+import com.phoenixkahlo.hellcraft.core.{CallService, Chunk, Event, EventID, LogEffect, MakeRequest, PutChunk, PutEnt, RemEnt, SoundEffect, Terrain, UpdateEffect, event}
 import com.phoenixkahlo.hellcraft.math.{MRNG, V3I}
 import com.phoenixkahlo.hellcraft.service.procedures.PhysicsServiceProcedure
-import com.phoenixkahlo.hellcraft.service.{Service, ServiceProcedure, ServiceTagTable}
+import com.phoenixkahlo.hellcraft.service.{Service, ServiceProcedure, ServiceTagTable, ServiceWorld}
 import com.phoenixkahlo.hellcraft.singleplayer.AsyncSave.GetPos
 import com.phoenixkahlo.hellcraft.singleplayer.SingleContinuum.IncompleteKey
 import com.phoenixkahlo.hellcraft.singleplayer.SingleWorld.{ChangeSummary, ChunkEnts, ReplacedChunk}
@@ -34,7 +34,7 @@ case class SingleWorld(
                       active: Set[V3I],
                       renderable: Set[V3I],
                       bbox: BBox
-                      ) extends ClientWorld {
+                      ) extends ClientWorld with ServiceWorld {
   // chunk lookup
   override def chunk(p: V3I) =
     chunks.get(p) match {
@@ -280,10 +280,10 @@ case class SingleWorld(
       // evaluate the service calls and add them to the caused
       // this is synchronous, and we're passing the sync executor, but in the case that a service may have to pause
       // let's just try and give it a chance to parallelize, even though it shouldn't
-      caused ++= grouped.bin(ServiceCall)
-        .map((call: ServiceCall[_ <: Service, _]) => {
-          def f[S <: Service, T](call: ServiceCall[S, T]): Fut[Seq[UpdateEffect]] = {
-            services(call.service).apply(call.call)(_.run()).map(call.onComplete)
+      caused ++= grouped.bin(CallService)
+        .map((call: CallService[_ <: Service, _]) => {
+          def f[S <: Service, T](call: CallService[S, T]): Fut[Seq[UpdateEffect]] = {
+            services(call.service).apply(this, call.call)(_.run()).map(call.onComplete)
           }
           f(call)
         }).flatMap(_.await)
@@ -359,6 +359,9 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
   // table of service procedures
   val serviceProcedures = new ServiceTagTable[ServiceProcedure]
   serviceProcedures += new PhysicsServiceProcedure
+
+  for (procedure <- serviceProcedures.toSeq)
+    procedure.begin()
 
   // update the world and return externally handled effects
   def update(cdomain: V3ISet, tdomain: V3ISet, externs: Seq[UpdateEffect]): Seq[UpdateEffect] = {
