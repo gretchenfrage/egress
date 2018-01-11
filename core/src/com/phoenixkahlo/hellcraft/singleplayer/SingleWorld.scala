@@ -10,8 +10,10 @@ import com.phoenixkahlo.hellcraft.core.event.UE._
 import com.phoenixkahlo.hellcraft.core.event.UE
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.core.util.GroupedEffects
-import com.phoenixkahlo.hellcraft.core.{Chunk, Event, EventID, LogEffect, MakeRequest, PutChunk, PutEnt, RemEnt, SoundEffect, Terrain, UpdateEffect, event}
+import com.phoenixkahlo.hellcraft.core.{Chunk, Event, EventID, LogEffect, MakeRequest, PutChunk, PutEnt, RemEnt, ServiceCall, SoundEffect, Terrain, UpdateEffect, event}
 import com.phoenixkahlo.hellcraft.math.{MRNG, V3I}
+import com.phoenixkahlo.hellcraft.service.procedures.PhysicsServiceProcedure
+import com.phoenixkahlo.hellcraft.service.{Service, ServiceProcedure, ServiceTagTable}
 import com.phoenixkahlo.hellcraft.singleplayer.AsyncSave.GetPos
 import com.phoenixkahlo.hellcraft.singleplayer.SingleContinuum.IncompleteKey
 import com.phoenixkahlo.hellcraft.singleplayer.SingleWorld.{ChangeSummary, ChunkEnts, ReplacedChunk}
@@ -235,8 +237,8 @@ case class SingleWorld(
     case UERand => new MRNG(ThreadLocalRandom.current.nextLong()).asInstanceOf[T]
   }
 
-  // update to a new world, and get output effects
-  def update(_time: Long, externs: Seq[UpdateEffect]): (SingleWorld, Seq[UpdateEffect], ChangeSummary) = {
+  // update to a new world, and get output effects, and a summary of changed chunks and entites
+  def update(_time: Long, externs: Seq[UpdateEffect], services: ServiceTagTable[ServiceProcedure]): (SingleWorld, Seq[UpdateEffect], ChangeSummary) = {
     // recursive function for computing a phase
     def phase(n: Byte, world: SingleWorld, in: Seq[UpdateEffect], changed: ChangeSummary):
         (SingleWorld, Seq[UpdateEffect], ChangeSummary) = {
@@ -274,8 +276,18 @@ case class SingleWorld(
         out ++= remEntsLater
       }
       // evaluate the events
-      val caused = grouped.bin(Event).flatMap(event => eval(event.eval, _time))
-      // recurse if any further events are caused
+      val caused = grouped.bin(Event).flatMap(event => eval(event.eval, _time)).toBuffer
+      // evaluate the service calls and add them to the caused
+      // this is synchronous, and we're passing the sync executor, but in the case that a service may have to pause
+      // let's just try and give it a chance to parallelize, even though it shouldn't
+      caused ++= grouped.bin(ServiceCall)
+        .map((call: ServiceCall[_ <: Service, _]) => {
+          def f[S <: Service, T](call: ServiceCall[S, T]): Fut[Seq[UpdateEffect]] = {
+            services(call.service).apply(call.cal)(_.run()).map(call.onComplete)
+          }
+          f(call)
+        }).flatMap(_.await)
+      // recurse if any further events are caused effects
       if (caused isEmpty)
         (next, out, ChangeSummary(chunkChanges, entChanges, chunkReplace))
       else {
@@ -343,6 +355,10 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
 
   // to initialize, load the incomplete seq from the save, and just perform a tick with them as externs
   update(V3ISet.empty, V3ISet.empty, save.getKey(IncompleteKey).await)
+
+  // table of service procedures
+  val serviceProcedures = new ServiceTagTable[ServiceProcedure]
+  serviceProcedures += new PhysicsServiceProcedure
 
   // update the world and return externally handled effects
   def update(cdomain: V3ISet, tdomain: V3ISet, externs: Seq[UpdateEffect]): Seq[UpdateEffect] = {
@@ -482,7 +498,7 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
 
 
     // now we let the world update itself purely, returning its updated version, and externally handled effects
-    val (updated, effectsOut, changed) = next.update(time, effectsIn)
+    val (updated, effectsOut, changed) = next.update(time, effectsIn, serviceProcedures)
     next = updated
 
     // update the fulfillment contexts with the changes
@@ -546,11 +562,18 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
   def close(): Promise = {
     // save the incomplete
     val incompleteSeq = incomplete.curr.await.values.toSeq ++ pendingChunkPuts
-    save.putKey(IncompleteKey, incompleteSeq)
+    val p1 = save.putKey(IncompleteKey, incompleteSeq)
     // close the save with all the chunks
-    save.close(curr.chunks.flatMap({
+    val p2 = save.close(curr.chunks.flatMap({
       case (p, Left(ce)) => Some(p -> ce)
       case _ => None
     }))
+    // close the service procedures
+    val p3 = Fut[Unit]({
+      for (service <- serviceProcedures.toSeq)
+        service.close()
+    }, UniExecutor.execc)
+    // merge the promises
+    PromiseFold(Seq(p1, p2, p3))
   }
 }

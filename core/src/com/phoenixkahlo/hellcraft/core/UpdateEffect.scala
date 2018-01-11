@@ -8,6 +8,7 @@ import com.phoenixkahlo.hellcraft.core.eval.WEval.WEval
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.fgraphics.SoundID
 import com.phoenixkahlo.hellcraft.math._
+import com.phoenixkahlo.hellcraft.service.{Service, ServiceTag}
 
 // type for all update effects
 sealed trait UpdateEffect {
@@ -15,8 +16,6 @@ sealed trait UpdateEffect {
 }
 sealed case class UpdateEffectType[T <: UpdateEffect](ord: Int)
 object UpdateEffectType {
-  val types = Seq(SoundEffect, MakeRequest, LogEffect, PutChunk, PutEnt, RemEnt, Event, IdenEvent)
-
   implicit val type0 = SoundEffect
   implicit val type1 = MakeRequest
   implicit val type2 = LogEffect
@@ -25,6 +24,9 @@ object UpdateEffectType {
   implicit val type5 = RemEnt
   implicit val type6 = Event
   implicit val type7 = IdenEvent
+  implicit val type8 = ServiceCall
+
+  val types = Seq(type0, type1, type2, type3, type4, type5, type6, type7, type8)
 }
 
 // audio effects
@@ -85,6 +87,11 @@ case class IdenEvent(eval: UE[Seq[UpdateEffect]], id: EventID) extends UpdateEff
   override def effectType = IdenEvent
 }
 object IdenEvent extends UpdateEffectType[IdenEvent](7)
+
+case class ServiceCall[S <: Service, T](cal: S#Call[T], onComplete: T => Seq[UpdateEffect], service: ServiceTag[S]) extends UpdateEffect {
+  override def effectType: UpdateEffectType[_ <: UpdateEffect] = ServiceCall
+}
+object ServiceCall extends UpdateEffectType[ServiceCall[_ <: Service, _]](8)
 
 
 // chunk events
