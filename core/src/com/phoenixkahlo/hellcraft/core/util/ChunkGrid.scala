@@ -1,6 +1,7 @@
-package com.phoenixkahlo.hellcraft.core
+package com.phoenixkahlo.hellcraft.core.util
 
 import com.phoenixkahlo.hellcraft.core.client.WorldBounds
+import com.phoenixkahlo.hellcraft.core.{Air, Chunk, Terrain, TerrainUnit, util}
 import com.phoenixkahlo.hellcraft.math._
 
 case class ChunkMap(map: Map[V3I, Chunk]) extends ChunkGrid {
@@ -23,7 +24,7 @@ case class ChunkMap(map: Map[V3I, Chunk]) extends ChunkGrid {
 
 object ChunkMap {
   def apply(chunks: Seq[Chunk]): ChunkMap =
-    ChunkMap(chunks.map(c => c.pos -> c).toMap)
+    util.ChunkMap(chunks.map(c => c.pos -> c).toMap)
 }
 
 trait ChunkGrid {
@@ -85,6 +86,12 @@ trait ChunkGrid {
   def placeMat(pos: V3F, dir: V3F, dist: Float): Option[V3I] = {
     seghit(pos, dir, dist).flatMap(
       hit => terrainRay(hit, dir.neg).find({ case (_, t) => t == Air }).map({ case (v, _) => v })
+    )
+  }
+
+  def hit(pos: V3F, dir: V3F, dist: Float): Option[V3I] = {
+    seghit(pos, dir, dist).flatMap(
+      hit => terrainRay(hit + Repeated(0.5f), dir).find({ case (_, t) => t != Air }).map({ case (v, _) => v })
     )
   }
 

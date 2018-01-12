@@ -9,7 +9,8 @@ import com.badlogic.gdx.graphics.{Pixmap, Texture}
 import com.phoenixkahlo.hellcraft.core.entity.{AnyEnt, AnyEntID, EntID, Entity}
 import com.phoenixkahlo.hellcraft.core.eval.Eval._
 import com.phoenixkahlo.hellcraft.core.graphics.CamRange
-import com.phoenixkahlo.hellcraft.core.{Chunk, Terrain, TerrainGrid}
+import com.phoenixkahlo.hellcraft.core.util.TerrainGrid
+import com.phoenixkahlo.hellcraft.core.{Chunk, Terrain}
 import com.phoenixkahlo.hellcraft.fgraphics.ResourcePack
 import com.phoenixkahlo.hellcraft.math.{V2F, V2I, V3I, V4F}
 import com.phoenixkahlo.hellcraft.util.caches.{Cache, ParamCache}

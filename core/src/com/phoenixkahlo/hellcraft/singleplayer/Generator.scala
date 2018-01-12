@@ -6,7 +6,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.phoenixkahlo.hellcraft.core._
 import com.phoenixkahlo.hellcraft.core.entity.{Cube, EntityMap}
-import com.phoenixkahlo.hellcraft.core.util.Derived
+import com.phoenixkahlo.hellcraft.core.util.{Derived, TerrainGrid}
 import com.phoenixkahlo.hellcraft.fgraphics.StoneTID
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.math.physics.Broadphase

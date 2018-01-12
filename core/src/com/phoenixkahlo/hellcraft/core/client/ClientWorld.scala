@@ -1,7 +1,8 @@
 package com.phoenixkahlo.hellcraft.core.client
 
-import com.phoenixkahlo.hellcraft.core.{Air, Chunk, ChunkGrid, Terrain, TerrainUnit}
+import com.phoenixkahlo.hellcraft.core.{Air, Chunk, Terrain, TerrainUnit}
 import com.phoenixkahlo.hellcraft.core.entity.{EntID, Entity}
+import com.phoenixkahlo.hellcraft.core.util.ChunkGrid
 import com.phoenixkahlo.hellcraft.math._
 
 case class WorldBounds(min: V3I, max: V3I) {

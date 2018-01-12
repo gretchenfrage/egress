@@ -1,5 +1,6 @@
-package com.phoenixkahlo.hellcraft.core
+package com.phoenixkahlo.hellcraft.core.util
 
+import com.phoenixkahlo.hellcraft.core.{Terrain, TerrainUnit}
 import com.phoenixkahlo.hellcraft.math._
 
 case class TerrainGrid(map: Map[V3I, Terrain]) {

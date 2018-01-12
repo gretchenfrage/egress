@@ -2,7 +2,8 @@ package com.phoenixkahlo.hellcraft.core.entity
 
 import com.phoenixkahlo.hellcraft.core
 import com.phoenixkahlo.hellcraft.core.event.UE
-import com.phoenixkahlo.hellcraft.core.{CallService, ChunkMap, Event, PutEnt, UpdateEffect}
+import com.phoenixkahlo.hellcraft.core.util.ChunkMap
+import com.phoenixkahlo.hellcraft.core.{CallService, Event, PutEnt, UpdateEffect}
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.service.PhysicsService

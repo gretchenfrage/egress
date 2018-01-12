@@ -14,8 +14,9 @@ import com.badlogic.gdx.physics.bullet.dynamics.{btDiscreteDynamicsWorld, btRigi
 import com.badlogic.gdx.physics.bullet.linearmath.{btDefaultMotionState, btQuaternion, btTransform}
 import com.phoenixkahlo.hellcraft.core.Blocks.Brick
 import com.phoenixkahlo.hellcraft.core.eval.{ExecCheap, GEval, WEval}
-import com.phoenixkahlo.hellcraft.core.{Air, BlockSoup, Chunk, Materials, Terrain, TerrainGrid, TerrainSoup, TerrainUnit, TerrainUnits}
+import com.phoenixkahlo.hellcraft.core.{Air, BlockSoup, Chunk, Materials, Terrain, TerrainSoup, TerrainUnit, TerrainUnits}
 import com.phoenixkahlo.hellcraft.core.graphics.{FreeCube, FreeCubeParams, LineCombiner}
+import com.phoenixkahlo.hellcraft.core.util.TerrainGrid
 import com.phoenixkahlo.hellcraft.fgraphics.{BasicTriVert, BrickTID, DefaultRenderer, DefaultResourcePack, GenericShader, GlobalRenderData, LineShader, Offset, Render, Renderable, Renderer, ResourcePack, Shader, TerrainShader}
 import com.phoenixkahlo.hellcraft.gamedriver.{GameDriver, GameState}
 import com.phoenixkahlo.hellcraft.math.MatrixFactory.Translate

@@ -6,6 +6,7 @@ import java.nio.{ByteBuffer, FloatBuffer}
 import com.phoenixkahlo.hellcraft.core.BlockSoup.Vert
 import com.phoenixkahlo.hellcraft.core.TerrainSoup.Vert
 import com.phoenixkahlo.hellcraft.core.eval.GEval
+import com.phoenixkahlo.hellcraft.core.util.TerrainGrid
 import com.phoenixkahlo.hellcraft.fgraphics.{LineShader, Renderable}
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.math.physics.Triangle

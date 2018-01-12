@@ -186,6 +186,11 @@ class PhysicsServiceProcedure extends ServiceProcedure[PhysicsService] {
 }
 
 object PhysicsServiceProcedure {
+  val bulletSequential = new FutSequences(_.run())
+  def execBulletSequential(task: Runnable): Unit = {
+    bulletSequential.apply[Unit](task.run)
+  }
+
   val noTrans = MatrixFactory()
   val tetraKey = new StatePinKey[Fut[(btCollisionObject, Seq[AnyRef], Seq[Disposable])], (Chunk, Runnable => Unit)](
     { case (chunk, exec) =>
@@ -208,7 +213,7 @@ object PhysicsServiceProcedure {
             mesh
         }, Gdx.app.postRunnable)
         .map(mesh => {
-          val (shape: btCollisionShape, keepAlive: Seq[AnyRef], dispose: Seq[Disposable]) =
+          val (shape, keepAlive, dispose) =
             if (mesh.getNumIndices == 0) {
               val shape = new btEmptyShape()
               (shape, Seq(shape), Seq(shape))
@@ -216,56 +221,17 @@ object PhysicsServiceProcedure {
             else {
               // TODO: it may be possible to avoid the mesh system altogether
               val meshPart = new MeshPart("collider", mesh, 0, mesh.getNumIndices, GL20.GL_TRIANGLES)
-              //val bulletMesh = new btIndexedMesh(part)
-              /*
-            val nodePart = new NodePart(meshPart, new Material())
-            val node = new Node
-            node.parts.add(nodePart)
-            val shape = Bullet.obtainStaticNodeShape(node, false)
-            */
               val arr = new com.badlogic.gdx.utils.Array[MeshPart]
               arr.add(meshPart)
               val shape = new btBvhTriangleMeshShape(arr)
               (shape, Seq(shape, meshPart), Seq(shape))
-              /*
-              val colObj = new btCollisionObject()
-              //Bullet.obtainStaticNodeShape(mesh.)
-              colObj.setCollisionShape(shape)
-              (colObj, Seq(meshPart, shape, colObj))
-              */
             }
           val colObj = new btCollisionObject
           colObj.setCollisionShape(shape)
           (colObj, keepAlive, dispose :+ colObj :+ mesh)
-        }, exec)
-      /*
-      val keepAlive = new ArrayBuffer[AnyRef]
-
-      val compound = new btCompoundShape
-
-      for (tetra <- chunk.terrainSoup.tetra.get) {
-        val tetraHull = new btConvexHullShape
-        for (vert <- tetra)
-          tetraHull.addPoint(vert.toGdx)
-        compound.addChildShape(noTrans, tetraHull)
-      }
-      for (i <- Origin untilAsSeq V3I(16, 16, 16)) {
-        if (chunk.terrain.grid(i).id < 0) {
-          val box = new btBoxShape(V3F(0.5f, 0.5f, 0.5f).toGdx)
-          compound.addChildShape(MatrixFactory(Translate(chunk.pos * 16 + i)), box)
-        }
-      }
-      val obj = new btCollisionObject
-      obj.setCollisionShape(compound)
-      (obj, keepAlive)
-      */
+        }, execBulletSequential)
   }, _.map({
     case (obj, alive, dispose) =>
-        dispose.foreach(_.dispose())
-      /*
-      val shape = obj.getCollisionShape
-      obj.dispose()
-      shape.dispose()
-      */
-  }))
+      dispose.foreach(_.dispose())
+  }, Gdx.app.postRunnable))
 }

@@ -612,7 +612,7 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
 
   def close(): Promise = {
     // save the incomplete
-    val incompleteSeq = incomplete.curr.await.values.toSeq ++ pendingChunkPuts
+    val incompleteSeq = incomplete.curr.await.values.to[Vector] ++ pendingChunkPuts
     val p1 = save.putKey(IncompleteKey, incompleteSeq)
     // close the save with all the chunks
     val p2 = save.close(curr.chunks.flatMap({

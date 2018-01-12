@@ -4,7 +4,7 @@ import java.util.concurrent.ThreadLocalRandom
 
 import com.badlogic.gdx.Input.Keys._
 import com.badlogic.gdx.graphics.Color
-import com.phoenixkahlo.hellcraft.core.{Blocks, Event, PutEnt}
+import com.phoenixkahlo.hellcraft.core.{Air, Blocks, Event, Materials, PutEnt}
 import com.phoenixkahlo.hellcraft.core.client.ClientLogic.Input
 import com.phoenixkahlo.hellcraft.core.client.ClientSessionData.{JumpHeight, LoadDist, Sensitivity}
 import com.phoenixkahlo.hellcraft.core.entity.{Avatar, EntID}
@@ -72,7 +72,16 @@ case class AvatarClientMain(core: ClientCore, avaID: EntID[Avatar]) extends Clie
           .placeBlock(core.camPos, core.camDir, 64)
           .map(v => cause(CauseUpdateEffect(Events.setMat(v, Blocks.Brick, mbf = true))))
           .getOrElse(nothing)
-      case Left => nothing
+      case Left =>
+        world
+          .hit(core.camPos, core.camDir, 64)
+          .map(v => cause(CauseUpdateEffect(Events.setMat(v, Air, mbf = true))))
+          .getOrElse(nothing)
+      case Middle =>
+        world
+          .placeMat(core.camPos, core.camDir, 64)
+          .map(v => cause(CauseUpdateEffect(Events.setMat(v, Materials.Stone))))
+          .getOrElse(nothing)
     } else cause(CaptureCursor)
 
   override def mouseMoved(pos: V2I, delta: V2I)(world: ClientWorld, input: Input): (ClientLogic, Seq[ClientEffect]) = {
