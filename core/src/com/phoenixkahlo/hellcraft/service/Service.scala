@@ -16,6 +16,7 @@ object PhysicsService {
   sealed trait BodyShape
   case class Sphere(rad: Float) extends BodyShape
   case class Capsule(rad: Float, height: Float) extends BodyShape
+  case class Cylinder(rad: Float, height: Float) extends BodyShape
 
   case class Body(shape: BodyShape, pos: V3F, vel: V3F, mass: Float, friction: Float, inertia: Option[V3F] = None)
 }

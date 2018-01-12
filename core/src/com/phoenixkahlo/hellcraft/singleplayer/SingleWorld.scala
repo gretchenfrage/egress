@@ -10,7 +10,7 @@ import com.phoenixkahlo.hellcraft.core.event.UE._
 import com.phoenixkahlo.hellcraft.core.event.UE
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.core.util.GroupedEffects
-import com.phoenixkahlo.hellcraft.core.{CallService, Chunk, Event, EventID, LogEffect, MakeRequest, PutChunk, PutEnt, RemEnt, SoundEffect, Terrain, UpdateEffect, event}
+import com.phoenixkahlo.hellcraft.core.{CallService, Chunk, Event, EventID, IdenEvent, LogEffect, MakeRequest, PutChunk, PutEnt, RemEnt, SoundEffect, Terrain, UpdateEffect, event}
 import com.phoenixkahlo.hellcraft.math.{MRNG, V3I}
 import com.phoenixkahlo.hellcraft.service.procedures.PhysicsServiceProcedure
 import com.phoenixkahlo.hellcraft.service.{Service, ServiceProcedure, ServiceTagTable, ServiceWorld}
@@ -239,6 +239,49 @@ case class SingleWorld(
 
   // update to a new world, and get output effects, and a summary of changed chunks and entites
   def update(_time: Long, externs: Seq[UpdateEffect], services: ServiceTagTable[ServiceProcedure]): (SingleWorld, Seq[UpdateEffect], ChangeSummary) = {
+    val queue: java.util.Deque[UpdateEffect] = new java.util.LinkedList
+
+    externs.foreach(queue.add)
+    active.toSeq.flatMap(chunks(_).left.get.ents.values).flatMap(_.update).foreach(queue.add)
+
+    var world = this
+    val outEffects = new mutable.ArrayBuffer[UpdateEffect] // remember: reverse before returning
+    val chunkChanges = new mutable.HashMap[V3I, Chunk]
+    val entChanges = new mutable.HashMap[AnyEntID, Option[AnyEnt]]
+    val chunkReplaces = new mutable.ArrayBuffer[ReplacedChunk] // remember: reverse before returning
+
+    while (!queue.isEmpty) queue.remove() match {
+      case effect: SoundEffect => outEffects += effect
+      case effect: MakeRequest[_] => outEffects += effect
+      case effect: LogEffect => outEffects += effect
+      case effect@PutChunk(chunk) =>
+        if (world.cdomain contains chunk.pos) {
+          val (w, r) = world putChunks Seq(chunk)
+          world = w
+          chunkReplaces ++= r
+          chunkChanges += (chunk.pos -> chunk)
+        } else outEffects += effect
+      case effect@PutEnt(ent) =>
+        if (world.chunk(ent.chunkPos).isDefined) {
+          world = world putEnt ent
+          entChanges += (ent.id -> Some(ent))
+        } else outEffects += effect
+      case effect@RemEnt(id) =>
+        if (world.findEntityUntyped(id).isDefined) {
+          world = world remEnt id
+          entChanges += (id -> None)
+        } else outEffects += effect
+      case effect: CallService[_, _] =>
+        def f[S <: Service, T](call: CallService[S, T]): Seq[UpdateEffect] =
+          call.onComplete(PartialSyncEval(exec => services(call.service).apply(world, call.call)(exec)))
+        f(effect).reverse.foreach(queue.addFirst)
+      case effect@Event(ue) =>
+        world.eval(ue, _time).reverse.foreach(queue.addFirst)
+      case effect: IdenEvent => ???
+    }
+
+    (world, outEffects.reverse, ChangeSummary(chunkChanges.toMap, entChanges.toMap, chunkReplaces.reverse))
+    /*
     // recursive function for computing a phase
     def phase(n: Byte, world: SingleWorld, in: Seq[UpdateEffect], changed: ChangeSummary):
         (SingleWorld, Seq[UpdateEffect], ChangeSummary) = {
@@ -276,17 +319,21 @@ case class SingleWorld(
         out ++= remEntsLater
       }
       // evaluate the events
-      val caused = grouped.bin(Event).flatMap(event => eval(event.eval, _time)).toBuffer
+      val caused = grouped.bin(Event).flatMap(event => next.eval(event.eval, _time)).toBuffer
       // evaluate the service calls and add them to the caused
       // this is synchronous, and we're passing the sync executor, but in the case that a service may have to pause
       // let's just try and give it a chance to parallelize, even though it shouldn't
-      caused ++= grouped.bin(CallService)
-        .map((call: CallService[_ <: Service, _]) => {
-          def f[S <: Service, T](call: CallService[S, T]): Fut[Seq[UpdateEffect]] = {
-            services(call.service).apply(this, call.call)(_.run()).map(call.onComplete)
-          }
-          f(call)
-        }).flatMap(_.await)
+      // to preserve read-mutate coherency, we don't call services if we've evaluated events
+      if (caused.isEmpty) {
+        caused ++= grouped.bin(CallService)
+          .map((call: CallService[_ <: Service, _]) => {
+            def f[S <: Service, T](call: CallService[S, T]): Fut[Seq[UpdateEffect]] = {
+              services(call.service).apply(this, call.call)(_.run()).map(call.onComplete)
+            }
+
+            f(call)
+          }).flatMap(_.await)
+      }
       // recurse if any further events are caused effects
       if (caused isEmpty)
         (next, out, ChangeSummary(chunkChanges, entChanges, chunkReplace))
@@ -299,6 +346,7 @@ case class SingleWorld(
     def entEvents = active.toSeq.flatMap(chunks(_).left.get.ents.values).flatMap(_.update)
     // call the recursive function and return the result
     phase(0, this, entEvents ++ externs, ChangeSummary(Map.empty, Map.empty, Vector.empty))
+    */
   }
 
 }

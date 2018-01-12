@@ -58,7 +58,12 @@ case class V2F(x: Float, y: Float) extends Serializable {
     x *x + y * y
 
   lazy val normalize: V2F =
-    this / magnitude
+    if (this == Origin2D) Origin2D
+    else this / magnitude
+
+  def normalizePure: Option[V2F] =
+    if (this == Origin2D) None
+    else Some(this / magnitude)
 
   def inflate(height: Float): V3F =
     V3F(x, height, y)

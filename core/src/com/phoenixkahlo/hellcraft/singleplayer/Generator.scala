@@ -10,10 +10,11 @@ import com.phoenixkahlo.hellcraft.core.util.Derived
 import com.phoenixkahlo.hellcraft.fgraphics.StoneTID
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.math.physics.Broadphase
+import com.phoenixkahlo.hellcraft.service.procedures.PhysicsServiceProcedure
 import com.phoenixkahlo.hellcraft.util.collections.{Domain, MemoFunc, V3ISet}
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 import com.phoenixkahlo.hellcraft.util.fields._
-import com.phoenixkahlo.hellcraft.util.threading.{Fut, MergeFut, UniExecutor}
+import com.phoenixkahlo.hellcraft.util.threading.{Fut, MergeFut, PartialSyncEval, UniExecutor}
 
 import scala.collection.mutable
 
@@ -94,8 +95,10 @@ class DefaultGenerator(res: Int) extends Generator {
   override val chunkAt = new MemoFunc[V3I, Fut[Chunk]](p =>
     if (!cancelled) {
       soupAt(p).map({
-        case (ter, bs, ts) => new Chunk(p, ter, ts, bs)
-        //case (ter, bs, ts) => new Chunk(p, ter, EntityMap.empty, ts, bs, None, None)
+        case (ter, bs, ts) =>
+          val c = new Chunk(p, ter, ts, bs)
+          PartialSyncEval(exec => c.physPin.getPatient(PhysicsServiceProcedure.tetraKey, (c, exec)))
+          c
       }, UniExecutor.exec(p * 16))
     } else Fut(null: Chunk, _.run())
   )

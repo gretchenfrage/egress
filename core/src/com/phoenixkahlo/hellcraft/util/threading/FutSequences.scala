@@ -25,6 +25,14 @@ class FutSequences(executor: Runnable => Unit) {
     next
   }
 
+  def flatChain[T](factory: => Fut[T]): Fut[T] = {
+    lock.writeLock().lock()
+    val next = last.flatMap(any => factory)
+    last = next
+    lock.writeLock().unlock()
+    next
+  }
+
   def getLast: Fut[_] = {
     lock.readLock.lock()
     try last

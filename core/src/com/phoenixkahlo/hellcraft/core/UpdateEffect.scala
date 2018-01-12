@@ -95,4 +95,7 @@ class CallService[S <: Service, T](val call: S#Call[T], val onComplete: T => Seq
 object CallService extends UpdateEffectType[CallService[_ <: Service, _]](8) {
   def apply[S <: Service, T](call: S#Call[T], onComplete: T => Seq[UpdateEffect])(implicit service: ServiceTag[S]): CallService[S, T] =
     new CallService[S, T](call, onComplete, service)
+
+  def unapply[S <: Service, T](call: CallService[S, T]): Option[(S#Call[T], T => Seq[UpdateEffect], ServiceTag[S])] =
+    Some((call.call, call.onComplete, call.service))
 }

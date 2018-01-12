@@ -17,17 +17,23 @@ case class Avatar(
   override val rad = 0.4f
   override val capHeight = 1.1f
   override val springRest = 0.8f
-  override val springSnap = 1.05f
-  override val springConst = 6
+  override val springSnap = 1.6f
+  override val springConstMovingDown = 1000
+  override val springConstMovingUp = springConstMovingDown
+  override val springFriction = 500
 
   override val mass = 60
 
-  override val walkForce = 500
+  override val walkForce = 5000
 
   val height = capHeight + springRest
 
   override def setPosVel(lastPos: V3F, newPos: V3F, newVel: V3F) =
     copy(pos = newPos, vel = newVel, lastPos = lastPos)
+
+  def setStride(dir: V2F, speed: Float): Avatar = {
+    copy(walkDir = dir, walkSpeed = speed)
+  }
 
   def pos(interp: Float): V3F = pos + ((lastPos - pos) * interp)
 
@@ -47,6 +53,6 @@ object Avatar {
     ))
   }
 
-  def apply(pos: V3F, vel: V3F = Origin)(implicit rand: MRNG): Avatar =
-    Avatar(pos, vel, pos, 0, Origin2D, EntID())
+  def apply(pos: V3F, vel: V3F = Origin, walk: V2F = Origin2D, speed: Float = 0)(implicit rand: MRNG): Avatar =
+    Avatar(pos, vel, pos, speed, walk, EntID())
 }
