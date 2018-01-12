@@ -6,7 +6,7 @@ import com.badlogic.gdx.Input.Keys._
 import com.badlogic.gdx.graphics.Color
 import com.phoenixkahlo.hellcraft.core.{Blocks, Event, PutEnt}
 import com.phoenixkahlo.hellcraft.core.client.ClientLogic.Input
-import com.phoenixkahlo.hellcraft.core.client.ClientSessionData.{LoadDist, Sensitivity}
+import com.phoenixkahlo.hellcraft.core.client.ClientSessionData.{JumpHeight, LoadDist, Sensitivity}
 import com.phoenixkahlo.hellcraft.core.entity.{Avatar, EntID}
 import com.phoenixkahlo.hellcraft.core.event.{Events, UE}
 import com.phoenixkahlo.hellcraft.fgraphics.{HUDShader, Render}
@@ -58,6 +58,7 @@ case class AvatarClientMain(core: ClientCore, avaID: EntID[Avatar]) extends Clie
     case ESCAPE => become(AvatarClientMenu(core, input, avaID))
     case T => become(AvatarClientChat(core, avaID))
     case SLASH => become(AvatarClientChat(core, avaID, buffer = "/"))
+    case SPACE => cause(CauseUpdateEffect(Avatar.jump(avaID, input.sessionData(JumpHeight))))
     case _ => become(copy(core = core.copy(pressed = core.pressed + keycode)))
   }
 

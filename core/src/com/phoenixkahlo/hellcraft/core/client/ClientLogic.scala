@@ -50,6 +50,7 @@ object ClientSessionData {
   case object LoadDist extends Field[V3I](Some(V3I(12, 5, 12)))
   case object DayCycle extends Field[Duration](Some(3 minutes))
   case object CloudSpeed extends Field[Float](Some(10))
+  case object JumpHeight extends Field[Float](Some(1.2f))
   type ClientSessionData = TypeMatchingMap[Field, Identity, Any]
   val empty: ClientSessionData = TypeMatchingMap.empty[Field, Identity, Any].withDefault(
     new Default[Field, Identity, Any] {

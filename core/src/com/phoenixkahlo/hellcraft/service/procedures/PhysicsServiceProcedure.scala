@@ -211,7 +211,7 @@ object PhysicsServiceProcedure {
           val (shape: btCollisionShape, keepAlive: Seq[AnyRef], dispose: Seq[Disposable]) =
             if (mesh.getNumIndices == 0) {
               val shape = new btEmptyShape()
-              (shape, Seq.empty, Seq(shape))
+              (shape, Seq(shape), Seq(shape))
             }
             else {
               // TODO: it may be possible to avoid the mesh system altogether
@@ -226,7 +226,7 @@ object PhysicsServiceProcedure {
               val arr = new com.badlogic.gdx.utils.Array[MeshPart]
               arr.add(meshPart)
               val shape = new btBvhTriangleMeshShape(arr)
-              (shape, Seq(meshPart), Seq(meshPart, shape))
+              (shape, Seq(shape, meshPart), Seq(shape))
               /*
               val colObj = new btCollisionObject()
               //Bullet.obtainStaticNodeShape(mesh.)
@@ -236,7 +236,7 @@ object PhysicsServiceProcedure {
             }
           val colObj = new btCollisionObject
           colObj.setCollisionShape(shape)
-          (colObj, keepAlive, dispose :+ colObj)
+          (colObj, keepAlive, dispose :+ colObj :+ mesh)
         }, exec)
       /*
       val keepAlive = new ArrayBuffer[AnyRef]

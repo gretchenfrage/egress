@@ -16,7 +16,7 @@ abstract class Walker[E <: Walker[E]] extends Entity[E] {
   val springRest: Float
   val springSnap: Float
   val springConstMovingDown: Float
-  val springConstMovingUp: Float
+  val springConstMovingUp: Float = springConstMovingDown
   val springFriction: Float
 
   val mass: Float = 1
@@ -29,6 +29,8 @@ abstract class Walker[E <: Walker[E]] extends Entity[E] {
   val walkForce: Float
   val walkSpeed: Float
   val walkDir: V2F
+
+  def springEnabled: Boolean = true
 
   val rays: Seq[V3F] = Seq(Origin)
 
@@ -43,36 +45,41 @@ object Walker {
       Event(UE.ent(id).flatMap({
         case Some(ent) => UE.chunks(ent.chunkPos.neighbors).map(chunks => {
           // make a body
-          val body = Body(Cylinder(ent.rad, ent.capHeight), ent.pos, ent.vel, ent.mass, ent.friction, ent.inertia)
-          // apply spring force
-          val grid = ChunkMap(chunks)
-          // ray cast spring distances
-          val springs: Seq[Float] = ent.rays
-            .map(delta => body.pos + (Down * ent.capHeight / 2) + delta)
-            .flatMap(point => grid.seghit(point, Down, ent.springSnap).map(_ dist point))
-          // comp spring constant K
-          val springConst =
-            if (ent.vel.y > 0) ent.springConstMovingUp
-            else ent.springConstMovingDown
-          // compute the spring force
-          var springForce = // upwards spring force magnitude
-            if (springs.isEmpty) 0
+          val body = Body(Capsule(ent.rad, ent.capHeight), ent.pos, ent.vel, ent.mass, ent.friction, ent.inertia)
+          val sprung: V3F =
+            if (!ent.springEnabled) body.vel
             else {
-              val avg = springs.sum / springs.size
-              (ent.springRest + ent.capHeight / 2 - avg) * springConst
+              // apply spring force
+              val grid = ChunkMap(chunks)
+              // ray cast spring distances
+              val springs: Seq[Float] = ent.rays
+                .map(delta => body.pos + (Down * ent.capHeight / 2) + delta)
+                .flatMap(point => grid.seghit(point, Down, ent.springSnap).map(_ dist point))
+              // comp spring constant K
+              val springConst =
+                if (ent.vel.y > 0) ent.springConstMovingUp
+                else ent.springConstMovingDown
+              // compute the spring force
+              var springForce = // upwards spring force magnitude
+                if (springs.isEmpty) 0
+                else {
+                  val avg = springs.sum / springs.size
+                  (ent.springRest + ent.capHeight / 2 - avg) * springConst
+                }
+              // apply friction to spring force
+              val springForceFrictioned =
+                if (springForce > 0) springForce - ent.springFriction
+                else springForce + ent.springFriction
+              if ((springForce > 0) == (springForceFrictioned > 0))
+                springForce = springForceFrictioned
+              else
+                springForce = 0
+              var sprung = body.vel + (Up * springForce * Delta.dtf / ent.mass)
+              // don't allow spring force to overshoot
+              if ((sprung.y > 0) ^ (body.vel.y > 0))
+                sprung = sprung.copy(y = 0)
+              sprung
             }
-          // apply friction to spring force
-          val springForceFrictioned =
-            if (springForce > 0) springForce - ent.springFriction
-            else springForce + ent.springFriction
-          if ((springForce > 0) == (springForceFrictioned > 0))
-            springForce = springForceFrictioned
-          else
-            springForce = 0
-          var sprung = body.vel + (Up * springForce * Delta.dtf / ent.mass)
-          // don't allow spring force to overshoot
-          if ((sprung.y > 0) ^ (body.vel.y > 0))
-            sprung = sprung.copy(y = 0)
           // apply walking force
           var i = (ent.walkDir * ent.walkSpeed).inflate(sprung.y) - sprung // impulse to get velocity to walking velocity
           if (i.magnitude > ent.walkForce * Delta.dtf / ent.mass) // if impulse is more force than can provide

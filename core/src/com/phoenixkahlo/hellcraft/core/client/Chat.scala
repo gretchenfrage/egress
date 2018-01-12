@@ -4,7 +4,7 @@ import java.util.UUID
 import java.util.concurrent.ThreadLocalRandom
 
 import com.phoenixkahlo.hellcraft.core.PutEnt
-import com.phoenixkahlo.hellcraft.core.client.ClientSessionData.{ChunkDebugMode, ShowTasks}
+import com.phoenixkahlo.hellcraft.core.client.ClientSessionData.{ChunkDebugMode, JumpHeight, ShowTasks}
 import com.phoenixkahlo.hellcraft.core.entity._
 import com.phoenixkahlo.hellcraft.fgraphics._
 import com.phoenixkahlo.hellcraft.math._
@@ -104,7 +104,8 @@ object Commands {
     "sensitivity" -> Setter(ClientSessionData.Sensitivity, _.asInstanceOf[Number].floatValue),
     "speed" -> Setter(ClientSessionData.Speed, _.asInstanceOf[Number].floatValue),
     "load_dist" -> Setter(ClientSessionData.LoadDist, parseVec(_).toInts),
-    "day_cycle" -> Setter(ClientSessionData.DayCycle, parseDuration)
+    "day_cycle" -> Setter(ClientSessionData.DayCycle, parseDuration),
+    "jump_height" -> Setter(JumpHeight, _.asInstanceOf[Number].floatValue)
   )
 
   def setEffect[T](j: AnyRef)(setter: Setter[T]): ClientEffect =
