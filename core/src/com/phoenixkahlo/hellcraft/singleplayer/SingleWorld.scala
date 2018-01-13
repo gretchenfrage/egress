@@ -156,6 +156,9 @@ case class SingleWorld(
       case _ => None
     }
 
+  // wrap a chunk in a future, for the service world
+  override def chunkFut(p: V3I): Fut[Option[Chunk]] = Fut(chunk(p), _.run())
+
   // chunk and ents lookup
   def chunkEnts(p: V3I): Option[ChunkEnts] =
     chunks.get(p).flatMap(_.left.toOption)
@@ -497,14 +500,47 @@ object SingleWorld {
   }
   //case class ChangeSummary(chunks: Map[V3I, Chunk], ents: Map[AnyEntID, Option[AnyEnt]], replaced: Seq[ReplacedChunk])
   //case class ReplacedChunk(old: Chunk, repl: Option[Chunk])
+  /*
   case class ChunkExchange(before: Option[Chunk], after: Option[Chunk]) {
     def andThen(other: ChunkExchange) = ChunkExchange(before, other.after)
   }
   case class EntExchange(before: Option[AnyEnt], after: Option[AnyEnt]) {
     def andThen(other: EntExchange) = EntExchange(before, other.after)
   }
+  */
+  case class Exchange[T, I](before: Option[T], after: Option[T])(implicit identity: T => I) {
+    def andThen(other: Exchange[T, I]) = Exchange(before, other.after)(identity)
+    def iden: Option[I] = this match {
+      case Exchange(Some(t), _) => Some(identity(t))
+      case Exchange(_, Some(t)) => Some(identity(t))
+      case Exchange(None, None) => None
+    }
+  }
+  object Exchange {
+    def ends[T, I](exchanges: Seq[Exchange[T, I]]): Seq[Exchange[T, I]] = {
+      val map = new mutable.HashMap[I, Exchange[T, I]]
+      for (exchange <- exchanges) {
+        exchange.iden.foreach(i => {
+          if (map.contains(i))
+            map(i) = map(i) andThen exchange
+          else
+            map(i) = exchange
+        })
+      }
+      map.values.toSeq
+    }
+  }
+  type ChunkExchange = Exchange[Chunk, V3I]
+  object ChunkExchange {
+    val nill = ChunkExchange(None, None)
+    def apply(before: Option[Chunk], after: Option[Chunk]): ChunkExchange = Exchange(before, after)(_.pos)
+    def unapply(exchange: ChunkExchange) = Some((exchange.before, exchange.after))
+  }
+  type EntExchange = Exchange[AnyEnt, AnyEntID]
   object EntExchange {
     val nill = EntExchange(None, None)
+    def apply(before: Option[AnyEnt], after: Option[AnyEnt]): EntExchange = Exchange(before, after)(_.id)
+    def unapply(exchange: EntExchange) = Some((exchange.before, exchange.after))
   }
   case class ChangeSummary(chunks: Seq[ChunkExchange], ents: Seq[EntExchange])
 }
@@ -667,11 +703,15 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
           cbuffer += chunkEnts
         }
       }
-      //next = next putChunkEnts cbuffer
       {
-        val (n, c) = next putChunkEnts cbuffer
+        val (n, c, e) = next putChunkEnts cbuffer
         next = n
         dispose3(c)
+        e foreach {
+          case EntExchange(_, Some(after)) => efulfill.put(after.id, after)
+          case EntExchange(Some(before), None) => efulfill.remove(before.id)
+          case EntExchange(None, None) => ()
+        }
       }
       cloadMap --= cbuffer.map(_.chunk.pos)
       tloadMap --= cbuffer.map(_.chunk.pos)
@@ -701,8 +741,28 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
     val (updated, effectsOut, changed) = next.update(time, effectsIn, serviceProcedures)
     next = updated
 
-    // update the fulfillment contexts with the changes
 
+
+    // update the fulfillment contexts with the changes
+    {
+      val putc = new mutable.ArrayBuffer[Chunk]
+      Exchange.ends(changed.chunks) foreach {
+        case ChunkExchange(_, Some(after)) => putc += after
+      }
+      cfulfill.put(putc.map(c => (c.pos, c)))
+      tfulfill.put(putc.map(c => (c.pos, c.terrain)))
+    }
+    {
+      val pute = new mutable.ArrayBuffer[AnyEnt]
+      val reme = new mutable.ArrayBuffer[AnyEntID]
+      Exchange.ends(changed.ents) foreach {
+        case EntExchange(_, Some(after)) => pute += after
+        case EntExchange(Some(before), None) => reme += before.id
+      }
+      efulfill.put(pute.map(e => (e.id, e)))
+      efulfill.remove(reme)
+    }
+    /*
     cfulfill.put(changed.chunks.toSeq)
     tfulfill.put(changed.chunks.values.toSeq.map(chunk => (chunk.pos, chunk.terrain)))
     ;{
@@ -715,9 +775,10 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
       efulfill.put(addedEnts)
       efulfill.remove(remedEnts)
     }
+    */
 
 
-    // process the chunk replacements from the update function
+    // perform all chunk change disposals
     dispose3(changed.chunks)
 
     // now let's group the outputted effects

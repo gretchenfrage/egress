@@ -31,7 +31,9 @@ class PhysicsServiceProcedure extends ServiceProcedure[PhysicsService] {
   var solver: btSequentialImpulseConstraintSolver = _
   var dynWorld: btDiscreteDynamicsWorld = _
 
-  val sequential = new FutSequences(_.run())
+  val bulletExec: Runnable => Unit = PhysicsServiceProcedure.exec
+
+  //val sequential = new FutSequences(_.run())
 
   override def begin(): Unit = {
     Bullet.init()
@@ -45,65 +47,68 @@ class PhysicsServiceProcedure extends ServiceProcedure[PhysicsService] {
     dynWorld.setGravity((Down * 9.8f).toGdx)
   }
 
-  def act(world: ServiceWorld, body: Body)(implicit exec: (Runnable) => Unit): Fut[Body] = {
-    sequential.flatChain({
-      val p = body.pos / 16 toInts;
-      FutSeqFold(
-        p.neighbors.flatMap(world.chunk).map(chunk => chunk.physPin.getImpatient(PhysicsServiceProcedure.tetraKey, (chunk, exec))), exec
-      ).map(colliders => {
-        // add them to the world
-        for (collider <- colliders.map(_._1))
-          dynWorld.addCollisionObject(collider)
+  def act(world: ServiceWorld, body: Body): Fut[Body] = {
+    val p = body.pos / 16 toInts;
+    // get the colliders
+    FutSeqFold(
+      p.neighbors.map(world.chunkFut).map(_.map(_.map(chunk => chunk.physPin.getImpatient(PhysicsServiceProcedure.tetraKey, (chunk, bulletExec))))), bulletExec
+    )
+      .flatMap(seq => FutSeqFold(seq.flatten, bulletExec))
+      .map((colliders: Seq[(btCollisionObject, Seq[AnyRef], Seq[Disposable])]) => {
 
-        // create the collider for the body
-        val bodyShape: btCollisionShape = body.shape match {
-          case Sphere(rad) => new btSphereShape(rad)
-          case Capsule(rad, height) => new btCapsuleShape(rad, height)
-          case Cylinder(rad, height) => new btCylinderShape(V3F(rad, height / 2, rad).toGdx)
-        }
-        val bodyMotionState = new btDefaultMotionState(MatrixFactory(Translate(body.pos)))
-        val bodyConstrInfo = new btRigidBodyConstructionInfo(body.mass, bodyMotionState, bodyShape, body.inertia.getOrElse(Origin).toGdx)
-        val rigidBody = new btRigidBody(bodyConstrInfo)
-        rigidBody.setLinearVelocity(body.vel.toGdx)
-        rigidBody.setCcdMotionThreshold(0.3f)
-        rigidBody.setCcdSweptSphereRadius(body.shape match {
-          case Sphere(rad) => rad
-          case Capsule(rad, height) => Math.min(rad, height / 2)
-          case Cylinder(rad, height) => Math.min(rad, height / 2)
-        })
+      // add them to the world
+      for (collider <- colliders.map(_._1))
+        dynWorld.addCollisionObject(collider)
 
-        // add it to the world
-        dynWorld.addRigidBody(rigidBody)
-
-        // step the world
-        dynWorld.stepSimulation(Delta.dtf, 50)
-
-        // extract the new position and velocity
-        val pos = {
-          val mat = new Matrix4
-          rigidBody.getMotionState.getWorldTransform(mat)
-          val pos = new Vector3
-          mat.getTranslation(pos)
-          V3F(pos)
-        }
-        val vel = V3F(rigidBody.getLinearVelocity)
-
-        // build the new body
-        val after = body.copy(pos = pos, vel = vel)
-
-        // clean up from the world and native resources
-        for (collider <- colliders.map(_._1))
-          dynWorld.removeCollisionObject(collider)
-        dynWorld.removeRigidBody(rigidBody)
-        rigidBody.getMotionState.dispose()
-        rigidBody.dispose()
-        bodyShape.dispose()
-        bodyConstrInfo.dispose()
-
-        // return
-        after
+      // create the collider for the body
+      val bodyShape: btCollisionShape = body.shape match {
+        case Sphere(rad) => new btSphereShape(rad)
+        case Capsule(rad, height) => new btCapsuleShape(rad, height)
+        case Cylinder(rad, height) => new btCylinderShape(V3F(rad, height / 2, rad).toGdx)
+      }
+      val bodyMotionState = new btDefaultMotionState(MatrixFactory(Translate(body.pos)))
+      val bodyConstrInfo = new btRigidBodyConstructionInfo(body.mass, bodyMotionState, bodyShape, body.inertia.getOrElse(Origin).toGdx)
+      val rigidBody = new btRigidBody(bodyConstrInfo)
+      rigidBody.setLinearVelocity(body.vel.toGdx)
+      rigidBody.setCcdMotionThreshold(0.3f)
+      rigidBody.setCcdSweptSphereRadius(body.shape match {
+        case Sphere(rad) => rad
+        case Capsule(rad, height) => Math.min(rad, height / 2)
+        case Cylinder(rad, height) => Math.min(rad, height / 2)
       })
-    })
+
+      // add it to the world
+      dynWorld.addRigidBody(rigidBody)
+
+      // step the world
+      dynWorld.stepSimulation(Delta.dtf, 50)
+
+      // extract the new position and velocity
+      val pos = {
+        val mat = new Matrix4
+        rigidBody.getMotionState.getWorldTransform(mat)
+        val pos = new Vector3
+        mat.getTranslation(pos)
+        V3F(pos)
+      }
+      val vel = V3F(rigidBody.getLinearVelocity)
+
+      // build the new body
+      val after = body.copy(pos = pos, vel = vel)
+
+      // clean up from the world and native resources
+      for (collider <- colliders.map(_._1))
+        dynWorld.removeCollisionObject(collider)
+      dynWorld.removeRigidBody(rigidBody)
+      rigidBody.getMotionState.dispose()
+      rigidBody.dispose()
+      bodyShape.dispose()
+      bodyConstrInfo.dispose()
+
+      // return
+      after
+    }, bulletExec)
+  }
     /*
     sequential(() => {
       // get the collision objects of the surrounding chunks
@@ -170,7 +175,6 @@ class PhysicsServiceProcedure extends ServiceProcedure[PhysicsService] {
       after
     })
     */
-  }
 
   override def apply[T](world: ServiceWorld, call: PhysicsService.Call[T])(implicit exec: (Runnable) => Unit): Fut[T] = call match {
     case Act(body) => act(world, body).asInstanceOf[Fut[T]]
@@ -187,13 +191,13 @@ class PhysicsServiceProcedure extends ServiceProcedure[PhysicsService] {
 
 object PhysicsServiceProcedure {
   val bulletSequential = new FutSequences(_.run())
-  def execBulletSequential(task: Runnable): Unit = {
+  def exec(task: Runnable): Unit = {
     bulletSequential.apply[Unit](task.run)
   }
 
   val noTrans = MatrixFactory()
   val tetraKey = new StatePinKey[Fut[(btCollisionObject, Seq[AnyRef], Seq[Disposable])], (Chunk, Runnable => Unit)](
-    { case (chunk, exec) =>
+    { case (chunk, any) =>
       Fut({
         val tverts = chunk.terrainSoup.indexToVert.map(v => chunk.terrainSoup.verts(v).get)
         val floats = new ArrayBuffer[Float]
@@ -229,7 +233,7 @@ object PhysicsServiceProcedure {
           val colObj = new btCollisionObject
           colObj.setCollisionShape(shape)
           (colObj, keepAlive, dispose :+ colObj :+ mesh)
-        }, execBulletSequential)
+        }, exec)
   }, _.map({
     case (obj, alive, dispose) =>
       dispose.foreach(_.dispose())
