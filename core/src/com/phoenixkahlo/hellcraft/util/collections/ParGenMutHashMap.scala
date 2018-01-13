@@ -27,6 +27,12 @@ class ParGenMutHashMap[K, V](gen: K => V) {
     lock.writeLock().unlock()
   }
 
+  def toMap: Map[K, V] = {
+    lock.readLock().lock()
+    try map.toMap
+    finally lock.readLock().unlock()
+  }
+
   def putUniqueKey(keygen: => K, v: V): K = {
     lock.writeLock().lock()
     var k = keygen

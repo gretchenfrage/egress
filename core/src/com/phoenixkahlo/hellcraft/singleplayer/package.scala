@@ -13,7 +13,7 @@ import scala.reflect.ClassTag
 
 package object singleplayer {
 
-  val auxBackgroundThreads = Env.physicalProcessors - 4
+  val auxBackgroundThreads = 0//Runtime.getRuntime.availableProcessors()//Env.physicalProcessors - 4
   val mainLoopThreadPriority = 5
   val renderLoopThreadPriority = 10
   val backgroundThreadPriority = 3

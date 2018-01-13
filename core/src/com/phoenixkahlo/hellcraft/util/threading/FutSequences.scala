@@ -42,11 +42,22 @@ class FutSequences(executor: Runnable => Unit) {
 }
 
 class FutChain[T](start: T, exec: Runnable => Unit) {
-  private var _curr: Fut[T] = Fut(start, exec)
+  @volatile private var _curr: Fut[T] = Fut(start, exec)
 
   def update(func: T => T): Fut[T] = this.synchronized {
     _curr = _curr.map(func, exec)
     _curr
+  }
+
+  def flatUpdate[F <: Fut[T]](func: T => F): F = this.synchronized {
+    _curr = _curr.flatMap(func)
+    _curr.asInstanceOf[F]
+  }
+
+  def getAndSet[F <: Fut[T]](fut: F): (Fut[T], F) = this.synchronized {
+    val before = _curr
+    _curr = fut
+    (before, _curr.asInstanceOf[F])
   }
 
   def curr: Fut[T] = _curr

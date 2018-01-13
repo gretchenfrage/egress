@@ -86,14 +86,13 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     infinitum = new SingleContinuum(save)
 
     println("creating client logic")
-/*
+
     clientLogic = GodClientMain(ClientCore(
       Set.empty,
       Chat(Seq("player joined the game")),
       Origin, North
     ))
-*/
-
+    /*
     val clientCore = ClientCore(
       Set.empty,
       Chat(Seq("player joined the game")),
@@ -107,6 +106,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     println("setting load target")
     chunkDomain = avatar.chunkPos - V3I(1, 6, 1) toAsSet avatar.chunkPos + V3I(1, 2, 1)
     terrainDomain = chunkDomain.bloat
+    */
 
     /*
     val clientCore = ClientCore(

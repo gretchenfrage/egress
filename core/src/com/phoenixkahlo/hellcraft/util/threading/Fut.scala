@@ -286,6 +286,39 @@ class FileReadFut(handle: Path) extends Fut[Either[Array[Byte], Throwable]] {
   }
 }
 
+class SettableFut[T] extends Fut[T] {
+  @volatile private var status: Option[T] = None
+  private val listeners = new ArrayBuffer[Runnable]
+  private val monitor = new Object
+
+  def set(value: T): Unit = {
+    monitor.synchronized {
+      status = Some(value)
+      monitor.notifyAll()
+    }
+    listeners.foreach(_.run())
+  }
+
+  override def await: T = {
+    if (status isDefined) status.get
+    else monitor.synchronized {
+      while (status isEmpty) monitor.wait()
+      status.get
+    }
+  }
+
+  override def query: Option[T] =
+    status
+
+  override def onComplete(runnable: Runnable): Unit = {
+    if (status isDefined) runnable.run()
+    else monitor.synchronized {
+      if (status isDefined) runnable.run()
+      else listeners += runnable
+    }
+  }
+}
+
 private class EvalFut[T](factory: => T, executor: Runnable => Unit) extends Fut[T] {
   @volatile private var status: Option[T] = None
   private val listeners = new ArrayBuffer[Runnable]

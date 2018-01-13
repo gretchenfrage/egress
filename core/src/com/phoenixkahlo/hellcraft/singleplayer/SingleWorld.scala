@@ -1,9 +1,10 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.{ConcurrentLinkedQueue, ThreadLocalRandom}
 
-import com.phoenixkahlo.hellcraft.core.client.{ClientRenderWorld, ClientWorld}
+import com.phoenixkahlo.hellcraft.core.client.{ClientRenderWorld, ClientWorld, WorldBounds}
 import com.phoenixkahlo.hellcraft.core.entity.{AnyEnt, AnyEntID, EntID, Entity}
 import com.phoenixkahlo.hellcraft.core.eval.{AsyncEval, WEval}
 import com.phoenixkahlo.hellcraft.core.event.UE._
@@ -16,15 +17,128 @@ import com.phoenixkahlo.hellcraft.service.procedures.PhysicsServiceProcedure
 import com.phoenixkahlo.hellcraft.service.{Service, ServiceProcedure, ServiceTagTable, ServiceWorld}
 import com.phoenixkahlo.hellcraft.singleplayer.AsyncSave.GetPos
 import com.phoenixkahlo.hellcraft.singleplayer.SingleContinuum.IncompleteKey
-import com.phoenixkahlo.hellcraft.singleplayer.SingleWorld.{ChangeSummary, ChunkEnts, ReplacedChunk}
-import com.phoenixkahlo.hellcraft.util.collections.{BBox, V3ISet}
+import com.phoenixkahlo.hellcraft.singleplayer.SingleWorld.{apply => _, _}
+import com.phoenixkahlo.hellcraft.util.collections.{BBox, ParGenMutHashMap, V3ISet}
 import com.phoenixkahlo.hellcraft.util.threading._
 import com.phoenixkahlo.hellcraft.util.time.Timer
 
 import scala.concurrent.duration._
-import scala.collection.mutable
+import scala.collection.{JavaConverters, mutable, parallel}
 import scala.util.Random
 
+/*
+class ParUpdater(time: Long, gridIn: Map[V3I, Either[ChunkEnts, Terrain]], entsIn: AnyEntID => Option[V3I], exec: Runnable => Unit) {
+  private val chunks = new ParGenMutHashMap[V3I, FutChain[Option[Chunk]]](p => new FutChain(gridIn.get(p).flatMap(_.left.toOption).map(_.chunk), exec))
+  private val ents = new ParGenMutHashMap[AnyEntID, FutChain[Option[AnyEnt]]](id => new FutChain(entsIn(id).map(p => gridIn(p).left.get.ents(id)), exec))
+  private val out = new ConcurrentLinkedQueue[UpdateEffect]
+
+  def addOut(effect: UpdateEffect): Unit = out.add(effect)
+
+  // function for evaluating update monads and accumulating state
+  def eval[T](ue: UE[T]): Fut[(T, Seq[AcquiredState])] = ue match {
+    case UEGen(fac) =>
+      Fut((fac(), Seq.empty), exec)
+    case ue: UEMap[_, T] =>
+      def f[S](ue: UEMap[S, T]): Fut[(T, Seq[AcquiredState])] =
+        eval(ue.src).map({ case (s, state) => (ue.func(s), state) })
+      f(ue)
+    case ue: UEFMap[_, T] =>
+      def f[S](ue: UEFMap[S, T]): Fut[(T, Seq[AcquiredState])] =
+        eval(ue.src).flatMap({
+          case (s, state1) => eval(ue.func(s)).map({
+            case (t, state2) => (t, state1 ++ state2)
+          })
+        })
+      f(ue)
+    case UEFilter(src: T, test: (T => Boolean)) =>
+      eval(src).filter({ case (t, _) => test(t) }, exec)
+    case UEChunk(p) =>
+      val (chunkFut, settable) = chunks(p)().getAndSet(new SettableFut[Option[Chunk]])
+      chunkFut.map(chunk => (chunk.asInstanceOf[T], Seq(AcquiredChunk(p, chunk, settable))), exec)
+    case UETerrain(p) =>
+      val (chunkFut, settable) = chunks(p)().getAndSet(new SettableFut[Option[Chunk]])
+      chunkFut.map(chunk => ((chunk match {
+        case Some(c) => Some(c.terrain)
+        case None => gridIn.get(p).flatMap(_.right.toOption)
+      }).asInstanceOf[T], Seq(AcquiredChunk(p, chunk, settable))), exec)
+    case UEEnt(id) =>
+      val (entFut, settable) = ents(id)().getAndSet(new SettableFut[Option[AnyEnt]])
+      entFut.map(ent => (ent.asInstanceOf[T], Seq(AcquiredEnt(id, ent, settable))), exec)
+    case UERand => Fut((new MRNG(ThreadLocalRandom.current.nextLong()).asInstanceOf[T], Seq.empty), exec)
+    case UETime => Fut((time.asInstanceOf[T], Seq.empty), exec)
+  }
+
+  // handle the effect asynchronously, but retaining causal coherency
+  def handle(effect: UpdateEffect): Unit = exec(() => {
+    println(effect)
+    effect match {
+      // output only effects
+      case effect: SoundEffect => addOut(effect)
+      case effect: MakeRequest[_] => addOut(effect)
+      case effect: LogEffect => addOut(effect)
+      case effect: CallService[_, _] => addOut(effect)
+      // simple asynchronous modification effects
+      case PutChunk(chunk) => chunks(chunk.pos)().update(any => Some(chunk))
+      case PutEnt(ent) => ents(ent.id)().update(any => Some(ent))
+      case RemEnt(id) => ents(id)().update(any => None)
+      // the event effect
+      case Event(ue) =>
+        // evaluate monad and process
+        eval(ue).map({
+          case (caused, acquired: Seq[AcquiredState]) =>
+            // some effects we must handle synchronously for causal coherency
+            // all settables must be set or the fut graph will freeze
+            // some effects will be recursively handled asynchonously
+
+            val out = new mutable.ArrayBuffer[UpdateEffect]
+
+            var chunkResults: Map[V3I, Option[Chunk]] = acquired.flatMap({
+              case AcquiredChunk(p, before, settable) => Some(p -> before)
+              case _ => None
+            }).toMap
+            var entResults: Map[AnyEntID, Option[AnyEnt]] = acquired.flatMap({
+              case AcquiredEnt(id, before, settable) => Some(id -> before): Option[(AnyEntID, Option[AnyEnt])]
+              case _ => None
+            }).toMap
+
+            caused foreach {
+              case PutChunk(chunk) if chunkResults.contains(chunk.pos) =>
+                chunkResults += (chunk.pos -> Some(chunk))
+              case PutEnt(ent) if entResults.contains(ent.id) =>
+                entResults += (ent.id -> Some(ent))
+              case RemEnt(id) if entResults.contains(id) =>
+                entResults += (id -> None)
+              case other => out += other
+            }
+
+            acquired.foreach {
+              case AcquiredChunk(p, before, settable) => settable.set(chunkResults(p))
+              case AcquiredEnt(id, before, settable) => settable.set(entResults(id))
+            }
+
+            out.foreach(handle)
+        })
+    }
+  })
+
+  def extract: (Map[V3I, Chunk], Map[AnyEntID, Option[AnyEnt]], Seq[UpdateEffect]) =
+    (
+      chunks.toSeq.flatMap({ case (p, chain) => chain.curr.query.get.map(chunk => (p -> chunk)) }).toMap,
+      ents.toSeq.map({ case (id, chain) => (id -> chain.curr.query.get) }).toMap,
+      {
+        val jlist = new java.util.ArrayList[UpdateEffect]
+        out.addAll(jlist)
+        JavaConverters.asScalaBuffer(jlist)
+      }
+    )
+}
+
+object ParUpdater {
+  sealed trait AcquiredState
+  case class AcquiredChunk(p: V3I, before: Option[Chunk], fut: SettableFut[Option[Chunk]]) extends AcquiredState
+  case class AcquiredEnt(id: AnyEntID, before: Option[AnyEnt], fut: SettableFut[Option[AnyEnt]]) extends AcquiredState
+}
+*/
 
 case class SingleWorld(
                       chunks: Map[V3I, Either[ChunkEnts, Terrain]],
@@ -36,24 +150,25 @@ case class SingleWorld(
                       bbox: BBox
                       ) extends ClientWorld with ServiceWorld {
   // chunk lookup
-  override def chunk(p: V3I) =
+  override def chunk(p: V3I): Option[Chunk] =
     chunks.get(p) match {
       case Some(Left(ChunkEnts(chunk, _))) => Some(chunk)
       case _ => None
     }
 
   // chunk and ents lookup
-  def chunkEnts(p: V3I): Option[ChunkEnts] = chunks.get(p).flatMap(_.left.toOption)
+  def chunkEnts(p: V3I): Option[ChunkEnts] =
+    chunks.get(p).flatMap(_.left.toOption)
 
   // terrain lookup
-  override def terrain(p: V3I) =
+  override def terrain(p: V3I): Option[Terrain] =
     chunks.get(p).map({
       case Left(ChunkEnts(chunk, _)) => chunk.terrain
       case Right(terrain) => terrain
     })
 
   // entity lookup
-  override def findEntity[E <: Entity[E]](id: EntID[E]) =
+  override def findEntity[E <: Entity[E]](id: EntID[E]): Option[E] =
     ents.get(id).flatMap(p => chunks(p).left.get.ents.get(id).asInstanceOf[Option[E]])
 
   // untyped entity lookup
@@ -61,14 +176,14 @@ case class SingleWorld(
     ents.get(id).flatMap(p => chunks(p).left.get.ents.get(id))
 
   // bounding box
-  override def bounds = bbox()
+  override def bounds: WorldBounds = bbox()
 
   // loaded chunks
-  override def loadedChunks =
+  override def loadedChunks: Seq[V3I] =
     chunks.keySet.toSeq.filter(chunks(_).isLeft)
 
   // loaded terrains
-  override def loadedTerrain =
+  override def loadedTerrain: Seq[V3I] =
     chunks.keySet.toSeq
 
   // extend world to renderable version
@@ -115,13 +230,13 @@ case class SingleWorld(
   }
 
   // put chunks in world, return replace chunk pairs
-  def putChunks(cs: Seq[Chunk]): (SingleWorld, Seq[ReplacedChunk]) = {
+  def putChunks(cs: Seq[Chunk]): (SingleWorld, Seq[ChunkExchange]) = {
     if (cs.isEmpty) (this, Seq.empty)
     else {
-      val (newChunks, replaced) = cs.foldLeft((chunks, Seq.empty[ReplacedChunk]))({
+      val (newChunks, replaced) = cs.foldLeft((chunks, Seq.empty[ChunkExchange]))({
         case ((map, replaced), chunk) => map.get(chunk.pos) match {
           case Some(Left(ChunkEnts(c, e))) =>
-            (map.updated(chunk.pos, Left(ChunkEnts(chunk, e))), replaced :+ ReplacedChunk(c, Some(chunk)))
+            (map.updated(chunk.pos, Left(ChunkEnts(chunk, e))), replaced :+ ChunkExchange(Some(c), Some(chunk)))
           case _ =>
             (map.updated(chunk.pos, Left(ChunkEnts(chunk, Map.empty))), replaced)
         }
@@ -138,13 +253,13 @@ case class SingleWorld(
   }
 
   // put terrains in world
-  def putTerrains(ts: Seq[Terrain]): (SingleWorld, Seq[ReplacedChunk]) = {
+  def putTerrains(ts: Seq[Terrain]): (SingleWorld, Seq[ChunkExchange]) = {
     if (ts.isEmpty) (this, Seq.empty)
     else {
-      val (newChunks, replaced) = ts.foldLeft((chunks, Seq.empty[ReplacedChunk]))({
+      val (newChunks, replaced) = ts.foldLeft((chunks, Seq.empty[ChunkExchange]))({
         case ((map, replaced), terrain) => map.get(terrain.pos) match {
           case Some(Left(ChunkEnts(c, e))) =>
-            (map.updated(terrain.pos, Right(terrain)), replaced :+ ReplacedChunk(c, None))
+            (map.updated(terrain.pos, Right(terrain)), replaced :+ ChunkExchange(Some(c), None))
           case _ =>
             (map.updated(terrain.pos, Right(terrain)), replaced)
         }
@@ -161,54 +276,63 @@ case class SingleWorld(
   }
 
   // put entity in world without removing it first
-  private def _putEnt(ent: AnyEnt): SingleWorld = {
+  // assumes the entity doesn't exist and will glitch if it does
+  private def _putEntUnsafe(ent: AnyEnt): (SingleWorld, EntExchange) = {
     chunks.get(ent.chunkPos) match {
       case Some(Left(ChunkEnts(chunk, entMap))) =>
-        copy(
+        (copy(
           chunks = chunks.updated(ent.chunkPos, Left(ChunkEnts(chunk, entMap + (ent.id -> ent)))),
           ents = ents + (ent.id -> ent.chunkPos),
           active = active + ent.chunkPos,
           renderable = renderable + ent.chunkPos
-        )
+        ), EntExchange(None, Some(ent)))
       case _ =>
         println("warn: failed to put ent, chunk non-existent")
-        this
+        (this, EntExchange.nill)
     }
   }
 
   // update the entity by removing then putting
-  def putEnt(ent: AnyEnt): SingleWorld = remEnt(ent.id)._putEnt(ent)
+  def putEnt(ent: AnyEnt): (SingleWorld, EntExchange) = {
+    val (w0, e0) = this remEnt ent.id
+    val (w1, e1) = w0 _putEntUnsafe ent
+    (w1, e0 andThen e1)
+    //remEnt(ent.id)._putEnt(ent)
+  }
 
   // put a sequence of chunk/ents
-  def putChunkEnts(chunkEnts: Seq[ChunkEnts]): (SingleWorld, Seq[ReplacedChunk]) = {
-    var (w, r) = this putChunks chunkEnts.map(_.chunk)
-    for {
-      ce <- chunkEnts
-      ent <- ce.ents.values
-    } w = w putEnt ent
-    (w, r)
+  def putChunkEnts(chunkEnts: Seq[ChunkEnts]): (SingleWorld, Seq[ChunkExchange], Seq[EntExchange]) = {
+    val (w0, ce) = this putChunks chunkEnts.map(_.chunk)
+    val (w1, ee) = chunkEnts.flatMap(_.ents.values).foldLeft((w0, Seq.empty[EntExchange]))({
+      case ((world, accum), ent) =>
+        val (w1, ee) = world putEnt ent
+        (world, accum :+ ee)
+    })
+    (w1, ce, ee)
   }
 
   // remove entity from world
-  def remEnt(id: AnyEntID): SingleWorld = {
+  def remEnt(id: AnyEntID): (SingleWorld, EntExchange) = {
     ents.get(id).map(p => chunks.get(p) match {
       case Some(Left(ChunkEnts(chunk, ents))) =>
-        if (ents.contains(id)) {
-          copy(
-            chunks = chunks.updated(p, Left(ChunkEnts(chunk, ents - id))),
-            active = if (ents.size == 1) active - p else active,
-            renderable = if (!chunk.isRenderable) renderable - p else renderable
-          )
-        } else {
-          println("warn: failed to remove ent, not present in chunk")
-          this
+        ents.get(id) match {
+          case Some(ent) =>
+            (copy(
+              chunks = chunks.updated(p, Left(ChunkEnts(chunk, ents - id))),
+              active = if (ents.size == 1) active - p else active,
+              renderable = if (!chunk.isRenderable) renderable - p else renderable
+            ), EntExchange(Some(ent), None))
+          case None =>
+            println("warn: failed to remove ent, not present in chunk")
+            (this, EntExchange.nill)
+
         }
       case _ =>
         println("warn: failed to remove ent, chunk non-existent")
-        this
+        (this, EntExchange.nill)
     }).getOrElse({
       //println("warn: failed to remove ent, not found")
-      this
+      (this, EntExchange.nill)
     })
   }
 
@@ -245,10 +369,15 @@ case class SingleWorld(
     active.toSeq.flatMap(chunks(_).left.get.ents.values).flatMap(_.update).foreach(queue.add)
 
     var world = this
+    /*
     val outEffects = new mutable.ArrayBuffer[UpdateEffect] // remember: reverse before returning
     val chunkChanges = new mutable.HashMap[V3I, Chunk]
     val entChanges = new mutable.HashMap[AnyEntID, Option[AnyEnt]]
-    val chunkReplaces = new mutable.ArrayBuffer[ReplacedChunk] // remember: reverse before returning
+    val chunkReplaces = new mutable.ArrayBuffer[ChunkExchange] // remember: reverse before returning
+    */
+    val outEffects = new mutable.ArrayBuffer[UpdateEffect]
+    val chunkExchanges = new mutable.ArrayBuffer[ChunkExchange]
+    val entExhanges = new mutable.ArrayBuffer[EntExchange]
 
     while (!queue.isEmpty) queue.remove() match {
       case effect: SoundEffect => outEffects += effect
@@ -258,18 +387,26 @@ case class SingleWorld(
         if (world.cdomain contains chunk.pos) {
           val (w, r) = world putChunks Seq(chunk)
           world = w
-          chunkReplaces ++= r
-          chunkChanges += (chunk.pos -> chunk)
+          chunkExchanges ++= r
+          //chunkReplaces ++= r
+          //chunkChanges += (chunk.pos -> chunk)
         } else outEffects += effect
       case effect@PutEnt(ent) =>
         if (world.chunk(ent.chunkPos).isDefined) {
-          world = world putEnt ent
-          entChanges += (ent.id -> Some(ent))
+          val (w, e) = world putEnt ent
+          world = w
+          entExhanges += e
+          //world = world putEnt ent
+          //entExhanges += EntExchange()
+          //entChanges += (ent.id -> Some(ent))
         } else outEffects += effect
       case effect@RemEnt(id) =>
         if (world.findEntityUntyped(id).isDefined) {
-          world = world remEnt id
-          entChanges += (id -> None)
+          val (w, e) = world remEnt id
+          world = w
+          entExhanges += e
+          //world = world remEnt id
+          //entChanges += (id -> None)
         } else outEffects += effect
       case effect: CallService[_, _] =>
         def f[S <: Service, T](call: CallService[S, T]): Seq[UpdateEffect] =
@@ -280,75 +417,76 @@ case class SingleWorld(
       case effect: IdenEvent => ???
     }
 
-    (world, outEffects.reverse, ChangeSummary(chunkChanges.toMap, entChanges.toMap, chunkReplaces.reverse))
-    /*
-    // recursive function for computing a phase
-    def phase(n: Byte, world: SingleWorld, in: Seq[UpdateEffect], changed: ChangeSummary):
-        (SingleWorld, Seq[UpdateEffect], ChangeSummary) = {
-      // group the effects by type
-      val grouped = new GroupedEffects(in)
-      // get the effects we will output, that aren't integrated purely
-      val out = new mutable.ArrayBuffer[UpdateEffect]
-      out ++= grouped.bin(SoundEffect)
-      out ++= grouped.bin(MakeRequest)
-      out ++= grouped.bin(LogEffect)
-      // apply all the updaters to the world
-      // if they cannot be applied now, they are added to the out buffer
-      var next: SingleWorld = world
-      var chunkChanges = changed.chunks
-      var entChanges = changed.ents
-      val chunkReplace = new mutable.ArrayBuffer[ReplacedChunk]
-      ;{
-        val (putChunksNow, putChunksLater) = grouped.bin(PutChunk).partition(pc => cdomain contains pc.c.pos)
-        val (n, r) = next putChunks putChunksNow.map(_.c)
-        next = n
-        chunkReplace ++= r
-        chunkChanges ++= putChunksNow.map(pc => (pc.c.pos, pc.c))
-        out ++= putChunksLater
-      }
-      {
-        val (putEntsNow, putEntsLater) = grouped.bin(PutEnt).partition(pe => chunk(pe.ent.chunkPos).isDefined)
-        next = putEntsNow.foldLeft(next)({ case (w, pe) => w putEnt pe.ent })
-        entChanges ++= putEntsNow.map(pe => (pe.ent.id, Some(pe.ent)))
-        out ++= putEntsLater
-      }
-      {
-        val (remEntsNow, remEntsLater) = grouped.bin(RemEnt).partition(re => findEntityUntyped(re.id).isDefined)
-        next = remEntsNow.foldLeft(next)({ case (w, re) => w remEnt re.id })
-        entChanges ++= remEntsNow.map(re => (re.id, None))
-        out ++= remEntsLater
-      }
-      // evaluate the events
-      val caused = grouped.bin(Event).flatMap(event => next.eval(event.eval, _time)).toBuffer
-      // evaluate the service calls and add them to the caused
-      // this is synchronous, and we're passing the sync executor, but in the case that a service may have to pause
-      // let's just try and give it a chance to parallelize, even though it shouldn't
-      // to preserve read-mutate coherency, we don't call services if we've evaluated events
-      if (caused.isEmpty) {
-        caused ++= grouped.bin(CallService)
-          .map((call: CallService[_ <: Service, _]) => {
-            def f[S <: Service, T](call: CallService[S, T]): Fut[Seq[UpdateEffect]] = {
-              services(call.service).apply(this, call.call)(_.run()).map(call.onComplete)
-            }
-
-            f(call)
-          }).flatMap(_.await)
-      }
-      // recurse if any further events are caused effects
-      if (caused isEmpty)
-        (next, out, ChangeSummary(chunkChanges, entChanges, chunkReplace))
-      else {
-        val (w, e, c) = phase((n + 1).toByte, next, caused, ChangeSummary(chunkChanges, entChanges, chunkReplace))
-        (w, e ++ out, c.copy(replaced = c.replaced ++ chunkReplace))
-      }
-    }
-    // get the entities' update effects
-    def entEvents = active.toSeq.flatMap(chunks(_).left.get.ents.values).flatMap(_.update)
-    // call the recursive function and return the result
-    phase(0, this, entEvents ++ externs, ChangeSummary(Map.empty, Map.empty, Vector.empty))
-    */
+    (world, outEffects, ChangeSummary(chunkExchanges, entExhanges))
   }
 
+  /*
+  def parUpdate(time: Long, externs: Seq[UpdateEffect], services: ServiceTagTable[ServiceProcedure]): (SingleWorld, Seq[UpdateEffect], ChangeSummary) = {
+    var world = this
+
+    var outEffects = new mutable.ArrayBuffer[UpdateEffect]
+    //var chunkChanges = new mutable.HashMap[V3I, Chunk]
+    var entChanges = new mutable.HashMap[AnyEntID, Option[AnyEnt]]
+    var chunkReplaces = new mutable.ArrayBuffer[ReplacedChunk]
+
+    var in = externs ++ active.toSeq.flatMap(chunks(_).left.get.ents.values).flatMap(_.update)
+    while (in.nonEmpty) {
+      val exec: java.util.Queue[Runnable] = new java.util.LinkedList[Runnable]
+
+      /*
+      val count = new AtomicInteger(0)
+      val complete = new SettableFut[Unit]
+      def exec(task: Runnable): Unit = {
+        count.incrementAndGet()
+        UniExecutor.exec(() => {
+          task.run()
+          val curr = count.decrementAndGet()
+          if (curr == 0)
+            complete.set(())
+        })
+      }
+      */
+
+
+      val par = new ParUpdater(time, world.chunks, world.ents.get, exec.add)
+      in.foreach(par.handle)
+
+      //complete.await
+
+      while (!exec.isEmpty)
+        exec.remove().run()
+      val (newChunks, newEnts, newEffects) = par.extract
+      ;{
+        val (n: SingleWorld, r: Seq[ReplacedChunk]) = world putChunks newChunks.values.toSeq
+        world = n
+        chunkReplaces ++= r
+      }
+      ;{
+        entChanges ++= newEnts
+        val put: Seq[AnyEnt] = newEnts.values.toSeq.flatten
+        world = put.foldLeft(world)({ case (w, ent) => w putEnt ent })
+        val rem: Seq[AnyEntID] = newEnts.toSeq.filter(_._2.isEmpty).map(_._1)
+        world = rem.foldLeft(world)({ case (w, id) => w remEnt id })
+      }
+      val grouped = new GroupedEffects(newEffects)
+      ;{
+        def f[S <: Service, T](call: CallService[S, T]): Seq[UpdateEffect] =
+          call.onComplete(PartialSyncEval(exec => services(call.service).apply(world, call.call)(exec)))
+        in = grouped.bin(CallService).flatMap(f(_))
+      }
+      outEffects ++= grouped.bin(SoundEffect)
+      outEffects ++= grouped.bin(MakeRequest)
+      outEffects ++= grouped.bin(LogEffect)
+    }
+
+    val chunkChanges = chunkReplaces.flatMap({
+      case ReplacedChunk(old, Some(neu)) => Some(old.pos -> neu)
+      case _ => None
+    }).toMap
+
+    (world, outEffects, ChangeSummary(chunkChanges, entChanges.toMap, chunkReplaces))
+  }
+  */
 }
 object SingleWorld {
   case class ChunkEnts(chunk: Chunk, ents: Map[AnyEntID, AnyEnt]) extends GetPos {
@@ -357,8 +495,18 @@ object SingleWorld {
   object ChunkEnts {
     def elevate(chunk: Chunk) = ChunkEnts(chunk, Map.empty)
   }
-  case class ChangeSummary(chunks: Map[V3I, Chunk], ents: Map[AnyEntID, Option[AnyEnt]], replaced: Seq[ReplacedChunk])
-  case class ReplacedChunk(old: Chunk, repl: Option[Chunk])
+  //case class ChangeSummary(chunks: Map[V3I, Chunk], ents: Map[AnyEntID, Option[AnyEnt]], replaced: Seq[ReplacedChunk])
+  //case class ReplacedChunk(old: Chunk, repl: Option[Chunk])
+  case class ChunkExchange(before: Option[Chunk], after: Option[Chunk]) {
+    def andThen(other: ChunkExchange) = ChunkExchange(before, other.after)
+  }
+  case class EntExchange(before: Option[AnyEnt], after: Option[AnyEnt]) {
+    def andThen(other: EntExchange) = EntExchange(before, other.after)
+  }
+  object EntExchange {
+    val nill = EntExchange(None, None)
+  }
+  case class ChangeSummary(chunks: Seq[ChunkExchange], ents: Seq[EntExchange])
 }
 
 object SingleContinuum {
@@ -421,17 +569,18 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
       for (sp <- chunk.declareDisposable)
         sp.dispose()
     }
-    def dispose1(replace: ReplacedChunk): Unit = replace match {
-      case ReplacedChunk(before, None) =>
-        for (sp <- before.declareDisposable)
-          sp.dispose()
-      case ReplacedChunk(before, Some(after)) =>
+    def dispose1(replace: ChunkExchange): Unit = replace match {
+      case ChunkExchange(Some(before), Some(after)) =>
         for (sp <- after.whatShouldDispose(before))
           sp.dispose()
+      case ChunkExchange(Some(before), None) =>
+        for (sp <- before.declareDisposable)
+          sp.dispose()
+      case _ =>
     }
     def dispose2(chunks: Seq[Chunk]): Unit =
       for (chunk <- chunks) dispose0(chunk)
-    def dispose3(replaces: Seq[ReplacedChunk]): Unit =
+    def dispose3(replaces: Seq[ChunkExchange]): Unit =
       for (replace <- replaces) dispose1(replace)
 
     // downgrade chunks that left the chunk domain
@@ -553,6 +702,7 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
     next = updated
 
     // update the fulfillment contexts with the changes
+
     cfulfill.put(changed.chunks.toSeq)
     tfulfill.put(changed.chunks.values.toSeq.map(chunk => (chunk.pos, chunk.terrain)))
     ;{
@@ -566,8 +716,9 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
       efulfill.remove(remedEnts)
     }
 
+
     // process the chunk replacements from the update function
-    dispose3(changed.replaced)
+    dispose3(changed.chunks)
 
     // now let's group the outputted effects
     val grouped = new GroupedEffects(effectsOut)

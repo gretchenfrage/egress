@@ -152,7 +152,7 @@ class AsyncEval[T, C <: Eval.Context](root: Eval[T, C])(disposer: Option[Fut[T] 
 
       // dispose of root
       val invalidatedRoot: Option[Fut[T]] =
-        if (triggered contains iden(root)) Some(known(iden(root)).asInstanceOf[Fut[T]])
+        if ((triggered contains iden(root)) && (known contains iden(root))) Some(known(iden(root)).asInstanceOf[Fut[T]])
         else if (unknown contains iden(root)) Some(unknown(iden(root)).asInstanceOf[Fut[T]])
         else None
       for {
