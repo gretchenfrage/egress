@@ -299,6 +299,10 @@ class SettableFut[T] extends Fut[T] {
     listeners.foreach(_.run())
   }
 
+  def observe(from: Fut[T]): Unit = {
+    from.onComplete(() => set(from.query.get))
+  }
+
   override def await: T = {
     if (status isDefined) status.get
     else monitor.synchronized {

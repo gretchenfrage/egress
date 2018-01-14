@@ -24,9 +24,9 @@ class LevelDBSave[T <: GetPos with Serializable](path: Path, generator: Generato
     options.createIfMissing(true)
     factory.open(path.toFile, options)
   }
-  private val chunkSeqs = new ParGenMutHashMap[V3I, FutSequences](p => new FutSequences(UniExecutor.execc(p * 16)))
-  private val keySeqs = new ParGenMutHashMap[DataKey[_], FutSequences](key => new FutSequences(UniExecutor.execc))
-  private val sequencer = new FutSequences(UniExecutor.execc)
+  private val chunkSeqs = new ParGenMutHashMap[V3I, FutSequence](p => new FutSequence(UniExecutor.execc(p * 16)))
+  private val keySeqs = new ParGenMutHashMap[DataKey[_], FutSequence](key => new FutSequence(UniExecutor.execc))
+  private val sequencer = new FutSequence(UniExecutor.execc)
 
   private def serialize(chunk: Any): Array[Byte] = {
     val baos = new ByteArrayOutputStream

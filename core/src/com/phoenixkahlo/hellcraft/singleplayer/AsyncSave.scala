@@ -6,7 +6,7 @@ import java.nio.file.Path
 import com.phoenixkahlo.hellcraft.core.{Chunk, Terrain}
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.singleplayer.AsyncSave.{DataKey, GetPos}
-import com.phoenixkahlo.hellcraft.util.threading.{Fut, FutSequences, Promise, UniExecutor}
+import com.phoenixkahlo.hellcraft.util.threading.{Fut, FutSequence, Promise, UniExecutor}
 
 import scala.collection.mutable
 

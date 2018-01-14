@@ -190,7 +190,7 @@ class PhysicsServiceProcedure extends ServiceProcedure[PhysicsService] {
 }
 
 object PhysicsServiceProcedure {
-  val bulletSequential = new FutSequences(_.run())
+  val bulletSequential = new FutSequence(_.run())
   def exec(task: Runnable): Unit = {
     bulletSequential.apply[Unit](task.run)
   }

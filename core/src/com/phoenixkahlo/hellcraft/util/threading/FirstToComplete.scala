@@ -41,3 +41,7 @@ class FirstToComplete[T](set: Set[Fut[T]]) extends Fut[(T, Set[Fut[T]])] {
     }
   }
 }
+
+object FirstToComplete {
+  def apply[T](set: Set[Fut[T]]): Fut[(T, Set[Fut[T]])] = new FirstToComplete[T](set)
+}

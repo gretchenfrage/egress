@@ -6,7 +6,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 /**
   * Utility for executing futs sequentially.
   */
-class FutSequences(executor: Runnable => Unit) {
+class FutSequence(executor: Runnable => Unit) {
 
   private val lock = new ReentrantReadWriteLock
   private var last: Fut[_] = Fut[Unit]((), _.run())
