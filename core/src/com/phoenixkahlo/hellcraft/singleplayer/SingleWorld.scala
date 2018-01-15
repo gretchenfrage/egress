@@ -297,7 +297,9 @@ case class SingleWorld(
   }
 
   def parUpdate(time: Long, externs: Seq[UpdateEffect], services: ServiceTagTable[ServiceProcedure]): (SingleWorld, Seq[UpdateEffect], ChangeSummary) = {
-    val exec: Runnable => Unit = _.run()
+    //val exec: Runnable => Unit = _.run()
+    val service = Executors.newFixedThreadPool(4)
+    val exec: Runnable => Unit = service.execute
 
     object State {
       private val chunks = new mutable.HashMap[V3I, Option[Fut[Chunk]]].withDefault(
@@ -370,33 +372,33 @@ case class SingleWorld(
     def process(effect: UpdateEffect): Promise =
       Fut[Promise](effect match {
         case effect: SoundEffect => State.mutate[Unit]((chunks, ents, out) => {
-          println("sound effect")
+          //println("sound effect")
           out += effect
         })
         case effect: MakeRequest[_] => State.mutate[Unit]((chunks, ents, out) => {
-          println("make request")
+          //println("make request")
           out += effect
         })
         case effect: LogEffect => State.mutate[Unit]((chunks, ents, out) => {
-          println("log effect")
+          //println("log effect")
           out += effect
         })
         case effect@PutChunk(chunk) => State.mutate[Unit]((chunks, ents, out) => {
-          println("put chunk")
+          //println("put chunk")
           if (cdomain contains chunk.pos)
             chunks(chunk.pos) = Some(Fut(chunk, _.run()))
           else
             out += effect
         })
         case effect@PutEnt(ent) => State.mutate[Unit]((chunks, ents, out) => {
-          println("put ent")
-          if (chunks contains ent.chunkPos)
+          //println("put ent " + effect)
+          if (chunks(ent.chunkPos).isDefined)
             ents(ent.id) = Fut(Some(ent), _.run())
           else
             out += effect
         })
         case effect@RemEnt(id) => State.mutate[Unit]((chunks, ents, out) => {
-          println("rem ent")
+          //println("rem ent")
           if (ents contains id)
             ents(id) = Fut(None, _.run())
           else
@@ -404,7 +406,7 @@ case class SingleWorld(
         })
         case effect@Event(ue) => evaluate[Seq[UpdateEffect], Fut[Unit]](
           ue, (caused: Seq[UpdateEffect], acquired: Seq[StateAcquire]) => {
-            println("processing event result")
+            //println("processing event result " + caused)
             val acqChunks: Set[V3I] = acquired.flatMap({
               case ChunkAcquire(p, _, _) => Some(p)
               case _ => None
@@ -416,7 +418,7 @@ case class SingleWorld(
 
             val cputNow = new mutable.HashMap[V3I, Chunk]
             val eputNow = new mutable.HashMap[AnyEntID, Option[AnyEnt]]
-            val toOutput = new mutable.ArrayBuffer[UpdateEffect]
+            val causeAsync = new mutable.ArrayBuffer[UpdateEffect]
 
             caused foreach {
               case PutChunk(chunk) if acqChunks contains chunk.pos =>
@@ -425,7 +427,7 @@ case class SingleWorld(
                 eputNow(ent.id) = Some(ent)
               case RemEnt(id) if acqEnts contains id =>
                 eputNow(id) = None
-              case other => toOutput += other
+              case other => causeAsync += other
             }
 
             acquired foreach {
@@ -439,7 +441,9 @@ case class SingleWorld(
               }
             }
 
-            State.mutate[Unit]((chunks, ents, output) => output ++= toOutput)
+
+            PromiseFold(causeAsync.map(process))
+            //State.mutate[Unit]((chunks, ents, output) => output ++= toOutput)
           }).flatten
         case effect: CallService[_, _] =>
           def f[S <: Service, T](call: CallService[S, T]): Promise = {
