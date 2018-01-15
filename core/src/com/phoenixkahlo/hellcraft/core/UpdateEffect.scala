@@ -88,14 +88,14 @@ case class IdenEvent(eval: UE[Seq[UpdateEffect]], id: EventID) extends UpdateEff
 }
 object IdenEvent extends UpdateEffectType[IdenEvent](7)
 
-class CallService[S <: Service, T](val call: S#Call[T], val onComplete: T => Seq[UpdateEffect], val service: ServiceTag[S])
+class CallService[S <: Service, T](val io: UE[Option[(S#Call[T], T => Event)]], val service: ServiceTag[S])
   extends UpdateEffect with Serializable {
   override def effectType: UpdateEffectType[_ <: UpdateEffect] = CallService
 }
 object CallService extends UpdateEffectType[CallService[_ <: Service, _]](8) {
-  def apply[S <: Service, T](call: S#Call[T], onComplete: T => Seq[UpdateEffect])(implicit service: ServiceTag[S]): CallService[S, T] =
-    new CallService[S, T](call, onComplete, service)
+  def apply[S <: Service, T](io: UE[Option[(S#Call[T], T => Event)]])(implicit service: ServiceTag[S]): CallService[S, T] =
+    new CallService[S, T](io, service)
 
-  def unapply[S <: Service, T](call: CallService[S, T]): Option[(S#Call[T], T => Seq[UpdateEffect], ServiceTag[S])] =
-    Some((call.call, call.onComplete, call.service))
+  def unapply[S <: Service, T](call: CallService[S, T]): Option[(UE[Option[(S#Call[T], T => Event)]], ServiceTag[S])] =
+    Some((call.io, call.service))
 }

@@ -89,18 +89,29 @@ object Walker {
           val replacement = ent.setPosVel(ent.pos, ent.pos, walked)
           Seq(
             // put new ent
-            PutEnt(replacement),
+            PutEnt(replacement)
             // invoke physics service
+            /*
             CallService[PhysicsService, Body](Act(body.copy(vel = walked, pos = body.pos + (Down * ent.capHeight / 2))),
-              (after: Body) => Seq(Event(UE.ent(id).map({
+              (after: Body) => Event(UE.ent(id).map({
                 case Some(ent) => Seq(PutEnt(ent.setPosVel(ent.pos, after.pos + (Up * ent.capHeight / 2), after.vel)))
                 case None => Seq.empty
-              }))))
+              })))
+              */
           )
         })
         case None => UE(Seq.empty)
+      })),
+      CallService[PhysicsService, Body](UE.ent(id).map({
+        case Some(ent) => Some({
+          val before = Body(Capsule(ent.rad, ent.capHeight), ent.pos + (Down * ent.capHeight / 2), ent.vel, ent.mass, ent.friction, ent.inertia)
+          (
+            Act(before),
+            (after: Body) => Event(UE(Seq(PutEnt(ent.setPosVel(ent.pos, after.pos + (Up * ent.capHeight / 2), after.vel)))))
+          )
+        })
+        case None => None
       }))
-
     )
   }
 }

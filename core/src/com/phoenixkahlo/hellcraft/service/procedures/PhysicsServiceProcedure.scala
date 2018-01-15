@@ -13,12 +13,13 @@ import com.badlogic.gdx.physics.bullet.dynamics.{btDiscreteDynamicsWorld, btRigi
 import com.badlogic.gdx.physics.bullet.linearmath.btDefaultMotionState
 import com.badlogic.gdx.utils.Disposable
 import com.phoenixkahlo.hellcraft.core.Chunk
+import com.phoenixkahlo.hellcraft.core.event.UE
 import com.phoenixkahlo.hellcraft.core.util.StatePinKey
 import com.phoenixkahlo.hellcraft.gamedriver.Delta
 import com.phoenixkahlo.hellcraft.math.MatrixFactory.Translate
 import com.phoenixkahlo.hellcraft.math._
 import com.phoenixkahlo.hellcraft.service.PhysicsService._
-import com.phoenixkahlo.hellcraft.service.{PhysicsService, ServiceProcedure, ServiceWorld}
+import com.phoenixkahlo.hellcraft.service.{PhysicsService, ServiceProcedure}
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 import com.phoenixkahlo.hellcraft.util.threading._
 
@@ -32,6 +33,7 @@ class PhysicsServiceProcedure extends ServiceProcedure[PhysicsService] {
   var dynWorld: btDiscreteDynamicsWorld = _
 
   val bulletExec: Runnable => Unit = PhysicsServiceProcedure.exec
+  val tetraKey = PhysicsServiceProcedure.tetraKey
 
   //val sequential = new FutSequences(_.run())
 
@@ -47,9 +49,67 @@ class PhysicsServiceProcedure extends ServiceProcedure[PhysicsService] {
     dynWorld.setGravity((Down * 9.8f).toGdx)
   }
 
-  def act(world: ServiceWorld, body: Body): Fut[Body] = {
+  def act(body: Body): UE[Fut[Body]] = {
     val p = body.pos / 16 toInts;
     // get the colliders
+    UE.chunks(p.neighbors)
+      .map(_.map(chunk => chunk.physPin.getImpatient(tetraKey, (chunk, bulletExec))))
+      .map(FutSeqFold(_, bulletExec))
+      .map(_.map((colliders: Seq[(btCollisionObject, Seq[AnyRef], Seq[Disposable])]) => {
+        // add them to the world
+        for (collider <- colliders.map(_._1))
+          dynWorld.addCollisionObject(collider)
+
+        // create the collider for the body
+        val bodyShape: btCollisionShape = body.shape match {
+          case Sphere(rad) => new btSphereShape(rad)
+          case Capsule(rad, height) => new btCapsuleShape(rad, height)
+          case Cylinder(rad, height) => new btCylinderShape(V3F(rad, height / 2, rad).toGdx)
+        }
+        val bodyMotionState = new btDefaultMotionState(MatrixFactory(Translate(body.pos)))
+        val bodyConstrInfo = new btRigidBodyConstructionInfo(body.mass, bodyMotionState, bodyShape, body.inertia.getOrElse(Origin).toGdx)
+        val rigidBody = new btRigidBody(bodyConstrInfo)
+        rigidBody.setLinearVelocity(body.vel.toGdx)
+        rigidBody.setCcdMotionThreshold(0.3f)
+        rigidBody.setCcdSweptSphereRadius(body.shape match {
+          case Sphere(rad) => rad
+          case Capsule(rad, height) => Math.min(rad, height / 2)
+          case Cylinder(rad, height) => Math.min(rad, height / 2)
+        })
+
+        // add it to the world
+        dynWorld.addRigidBody(rigidBody)
+
+        // step the world
+        dynWorld.stepSimulation(Delta.dtf, 50)
+
+        // extract the new position and velocity
+        val pos = {
+          val mat = new Matrix4
+          rigidBody.getMotionState.getWorldTransform(mat)
+          val pos = new Vector3
+          mat.getTranslation(pos)
+          V3F(pos)
+        }
+        val vel = V3F(rigidBody.getLinearVelocity)
+
+        // build the new body
+        val after = body.copy(pos = pos, vel = vel)
+
+        // clean up from the world and native resources
+        for (collider <- colliders.map(_._1))
+          dynWorld.removeCollisionObject(collider)
+        dynWorld.removeRigidBody(rigidBody)
+        rigidBody.getMotionState.dispose()
+        rigidBody.dispose()
+        bodyShape.dispose()
+        bodyConstrInfo.dispose()
+
+        // return
+        after
+      }, bulletExec))
+  }
+    /*
     FutSeqFold(
       p.neighbors.map(world.chunkFut).map(_.map(_.map(chunk => chunk.physPin.getImpatient(PhysicsServiceProcedure.tetraKey, (chunk, bulletExec))))), bulletExec
     )
@@ -109,6 +169,7 @@ class PhysicsServiceProcedure extends ServiceProcedure[PhysicsService] {
       after
     }, bulletExec)
   }
+  */
     /*
     sequential(() => {
       // get the collision objects of the surrounding chunks
@@ -176,8 +237,8 @@ class PhysicsServiceProcedure extends ServiceProcedure[PhysicsService] {
     })
     */
 
-  override def apply[T](world: ServiceWorld, call: PhysicsService.Call[T])(implicit exec: (Runnable) => Unit): Fut[T] = call match {
-    case Act(body) => act(world, body).asInstanceOf[Fut[T]]
+  override def apply[T](call: PhysicsService.Call[T])(implicit exec: (Runnable) => Unit): UE[Fut[T]] = call match {
+    case Act(body) => act(body).asInstanceOf[UE[Fut[T]]]
   }
 
   override def close(): Unit = {

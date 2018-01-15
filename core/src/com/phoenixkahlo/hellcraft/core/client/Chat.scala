@@ -87,7 +87,7 @@ object Commands {
 
       PhysCube(vel, v + (Up * 10), walk)
     }),
-    "bullet" -> ((v, j) => BulletCube(v + (Up * 20), Origin)),
+    //"bullet" -> ((v, j) => BulletCube(v + (Up * 20), Origin)),
     "avatar" -> ((v, j) => Avatar(v + (Up * 20)))
   )
 

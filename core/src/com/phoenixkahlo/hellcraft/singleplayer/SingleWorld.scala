@@ -14,7 +14,7 @@ import com.phoenixkahlo.hellcraft.core.util.GroupedEffects
 import com.phoenixkahlo.hellcraft.core.{CallService, Chunk, Event, EventID, IdenEvent, LogEffect, MakeRequest, PutChunk, PutEnt, RemEnt, SoundEffect, Terrain, UpdateEffect, event}
 import com.phoenixkahlo.hellcraft.math.{MRNG, V3I}
 import com.phoenixkahlo.hellcraft.service.procedures.PhysicsServiceProcedure
-import com.phoenixkahlo.hellcraft.service.{Service, ServiceProcedure, ServiceTagTable, ServiceWorld}
+import com.phoenixkahlo.hellcraft.service.{Service, ServiceProcedure, ServiceTagTable}
 import com.phoenixkahlo.hellcraft.singleplayer.AsyncSave.GetPos
 import com.phoenixkahlo.hellcraft.singleplayer.SingleContinuum.IncompleteKey
 import com.phoenixkahlo.hellcraft.singleplayer.SingleWorld.{apply => _, _}
@@ -34,16 +34,13 @@ case class SingleWorld(
                       active: Set[V3I],
                       renderable: Set[V3I],
                       bbox: BBox
-                      ) extends ClientWorld with ServiceWorld {
+                      ) extends ClientWorld {
   // chunk lookup
   override def chunk(p: V3I): Option[Chunk] =
     chunks.get(p) match {
       case Some(Left(ChunkEnts(chunk, _))) => Some(chunk)
       case _ => None
     }
-
-  // wrap a chunk in a future, for the service world
-  override def chunkFut(p: V3I): Fut[Option[Chunk]] = Fut(chunk(p), _.run())
 
   // chunk and ents lookup
   def chunkEnts(p: V3I): Option[ChunkEnts] =
@@ -285,8 +282,14 @@ case class SingleWorld(
           entExhanges += e
         } else outEffects += effect
       case effect: CallService[_, _] =>
-        def f[S <: Service, T](call: CallService[S, T]): Seq[UpdateEffect] =
-          call.onComplete(PartialSyncEval(exec => services(call.service).apply(world, call.call)(exec)))
+        def f[S <: Service, T](call: CallService[S, T]): Seq[UpdateEffect] = {
+          world.eval(call.io, _time) match {
+            case Some((invoke: S#Call[T], onComplete: (T => Event))) =>
+              val o: Event = onComplete(PartialSyncEval(exec => world.eval(services(call.service).apply(invoke)(exec), _time)))
+              world.eval(o.eval, _time)
+            case None => Seq.empty
+          }
+        }
         f(effect).reverse.foreach(queue.addFirst)
       case effect@Event(ue) =>
         world.eval(ue, _time).reverse.foreach(queue.addFirst)
@@ -325,7 +328,19 @@ case class SingleWorld(
     case class ChunkAcquire(p: V3I, before: Fut[Chunk], callback: SettableFut[Chunk]) extends StateAcquire
     case class EntAcquire(id: AnyEntID, before: Fut[Option[AnyEnt]], callback: SettableFut[Option[AnyEnt]]) extends StateAcquire
 
-    def evaluate[T, R](ue: UE[T], onComplete: (T, Seq[StateAcquire]) => R): Fut[R] = ue match {
+    case class AltSources(chunks: Map[V3I, Fut[Chunk]], ents: Map[AnyEntID, Fut[Option[AnyEnt]]])
+    object AltSources {
+      def fromAcquired(acq: Seq[StateAcquire]): AltSources = {
+        val (c, e) = acq.partition(_.isInstanceOf[ChunkAcquire])
+        AltSources(
+          c.asInstanceOf[Seq[ChunkAcquire]].map(acq => (acq.p, acq.before)).toMap,
+          e.asInstanceOf[Seq[EntAcquire]].map(acq => (acq.id, acq.before)).toMap
+        )
+      }
+    }
+    object NoAlts extends AltSources(Map.empty, Map.empty)
+
+    def evaluate[T, R](ue: UE[T], onComplete: (T, Seq[StateAcquire]) => R)(implicit alts: AltSources = NoAlts): Fut[R] = ue match {
       case ue@UEGen(fac) => Fut(onComplete(fac(), Seq.empty), exec)
       case ue@UEMap(src, func) =>
         def f[S, T, R](ue: UEMap[S, T], onComplete: (T, Seq[StateAcquire]) => R): Fut[R] =
@@ -341,32 +356,79 @@ case class SingleWorld(
             println("warn: UE filter monad failed filter (ignoring)")
           onComplete(t, acq)
         })
-      case ue@UEChunk(p) => State.mutate[Fut[R]]((chunks, ents, out) => {
-        chunks(p) match {
-          case Some(before: Fut[Chunk]) =>
-            val callback = new SettableFut[Chunk]
-            val acquire = ChunkAcquire(p, before, callback)
-            chunks(p) = Some(callback)
-            before.map((chunk: Chunk) => onComplete(Some(chunk).asInstanceOf[T], Seq(acquire)))
-          case None =>
-            Fut(onComplete(None.asInstanceOf[T], Seq.empty), exec)
-        }
-      }).flatten
-      case ue@UETerrain(p) => State.mutate[Fut[R]]((chunks, ents, out) => {
-        chunks(p) match {
-          case Some(fut: Fut[Chunk]) => fut.map[R]((any: Chunk) => onComplete(Some(fut.query.get.terrain).asInstanceOf[T], Seq.empty), exec)
-          case None => Fut[R](onComplete(SingleWorld.this.terrain(p).asInstanceOf[T], Seq.empty), exec)
-        }
-      }).flatten
-      case ue@UEEnt(id) => State.mutate((chunks, ents, out) => {
-        val before: Fut[Option[AnyEnt]] = ents(id)
-        val callback: SettableFut[Option[AnyEnt]] = new SettableFut[Option[AnyEnt]]
-        val acquire = EntAcquire(id, before, callback)
-        ents(id) = callback
-        before.map(ent => onComplete(ent.asInstanceOf[T], Seq(acquire)), exec)
-      }).flatten
+      case ue@UEChunk(p) =>
+        alts.chunks.get(p).map(_.map(Some(_).asInstanceOf[R])).getOrElse({
+          State.mutate[Fut[R]]((chunks, ents, out) => {
+            chunks(p) match {
+              case Some(before: Fut[Chunk]) =>
+                val callback = new SettableFut[Chunk]
+                val acquire = ChunkAcquire(p, before, callback)
+                chunks(p) = Some(callback)
+                before.map((chunk: Chunk) => onComplete(Some(chunk).asInstanceOf[T], Seq(acquire)))
+              case None =>
+                Fut(onComplete(None.asInstanceOf[T], Seq.empty), exec)
+            }
+          }).flatten
+        })
+      case ue@UETerrain(p) =>
+        alts.chunks.get(p).map(_.map(chunk => Some(chunk.terrain).asInstanceOf[R])).getOrElse({
+          State.mutate[Fut[R]]((chunks, ents, out) => {
+            chunks(p) match {
+              case Some(fut: Fut[Chunk]) => fut.map[R]((any: Chunk) => onComplete(Some(fut.query.get.terrain).asInstanceOf[T], Seq.empty), exec)
+              case None => Fut[R](onComplete(SingleWorld.this.terrain(p).asInstanceOf[T], Seq.empty), exec)
+            }
+          }).flatten
+        })
+      case ue@UEEnt(id) =>
+        alts.ents.get(id).map(_.asInstanceOf[Fut[R]]).getOrElse({
+          State.mutate((chunks, ents, out) => {
+            val before: Fut[Option[AnyEnt]] = ents(id)
+            val callback: SettableFut[Option[AnyEnt]] = new SettableFut[Option[AnyEnt]]
+            val acquire = EntAcquire(id, before, callback)
+            ents(id) = callback
+            before.map(ent => onComplete(ent.asInstanceOf[T], Seq(acquire)), exec)
+          }).flatten
+        })
       case UETime => Fut(onComplete(time, Seq.empty), exec)
       case UERand => Fut(onComplete(new MRNG(ThreadLocalRandom.current.nextLong()).asInstanceOf[T], Seq.empty), exec)
+    }
+
+    def coherentProcess(caused: Seq[UpdateEffect], acquired: Seq[StateAcquire]): Promise = {
+      val acqChunks: Set[V3I] = acquired.flatMap({
+        case ChunkAcquire(p, _, _) => Some(p)
+        case _ => None
+      }).toSet
+      val acqEnts: Set[AnyEntID] = acquired.flatMap({
+        case EntAcquire(id, _, _) => Some(id): Option[AnyEntID]
+        case _ => None: Option[AnyEntID]
+      }).toSet
+
+      val cputNow = new mutable.HashMap[V3I, Chunk]
+      val eputNow = new mutable.HashMap[AnyEntID, Option[AnyEnt]]
+      val causeAsync = new mutable.ArrayBuffer[UpdateEffect]
+
+      caused foreach {
+        case PutChunk(chunk) if acqChunks contains chunk.pos =>
+          cputNow(chunk.pos) = chunk
+        case PutEnt(ent) if acqEnts contains ent.id =>
+          eputNow(ent.id) = Some(ent)
+        case RemEnt(id) if acqEnts contains id =>
+          eputNow(id) = None
+        case other => causeAsync += other
+      }
+
+      acquired foreach {
+        case ChunkAcquire(p, before, callback) => cputNow.get(p) match {
+          case Some(chunk) => callback.set(chunk)
+          case None => callback.observe(before)
+        }
+        case EntAcquire(id, before, callback) => eputNow.get(id) match {
+          case Some(ent) => callback.set(ent)
+          case None => callback.observe(before)
+        }
+      }
+
+      PromiseFold(causeAsync.map(process))
     }
 
     def process(effect: UpdateEffect): Promise =
@@ -391,7 +453,7 @@ case class SingleWorld(
             out += effect
         })
         case effect@PutEnt(ent) => State.mutate[Unit]((chunks, ents, out) => {
-          //println("put ent " + effect)
+          //println("put ent " + ent)
           if (chunks(ent.chunkPos).isDefined)
             ents(ent.id) = Fut(Some(ent), _.run())
           else
@@ -407,47 +469,24 @@ case class SingleWorld(
         case effect@Event(ue) => evaluate[Seq[UpdateEffect], Fut[Unit]](
           ue, (caused: Seq[UpdateEffect], acquired: Seq[StateAcquire]) => {
             //println("processing event result " + caused)
-            val acqChunks: Set[V3I] = acquired.flatMap({
-              case ChunkAcquire(p, _, _) => Some(p)
-              case _ => None
-            }).toSet
-            val acqEnts: Set[AnyEntID] = acquired.flatMap({
-              case EntAcquire(id, _, _) => Some(id): Option[AnyEntID]
-              case _ => None: Option[AnyEntID]
-            }).toSet
-
-            val cputNow = new mutable.HashMap[V3I, Chunk]
-            val eputNow = new mutable.HashMap[AnyEntID, Option[AnyEnt]]
-            val causeAsync = new mutable.ArrayBuffer[UpdateEffect]
-
-            caused foreach {
-              case PutChunk(chunk) if acqChunks contains chunk.pos =>
-                cputNow(chunk.pos) = chunk
-              case PutEnt(ent) if acqEnts contains ent.id =>
-                eputNow(ent.id) = Some(ent)
-              case RemEnt(id) if acqEnts contains id =>
-                eputNow(id) = None
-              case other => causeAsync += other
-            }
-
-            acquired foreach {
-              case ChunkAcquire(p, before, callback) => cputNow.get(p) match {
-                case Some(chunk) => callback.set(chunk)
-                case None => callback.observe(before)
-              }
-              case EntAcquire(id, before, callback) => eputNow.get(id) match {
-                case Some(ent) => callback.set(ent)
-                case None => callback.observe(before)
-              }
-            }
-
-
-            PromiseFold(causeAsync.map(process))
-            //State.mutate[Unit]((chunks, ents, output) => output ++= toOutput)
+            coherentProcess(caused, acquired)
           }).flatten
         case effect: CallService[_, _] =>
           def f[S <: Service, T](call: CallService[S, T]): Promise = {
-            ???
+            evaluate[Option[(S#Call[T], T => Event)], Promise](call.io, (opt, acq1) => opt match {
+              case Some((invoke, onComplete)) =>
+                evaluate[Fut[T], Promise](services(call.service).apply(invoke)(exec),
+                  (fut, acq2) => {
+                    fut.map(onComplete, exec).map[Promise](
+                      (event: Event) => {
+                        evaluate[Seq[UpdateEffect], Promise](event.eval,
+                          (caused, acq3) => {
+                            coherentProcess(caused, acq1 ++ acq2 ++ acq3)
+                          })(AltSources.fromAcquired(acq1 ++ acq2)).flatten
+                      }).flatten
+                  })(AltSources.fromAcquired(acq1)).flatten
+              case None => Promise.nothing
+            }).flatten
           }
           f(effect)
       }, exec).flatten
@@ -699,7 +738,6 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
     val effectsIn = externs.toBuffer
     // and then all effects async effects that are ready and have been queued
     while (!asyncEffects.isEmpty) {
-      //effectsIn += asyncEffects.remove()
       val (e, r) = asyncEffects.remove()
       effectsIn ++= e
       r.run()
@@ -711,12 +749,9 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
       pendingChunkPuts = putLater
     }
 
-
     // now we let the world update itself purely, returning its updated version, and externally handled effects
     val (updated, effectsOut, changed) = next.parUpdate(time, effectsIn, serviceProcedures)
     next = updated
-
-
 
     // update the fulfillment contexts with the changes
     {
@@ -737,21 +772,6 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
       efulfill.put(pute.map(e => (e.id, e)))
       efulfill.remove(reme)
     }
-    /*
-    cfulfill.put(changed.chunks.toSeq)
-    tfulfill.put(changed.chunks.values.toSeq.map(chunk => (chunk.pos, chunk.terrain)))
-    ;{
-      val addedEnts = new mutable.ArrayBuffer[(AnyEntID, AnyEnt)]
-      val remedEnts = new mutable.ArrayBuffer[AnyEntID]
-      changed.ents foreach {
-        case (id, Some(ent)) => addedEnts += ((id, ent))
-        case (id, None) => remedEnts += id
-      }
-      efulfill.put(addedEnts)
-      efulfill.remove(remedEnts)
-    }
-    */
-
 
     // perform all chunk change disposals
     dispose3(changed.chunks)
