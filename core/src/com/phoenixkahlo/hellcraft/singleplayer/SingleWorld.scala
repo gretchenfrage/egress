@@ -19,6 +19,7 @@ import com.phoenixkahlo.hellcraft.singleplayer.AsyncSave.GetPos
 import com.phoenixkahlo.hellcraft.singleplayer.SingleContinuum.IncompleteKey
 import com.phoenixkahlo.hellcraft.singleplayer.SingleWorld.{apply => _, _}
 import com.phoenixkahlo.hellcraft.util.collections.{BBox, ParGenMutHashMap, V3ISet}
+import com.phoenixkahlo.hellcraft.util.debugging.Profiler
 import com.phoenixkahlo.hellcraft.util.threading._
 import com.phoenixkahlo.hellcraft.util.time.Timer
 
@@ -301,8 +302,11 @@ case class SingleWorld(
 
   def parUpdate(time: Long, externs: Seq[UpdateEffect], services: ServiceTagTable[ServiceProcedure]): (SingleWorld, Seq[UpdateEffect], ChangeSummary) = {
     //val exec: Runnable => Unit = _.run()
-    val service = Executors.newFixedThreadPool(4)
-    val exec: Runnable => Unit = service.execute
+    //val service = Executors.newFixedThreadPool(4)
+    //val exec: Runnable => Unit = service.execute
+    val p = Profiler("par update")
+
+    val exec: Runnable => Unit = SingleWorld.parUpdatePool.execute
 
     object State {
       private val chunks = new mutable.HashMap[V3I, Option[Fut[Chunk]]].withDefault(
@@ -511,11 +515,21 @@ case class SingleWorld(
         entExhanges += e
     }
 
+    p.log()
+    p.print()
+
     (world, State.outEffects, ChangeSummary(chunkExchanges, entExhanges))
   }
 
 }
 object SingleWorld {
+  lazy val parUpdatePool = Executors.newFixedThreadPool(4, task => {
+    val thread = new Thread(task)
+    thread.setName("par update thread")
+    thread.setPriority(10)
+    thread
+  })
+
   case class ChunkEnts(chunk: Chunk, ents: Map[AnyEntID, AnyEnt]) extends GetPos {
     override def pos: V3I = chunk.pos
   }
