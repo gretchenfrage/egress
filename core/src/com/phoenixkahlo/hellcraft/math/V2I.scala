@@ -47,6 +47,7 @@ object V2I {
 
 }
 
+object Ones2D extends V2I(1, 1)
 object Origin2D extends V2I(0, 0)
 object North2D extends V2I(0, 1)
 object South2D extends V2I(0, -1)

@@ -13,6 +13,12 @@ trait QueueOut[+T] {
   def poll(): T
 
   def map[E](func: T => E): QueueOut[E] = new QueueOutMap(this, func)
+
+  def drainTo(consumer: T => Unit): Unit = {
+    var t: T = null.asInstanceOf[T]
+    while ({t = poll(); t != null})
+      consumer(t)
+  }
 }
 
 trait QueueIn[-T] {

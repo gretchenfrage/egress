@@ -9,7 +9,7 @@ import com.phoenixkahlo.hellcraft.util.collections.spatial._
 
 import scala.concurrent.duration._
 import scala.collection.mutable.ArrayBuffer
-
+/*
 class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: Consumer[Throwable], equator: Long => Float, stretch: V3F) {
 
   val flatMode = false
@@ -133,6 +133,19 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
     (queue3D.toSeq.map(_._1), queue2D.toSeq.map(_._1), cQueue3D.toSeq.map(_._1))
   }
 
+}
+*/
+trait UniExecutor {
+  def exec(task: Runnable): Unit
+  def exec(pos: V3F)(task: Runnable): Unit
+  def exec(pos: V2F)(task: Runnable): Unit
+  def execc(task: Runnable): Unit
+  def execc(pos: V3F)(task: Runnable): Unit
+  def execc(pos: V2F)(task: Runnable): Unit
+  def foreground(task: Runnable): Unit
+
+  def point: V3F
+  def point_=(p: V3F): Unit
 }
 
 object UniExecutor {
