@@ -50,6 +50,15 @@ class SpatialPriorityQueue[K, E](empty: DimTree[Queue[E], _, K], spoint: K) exte
   override def iterator(): util.Iterator[(K, E)] =
     JavaConverters.asJavaIterator(tree.iterator.flatMap({ case (k, q) => q.map(k -> _) }))
 
+  def drainTo(consumer: ((K, E)) => Unit): Unit = {
+    for {
+      (k, queue) <- tree
+      v <- queue
+    } consumer((k, v))
+    tree = empty
+    _size = 0
+  }
+
   override def size(): Int = _size
 
   def height: Int = tree.height

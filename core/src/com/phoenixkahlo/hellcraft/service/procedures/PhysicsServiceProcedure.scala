@@ -53,7 +53,7 @@ class PhysicsServiceProcedure extends ServiceProcedure[PhysicsService] {
     val p = body.pos / 16 toInts;
     // get the colliders
     UE.chunks(p.neighbors)
-      .map(_.map(chunk => chunk.physPin.getImpatient(tetraKey, (chunk, bulletExec))))
+      .map(_.map(chunk => chunk.physPin.get(tetraKey, chunk)))
       .map(FutSeqFold(_, bulletExec))
       .map(_.map((colliders: Seq[(btCollisionObject, Seq[AnyRef], Seq[Disposable])]) => {
         // add them to the world
@@ -257,8 +257,8 @@ object PhysicsServiceProcedure {
   }
 
   val noTrans = MatrixFactory()
-  val tetraKey = new StatePinKey[Fut[(btCollisionObject, Seq[AnyRef], Seq[Disposable])], (Chunk, Runnable => Unit)](
-    { case (chunk, any) =>
+  val tetraKey = new StatePinKey[Fut[(btCollisionObject, Seq[AnyRef], Seq[Disposable])], Chunk](
+    (chunk) => {
       Fut({
         val tverts = chunk.terrainSoup.indexToVert.map(v => chunk.terrainSoup.verts(v).get)
         val floats = new ArrayBuffer[Float]

@@ -46,7 +46,8 @@ class PoolOctreeQueue[T](emptyListener: Boolean => Unit, stretch: V3F = Ones) ex
     }
 
     override def drainTo(consumer: ((V3F, T)) => Unit): Unit = PoolOctreeQueue.this.synchronized {
-
+      internal.drainTo(consumer)
+      emptyListener(false)
     }
   }
 
@@ -67,9 +68,16 @@ class PoolQuadtreeQueue[T](emptyListener: Boolean => Unit, stretch: V2F = Ones2D
     internal.point = p ** stretch
   }
 
-  override def out: QueueOut[(V2F, T)] = () => PoolQuadtreeQueue.this.synchronized {
-    try internal.poll()
-    finally emptyListener(!internal.isEmpty)
+  override def out: QueueOut[(V2F, T)] = new QueueOut[(V2F, T)] {
+    override def poll(): (V2F, T) = PoolQuadtreeQueue.this.synchronized {
+      try internal.poll()
+      finally emptyListener(!internal.isEmpty)
+    }
+
+    override def drainTo(consumer: ((V2F, T)) => Unit): Unit = PoolQuadtreeQueue.this.synchronized {
+      internal.drainTo(consumer)
+      emptyListener(false)
+    }
   }
 
   override def in: QueueIn[(V2F, T)] = t => PoolQuadtreeQueue.this.synchronized {

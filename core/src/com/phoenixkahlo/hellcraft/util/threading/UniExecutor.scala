@@ -135,7 +135,10 @@ class UniExecutor(threadCount: Int, threadFactory: ThreadFactory, failHandler: C
 
 }
 */
+
 trait UniExecutor {
+  def start(): Unit
+
   def exec(task: Runnable): Unit
   def exec(pos: V3F)(task: Runnable): Unit
   def exec(pos: V2F)(task: Runnable): Unit
@@ -146,10 +149,26 @@ trait UniExecutor {
 
   def point: V3F
   def point_=(p: V3F): Unit
+
+  def simplifyCrits(): Unit = ()
+
+  def getSpatialTasks: (Seq[V3F], Seq[V2F], Seq[V3F]) = (Seq.empty, Seq.empty, Seq.empty)
+  def sizeSeq: Int = 0
+  def size3D: Int = 0
+  def size2D: Int = 0
+  def sizeCSeq: Int = 0
+  def sizeC3D: Int = 0
+  def sizeC2D: Int = 0
+  def height3D: Int = 0
+  def height2D: Int = 0
+  def heightC3D: Int = 0
+  def heightC2D: Int = 0
+
+  def close(exec: Runnable => Unit): Promise
 }
 
-object UniExecutor {
 
+object UniExecutor {
   @volatile private var service: UniExecutor = _
 
   def exec(task: Runnable): Unit = service.exec(task)
@@ -170,6 +189,7 @@ object UniExecutor {
 
   def getService: UniExecutor = service
 
+  /*
   def activate(threadCount: Int, threadFactory: ThreadFactory, failHandler: Consumer[Throwable], equator: Long => Float, stretch: V3F): Unit =
     this.synchronized {
       if (service != null) throw new IllegalStateException("uni executor is already active")
@@ -180,6 +200,18 @@ object UniExecutor {
   def deactivate(): Unit = this.synchronized {
     if (service == null) throw new IllegalStateException("uni executor is not active")
     service.close()
+    service = null
+  }
+  */
+  def activate(factory: => UniExecutor): Unit = this.synchronized {
+    if (service != null) throw new IllegalStateException("uni executor is already active")
+    service = factory
+    service.start()
+  }
+
+  def deactivate(): Unit = this.synchronized {
+    if (service == null) throw new IllegalStateException("uni executor is not active")
+    service.close(_.run())
     service = null
   }
 

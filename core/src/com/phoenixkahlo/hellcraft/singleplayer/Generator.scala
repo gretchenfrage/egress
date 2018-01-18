@@ -97,7 +97,8 @@ class DefaultGenerator(res: Int) extends Generator {
       soupAt(p).map({
         case (ter, bs, ts) =>
           val c = new Chunk(p, ter, ts, bs)
-          PartialSyncEval(exec => c.physPin.getPatient(PhysicsServiceProcedure.tetraKey, (c, exec)))
+          c.physPin.get(PhysicsServiceProcedure.tetraKey, c)
+          //PartialSyncEval(exec => c.physPin.get(PhysicsServiceProcedure.tetraKey, (c, exec)))
           c
       }, UniExecutor.exec(p * 16))
     } else Fut(null: Chunk, _.run())

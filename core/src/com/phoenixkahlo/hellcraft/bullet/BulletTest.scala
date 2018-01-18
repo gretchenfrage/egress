@@ -28,7 +28,7 @@ import com.phoenixkahlo.hellcraft.util.fields.IDField
 import com.phoenixkahlo.hellcraft.util.threading.UniExecutor
 
 import scala.collection.mutable.ArrayBuffer
-
+/*
 class BulletTestWorld {
   val noise = Simplex(1f / 8f, 15f)
   implicit val mapping = TerrainUnits
@@ -298,3 +298,4 @@ class BulletTest extends GameState {
     broadphase.dispose()
   }
 }
+*/

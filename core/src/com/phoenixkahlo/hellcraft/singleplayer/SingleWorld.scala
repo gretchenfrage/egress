@@ -573,7 +573,7 @@ object SingleContinuum {
 }
 
 // holds a single world and manages impure mechanism
-class SingleContinuum(save: AsyncSave[ChunkEnts]) {
+class SingleContinuum(save: AsyncSave[ChunkEnts], services: Services) {
   // these are volatile so that they can be read by other threads, like the rendering thread
   // we store them in one reference so it can be updated atomically, lock-free
   @volatile private var _timeAndCurr: (Long, SingleWorld) =
@@ -609,11 +609,13 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
   update(V3ISet.empty, V3ISet.empty, save.getKey(IncompleteKey).await)
 
   // table of service procedures
+  /*
   val serviceProcedures = new ServiceTagTable[ServiceProcedure]
   serviceProcedures += new PhysicsServiceProcedure
 
   for (procedure <- serviceProcedures.toSeq)
     procedure.begin()
+  */
 
   // update the world and return externally handled effects
   def update(cdomain: V3ISet, tdomain: V3ISet, externs: Seq[UpdateEffect]): Seq[UpdateEffect] = {
@@ -756,7 +758,7 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
     }
 
     // now we let the world update itself purely, returning its updated version, and externally handled effects
-    val (updated, effectsOut, changed) = next.parUpdate(time, effectsIn, serviceProcedures)
+    val (updated, effectsOut, changed) = next.parUpdate(time, effectsIn, services.table)
     next = updated
 
     // update the fulfillment contexts with the changes
@@ -833,11 +835,13 @@ class SingleContinuum(save: AsyncSave[ChunkEnts]) {
       case _ => None
     }))
     // close the service procedures
+    /*
     val p3 = Fut[Unit]({
       for (service <- serviceProcedures.toSeq)
         service.close()
     }, UniExecutor.execc)
+    */
     // merge the promises
-    PromiseFold(Seq(p1, p2, p3))
+    PromiseFold(Seq(p1, p2/*, p3*/))
   }
 }

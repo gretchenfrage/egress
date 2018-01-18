@@ -96,7 +96,7 @@ class LevelDBSave[T <: GetPos with Serializable](path: Path, generator: Generato
     // disrupt generator
     generator.cancel()
     // drain the db 3d queue into the db seq queue to reduce tree overhead
-    UniExecutor.getService.makeCSequential()
+    UniExecutor.getService.simplifyCrits()
     // add the pushes to all the sequences
     for ((p, chunk) <- chunks) {
       sequencer(() => chunkSeqs(p)()(() => db.put(p.toByteArray, serialize(chunk))))

@@ -26,7 +26,7 @@ import com.phoenixkahlo.hellcraft.util.audio.AudioUtil
 import com.phoenixkahlo.hellcraft.util.caches.Cache
 import com.phoenixkahlo.hellcraft.util.collections.spatial.SpatialTemporalQueue
 import com.phoenixkahlo.hellcraft.util.collections._
-import com.phoenixkahlo.hellcraft.util.threading.{Fut, Promise, UniExecutor}
+import com.phoenixkahlo.hellcraft.util.threading._
 import other.AppDirs
 
 import scala.concurrent.duration._
@@ -38,6 +38,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
   private var save: AsyncSave[ChunkEnts] = _
   private var clock: GametimeClock = _
   private var infinitum: SingleContinuum = _
+  private var services: Services = _
   private var pack: ResourcePack = _
   private var renderer: Renderer = _
   private var processor: InputProcessor = _
@@ -56,6 +57,20 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     val res = 16
 
     println("activating uni executor")
+    UniExecutor.activate({
+      val config = SmartPool.Config(
+        Runtime.getRuntime.availableProcessors,
+        new Thread(_),
+        e => {
+          System.err.println("uni executor failure")
+          e.printStackTrace()
+          driver.enter(new MainMenu(providedResources))
+        },
+        V2F(1, 1.5f)
+      )
+      new SmartPool(config)
+    })
+    /*
     UniExecutor.activate(
       auxBackgroundThreads,
       task => {
@@ -70,6 +85,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       SpatialTemporalQueue.timeDoesntMatter,
       V3F(1, 1.5f, 1)
     )
+    */
 
     //clientLogic = AvatarClientMain(clientCore, EntID.random[Avatar]())
 
@@ -82,8 +98,11 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     //clock = new ManualGametimeClock
 
     println("instantiating history")
+    services = new Services
+    services.start()
+
     //infinitum = new Infinitum(res, save, 1f / 20f)
-    infinitum = new SingleContinuum(save)
+    infinitum = new SingleContinuum(save, services)
 
     println("creating client logic")
 
@@ -338,8 +357,10 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     val close: Promise = infinitum.close()
     // while that's happening, we can dispose of all graphics resources owned by the VRAM graph
     // now we wait for the world to finish saving
-    close.await
+    PartialSyncGLEval(close)
     println("...saved!")
+    // then, shut down the service procedures
+    PartialSyncGLEval(services.close())
     // finally, kill the executor, any tasks in it are no longer needed
     UniExecutor.deactivate()
   }

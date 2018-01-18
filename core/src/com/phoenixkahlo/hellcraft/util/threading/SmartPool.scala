@@ -21,7 +21,7 @@ object SmartPool {
   case object Closed extends PoolStatus
 }
 
-class SmartPool(config: SmartPool.Config) {
+class SmartPool(config: SmartPool.Config) extends UniExecutor {
   if (config.threadCount < 1)
     throw new IllegalArgumentException("Pool must have at least 1 thread")
   if (config.stretch.x <= 0 || config.stretch.y <= 0)
@@ -42,11 +42,11 @@ class SmartPool(config: SmartPool.Config) {
   private val foreground = new PoolLinearQueue[Runnable](setStatus(0))
 
   private val mainSeq = new PoolLinearQueue[Runnable](setStatus(1))
-  private val main3D = new PoolOctreeQueue[Runnable](setStatus(2), config.stretch.inflate(1))
-  private val main2D = new PoolQuadtreeQueue[Runnable](setStatus(3), config.stretch)
+  private val main3D = new PoolOctreeQueue[Runnable](setStatus(2), V3F(config.stretch.x, config.stretch.y, config.stretch.x))
+  private val main2D = new PoolQuadtreeQueue[Runnable](setStatus(3), Ones2D)
   private val critSeq = new PoolLinearQueue[Runnable](setStatus(4))
-  private val crit3D = new PoolOctreeQueue[Runnable](setStatus(5), config.stretch.inflate(1))
-  private val crit2D = new PoolQuadtreeQueue[Runnable](setStatus(6), config.stretch)
+  private val crit3D = new PoolOctreeQueue[Runnable](setStatus(5), V3F(config.stretch.x, config.stretch.y, config.stretch.x))
+  private val crit2D = new PoolQuadtreeQueue[Runnable](setStatus(6), Ones2D)
 
   private val out = Array[QueueOut[Runnable]](
     mainSeq.out,
@@ -68,6 +68,7 @@ class SmartPool(config: SmartPool.Config) {
   }
 
   private val procedure: Runnable = () => {
+    object CloseException extends Exception
     try while (!Thread.interrupted()) {
       {
         var task: Runnable = null
@@ -84,9 +85,11 @@ class SmartPool(config: SmartPool.Config) {
           notif.incrementAndGet()
           if (status.get() == 0 ) {
             monitor.synchronized {
+              if (poolStatus == Closed)
+                throw CloseException
               if (Thread.interrupted())
                 throw new InterruptedException
-              while (status.get() == 0)
+              while (poolStatus == Running && status.get() == 0)
                 monitor.wait()
             }
           }
@@ -94,7 +97,10 @@ class SmartPool(config: SmartPool.Config) {
         }
       }
     } catch {
-      case e: InterruptedException => //println("smart pool shutting down")
+      case CloseException =>
+        println("pool thread closing")
+      case e: InterruptedException =>
+        println("pool thread interrupted")
     }
   }
 
@@ -139,6 +145,15 @@ class SmartPool(config: SmartPool.Config) {
     afterAdd()
   }
 
+  override def point: V3F = main3D.point
+
+  override def point_=(p: V3F): Unit = {
+    main3D.point = p
+    crit3D.point = p
+    main2D.point = p.flatten
+    crit2D.point = p.flatten
+  }
+
   def start(): Unit = {
     if (_poolStatus.getAndUpdate({
       case Unstarted => Running
@@ -152,23 +167,61 @@ class SmartPool(config: SmartPool.Config) {
     }
   }
 
+  override def simplifyCrits(): Unit = {
+    crit3D.out.map(_._2).drainTo(critSeq.in)
+    crit2D.out.map(_._2).drainTo(critSeq.in)
+    afterAdd()
+  }
 
   def close(exec: Runnable => Unit = _.run()): Promise = {
+    // atomically get and update pool status, then compare and branch.
+    // if we're running, set it to closing, and resume
+    // otherwise, throw an expception
+    // being in closing status will cause workers to terminate when they're out of tasks
     if (_poolStatus.getAndUpdate({
       case Running => Closed
       case other => other
     }) != Running)
       throw new IllegalStateException("Closing pool requires it to be in running state")
     else Promise({
+      // interrupt all threads
       monitor.synchronized {
         for (thread <- workers)
           thread.interrupt()
       }
+      // join all threads
       for (thread <- workers)
         thread.join()
-
     }, exec)
   }
+
+  /*
+  def close(exec: Runnable => Unit = _.run()): Promise = {
+    // atomically get and update pool status, then compare and branch.
+    // if we're running, set it to closing, and resume
+    // otherwise, throw an expception
+    // being in closing status will cause workers to terminate when they're out of tasks
+    if (_poolStatus.getAndUpdate({
+      case Running => Closed
+      case other => other
+    }) != Running)
+      throw new IllegalStateException("Closing pool requires it to be in running state")
+    else Promise({
+      // drain the non-critical queues into nothing
+      val cthulhu: Any => Unit = any => () // cthulhu, because it's an all-consuming void
+      mainSeq.out.drainTo(cthulhu)
+      main3D.out.drainTo(cthulhu)
+      main2D.out.drainTo(cthulhu)
+      // drain the complex critical queues into the main critical queue for greater efficiency
+      simplifyCrits()
+      // wake up threads
+      afterAdd()
+      // join all threads
+      for (thread <- workers)
+        thread.join()
+    }, exec)
+  }
+  */
 }
 
 object SmartPoolTest extends App {
