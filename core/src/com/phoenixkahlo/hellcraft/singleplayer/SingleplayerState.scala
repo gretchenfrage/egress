@@ -60,13 +60,13 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     UniExecutor.activate({
       val config = SmartPool.Config(
         Runtime.getRuntime.availableProcessors,
-        new Thread(_),
         e => {
           System.err.println("uni executor failure")
           e.printStackTrace()
           driver.enter(new MainMenu(providedResources))
         },
-        V2F(1, 1.5f)
+        V2F(1, 1.5f),
+        backgroundThreadPriority, foregroundThreadPriority
       )
       new SmartPool(config)
     })
@@ -185,11 +185,11 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     }
     Gdx.input.setInputProcessor(processor)
 
-    Thread.currentThread().setPriority(renderLoopThreadPriority)
+    Thread.currentThread().setPriority(renderThreadPriority)
 
     println("spawning updating thread")
     updateThread = new Thread(this, "update thread")
-    updateThread.setPriority(mainLoopThreadPriority)
+    updateThread.setPriority(foregroundThreadPriority)
     clock.reset()
     updateThread.start()
 

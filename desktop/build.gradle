@@ -37,7 +37,7 @@ task dist(type: Jar) {
 task launch(dependsOn: dist, type: Exec) {
     //workingDir "${buildDir}/foo"
     workingDir = buildDir.toPath().resolve("libs").toFile()
-    commandLine 'cmd', '/c', 'java -XX:+UseConcMarkSweepGC -Xms10g -Xmx10g -d64 -jar desktop-1.0.jar '
+    commandLine 'cmd', '/c', 'java -XX:+UseConcMarkSweepGC -XX:+PrintGC -Xms10g -Xmx10g -d64 -jar desktop-1.0.jar '
 } << {
     println 'launching!'
 }

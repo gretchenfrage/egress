@@ -301,7 +301,7 @@ case class SingleWorld(
   }
 
   def parUpdate(time: Long, externs: Seq[UpdateEffect], services: ServiceTagTable[ServiceProcedure]): (SingleWorld, Seq[UpdateEffect], ChangeSummary) = {
-    val exec: Runnable => Unit = SingleWorld.parUpdatePool.execute
+    val exec: Runnable => Unit = UniExecutor.foreground
 
     object State {
       private val chunks = new mutable.HashMap[V3I, Option[Fut[Chunk]]].withDefault(
@@ -515,12 +515,14 @@ case class SingleWorld(
 
 }
 object SingleWorld {
+  /*
   lazy val parUpdatePool = Executors.newFixedThreadPool(4, task => {
     val thread = new Thread(task)
     thread.setName("par update thread")
     thread.setPriority(10)
     thread
   })
+  */
 
   case class ChunkEnts(chunk: Chunk, ents: Map[AnyEntID, AnyEnt]) extends GetPos {
     override def pos: V3I = chunk.pos
@@ -607,15 +609,6 @@ class SingleContinuum(save: AsyncSave[ChunkEnts], services: Services) {
 
   // to initialize, load the incomplete seq from the save, and just perform a tick with them as externs
   update(V3ISet.empty, V3ISet.empty, save.getKey(IncompleteKey).await)
-
-  // table of service procedures
-  /*
-  val serviceProcedures = new ServiceTagTable[ServiceProcedure]
-  serviceProcedures += new PhysicsServiceProcedure
-
-  for (procedure <- serviceProcedures.toSeq)
-    procedure.begin()
-  */
 
   // update the world and return externally handled effects
   def update(cdomain: V3ISet, tdomain: V3ISet, externs: Seq[UpdateEffect]): Seq[UpdateEffect] = {

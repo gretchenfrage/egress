@@ -183,6 +183,8 @@ object UniExecutor {
 
   def execc(pos: V2F)(task: Runnable): Unit = service.execc(pos)(task)
 
+  def foreground(task: Runnable): Unit = service.foreground(task)
+
   def point: V3F = service.point
 
   def point_=(p: V3F): Unit = service.point = p

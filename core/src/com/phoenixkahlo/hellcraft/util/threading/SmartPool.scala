@@ -13,7 +13,7 @@ import scala.collection.mutable
 
 
 object SmartPool {
-  case class Config(threadCount: Int, threadFac: Runnable => Thread, onException: Exception => Unit, stretch: V2F)
+  case class Config(threadCount: Int, onException: Exception => Unit, stretch: V2F, bgPriority: Int, fgPriority: Int)
 
   sealed trait PoolStatus
   case object Unstarted extends PoolStatus
@@ -72,8 +72,16 @@ class SmartPool(config: SmartPool.Config) extends UniExecutor {
     try while (!Thread.interrupted()) {
       {
         var task: Runnable = null
-        while ({ task = foreground.out.poll(); task != null })
+        var priorityHigh = false
+        while ({ task = foreground.out.poll(); task != null }) {
+          if (!priorityHigh) {
+            Thread.currentThread().setPriority(config.fgPriority)
+            priorityHigh = true
+          }
           runTask(task)
+        }
+        if (priorityHigh)
+          Thread.currentThread().setPriority(config.bgPriority)
       }
 
       val i = index.getAndUpdate(i => (i + 1) % out.length)
@@ -161,7 +169,9 @@ class SmartPool(config: SmartPool.Config) extends UniExecutor {
     }) != Unstarted)
       throw new IllegalStateException("Starting pool requires it to be in unstarted state")
     else for (i <- 1 to config.threadCount) {
-      val thread = config.threadFac(procedure)
+      val thread = new Thread(procedure)
+      thread.setPriority(config.bgPriority)
+      thread.setName("smart pool worker")
       workers += thread
       thread.start()
     }
@@ -195,44 +205,13 @@ class SmartPool(config: SmartPool.Config) extends UniExecutor {
     }, exec)
   }
 
-  /*
-  def close(exec: Runnable => Unit = _.run()): Promise = {
-    // atomically get and update pool status, then compare and branch.
-    // if we're running, set it to closing, and resume
-    // otherwise, throw an expception
-    // being in closing status will cause workers to terminate when they're out of tasks
-    if (_poolStatus.getAndUpdate({
-      case Running => Closed
-      case other => other
-    }) != Running)
-      throw new IllegalStateException("Closing pool requires it to be in running state")
-    else Promise({
-      // drain the non-critical queues into nothing
-      val cthulhu: Any => Unit = any => () // cthulhu, because it's an all-consuming void
-      mainSeq.out.drainTo(cthulhu)
-      main3D.out.drainTo(cthulhu)
-      main2D.out.drainTo(cthulhu)
-      // drain the complex critical queues into the main critical queue for greater efficiency
-      simplifyCrits()
-      // wake up threads
-      afterAdd()
-      // join all threads
-      for (thread <- workers)
-        thread.join()
-    }, exec)
-  }
-  */
 }
 
 object SmartPoolTest extends App {
   import scala.concurrent.duration._
 
   for (threadCount <- 1 to 32) {
-    val config = SmartPool.Config(threadCount, procedure => {
-      val thread = new Thread(procedure)
-      thread.setPriority(10)
-      thread
-    }, _.printStackTrace(), Ones2D)
+    val config = SmartPool.Config(threadCount, _.printStackTrace(), Ones2D, 10, 10)
     val pool = new SmartPool(config)
     pool.start()
 

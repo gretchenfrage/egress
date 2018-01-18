@@ -275,7 +275,7 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     context.end()
 
     p.log()
-    //p.printDisc(1000 / 60)
+    p.printDisc(1000 / 60)
   }
 
   override def onResize(width: Int, height: Int): Unit = {
