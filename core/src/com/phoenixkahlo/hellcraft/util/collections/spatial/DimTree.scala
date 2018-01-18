@@ -1,8 +1,8 @@
 package com.phoenixkahlo.hellcraft.util.collections.spatial
 
 import com.phoenixkahlo.hellcraft.math._
-import com.phoenixkahlo.hellcraft.util.collections.spatial.BiTree.BiTree
-import com.phoenixkahlo.hellcraft.util.collections.spatial.QuadTree.QuadTree
+import com.phoenixkahlo.hellcraft.util.collections.spatial.Bitree.Bitree
+import com.phoenixkahlo.hellcraft.util.collections.spatial.Quadtree.Quadtree
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
@@ -281,7 +281,7 @@ private case class Branch[+E, VI, VF](children: Vector[DimTree[E, VI, VF]], doma
   * Degenerate case in which this essentially becomes a binary search tree.
   * This is generally for debugging purposes.
   */
-object BiTree extends TreeDim[Int, Float] {
+object Bitree extends TreeDim[Int, Float] {
   override def repeated(n: Float) = n
   override def sub(a: Float, b: Float) = a - b
   override def add(a: Float, b: Float) = a + b
@@ -301,13 +301,13 @@ object BiTree extends TreeDim[Int, Float] {
     diff * diff
   }
 
-  type BiTree[+E] = DimTree[E, Int, Float]
-  def empty[E](center: Float, range: Float): BiTree[E] =
+  type Bitree[+E] = DimTree[E, Int, Float]
+  def empty[E](center: Float, range: Float): Bitree[E] =
     Empty(Domain(center, range, None, this))(this)
-  val bigEmpty: BiTree[Nothing] = Empty(Domain(0f, Float.MaxValue, None, this))(this)
+  val bigEmpty: Bitree[Nothing] = Empty(Domain(0f, Float.MaxValue, None, this))(this)
 }
 
-object QuadTree extends TreeDim[V2I, V2F] {
+object Quadtree extends TreeDim[V2I, V2F] {
   override def repeated(n: Float): V2F = V2F(n, n)
   override def sub(a: V2F, b: V2F): V2F = a - b
   override def add(a: V2F, b: V2F): V2F = a + b
@@ -340,10 +340,10 @@ object QuadTree extends TreeDim[V2I, V2F] {
   override def signOf(v: V2F): V2I =
     v.map(n => if (n >= 0) 1 else -1).toInts
 
-  type QuadTree[+E] = DimTree[E, V2I, V2F]
-  def empty[E](center: V2F, range: Float): QuadTree[E] =
+  type Quadtree[+E] = DimTree[E, V2I, V2F]
+  def empty[E](center: V2F, range: Float): Quadtree[E] =
     Empty(Domain(center, range, None, this))(this)
-  val bigEmpty: QuadTree[Nothing] = Empty(Domain(Origin2D, Float.MaxValue, None, this))(this)
+  val bigEmpty: Quadtree[Nothing] = Empty(Domain(Origin2D, Float.MaxValue, None, this))(this)
 }
 
 object Octree extends TreeDim[V3I, V3F] {

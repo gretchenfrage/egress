@@ -301,11 +301,6 @@ case class SingleWorld(
   }
 
   def parUpdate(time: Long, externs: Seq[UpdateEffect], services: ServiceTagTable[ServiceProcedure]): (SingleWorld, Seq[UpdateEffect], ChangeSummary) = {
-    //val exec: Runnable => Unit = _.run()
-    //val service = Executors.newFixedThreadPool(4)
-    //val exec: Runnable => Unit = service.execute
-    val p = Profiler("par update")
-
     val exec: Runnable => Unit = SingleWorld.parUpdatePool.execute
 
     object State {
@@ -514,9 +509,6 @@ case class SingleWorld(
         world = w
         entExhanges += e
     }
-
-    p.log()
-    p.print()
 
     (world, State.outEffects, ChangeSummary(chunkExchanges, entExhanges))
   }
