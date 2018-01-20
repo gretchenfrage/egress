@@ -751,7 +751,7 @@ class SingleContinuum(save: AsyncSave[ChunkEnts], services: Services) {
     }
 
     // now we let the world update itself purely, returning its updated version, and externally handled effects
-    val (updated, effectsOut, changed) = next.parUpdate(time, effectsIn, services.table)
+    val (updated, effectsOut, changed) = next.update(time, effectsIn, services.table)
     next = updated
 
     // update the fulfillment contexts with the changes
