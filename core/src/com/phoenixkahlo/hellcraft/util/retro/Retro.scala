@@ -1,12 +1,19 @@
 package com.phoenixkahlo.hellcraft.util.retro
 
+import java.util
+import java.util.Collections
 import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
+import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.phoenixkahlo.hellcraft.util.retro.Retro.{Exec, Invalidator, Observer, Version}
 import com.phoenixkahlo.hellcraft.util.threading.Fut
 
-import scala.collection.mutable
+import scala.collection.{JavaConverters, mutable}
+import scala.ref.WeakReference
 
+/**
+  * The retroactively changing monad.
+  */
 trait Retro[+T] {
   def hardAwait: T
   def softAwait: T
@@ -19,6 +26,7 @@ trait Retro[+T] {
   def observe[O >: T](observer: Observer[O], invalidator: Invalidator): Unit
 
   def flatten[R](implicit asRetro: T => Retro[R]): Retro[R] = flatMap(asRetro)
+  def filter(test: T => Boolean): Retro[T] = this // ignore filters
 }
 
 object Retro {
@@ -234,5 +242,34 @@ private class FlatMapRetro[S, R](src: Retro[S], func: S => Retro[R]) extends Ret
       observer(status.get._1, status.get._2 ++ status.get._3)
     observers += observer
     invalidators += invalidator
+  }
+}
+
+class WeaklyObservable[T](src: Retro[T]) extends Retro[T] {
+  private val lock = new ReentrantReadWriteLock()
+  private val set: java.util.Set[(Observer[T], Invalidator)] =
+    Collections.newSetFromMap(new util.WeakHashMap)
+
+  src.observe((r, v) => {
+    lock.readLock.lock()
+    for ((observer, _) <- JavaConverters.collectionAsScalaIterable(set))
+      observer(r, v)
+    lock.readLock.unlock()
+  }, v => {
+    lock.readLock.lock()
+    for ((_, invalidator) <- JavaConverters.collectionAsScalaIterable(set))
+      invalidator(v)
+    lock.readLock.unlock()
+  })
+
+  override def hardAwait: T = src.hardAwait
+  override def softAwait: T = src.softAwait
+  override def hardQuery: Option[T] = src.hardQuery
+  override def softQuery: Option[T] = src.softQuery
+
+  override def observe[O >: T](observer: Observer[O], invalidator: Invalidator): Unit = {
+    lock.writeLock.lock()
+    set.add((observer, invalidator))
+    lock.writeLock.unlock()
   }
 }
