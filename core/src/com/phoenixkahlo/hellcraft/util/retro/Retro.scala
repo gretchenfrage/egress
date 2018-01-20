@@ -2,14 +2,12 @@ package com.phoenixkahlo.hellcraft.util.retro
 
 import java.util
 import java.util.Collections
-import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.phoenixkahlo.hellcraft.util.retro.Retro.{Exec, Invalidator, Observer, Version}
 import com.phoenixkahlo.hellcraft.util.threading.Fut
 
 import scala.collection.{JavaConverters, mutable}
-import scala.ref.WeakReference
 
 /**
   * The retroactively changing monad.
@@ -36,6 +34,12 @@ object Retro {
   type Invalidator = Version => Unit
 
   def apply[T](gen: => T, exec: Exec): Retro[T] = new GenRetro[T](gen, exec)
+
+  def fromFut[T](fut: Fut[T]): Retro[T] = {
+    val r = new SetRetro[T]
+    fut.onComplete(() => r.set(fut.query.get))
+    r
+  }
 }
 
 private class GenRetro[T](gen: => T, exec: Exec) extends Retro[T] {
@@ -83,12 +87,14 @@ class SetRetro[T] extends Retro[T] {
   private val observers = new mutable.ArrayBuffer[Observer[T]]
 
   def set(value: T): Unit = this.synchronized {
-    status = Some(value)
-    this.notifyAll()
-    for (observer <- observers) {
-      observer.apply(value, Vector(version))
+    if (!status.contains(value)) {
+      status = Some(value)
+      this.notifyAll()
+      for (observer <- observers) {
+        observer.apply(value, Vector(version))
+      }
+      version += 1
     }
-    version += 1
   }
 
   override def hardAwait: T = {
@@ -245,7 +251,7 @@ private class FlatMapRetro[S, R](src: Retro[S], func: S => Retro[R]) extends Ret
   }
 }
 
-class WeaklyObservable[T](src: Retro[T]) extends Retro[T] {
+class WeaklyObservableRetro[T](src: Retro[T]) extends Retro[T] {
   private val lock = new ReentrantReadWriteLock()
   private val set: java.util.Set[(Observer[T], Invalidator)] =
     Collections.newSetFromMap(new util.WeakHashMap)
