@@ -14,9 +14,11 @@ import com.phoenixkahlo.hellcraft.core.eval.GEval.{CamRangeKey, GEval, ResKey, R
 import com.phoenixkahlo.hellcraft.core.graphics.CamRange
 import com.phoenixkahlo.hellcraft.fgraphics.procedures._
 import com.phoenixkahlo.hellcraft.math.{V2F, V2I, V3F, V4F}
+import com.phoenixkahlo.hellcraft.util.caches.Cache
 import com.phoenixkahlo.hellcraft.util.collections.ContextPin.{ContextPinFunc, ContextPinID}
 import com.phoenixkahlo.hellcraft.util.collections._
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
+import com.phoenixkahlo.hellcraft.util.retro.{DisposingMapRetro, Retro}
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 import com.phoenixkahlo.hellcraft.util.time.Timer
 
@@ -57,24 +59,33 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     }
     fut.query.get
   }
+  def runTasksWhileAwaiting[T](retro: Retro[T]): T = {
+    retro.observe((r, v) => tasks.addFirst(Right((): Unit)), v => ())
+    var continue = true
+    while (continue) tasks.take() match {
+      case Left(task) => task.run()
+      case Right(()) => continue = false
+    }
+    retro.hardQuery.get
+  }
   def execOpenGL(task: Runnable): Unit = {
     tasks.add(Left(task))
   }
 
   // resource management
-  var resources: Fut[Set[EvalGraphs[_]]] = Fut(Set.empty, _.run())
+  var resources: Fut[Set[RenderRetros[_]]] = Fut(Set.empty, _.run())
 
-  def register[T](seq: Seq[T])(implicit toGraph: T => EvalGraphs[_]): Unit = {
+  def register[T](seq: Seq[T])(implicit toGraph: T => RenderRetros[_]): Unit = {
     resources = resources.map(_ ++ seq.map(toGraph).filter(_.isDisposable))
   }
 
   val cleanDuration = 2 seconds//10 seconds
   var misterClean: Timer = Timer.start
 
-  def clean[T](seq: Seq[T])(implicit toGraph: T => EvalGraphs[_]): Unit = {
+  def clean[T](seq: Seq[T])(implicit toGraph: T => RenderRetros[_]): Unit = {
     val batch = 50
 
-    def f(list: List[EvalGraphs[_]]): Fut[List[EvalGraphs[_]]] =
+    def f(list: List[RenderRetros[_]]): Fut[List[RenderRetros[_]]] =
       if (list.isEmpty) Fut(Nil, _.run())
       else {
         val now = list.take(batch)
@@ -82,22 +93,22 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
         Fut[Unit]({
           //println("deleting " + now.size + " resources")
           for (graph <- now) {
-            graph.async.dispose()
-            graph.sync.dispose()
+            graph.asyncDis.query.foreach(_.dispose())
+            graph.syncDis.query.foreach(_.dispose())
           }
         }, execOpenGL).flatMap(unit => f(later))
       }
 
     resources = resources.map(set => {
-      val curr: Seq[EvalGraphs[_]] = seq.map(toGraph)
-      val garbage: Set[EvalGraphs[_]] = set -- curr
+      val curr: Seq[RenderRetros[_]] = seq.map(toGraph)
+      val garbage: Set[RenderRetros[_]] = set -- curr
       (curr.toSet, garbage.toList)
     }, UniExecutor.execc).flatMap({
       case (curr, garbage) => f(garbage).map({ case Nil => curr })
     })
   }
 
-  def maybeClean[T](seq: Seq[T])(implicit toGraph: T => EvalGraphs[_]): Unit = {
+  def maybeClean[T](seq: Seq[T])(implicit toGraph: T => RenderRetros[_]): Unit = {
     if (misterClean.elapsed >= cleanDuration) {
       clean(seq)
       misterClean = Timer.start
@@ -123,20 +134,60 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
   procedures += new LineShaderProcedure
   procedures += new HUDShaderProcedure
 
+  // GEval manager
+  val gEvalManager = new GEvalManager()(UniExecutor.getService)
+
   // typesafe pinned immediate renderable monad preperation
   type RNE[S <: Shader] = GEval[RenderableNow[S]]
 
+  def disposeRenderableNow[S <: Shader](r: RenderableNow[S]): Unit = {
+    procedures(r.shader).disposer match {
+      case Some(dispose) => dispose(r.unit)
+      case None => //println("warning attempted to dispose of undisposable renderable")
+    }
+  }
+
+  /*
   def prepareRaw[S <: Shader](renderable: Renderable[S]): RNE[S] =
     GEval.glMap[S#RenderUnit, S#FinalForm](renderable.eval, procedures(renderable.shader).toFinalForm)
       .map[RenderableNow[S]]((ff: S#FinalForm) => RenderableNow(renderable.shader, ff, renderable.transPos))(ExecCheap)
+  */
 
   val _prepareContextID: UUID = UUID.randomUUID()
-  def prepare[S <: Shader](renderable: Renderable[S]): EvalGraphs[S] = {
-    val pinFunc: ContextPinFunc[EvalGraphs[S]] = () => new EvalGraphs(renderable)
-    val pinID: ContextPinID[EvalGraphs[S]] = _prepareContextID
+  def prepare[S <: Shader](renderable: Renderable[S]): RenderRetros[S] = {
+    val pinFunc: ContextPinFunc[RenderRetros[S]] = () => new RenderRetros(renderable)
+    val pinID: ContextPinID[RenderRetros[S]] = _prepareContextID
     renderable.pin(pinID, pinFunc)
   }
 
+
+
+  class RenderRetros[S <: Shader](renderable: Renderable[S]) {
+    val isDisposable: Boolean = procedures(renderable.shader).disposer.isDefined
+
+    /*
+    lazy val async: DisposingRRetro[RenderableNow[S]] =
+      new DisposingMapRetro(
+        gEvalManager.toRetro(renderable.eval)(toFutPack, None),
+    */
+    val asyncDis = new Cache(new DisposingMapRetro(
+      gEvalManager.toRetro(renderable.eval)(toFutPack, None),
+      procedures(renderable.shader).toFinalForm,
+      (ff: S#FinalForm) => procedures(renderable.shader).disposer.foreach(_ apply ff),
+      execOpenGL
+    ))
+    val async = new Cache(asyncDis().map((ff: S#FinalForm) => RenderableNow(renderable.shader, ff, renderable.transPos), _.run()))
+
+    val syncDis = new Cache(new DisposingMapRetro(
+      gEvalManager.toRetro(renderable.eval)(toFutPack, Some(execOpenGL)),
+      procedures(renderable.shader).toFinalForm,
+      (ff: S#FinalForm) => procedures(renderable.shader).disposer.foreach(_ apply ff),
+      execOpenGL
+    ))
+    val sync = new Cache(syncDis().map((ff: S#FinalForm) => RenderableNow(renderable.shader, ff, renderable.transPos), _.run()))
+
+  }
+  /*
   class EvalGraphs[S <: Shader](renderable: Renderable[S]) {
     val isDisposable: Boolean = procedures(renderable.shader).disposer.isDefined
 
@@ -151,13 +202,14 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     val sync: SyncEval[RenderableNow[S], GEval.Context] = new SyncEval(rne)(Some(dispose))
     val async: AsyncEval[RenderableNow[S], GEval.Context] = new AsyncEval(rne)(Some(_.map(dispose)))
   }
+  */
 
   // immediate rendering algebra
   case class RenderableNow[S <: Shader](shader: ShaderTag[S], unit: S#FinalForm, transPos: Option[V3F])
   case class RenderNow[S <: Shader](renderable: RenderableNow[S], params: S#Params)
 
   // cache of eval input map, we cache because identity improves state graph performance
-  var evalIn: TypeMatchingMap[GEval.InKey, Identity, Any] = TypeMatchingMap.empty[GEval.InKey, Identity, Any]
+  //var evalIn: TypeMatchingMap[GEval.InKey, Identity, Any] = TypeMatchingMap.empty[GEval.InKey, Identity, Any]
 
   // eval async pack
   val toFutPack = GEval.EvalAsync(UniExecutor.getService, execOpenGL);
@@ -192,18 +244,19 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
         ResKey -> screenRes,
         CamRangeKey -> camRange
       )
-      if (evalIn != newEvalIn)
-        evalIn = newEvalIn
+      gEvalManager.setInput(newEvalIn)
+      //if (evalIn != newEvalIn)
+      //  evalIn = newEvalIn
     }
-    val extractedGraphs: mutable.Buffer[EvalGraphs[_]] = new mutable.ArrayBuffer[EvalGraphs[_]]
+    val extractedGraphs: mutable.Buffer[RenderRetros[_]] = new mutable.ArrayBuffer
     def extract[S <: Shader](render: Render[S], strong: Boolean = true): Option[RenderNow[S]] = {
       val graphs = prepare(render.renderable)
       extractedGraphs += graphs
-      val option =
-        if (render.mustRender) graphs.sync.query(evalIn)
+      val option: Option[RenderableNow[S]] =
+        if (render.mustRender) Some(runTasksWhileAwaiting(graphs.sync()))//graphs.sync.query(evalIn)
         else {
-          if (strong) graphs.async.query(evalIn, toFutPack)
-          else graphs.async.weakQuery(evalIn, toFutPack)
+          if (strong) graphs.async().softQuery//graphs.async.query(evalIn, toFutPack)
+          else graphs.async.query.flatMap(_.softQuery)//graphs.async.weakQuery(evalIn, toFutPack)
         }
       option match {
         case Some(renderable) => Some(RenderNow(renderable, render.params))

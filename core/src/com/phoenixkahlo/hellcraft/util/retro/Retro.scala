@@ -21,6 +21,7 @@ trait Retro[+T] {
   def map[R](func: T => R, exec: Exec): Retro[R] = new MapRetro(this, func, exec)
   def flatMap[R](func: T => Retro[R]): Retro[R] = new FlatMapRetro(this, func)
 
+
   def observe[O >: T](observer: Observer[O], invalidator: Invalidator): Unit
 
   def flatten[R](implicit asRetro: T => Retro[R]): Retro[R] = flatMap(asRetro)
@@ -106,7 +107,7 @@ class SetRetro[T] extends Retro[T] {
     }
   }
 
-  override def softAwait: T = softAwait
+  override def softAwait: T = hardAwait
 
   override def hardQuery: Option[T] = status
 
@@ -255,11 +256,15 @@ class WeaklyObservableRetro[T](src: Retro[T]) extends Retro[T] {
   private val lock = new ReentrantReadWriteLock()
   private val set: java.util.Set[(Observer[T], Invalidator)] =
     Collections.newSetFromMap(new util.WeakHashMap)
+  private var curr: Option[T] = None
+  private var currVersion: Version = Vector.empty
 
   src.observe((r, v) => {
     lock.readLock.lock()
     for ((observer, _) <- JavaConverters.collectionAsScalaIterable(set))
       observer(r, v)
+    curr = Some(r)
+    currVersion = v
     lock.readLock.unlock()
   }, v => {
     lock.readLock.lock()
@@ -276,6 +281,74 @@ class WeaklyObservableRetro[T](src: Retro[T]) extends Retro[T] {
   override def observe[O >: T](observer: Observer[O], invalidator: Invalidator): Unit = {
     lock.writeLock.lock()
     set.add((observer, invalidator))
+    if (curr isDefined)
+      observer(curr.get, currVersion)
     lock.writeLock.unlock()
+  }
+}
+
+class DisposingMapRetro[S, R](src: Retro[S], func: S => R, disposer: R => Unit, exec: Exec) extends Retro[R] {
+  @volatile private var status: Option[(R, Version)] = None
+  @volatile private var latest: Version = Vector.empty
+  private val observers = new mutable.ArrayBuffer[Observer[R]]
+  private val invalidators = new mutable.ArrayBuffer[Invalidator]
+
+  src.observe((s, version) => {
+    latest = version
+    for (invalidator <- invalidators)
+      invalidator(version)
+    exec(() => {
+      val result: R = func(s)
+      DisposingMapRetro.this.synchronized {
+        if (latest == version) {
+          status.map(_._1).foreach(disposer)
+          status = Some((result, version))
+          DisposingMapRetro.this.notifyAll()
+          for (observer <- observers)
+            observer(result, version)
+        } else disposer(result)
+      }
+    })
+  }, version => {
+    latest = version
+  })
+
+  def dispose(): Unit = this.synchronized {
+    status.map(_._1).foreach(disposer)
+    status = None
+    latest = Vector.empty
+  }
+
+  override def hardAwait: R = {
+    status match {
+      case Some((r, v)) if v == latest => r
+      case _ => this.synchronized {
+        while (!status.exists(_._2 == latest))
+          this.wait()
+        status.get._1
+      }
+    }
+  }
+
+  override def softAwait: R = {
+    if (status isDefined) status.get._1
+    else this.synchronized {
+      while (status isEmpty)
+        this.wait()
+      status.get._1
+    }
+  }
+
+  override def hardQuery: Option[R] = status.filter(_._2 == latest).map(_._1)
+
+  override def softQuery: Option[R] = status.map(_._1)
+
+  def observe[O >: R](observer: Observer[O], invalidator: Invalidator): Unit = this.synchronized {
+    if (status.exists(_._2 == latest)) {
+      val (r, v) = status.get
+      observer(r, v)
+    }
+    observers += observer
+    invalidators += invalidator
   }
 }

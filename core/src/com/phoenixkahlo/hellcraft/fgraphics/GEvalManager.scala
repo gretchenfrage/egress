@@ -16,17 +16,19 @@ class GEvalManager(implicit service: UniExecutor) {
   )
 
   val observables: Map[GEval.InKey[_], WeaklyObservableRetro[_]] =
-    settables.map({ case (k, v) => (k, new WeaklyObservableRetro(v)) })
+    settables.map({ case (k, v) => (k, new WeaklyObservableRetro(v)) }).toMap
 
   def setInput(in: TypeMatchingMap[GEval.InKey, Identity, Any]): Unit = {
     for ((k, set) <- settables)
-      set.asInstanceOf[SetRetro[Any]].set(in.unsafeget(k))
+      set.asInstanceOf[SetRetro[Any]].set(in.unsafeget(k).get)
   }
+
+  val retroUnit: Retro[Unit] = Retro((), _.run())
 
   /**
     * @param eo executor override, which's presence also enables synchronous evaluation mode for externs
     */
-  def toRetro[T](eval: GEval[T])(implicit easync: WEval.EvalAsync, eo: Option[Runnable => Unit]): Retro[T] = eval match {
+  def toRetro[T](eval: GEval[T])(implicit easync: GEval.EvalAsync, eo: Option[Runnable => Unit]): Retro[T] = eval match {
     case ECreate(fac, hint) => Retro(fac(), eo.getOrElse(hint.exec))
     case EInput(key: GEval.InKey[T]) => observables(key).asInstanceOf[Retro[T]]
     case eval: EMap[_, T, GEval.Context] =>
@@ -41,7 +43,7 @@ class GEvalManager(implicit service: UniExecutor) {
     case EExtern(sync: (Unit => Option[T]), async: (GEval.EvalAsync => Fut[T]), triggers: Seq[GEval.InKey[Any]]) =>
       triggers.map(observables)
         .map(_.map(any => (), _.run()))
-        .reduce((r1: Retro[Unit], r2: Retro[Unit]) => r1.flatMap[Unit](any => r2))
+        .fold(retroUnit)((r1: Retro[Unit], r2: Retro[Unit]) => r1.flatMap[Unit](any => r2))
         .flatMap(any =>
           if (eo.isDefined) sync(()).map(Retro(_, _.run())).getOrElse(new SetRetro)
           else Retro.fromFut(async(easync))
