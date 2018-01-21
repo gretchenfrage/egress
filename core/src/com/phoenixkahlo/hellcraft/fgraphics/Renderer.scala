@@ -12,13 +12,14 @@ import com.phoenixkahlo.hellcraft.ShaderTag
 import com.phoenixkahlo.hellcraft.core.eval._
 import com.phoenixkahlo.hellcraft.core.eval.GEval.{CamRangeKey, GEval, ResKey, ResourcePackKey}
 import com.phoenixkahlo.hellcraft.core.graphics.CamRange
+import com.phoenixkahlo.hellcraft.core.util.DisposableBox
 import com.phoenixkahlo.hellcraft.fgraphics.procedures._
 import com.phoenixkahlo.hellcraft.math.{V2F, V2I, V3F, V4F}
 import com.phoenixkahlo.hellcraft.util.caches.Cache
 import com.phoenixkahlo.hellcraft.util.collections.ContextPin.{ContextPinFunc, ContextPinID}
 import com.phoenixkahlo.hellcraft.util.collections._
 import com.phoenixkahlo.hellcraft.util.debugging.Profiler
-import com.phoenixkahlo.hellcraft.util.retro.{DisposingMapRetro, Retro}
+import com.phoenixkahlo.hellcraft.util.retro.{DisposalMutex, DisposingMapRetro, Retro}
 import com.phoenixkahlo.hellcraft.util.threading.{Fut, UniExecutor}
 import com.phoenixkahlo.hellcraft.util.time.Timer
 
@@ -140,12 +141,14 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
   // typesafe pinned immediate renderable monad preperation
   type RNE[S <: Shader] = GEval[RenderableNow[S]]
 
+  /*
   def disposeRenderableNow[S <: Shader](r: RenderableNow[S]): Unit = {
     procedures(r.shader).disposer match {
       case Some(dispose) => dispose(r.unit)
       case None => //println("warning attempted to dispose of undisposable renderable")
     }
   }
+  */
 
   /*
   def prepareRaw[S <: Shader](renderable: Renderable[S]): RNE[S] =
@@ -160,7 +163,7 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     renderable.pin(pinID, pinFunc)
   }
 
-
+  val disposeMutex = new DisposalMutex
 
   class RenderRetros[S <: Shader](renderable: Renderable[S]) {
     val isDisposable: Boolean = procedures(renderable.shader).disposer.isDefined
@@ -170,19 +173,30 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
       new DisposingMapRetro(
         gEvalManager.toRetro(renderable.eval)(toFutPack, None),
     */
-    val asyncDis = new Cache(new DisposingMapRetro(
+    private def dispose(ff: S#FinalForm): Unit =
+      procedures(renderable.shader).disposer.foreach(dispose => execOpenGL(() => dispose(ff)))
+
+    val asyncDis: Cache[DisposingMapRetro[S#RenderUnit, S#FinalForm]] = new Cache(new DisposingMapRetro(
       gEvalManager.toRetro(renderable.eval)(toFutPack, None),
       procedures(renderable.shader).toFinalForm,
-      (ff: S#FinalForm) => procedures(renderable.shader).disposer.foreach(_ apply ff),
-      execOpenGL
+      (ff: S#FinalForm) => {
+        dispose(ff)
+        async.invalidate
+      },//procedures(renderable.shader).disposer.foreach(_ apply ff),
+      execOpenGL,
+      Some(disposeMutex)
     ))
     val async = new Cache(asyncDis().map((ff: S#FinalForm) => RenderableNow(renderable.shader, ff, renderable.transPos), _.run()))
 
-    val syncDis = new Cache(new DisposingMapRetro(
+    val syncDis: Cache[DisposingMapRetro[S#RenderUnit, S#FinalForm]] = new Cache(new DisposingMapRetro(
       gEvalManager.toRetro(renderable.eval)(toFutPack, Some(execOpenGL)),
       procedures(renderable.shader).toFinalForm,
-      (ff: S#FinalForm) => procedures(renderable.shader).disposer.foreach(_ apply ff),
-      execOpenGL
+      (ff: S#FinalForm) => {
+        dispose(ff)
+        async.invalidate
+      },//procedures(renderable.shader).disposer.foreach(_ apply ff),
+      execOpenGL,
+      Some(disposeMutex)
     ))
     val sync = new Cache(syncDis().map((ff: S#FinalForm) => RenderableNow(renderable.shader, ff, renderable.transPos), _.run()))
 
@@ -234,6 +248,9 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     cam.update()
 
     p.log()
+
+    // now, lock the dispose mutex
+    disposeMutex.prevent()
 
     // find what we can render immediately, and accumulate the graph buffer
     val screenRes = V2I(Gdx.graphics.getWidth, Gdx.graphics.getHeight)
@@ -326,6 +343,9 @@ class DefaultRenderer(pack: ResourcePack) extends Renderer {
     // and before I go
     active.foreach(_.end())
     context.end()
+
+    // unlock the dispose mutex
+    disposeMutex.allow()
 
     p.log()
     p.printDisc(1000 / 60)

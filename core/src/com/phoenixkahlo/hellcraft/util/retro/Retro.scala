@@ -287,7 +287,15 @@ class WeaklyObservableRetro[T](src: Retro[T]) extends Retro[T] {
   }
 }
 
-class DisposingMapRetro[S, R](src: Retro[S], func: S => R, disposer: R => Unit, exec: Exec) extends Retro[R] {
+class DisposalMutex {
+  private val rrwl = new ReentrantReadWriteLock
+  def acquire(): Unit = rrwl.readLock().lock()
+  def release(): Unit = rrwl.readLock().unlock()
+  def prevent(): Unit = rrwl.writeLock().lock()
+  def allow(): Unit = rrwl.writeLock().unlock()
+}
+
+class DisposingMapRetro[S, R](src: Retro[S], func: S => R, disposer: R => Unit, exec: Exec, mutex: Option[DisposalMutex] = None) extends Retro[R] {
   @volatile private var status: Option[(R, Version)] = None
   @volatile private var latest: Version = Vector.empty
   private val observers = new mutable.ArrayBuffer[Observer[R]]
@@ -299,24 +307,32 @@ class DisposingMapRetro[S, R](src: Retro[S], func: S => R, disposer: R => Unit, 
       invalidator(version)
     exec(() => {
       val result: R = func(s)
+      mutex.foreach(_.acquire())
       DisposingMapRetro.this.synchronized {
         if (latest == version) {
-          status.map(_._1).foreach(disposer)
+          //status.map(_._1).foreach(disposer)
+          val before = status.map(_._1)
           status = Some((result, version))
+          before.foreach(disposer)
           DisposingMapRetro.this.notifyAll()
           for (observer <- observers)
             observer(result, version)
         } else disposer(result)
       }
+      mutex.foreach(_.release())
     })
   }, version => {
     latest = version
   })
 
   def dispose(): Unit = this.synchronized {
-    status.map(_._1).foreach(disposer)
+    mutex.foreach(_.acquire())
+    //status.map(_._1).foreach(disposer)
+    val before = status.map(_._1)
     status = None
+    before.foreach(disposer)
     latest = Vector.empty
+    mutex.foreach(_.release())
   }
 
   override def hardAwait: R = {

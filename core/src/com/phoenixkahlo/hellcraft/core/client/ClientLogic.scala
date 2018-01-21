@@ -47,7 +47,7 @@ object ClientSessionData {
   case object ShowTasks extends Field[Boolean](Some(false))
   case object Sensitivity extends Field[Float](Some(0.25f))
   case object Speed extends Field[Float](Some(50))
-  case object LoadDist extends Field[V3I](Some(V3I(12, 5, 12)))
+  case object LoadDist extends Field[V3I](Some(V3I(3, 3, 3)))
   case object DayCycle extends Field[Duration](Some(3 minutes))
   case object CloudSpeed extends Field[Float](Some(10))
   case object JumpHeight extends Field[Float](Some(1.2f))
