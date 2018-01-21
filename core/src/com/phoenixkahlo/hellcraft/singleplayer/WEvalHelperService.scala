@@ -1,5 +1,7 @@
 package com.phoenixkahlo.hellcraft.singleplayer
 
+import java.util.UUID
+
 import com.phoenixkahlo.hellcraft.core.{Chunk, Terrain}
 import com.phoenixkahlo.hellcraft.core.entity.{AnyEnt, AnyEntID, EntID, Entity}
 import com.phoenixkahlo.hellcraft.core.eval.{Eval, ExecHint, WEval}
@@ -8,7 +10,7 @@ import com.phoenixkahlo.hellcraft.core.eval.WEval.{WEval, WEvalChunk, WEvalEnt, 
 import com.phoenixkahlo.hellcraft.math.V3I
 import com.phoenixkahlo.hellcraft.singleplayer.WEvalHelperService.{GetChunk, GetEnt, GetTerrain}
 import com.phoenixkahlo.hellcraft.util.collections.IdentityKey
-import com.phoenixkahlo.hellcraft.util.helper._
+import com.phoenixkahlo.hellcraft.helper._
 import com.phoenixkahlo.hellcraft.util.threading.{FulfillmentContext, Fut, UniExecutor}
 
 import scala.collection.{mutable, parallel}
@@ -27,6 +29,8 @@ object WEvalHelperService {
 
   case class Eval[T](eval: WEval[T]) extends RemoteCall[T]
 }
+
+object WEvalHelperServiceID extends HelperServiceID[WEvalHelperService](UUID.randomUUID())
 
 class WEvalHelperServiceLocalProcedure(
                                         cfulfill: FulfillmentContext[V3I, Chunk],
@@ -71,7 +75,7 @@ class WEvalHelperServiceRemoteProcedure(implicit executor: UniExecutor) extends 
     case call: GetChunk => other.invoke(call).asInstanceOf[Fut[T]]
     case call: GetTerrain => other.invoke(call).asInstanceOf[Fut[T]]
     case call: GetEnt[_] => other.invoke(call).asInstanceOf[Fut[T]]
-    case call: WEvalHelperService.Eval[_] =>
+    case call: WEvalHelperService.Eval[_] => compile(call.eval)(new parallel.mutable.ParHashMap, other).asInstanceOf[Fut[T]]
 
   }
 

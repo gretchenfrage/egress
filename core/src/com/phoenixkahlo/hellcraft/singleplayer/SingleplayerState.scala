@@ -26,7 +26,7 @@ import com.phoenixkahlo.hellcraft.util.audio.AudioUtil
 import com.phoenixkahlo.hellcraft.util.caches.Cache
 import com.phoenixkahlo.hellcraft.util.collections.spatial.SpatialTemporalQueue
 import com.phoenixkahlo.hellcraft.util.collections._
-import com.phoenixkahlo.hellcraft.util.helper.{Helper, LocalHelper}
+import com.phoenixkahlo.hellcraft.helper.{Helper, LocalHelper}
 import com.phoenixkahlo.hellcraft.util.threading._
 import other.AppDirs
 
@@ -107,7 +107,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     services.start()
 
     //infinitum = new Infinitum(res, save, 1f / 20f)
-    infinitum = new SingleContinuum(save, services)
+    infinitum = new SingleContinuum(helper, save, services)
 
     println("creating client logic")
 
@@ -191,6 +191,14 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     Gdx.input.setInputProcessor(processor)
 
     Thread.currentThread().setPriority(renderThreadPriority)
+
+    println("initializing helper")
+    helper.start({
+      import com.phoenixkahlo.hellcraft.helper.HelperService.Starter
+      Seq(
+        Starter(WEvalHelperServiceID, infinitum.wEvalLocal, exec => new WEvalHelperServiceRemoteProcedure()(exec))
+      )
+    })
 
     println("spawning updating thread")
     updateThread = new Thread(this, "update thread")
@@ -366,6 +374,8 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     println("...saved!")
     // then, shut down the service procedures
     PartialSyncGLEval(services.close())
+    // then, shut down the helper
+    helper.close()
     // finally, kill the executor, any tasks in it are no longer needed
     UniExecutor.deactivate()
   }
