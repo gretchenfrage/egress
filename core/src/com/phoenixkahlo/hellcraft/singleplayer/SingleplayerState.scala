@@ -26,6 +26,7 @@ import com.phoenixkahlo.hellcraft.util.audio.AudioUtil
 import com.phoenixkahlo.hellcraft.util.caches.Cache
 import com.phoenixkahlo.hellcraft.util.collections.spatial.SpatialTemporalQueue
 import com.phoenixkahlo.hellcraft.util.collections._
+import com.phoenixkahlo.hellcraft.util.helper.{Helper, LocalHelper}
 import com.phoenixkahlo.hellcraft.util.threading._
 import other.AppDirs
 
@@ -35,6 +36,7 @@ import scala.concurrent.duration._
 class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameState with Runnable {
 
   private var driver: GameDriver = _
+  private var helper: Helper = _
   private var save: AsyncSave[ChunkEnts] = _
   private var clock: GametimeClock = _
   private var infinitum: SingleContinuum = _
@@ -86,6 +88,9 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
       V3F(1, 1.5f, 1)
     )
     */
+
+    println("creating helper")
+    helper = new LocalHelper()(UniExecutor.getService)
 
     //clientLogic = AvatarClientMain(clientCore, EntID.random[Avatar]())
 

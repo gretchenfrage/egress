@@ -63,19 +63,43 @@ object WEval {
 
   def apply[T](gen: => T)(implicit exec: ExecHint): WEval[T] = Eval[T, Context](gen)
 
+  /*
   def chunk(p: V3I): WEval[Chunk] = EExtern[Chunk, Context](
     _.cfulfill.get(p),
     _.cfulfill.fut(p),
     Seq.empty
   )
+  */
+  def chunk(p: V3I): WEval[Chunk] = new WEvalChunk(p)
+  class WEvalChunk(val p: V3I) extends EExtern[Chunk, Context](
+    _.cfulfill.get(p),
+    _.cfulfill.fut(p),
+    Seq.empty
+  )
 
+  /*
   def terrain(p: V3I): WEval[Terrain] = EExtern[Terrain, Context](
     _.tfulfill.get(p),
     _.tfulfill.fut(p),
     Seq.empty
   )
+  */
+  def terrain(p: V3I): WEval[Terrain] = new WEvalTerrain(p)
+  class WEvalTerrain(val p: V3I) extends EExtern[Terrain, Context](
+    _.tfulfill.get(p),
+    _.tfulfill.fut(p),
+    Seq.empty
+  )
 
+  /*
   def ent[E <: Entity[_]](id: EntID[E]): WEval[E] = EExtern[E, Context](
+    _.efulfill.get(id).asInstanceOf[Option[E]],
+    _.efulfill.get(id).asInstanceOf[Fut[E]],
+    Seq.empty
+  )
+  */
+  def ent[E <: Entity[_]](id: EntID[E]): WEval[E] = new WEvalEnt[E](id)
+  class WEvalEnt[E <: Entity[_]](val id: EntID[E]) extends EExtern[E, Context](
     _.efulfill.get(id).asInstanceOf[Option[E]],
     _.efulfill.get(id).asInstanceOf[Fut[E]],
     Seq.empty
