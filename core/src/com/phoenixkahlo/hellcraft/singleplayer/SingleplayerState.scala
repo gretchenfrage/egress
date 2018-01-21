@@ -26,7 +26,7 @@ import com.phoenixkahlo.hellcraft.util.audio.AudioUtil
 import com.phoenixkahlo.hellcraft.util.caches.Cache
 import com.phoenixkahlo.hellcraft.util.collections.spatial.SpatialTemporalQueue
 import com.phoenixkahlo.hellcraft.util.collections._
-import com.phoenixkahlo.hellcraft.helper.{Helper, LocalHelper}
+import com.phoenixkahlo.hellcraft.helper.{Helper, LocalHelper, LocalHelperHalf, ProcessHelperLauncher}
 import com.phoenixkahlo.hellcraft.util.threading._
 import other.AppDirs
 
@@ -59,19 +59,17 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     val res = 16
 
     println("activating uni executor")
-    UniExecutor.activate({
-      val config = SmartPool.Config(
-        Runtime.getRuntime.availableProcessors,
-        e => {
-          System.err.println("uni executor failure")
-          e.printStackTrace()
-          driver.enter(new MainMenu(providedResources))
-        },
-        V2F(1, 1.5f),
-        backgroundThreadPriority, foregroundThreadPriority
-      )
-      new SmartPool(config)
-    })
+    val config = SmartPool.Config(
+      Runtime.getRuntime.availableProcessors,
+      e => {
+        System.err.println("uni executor failure")
+        e.printStackTrace()
+        driver.enter(new MainMenu(providedResources))
+      },
+      V2F(1, 1.5f),
+      backgroundThreadPriority, foregroundThreadPriority
+    )
+    UniExecutor.activate(new SmartPool(config))
     /*
     UniExecutor.activate(
       auxBackgroundThreads,
@@ -90,7 +88,24 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     */
 
     println("creating helper")
-    helper = new LocalHelper()(UniExecutor.getService)
+    //helper = new LocalHelper()(UniExecutor.getService)
+    helper = ProcessHelperLauncher.launch(SmartPool.Config(
+      Runtime.getRuntime.availableProcessors(),
+      e => {
+        println("uni executor failure (helper)")
+        e.printStackTrace()
+      },
+      V2F(1, 1.5f),
+      backgroundThreadPriority, foregroundThreadPriority
+    )) match {
+      case scala.util.Left(helper) =>
+        println("helper processes launched successfully!")
+        helper
+      case scala.util.Right(err) =>
+        System.err.println("helper process failed to launch!")
+        err.printStackTrace()
+        new LocalHelper()(UniExecutor.getService)
+    }
 
     //clientLogic = AvatarClientMain(clientCore, EntID.random[Avatar]())
 
@@ -193,6 +208,7 @@ class SingleplayerState(providedResources: Cache[ResourcePack]) extends GameStat
     Thread.currentThread().setPriority(renderThreadPriority)
 
     println("initializing helper")
+
     helper.start({
       import com.phoenixkahlo.hellcraft.helper.HelperService.Starter
       Seq(
