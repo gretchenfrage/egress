@@ -115,7 +115,7 @@ object RemoteHelperSide {
     println("remote helper started")
 
     //val port = Integer.parseInt(args(0))
-    val port = 39422git //new Scanner(System.in).nextInt()
+    val port = 39422//new Scanner(System.in).nextInt()
     println("connecting to port: " + port)
     val socket = new Socket("localhost", port)
     println("connected")
