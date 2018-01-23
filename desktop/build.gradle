@@ -1,3 +1,6 @@
+import java.nio.file.Files
+import java.nio.file.Path
+
 apply plugin: "java"
 
 sourceCompatibility = 1.8
@@ -6,7 +9,19 @@ sourceSets.main.java.srcDirs = [ "src/" ]
 project.ext.mainClassName = "com.phoenixkahlo.hellcraft.desktop.DesktopLauncher"
 project.ext.assetsDir = new File("../core/assets");
 
-task run(dependsOn: classes, type: JavaExec) {
+task dist(type: Jar) {
+    from files(sourceSets.main.output.classesDir)
+    from files(sourceSets.main.output.resourcesDir)
+    from {configurations.compile.collect {zipTree(it)}}
+    from files(project.assetsDir);
+
+    manifest {
+        attributes 'Main-Class': project.mainClassName
+    }
+}
+
+
+task run(dependsOn: [classes, dist], type: JavaExec) {
     main = project.mainClassName
     classpath = sourceSets.main.runtimeClasspath
     standardInput = System.in
@@ -14,7 +29,7 @@ task run(dependsOn: classes, type: JavaExec) {
     ignoreExitValue = true
 }
 
-task debug(dependsOn: classes, type: JavaExec) {
+task debug(dependsOn: [classes, dist], type: JavaExec) {
     main = project.mainClassName
     classpath = sourceSets.main.runtimeClasspath
     standardInput = System.in
@@ -23,21 +38,49 @@ task debug(dependsOn: classes, type: JavaExec) {
     debug = true
 }
 
-task dist(type: Jar) {
+task helper(type: Jar) {
     from files(sourceSets.main.output.classesDir)
     from files(sourceSets.main.output.resourcesDir)
     from {configurations.compile.collect {zipTree(it)}}
     from files(project.assetsDir);
- 
+    archiveName = "helper.jar"
+    destinationDir = project.assetsDir
+
     manifest {
-        attributes 'Main-Class': project.mainClassName
+        attributes 'Main-Class': "com.phoenixkahlo.hellcraft.helper.RemoteHelperSide"
+    }
+
+    doLast {
+        //file("boop")
+        /*
+        ant.move(
+                buildDir.toPath().resolve("libs/helper.jar").toFile(),
+                project.assetsDir
+        )
+        */
+        /*
+        Path from = buildDir.toPath().resolve("libs/helper.jar")
+        Path to = project.assetsDir.toPath().resolve("helper.jar")
+
+        Files.move(from, to)
+        */
     }
 }
+
+/*
+task helper(dependsOn: helper_build, type: Exec) {
+    Path from = buildDir.toPath().resolve("libs/helper.jar")
+    Path to = project.assetsDir.toPath()
+
+    Files.move(from, to)
+}
+*/
+
 
 task launch(dependsOn: dist, type: Exec) {
     //workingDir "${buildDir}/foo"
     workingDir = buildDir.toPath().resolve("libs").toFile()
-    commandLine 'cmd', '/c', 'java -XX:+UseConcMarkSweepGC -XX:+PrintGC -XX:NewRatio=1 -Xms10g -Xmx10g -d64 -jar desktop-1.0.jar '
+    commandLine 'cmd', '/c', 'java -XX:+UseConcMarkSweepGC -XX:+PrintGC -XX:NewRatio=1 -Xms1g -Xmx6g -d64 -jar desktop-1.0.jar '
 } << {
     println 'launching!'
 }
