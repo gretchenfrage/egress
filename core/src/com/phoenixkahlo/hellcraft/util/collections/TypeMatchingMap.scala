@@ -44,8 +44,8 @@ class TypeMatchingMap[K[_ <: B], V[_ <: B], B](private val contents: Map[Any, An
     new TypeMatchingMap[K, V, B](contents, d)
 
   type ThisPair[T <: B] = TypeMatchingMap.Pair[K, V, B, T]
-  def toSeq: Seq[ThisPair[_ <: B]] =
-    contents.keySet.toSeq.flatMap(k => get(k.asInstanceOf[K[B]]).map(v => (k, v).asInstanceOf[ThisPair[_ <: B]]))
+  def toSeq: Seq[ThisPair[_]] =
+    contents.keySet.toSeq.flatMap(k => get(k.asInstanceOf[K[B]]).map(v => (k, v).asInstanceOf[ThisPair[_]]))
 
   override def toString: String = contents.toString
 

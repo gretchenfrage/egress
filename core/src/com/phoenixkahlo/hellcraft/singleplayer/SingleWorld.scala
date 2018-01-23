@@ -12,7 +12,6 @@ import com.phoenixkahlo.hellcraft.core.event.UE
 import com.phoenixkahlo.hellcraft.core.request.{Request, Requested}
 import com.phoenixkahlo.hellcraft.core.util.GroupedEffects
 import com.phoenixkahlo.hellcraft.core.{CallService, Chunk, Event, EventID, IdenEvent, LogEffect, MakeRequest, PutChunk, PutEnt, RemEnt, SoundEffect, Terrain, UpdateEffect, event}
-import com.phoenixkahlo.hellcraft.helper.Helper
 import com.phoenixkahlo.hellcraft.math.{MRNG, V3I}
 import com.phoenixkahlo.hellcraft.service.procedures.PhysicsServiceProcedure
 import com.phoenixkahlo.hellcraft.service.{Service, ServiceProcedure, ServiceTagTable}
@@ -576,7 +575,7 @@ object SingleContinuum {
 }
 
 // holds a single world and manages impure mechanism
-class SingleContinuum(helper: Helper, save: AsyncSave[ChunkEnts], services: Services) {
+class SingleContinuum(save: AsyncSave[ChunkEnts], services: Services) {
   // these are volatile so that they can be read by other threads, like the rendering thread
   // we store them in one reference so it can be updated atomically, lock-free
   @volatile private var _timeAndCurr: (Long, SingleWorld) =
@@ -610,9 +609,6 @@ class SingleContinuum(helper: Helper, save: AsyncSave[ChunkEnts], services: Serv
 
   // to initialize, load the incomplete seq from the save, and just perform a tick with them as externs
   update(V3ISet.empty, V3ISet.empty, save.getKey(IncompleteKey).await)
-
-  // the local weval helper service procedure
-  val wEvalLocal = new WEvalHelperServiceLocalProcedure(cfulfill, tfulfill, efulfill)
 
   // update the world and return externally handled effects
   def update(cdomain: V3ISet, tdomain: V3ISet, externs: Seq[UpdateEffect]): Seq[UpdateEffect] = {
@@ -786,22 +782,11 @@ class SingleContinuum(helper: Helper, save: AsyncSave[ChunkEnts], services: Serv
 
     // handle the async request effects
     {
-      /*
       val pack = WEval.EvalAsync(UniExecutor.getService, cfulfill, tfulfill, efulfill)
       for (make@MakeRequest(Request(eval, id), onComplete) <- grouped.bin(MakeRequest)) {
         val incompleteID = UUID.randomUUID()
         incomplete.update(_ + (incompleteID -> make))
         new AsyncEval(eval)().fut(WEval.input, pack).map(result => {
-          val requested = new Requested(id, result)
-          val effects = onComplete(requested)
-          asyncEffects.add((effects, () => incomplete.update(_ - incompleteID)))
-        })
-      }
-      */
-      for (make@MakeRequest(Request(eval, id), onComplete) <- grouped.bin(MakeRequest)) {
-        val incompleteID = UUID.randomUUID()
-        incomplete.update(_ + (incompleteID -> make))
-        helper(WEvalHelperServiceID.call(WEvalHelperService.Eval(eval))).map(result => {
           val requested = new Requested(id, result)
           val effects = onComplete(requested)
           asyncEffects.add((effects, () => incomplete.update(_ - incompleteID)))

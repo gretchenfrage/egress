@@ -1,4 +1,4 @@
-package com.phoenixkahlo.hellcraft.helper
+package com.phoenixkahlo.hellcraft.util.helper
 
 import java.util.UUID
 
@@ -26,7 +26,7 @@ object HM {
   case class HMMap[S, R](src: HM[S], func: S => R, exec: ExecHint) extends HM[R]
   case class HMFMap[S, R](src: HM[S], func: S => HM[R]) extends HM[R]
   case class HMMisc[T](fac: UniExecutor => Fut[T]) extends HM[T]
-  case class HMSCall[T, S <: HelperService](sid: HelperServiceID[S], call: S#RemoteCall[T]) extends HM[T]
+  case class HMSCall[T, S <: HelperService](sid: ServiceID[S], call: S#RemoteCall[T]) extends HM[T]
 }
 
 /**
@@ -42,16 +42,16 @@ object HelperService {
     * Bean used to start service.
     */
   case class Starter[S <: HelperService](
-                                          id: HelperServiceID[S],
-                                          local: LocalHelperServiceProcedure[S],
-                                          remote: UniExecutor => RemoteHelperServiceProcedure[S]
+                                                 id: ServiceID[S],
+                                                 local: LocalHelperServiceProcedure[S],
+                                                 remote: UniExecutor => RemoteHelperServiceProcedure[S]
                                                )
 }
 
 /**
   * A simple typesafe wrapper around a UUID with a convience method for making a service call helper monad.
   */
-case class HelperServiceID[S <: HelperService](id: UUID) {
+case class ServiceID[S <: HelperService](id: UUID) {
   def call[T](call: S#RemoteCall[T]): HM[T] = HM.HMSCall[T, S](this, call)
 }
 
